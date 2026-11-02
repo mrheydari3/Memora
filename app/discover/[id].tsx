@@ -1,0 +1,195 @@
+import { useEffect, useState } from 'react';
+import { View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
+import { fetchFeaturedDecks, importDeck, type FeaturedDeck } from '../../services/discovery';
+import { textDirection } from '../../data/text';
+import {
+  AppText,
+  Screen,
+  TopAppBar,
+  GlassCard,
+  SectionHeader,
+  PrimaryButton,
+  GhostButton,
+  EmptyState,
+  RevealItem,
+  Skeleton,
+  SkeletonText,
+} from '../../components';
+import { colors, heights, iconSize, radii, spacing } from '../../theme/tokens';
+
+export default function DiscoverDeckPreviewScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const [deck, setDeck] = useState<FeaturedDeck | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchFeaturedDecks().then((decks) => {
+      if (!active) return;
+      setDeck(decks.find((d) => d.id === id) ?? null);
+      setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  const handleAdd = async () => {
+    if (!deck || importing) return;
+    setImporting(true);
+    try {
+      const importedId = await importDeck(deck);
+      router.replace(`/deck/${importedId}`);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <Screen
+      scroll={!loading && !!deck}
+      gutter={!loading && !!deck}
+      header={<TopAppBar title="Discover" back />}
+    >
+      {/* The deck name is the page title below; the bar stays contextual. */}
+      {loading ? (
+        <View style={{ paddingHorizontal: spacing.screen, paddingTop: spacing.screen }}>
+          <Skeleton height={26} width="64%" radius={9} />
+          <View className="mt-4 flex-row" style={{ gap: 16 }}>
+            <Skeleton width={96} height={11} radius={5} />
+            <Skeleton width={54} height={11} radius={5} />
+          </View>
+          <SkeletonText lines={3} style={{ marginTop: 18 }} />
+          <Skeleton height={52} radius={radii.control} style={{ marginTop: 22 }} />
+          <Skeleton height={10} width={112} radius={5} style={{ marginTop: 30 }} />
+          <View className="mt-4 flex-row flex-wrap" style={{ gap: 12 }}>
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} height={104} radius={radii.pane} style={{ width: '47%' }} />
+            ))}
+          </View>
+        </View>
+      ) : !deck ? (
+        <View className="flex-1 items-center justify-center px-6">
+          <EmptyState
+            icon="search-off"
+            title="Deck not found"
+            titleVariant="headline"
+            description="This deck is no longer in Discover."
+            action={<GhostButton label="Back to Discover" className="px-6" onPress={() => router.back()} />}
+          />
+        </View>
+      ) : (
+        <>
+          <RevealItem index={0}>
+          <AppText variant="title">{deck.name}</AppText>
+          <View className="mt-3 flex-row items-center gap-4">
+            <View className="flex-row items-center gap-1.5">
+              <MaterialIcons name="style" size={iconSize.sm} color={colors.outline} />
+              {/* Only the bundled preview cards are imported, so show that
+                  number rather than the catalogue's advertised deck size. */}
+              <AppText variant="bodySm" weight="medium" tone="muted">
+                {deck.sampleCards.length} preview cards
+              </AppText>
+            </View>
+            <View className="flex-row items-center gap-1.5">
+              <MaterialIcons name="star" size={iconSize.sm} color={colors.warning} />
+              <AppText variant="bodySm" weight="medium" tone="muted">
+                {deck.rating.toFixed(1)}
+              </AppText>
+            </View>
+          </View>
+
+          <AppText variant="body" tone="muted" className="mt-4">
+            {deck.description}
+          </AppText>
+
+          <PrimaryButton
+            className="mt-6"
+            label={importing ? 'Adding…' : 'Add deck'}
+            icon={importing ? undefined : 'add'}
+            loading={importing}
+            onPress={handleAdd}
+          />
+          </RevealItem>
+
+          <RevealItem index={1}>
+          <SectionHeader className="mt-8" label="Sample cards" hint={`${deck.sampleCards.length}`} />
+          </RevealItem>
+          <View className="mt-3 flex-row flex-wrap gap-3">
+            {deck.sampleCards.map((card, i) => (
+              <RevealItem key={i} index={i + 1} style={{ width: '47%' }}>
+              <GlassCard className="w-full" padding="sm">
+                <AppText
+                  variant="bodyLg"
+                  weight="semibold"
+                  style={{ writingDirection: textDirection(card.front) }}
+                  numberOfLines={3}
+                >
+                  {card.front}
+                </AppText>
+                <View className="my-2.5 h-px bg-hairline" />
+                <AppText
+                  variant="bodySm"
+                  tone="muted"
+                  style={{ writingDirection: textDirection(card.back) }}
+                  numberOfLines={3}
+                >
+                  {card.back}
+                </AppText>
+              </GlassCard>
+              </RevealItem>
+            ))}
+          </View>
+
+          {deck.reviews.length > 0 && (
+            <>
+              <SectionHeader className="mt-8" label="Community reviews" />
+              <View className="mt-3 gap-3">
+                {deck.reviews.map((review, i) => (
+                  <RevealItem key={i} index={i}>
+                  <GlassCard padding="sm">
+                    <View className="flex-row items-center gap-2.5">
+                      <View
+                        className="items-center justify-center rounded-full border border-hairline"
+                        style={{
+                          width: heights.iconSm,
+                          height: heights.iconSm,
+                          backgroundColor: colors.hairlineGhost,
+                        }}
+                      >
+                        <AppText variant="bodySm" weight="semibold" tone="muted">
+                          {review.author.slice(0, 1)}
+                        </AppText>
+                      </View>
+                      <AppText variant="bodySm" weight="semibold" className="flex-1">
+                        {review.author}
+                      </AppText>
+                      <View className="flex-row">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <MaterialIcons
+                            key={star}
+                            name="star"
+                            size={iconSize.xs}
+                            color={star <= review.rating ? colors.warning : colors.outlineSoft}
+                          />
+                        ))}
+                      </View>
+                    </View>
+                    <AppText variant="bodySm" tone="muted" className="mt-2.5">
+                      {review.text}
+                    </AppText>
+                  </GlassCard>
+                  </RevealItem>
+                ))}
+              </View>
+            </>
+          )}
+        </>
+      )}
+    </Screen>
+  );
+}

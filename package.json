@@ -1,0 +1,50 @@
+{
+  "name": "memora",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "dependencies": {
+    "@expo-google-fonts/inter": "^0.4.2",
+    "@expo/vector-icons": "^15.1.1",
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "expo": "~58.0.22",
+    "expo-asset": "~58.0.19",
+    "expo-audio": "~58.0.11",
+    "expo-blur": "~58.0.5",
+    "expo-constants": "~58.0.14",
+    "expo-font": "~58.0.11",
+    "expo-haptics": "~58.0.7",
+    "expo-linking": "~58.0.15",
+    "expo-router": "~58.0.29",
+    "expo-speech": "~58.0.3",
+    "expo-status-bar": "~58.0.4",
+    "expo-system-ui": "~58.0.7",
+    "expo-web-browser": "~58.0.7",
+    "nativewind": "^4.2.6",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-reanimated": "4.7.1",
+    "react-native-safe-area-context": "~5.10.1",
+    "react-native-svg": "15.16.0",
+    "react-native-web": "^0.21.4",
+    "react-native-worklets": "0.13.0",
+    "tailwindcss": "^3.4.19",
+    "ts-fsrs": "5.4.1",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "~19.3.0",
+    "babel-preset-expo": "~58.0.23",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "test": "node --import ./scripts/ts-resolve.mjs --test \"data/**/*.test.ts\"",
+    "check:design": "node scripts/check-design-tokens.mjs",
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "private": true
+}

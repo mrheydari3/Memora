@@ -1,0 +1,78 @@
+[
+  {
+    "id": "discover-french-basics",
+    "name": "French Basics",
+    "icon": "language",
+    "color": "#9DCAFF",
+    "cardCount": 120,
+    "rating": 4.7,
+    "description": "Essential French vocabulary and phrases for absolute beginners.",
+    "sampleCards": [
+      { "front": "bonjour", "back": "hello" },
+      { "front": "merci", "back": "thank you" },
+      { "front": "au revoir", "back": "goodbye" },
+      { "front": "s'il vous plaît", "back": "please" }
+    ],
+    "reviews": [
+      { "author": "Marie", "rating": 5, "text": "Perfect for starting out. The pronunciation notes are a lifesaver." },
+      { "author": "Tom", "rating": 4, "text": "Great deck, wish it had more advanced words too." }
+    ]
+  },
+  {
+    "id": "discover-spanish-verbs",
+    "name": "Spanish Verbs",
+    "icon": "translate",
+    "color": "#FFD54F",
+    "cardCount": 85,
+    "rating": 4.5,
+    "description": "The most common Spanish verbs with conjugations and examples.",
+    "sampleCards": [
+      { "front": "ser", "back": "to be" },
+      { "front": "estar", "back": "to be (temporary)" },
+      { "front": "tener", "back": "to have" },
+      { "front": "hacer", "back": "to do / make" }
+    ],
+    "reviews": [
+      { "author": "Carlos", "rating": 5, "text": "Excellent conjugation tables. Highly recommend." },
+      { "author": "Ana", "rating": 4, "text": "Clear and well organized." }
+    ]
+  },
+  {
+    "id": "discover-japanese-kana",
+    "name": "Japanese Kana",
+    "icon": "translate",
+    "color": "#E57373",
+    "cardCount": 92,
+    "rating": 4.9,
+    "description": "Hiragana and Katakana characters with stroke order.",
+    "sampleCards": [
+      { "front": "あ", "back": "a" },
+      { "front": "い", "back": "i" },
+      { "front": "う", "back": "u" },
+      { "front": "え", "back": "e" }
+    ],
+    "reviews": [
+      { "author": "Kenji", "rating": 5, "text": "The stroke order diagrams make this deck stand out." },
+      { "author": "Lily", "rating": 5, "text": "Beautifully designed and effective." }
+    ]
+  },
+  {
+    "id": "discover-medical-terms",
+    "name": "Medical Terms",
+    "icon": "medical-services",
+    "color": "#81C784",
+    "cardCount": 200,
+    "rating": 4.8,
+    "description": "Essential medical terminology for healthcare students.",
+    "sampleCards": [
+      { "front": "tachycardia", "back": "abnormally rapid heart rate" },
+      { "front": "bradycardia", "back": "abnormally slow heart rate" },
+      { "front": "hypertension", "back": "high blood pressure" },
+      { "front": "hypotension", "back": "low blood pressure" }
+    ],
+    "reviews": [
+      { "author": "Dr. Smith", "rating": 5, "text": "Comprehensive and accurate. Great for exam prep." },
+      { "author": "Nurse Joy", "rating": 4, "text": "Very helpful for terminology review." }
+    ]
+  }
+]

@@ -1,0 +1,201 @@
+/**
+ * Memora Design System — theme tokens.
+ *
+ * Every value here comes from `theme/palette.js`, which is also what
+ * `tailwind.config.js` reads, so classes and programmatic styles cannot drift.
+ * Prefer Tailwind classes in JSX; use these constants only where Tailwind
+ * cannot reach (SVG, Animated, StyleSheet, icon colours, measured geometry).
+ *
+ * The standard is one ink canvas, one accent, hairline strokes, frosted panes.
+ * Nothing in the app should introduce a colour that is not listed here.
+ */
+
+import { Platform } from 'react-native';
+import type { ViewStyle } from 'react-native';
+
+type Palette = {
+  colors: Record<
+    | 'background'
+    | 'surface'
+    | 'surfaceDim'
+    | 'surfaceBright'
+    | 'surfaceContainerLowest'
+    | 'surfaceContainerLow'
+    | 'surfaceContainer'
+    | 'surfaceContainerHigh'
+    | 'surfaceContainerHighest'
+    | 'onSurface'
+    | 'onSurfaceVariant'
+    | 'inverseSurface'
+    | 'inverseOnSurface'
+    | 'outline'
+    | 'outlineSoft'
+    | 'outlineVariant'
+    | 'primary'
+    | 'onPrimary'
+    | 'primaryContainer'
+    | 'onPrimaryContainer'
+    | 'inversePrimary'
+    | 'secondary'
+    | 'onSecondary'
+    | 'secondaryContainer'
+    | 'onSecondaryContainer'
+    | 'tertiary'
+    | 'onTertiary'
+    | 'tertiaryContainer'
+    | 'error'
+    | 'onError'
+    | 'errorContainer'
+    | 'onErrorContainer'
+    | 'success'
+    | 'warning'
+    | 'surfaceVariant'
+    | 'hairline'
+    | 'hairlineStrong'
+    | 'hairlineFaint'
+    | 'hairlineGhost'
+    | 'accentFaint'
+    | 'accentSoft'
+    | 'accentLine'
+    | 'accentActive',
+    string
+  >;
+  fills: Record<'subtle' | 'inset' | 'tile' | 'control' | 'track', string>;
+  rims: Record<'soft' | 'faint' | 'tile' | 'strong', string>;
+  veil: string;
+  glass: {
+    fill: string;
+    strong: string;
+    accent: string;
+    tab: string;
+    tabOverlay: string;
+    cardFace: string;
+    stackNear: string;
+    stackFar: string;
+    blur: number;
+    blurStrong: number;
+    blurTab: number;
+    saturate: number;
+    saturateStrong: number;
+  };
+  ambient: Record<'blue' | 'amber' | 'green', { web: string; native: string }>;
+  radii: Record<'micro' | 'sm' | 'control' | 'pane' | 'sheet' | 'pill', number>;
+  heights: Record<
+    | 'appbar'
+    | 'rowCompact'
+    | 'row'
+    | 'rowTall'
+    | 'field'
+    | 'fieldTall'
+    | 'buttonSm'
+    | 'button'
+    | 'iconSm'
+    | 'icon'
+    | 'iconLg'
+    | 'tile'
+    | 'tileLg'
+    | 'avatar'
+    | 'avatarLg'
+    | 'toggle'
+    | 'toggleWidth'
+    | 'studyFooter'
+    | 'sheetList'
+    | 'sheetTall'
+    | 'sheetCompact',
+    number
+  >;
+  iconSize: Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'display', number>;
+  typography: Record<
+    'display' | 'title' | 'headline' | 'bodyLg' | 'body' | 'bodySm' | 'label' | 'caption',
+    { fontSize: number; lineHeight: number; letterSpacing: number }
+  >;
+  weights: Record<
+    'display' | 'title' | 'headline' | 'bodyLg' | 'body' | 'bodySm' | 'label' | 'caption',
+    string
+  >;
+  shadows: Record<'pane' | 'action' | 'tile' | 'floating' | 'card', string>;
+  stateColors: Record<'New' | 'Learning' | 'Relearning' | 'Review', string>;
+  spacing: Record<'screen' | 'gutter' | 'row' | 'section' | 'tabClearance' | 'screenBottom', number>;
+  motion: {
+    fast: number;
+    base: number;
+    slow: number;
+    flip: number;
+    spring: { speed: number; bounciness: number };
+  };
+  tabBar: { height: number; itemWidth: number; gutter: number; pill: number };
+};
+
+// palette.js is plain CommonJS so tailwind.config.js can require it too.
+const palette = require('./palette.js') as Palette;
+
+export const colors = palette.colors;
+export const fills = palette.fills;
+export const rims = palette.rims;
+export const veil = palette.veil;
+export const glass = palette.glass;
+export const ambient = palette.ambient;
+export const radii = palette.radii;
+export const heights = palette.heights;
+export const iconSize = palette.iconSize;
+export const typography = palette.typography;
+export const weights = palette.weights;
+export const stateColors = palette.stateColors;
+export const spacing = palette.spacing;
+export const motion = palette.motion;
+export const tabBar = palette.tabBar;
+
+/** Depth by role. */
+export const shadow = palette.shadows;
+
+/** The blue tint of a hero/accent pane. */
+export const paneAccent = glass.accent;
+
+/**
+ * The frosted pane fill, shared by every pane, the app bar, the tab bar and the
+ * rating tiles so every surface reads the same. Web forwards `backdropFilter`
+ * to the DOM; React Native's style types don't include it, hence the cast.
+ */
+const isWeb = Platform.OS === 'web';
+
+export const glassFill: ViewStyle = {
+  backgroundColor: glass.fill,
+  ...(isWeb
+    ? ({
+        backdropFilter: `blur(${glass.blur}px) saturate(${glass.saturate}%)`,
+      } as unknown as ViewStyle)
+    : {}),
+};
+
+export const glassFillStrong: ViewStyle = {
+  backgroundColor: glass.strong,
+  ...(isWeb
+    ? ({
+        backdropFilter: `blur(${glass.blurStrong}px) saturate(${glass.saturateStrong}%)`,
+      } as unknown as ViewStyle)
+    : {}),
+};
+
+/** The lit 1px rim used at the top of every pane. */
+export const rimColor = rims.soft;
+
+/** Helper: apply alpha to a hex color. */
+export function alpha(hex: string, a: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+/** Helper: lighten a hex color toward white. */
+export function tint(hex: string, ratio: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const nr = Math.round(r + (255 - r) * ratio);
+  const ng = Math.round(g + (255 - g) * ratio);
+  const nb = Math.round(b + (255 - b) * ratio);
+  return `#${nr.toString(16).padStart(2, '0')}${ng.toString(16).padStart(2, '0')}${nb
+    .toString(16)
+    .padStart(2, '0')}`;
+}
