@@ -12,6 +12,7 @@ import { useReviewStore } from '../store/useReviewStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useGameStore } from '../store/useGameStore';
 import { initInstallPromptListener } from '../services/install';
+import { ensureWebFonts } from '../services/webFonts';
 import { noteActivePath } from '../services/navigation';
 import { colors, motion } from '../theme/tokens';
 import { AppSplash } from '../components/AppSplash';
@@ -48,6 +49,9 @@ export default function RootLayout() {
 
   // Initialize stores and PWA install listener on boot
   useEffect(() => {
+    // The web build re-registers the two Inter weights expo-font drops; see
+    // services/webFonts.ts. It is a no-op on native.
+    ensureWebFonts();
     useDeckStore.getState().load();
     useReviewStore.getState().load();
     useSettingsStore.getState().load();

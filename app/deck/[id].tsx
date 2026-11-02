@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, ScrollView, Animated } from 'react-native';
+import { View, Animated } from 'react-native';
 import type { ViewStyle } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
@@ -20,6 +20,7 @@ import {
   PrimaryButton,
   CardStack,
   BottomSheetModal,
+  SheetScrollView,
   SegmentedProgressBar,
   SegmentedControl,
   EmptyState,
@@ -504,7 +505,7 @@ export default function DeckDetailsScreen() {
             </AppText>
           </View>
         )}
-        <ScrollView style={{ maxHeight: heights.sheetCompact }}>
+        <SheetScrollView style={{ maxHeight: heights.sheetCompact }}>
           <SheetRow
             icon="folder-open"
             label="Top level (no parent)"
@@ -525,7 +526,7 @@ export default function DeckDetailsScreen() {
               }}
             />
           ))}
-        </ScrollView>
+        </SheetScrollView>
       </BottomSheetModal>
 
       {/* Folder sheet — a browsing label only: the deck keeps its cards,
@@ -542,7 +543,7 @@ export default function DeckDetailsScreen() {
             </AppText>
           </View>
         ) : (
-          <ScrollView style={{ maxHeight: heights.sheetCompact }}>
+          <SheetScrollView style={{ maxHeight: heights.sheetCompact }}>
             <SheetRow
               icon="folder-open"
               label="No folder"
@@ -562,7 +563,7 @@ export default function DeckDetailsScreen() {
                 }}
               />
             ))}
-          </ScrollView>
+          </SheetScrollView>
         )}
       </BottomSheetModal>
 

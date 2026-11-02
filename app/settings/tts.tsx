@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, ScrollView } from 'react-native';
+import { View } from 'react-native';
 import { MaterialIcons } from '../../components/Icon';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { speak, stopSpeaking } from '../../services/tts';
@@ -13,6 +13,7 @@ import {
   SettingsNote,
   ToggleSwitch,
   BottomSheetModal,
+  SheetScrollView,
   ListRow,
   RevealItem,
 } from '../../components';
@@ -157,7 +158,7 @@ export default function TTSSettingsScreen() {
         onClose={() => setPickerField(null)}
         title={pickerField === 'back' ? 'Back language' : 'Front language'}
       >
-        <ScrollView style={{ maxHeight: heights.sheetList }}>
+        <SheetScrollView style={{ maxHeight: heights.sheetList }}>
           {LANGUAGES.map((lang) => {
             const selected = lang.code === active;
             return (
@@ -184,7 +185,7 @@ export default function TTSSettingsScreen() {
               </View>
             );
           })}
-        </ScrollView>
+        </SheetScrollView>
       </BottomSheetModal>
     </Screen>
   );

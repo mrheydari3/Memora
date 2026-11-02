@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Pressable, ScrollView } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../services/navigation';
 import { MaterialIcons } from '../components/Icon';
@@ -13,6 +13,7 @@ import {
   GhostButton,
   BottomSheetModal,
   SheetPanel,
+  SheetScrollView,
   ListRow,
   Field,
 } from '../components';
@@ -102,7 +103,7 @@ export default function AddDeckScreen() {
 
       {/* New Deck form */}
       <BottomSheetModal visible={formVisible} onClose={() => setFormVisible(false)} title="New Deck">
-        <ScrollView style={{ maxHeight: heights.sheetTall }} showsVerticalScrollIndicator={false}>
+        <SheetScrollView style={{ maxHeight: heights.sheetTall }} showsVerticalScrollIndicator={false}>
           <Field label="Name" value={name} onChangeText={setName} placeholder="Deck name" />
 
           <Field
@@ -175,7 +176,7 @@ export default function AddDeckScreen() {
           </View>
 
           <PrimaryButton label="Create deck" onPress={createDeck} disabled={!name.trim()} />
-        </ScrollView>
+        </SheetScrollView>
       </BottomSheetModal>
     </Screen>
   );

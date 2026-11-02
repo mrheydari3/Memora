@@ -68,6 +68,7 @@ type Palette = {
     tab: string;
     tabOverlay: string;
     cardFace: string;
+    sheet: string;
     stackNear: string;
     stackFar: string;
     blur: number;
@@ -149,6 +150,18 @@ type Palette = {
     spring: { speed: number; bounciness: number };
     liquidSpring: { speed: number; bounciness: number };
   };
+  sheet: {
+    scrimBlur: number;
+    scrimDim: number;
+    maxHeightRatio: number;
+    minHeightRatio: number;
+    closeOverscroll: number;
+    minShrink: number;
+    minDragHeight: number;
+    handleWidth: number;
+    handleActiveWidth: number;
+    handleHeight: number;
+  };
   tabBar: {
     height: number;
     maxWidth: number;
@@ -176,6 +189,7 @@ export const stateColors = palette.stateColors;
 export const spacing = palette.spacing;
 export const layout = palette.layout;
 export const motion = palette.motion;
+export const sheet = palette.sheet;
 export const tabBar = palette.tabBar;
 
 /** Depth by role. */

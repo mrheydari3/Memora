@@ -21,7 +21,7 @@ export { SearchBar } from './SearchBar';
 export { Chip } from './Chip';
 export { SegmentedControl } from './SegmentedControl';
 export type { Segment } from './SegmentedControl';
-export { BottomSheetModal, SheetPanel } from './BottomSheetModal';
+export { BottomSheetModal, SheetPanel, SheetScrollView } from './BottomSheetModal';
 export { Stepper } from './Stepper';
 export { Field } from './Field';
 export { Pill } from './Pill';

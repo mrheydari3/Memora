@@ -111,6 +111,11 @@ const glass = {
   tabOverlay: 'rgba(0, 0, 0, 0.28)',
   /** The flashcard face reads a touch brighter than a normal pane. */
   cardFace: 'rgba(23, 30, 41, 0.72)',
+  /**
+   * The sheet face. Nearly opaque on purpose: a sheet carries text over a live
+   * page, and 0.82 let a large heading behind it read through the rows.
+   */
+  sheet: 'rgba(9, 13, 19, 0.94)',
   /** The two panes peeking out under the flashcard. */
   stackNear: 'rgba(13, 18, 26, 0.62)',
   stackFar: 'rgba(9, 13, 19, 0.55)',
@@ -275,6 +280,35 @@ const layout = {
   splashRail: 132,
 };
 
+/**
+ * Bottom-sheet geometry and scrim.
+ *
+ * A sheet lifts over a blurred canvas instead of a flat dim: the scrim is a
+ * frosted layer, so the page behind reads as depth rather than as competing
+ * content. The panel itself can be pulled down to `minHeightRatio` of the
+ * viewport, and a release past that floor dismisses it.
+ */
+const sheet = {
+  /** expo-blur intensity (1–100) of the layer behind the panel. */
+  scrimBlur: 60,
+  /** Extra ink over the blur, so text behind never competes with the panel. */
+  scrimDim: 0.22,
+  /** Share of the viewport a sheet may grow to. */
+  maxHeightRatio: 0.9,
+  /** Floor a dragged sheet shrinks to, before it closes. */
+  minHeightRatio: 0.34,
+  /** How far past the floor a release must travel to close instead of snap. */
+  closeOverscroll: 40,
+  /** A sheet always keeps at least this much travel to shrink, in px. */
+  minShrink: 72,
+  /** No floor may go below this, so the grab handle and title stay usable. */
+  minDragHeight: 120,
+  /** The grab handle: quiet at rest, wider while held. */
+  handleWidth: 44,
+  handleActiveWidth: 58,
+  handleHeight: 4,
+};
+
 const motion = {
   fast: 160,
   base: 260,
@@ -310,6 +344,7 @@ module.exports = {
   stateColors,
   spacing,
   layout,
+  sheet,
   motion,
   tabBar,
 };
