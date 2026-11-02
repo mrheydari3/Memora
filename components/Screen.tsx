@@ -23,6 +23,11 @@ type ScreenProps = {
   tabClearance?: boolean;
   contentClassName?: string;
   /**
+   * Cap the body's reading column and centre it. A list at 768px would
+   * otherwise stretch a card across the whole tablet.
+   */
+  contentMaxWidth?: number;
+  /**
    * Fade/rise the body every time the screen takes focus. On by default: every
    * route then enters with the same motion, including a tab you come back to.
    * Turn it off for a screen that owns its own entrance (a live session).
@@ -54,6 +59,7 @@ export function Screen({
   gutter = false,
   tabClearance = false,
   contentClassName = '',
+  contentMaxWidth,
   animate = true,
 }: ScreenProps) {
   const focused = useIsFocused();
@@ -87,6 +93,9 @@ export function Screen({
               paddingTop: spacing.screen,
               paddingBottom: tabClearance ? spacing.tabClearance : spacing.screenBottom,
               ...(gutter ? { paddingHorizontal: spacing.screen } : {}),
+              ...(contentMaxWidth
+                ? { width: '100%', maxWidth: contentMaxWidth, alignSelf: 'center' }
+                : {}),
             }}
             showsVerticalScrollIndicator={false}
             decelerationRate="normal"

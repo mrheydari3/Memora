@@ -40,8 +40,8 @@ export function TopAppBar({
 
   return (
     <View
-      className="flex-row items-center pl-2 pr-3"
-      style={[glassFillAppBar, { height: heights.appbar }]}
+      className="flex-row items-center"
+      style={[glassFillAppBar, { height: heights.appbar, paddingStart: 8, paddingEnd: 12 }]}
     >
       {leftContent ? (
         leftContent
@@ -61,7 +61,8 @@ export function TopAppBar({
             <AppText
               variant="bodyLg"
               weight="semibold"
-              className="ml-2 flex-1"
+              className="flex-1"
+              style={{ marginStart: 8 }}
               numberOfLines={1}
               headingLevel={1}
             >

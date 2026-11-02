@@ -26,7 +26,7 @@ import {
   ListRow,
   IconButton,
 } from '../../components';
-import { alpha, colors, heights, iconSize, spacing } from '../../theme/tokens';
+import { alpha, colors, heights, iconSize, layout, spacing } from '../../theme/tokens';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -115,10 +115,11 @@ export default function HomeScreen() {
       scroll
       gutter
       tabClearance
+      contentMaxWidth={layout.contentMaxWidth}
       header={
         <TopAppBar
           leftContent={
-            <View className="flex-1 flex-row items-center gap-2 pl-1">
+            <View className="flex-1 flex-row items-center gap-2" style={{ paddingStart: 4 }}>
               <View
                 className="items-center justify-center rounded-md"
                 style={{
@@ -145,8 +146,11 @@ export default function HomeScreen() {
       }
     >
       <RevealItem index={0}>
-        <View className="flex-row items-start justify-between">
-          <View className="flex-1 pr-3">
+        {/* Wraps instead of squeezing: at 200% text size the streak pill moves
+            below the greeting instead of crushing the heading into one letter
+            per line. */}
+        <View className="flex-row flex-wrap items-start justify-between gap-2">
+          <View className="flex-1" style={{ minWidth: 200, paddingEnd: 12 }}>
             <AppText variant="caption" weight="semibold" tone="muted" className="uppercase">
               Your library
             </AppText>

@@ -13,6 +13,7 @@ import { BlurView } from 'expo-blur';
 import { AppText } from './AppText';
 import { colors, glass, iconSize, motion, rimColor, shadow, tabBar } from '../theme/tokens';
 import { prefersReducedMotion, springLiquidTo } from '../motion';
+import { useRtl } from '../services/direction';
 
 type TabBarState = {
   index: number;
@@ -32,13 +33,22 @@ type LiquidTabBarProps = {
   insets: { bottom: number };
 };
 
+/** A tab's measured box inside the bar's row. */
+type Slot = { x: number; width: number };
+
+/** How far the lens sits inside its tab's box, so neighbours keep a gap. */
+const LENS_INSET = 3;
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
 /**
- * One tab: a single glyph over an accent halo, with the selected one settling
- * in at 1.05.
+ * One tab: a single glyph over its caption, with the selected one settling in
+ * at 1.05.
  *
- * The whole pressable is the target. The icon is hidden from assistive tech and
- * the accessible label supplies the name, so a screen reader never announces
- * the MaterialIcons glyph. The bar renders no visible text.
+ * The whole pressable is the target and it is as wide as its own label needs
+ * (never narrower than a full cell), so a long label — or a reader at 200% text
+ * size — widens the tab instead of spilling under its neighbour. The icon is
+ * hidden from assistive tech and the accessible label supplies the name.
  */
 function TabItem({
   focused,
@@ -47,6 +57,7 @@ function TabItem({
   icon,
   buttonRef,
   onPress,
+  onMeasure,
 }: {
   focused: boolean;
   /** Accessible name, read by assistive tech. */
@@ -56,6 +67,7 @@ function TabItem({
   icon: React.ReactNode;
   buttonRef: (node: unknown) => void;
   onPress: () => void;
+  onMeasure: (slot: Slot) => void;
 }) {
   // React Native Web honours tabIndex; native ignores it. The cast keeps the
   // DOM-only prop out of the native prop contract.
@@ -66,6 +78,10 @@ function TabItem({
       {...webFocusProps}
       ref={buttonRef}
       onPress={onPress}
+      onLayout={(event: LayoutChangeEvent) => {
+        const { x, width } = event.nativeEvent.layout;
+        onMeasure({ x, width });
+      }}
       style={styles.tab}
       role="tab"
       aria-selected={focused}
@@ -74,18 +90,18 @@ function TabItem({
       focusable
     >
       {/*
-        The native arrangement: a glyph over its caption, both in the same
-        column. Nothing paints behind the selected tab — iOS marks selection by
-        tint, not by a filled tile.
+        A glyph over its caption, both in the same column. Nothing paints behind
+        the selected tab beyond the travelling lens.
       */}
       <View
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
         style={{
-          width: tabBar.cell,
+          minWidth: tabBar.cell,
           height: tabBar.pill,
           alignItems: 'center',
           justifyContent: 'center',
+          paddingHorizontal: 6,
         }}
       >
         {icon}
@@ -111,20 +127,109 @@ function TabItem({
  * time. The bar draws no shadow and no lower shade; every colour and geometry
  * value comes from the design tokens, so the capsule, the tile and the glyph
  * step stay in sync.
+ *
+ * The lens is placed from the tabs' own measured boxes rather than from slot
+ * arithmetic: a tab that grows to fit a longer label still gets a lens exactly
+ * over it, and in a right-to-left document (where the row mirrors) the lens is
+ * still on the selected tab instead of on the opposite side of the bar.
  */
 export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: LiquidTabBarProps) {
   const count = state.routes.length;
-  const [barWidth, setBarWidth] = useState(0);
-  const itemWidth =
-    count > 0 ? Math.max(0, (barWidth - tabBar.padding * 2) / count) : 0;
+  const rtl = useRtl();
+
+  /** Each tab's box, measured from the row. Empty until the first layout pass. */
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const measured = slots.length === count && slots.every((slot) => slot && slot.width > 0);
 
   const hide = useRef(new Animated.Value(0)).current;
-  /** The selection lens: an index that springs from the old tab to the new one. */
-  const lens = useRef(new Animated.Value(state.index)).current;
+  /** The selection lens: its left edge and width, both animated. */
+  const lensX = useRef(new Animated.Value(0)).current;
+  const lensW = useRef(new Animated.Value(0)).current;
+  const [lensReady, setLensReady] = useState(false);
+
+  /** The row that holds the tabs; every tab box is measured against it. */
+  const rowRef = useRef<unknown>(null);
+
+  /**
+   * Re-reads every tab box from the DOM. A direction flip or a wider label moves
+   * a tab without resizing it, and `onLayout` only reports size changes — the
+   * rects are always current, so the lens is re-parked after those shifts.
+   */
+  const measureSlots = useCallback(() => {
+    if (Platform.OS !== 'web') return;
+    const row = rowRef.current as HTMLElement | null;
+    if (!row || typeof row.getBoundingClientRect !== 'function') return;
+
+    const rowBox = row.getBoundingClientRect();
+    const boxes: Slot[] = [];
+    for (const node of tabRefs.current.slice(0, countRef.current)) {
+      const element = node as HTMLElement | null;
+      if (!element || typeof element.getBoundingClientRect !== 'function') return;
+      const box = element.getBoundingClientRect();
+      if (box.width === 0) return;
+      boxes.push({ x: box.left - rowBox.left, width: box.width });
+    }
+
+    if (boxes.length !== countRef.current) return;
+    setSlots((previous) => {
+      const same =
+        previous.length === boxes.length &&
+        previous.every(
+          (slot, index) =>
+            Math.abs(slot.x - boxes[index].x) < 0.5 &&
+            Math.abs(slot.width - boxes[index].width) < 0.5
+        );
+      return same ? previous : boxes;
+    });
+  }, []);
 
   useEffect(() => {
-    springLiquidTo(lens, state.index);
-  }, [lens, state.index]);
+    measureSlots();
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    window.addEventListener('resize', measureSlots);
+    return () => window.removeEventListener('resize', measureSlots);
+  }, [measureSlots, rtl, state.index, count]);
+
+  const reportSlot = useCallback((index: number, slot: Slot) => {
+    setSlots((previous) => {
+      const current = previous[index];
+      if (
+        current &&
+        Math.abs(current.x - slot.x) < 0.5 &&
+        Math.abs(current.width - slot.width) < 0.5
+      ) {
+        return previous;
+      }
+      const next = previous.slice();
+      next[index] = slot;
+      return next;
+    });
+  }, []);
+
+  // Park the lens on the selected tab, and settle it there whenever that tab
+  // moves (a resize, or a label that re-measures wider).
+  useEffect(() => {
+    if (!measured) return;
+    const slot = slots[state.index];
+    if (!slot) return;
+
+    const targetX = slot.x + LENS_INSET;
+    const targetWidth = Math.max(24, slot.width - LENS_INSET * 2);
+
+    if (!lensReady || prefersReducedMotion()) {
+      lensX.setValue(targetX);
+      lensW.setValue(targetWidth);
+      setLensReady(true);
+      return;
+    }
+
+    springLiquidTo(lensX, targetX);
+    Animated.spring(lensW, {
+      toValue: targetWidth,
+      ...motion.liquidSpring,
+      useNativeDriver: false,
+    }).start();
+  }, [measured, slots, state.index, lensReady, lensX, lensW]);
 
   // Host handles stay `unknown`: RN 0.88 no longer exports its host element
   // type from the package root, and only the web keyboard code reads them.
@@ -138,17 +243,42 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
   const dragProgress = useRef(state.index);
 
   // Gesture handlers outlive a render; refs keep the latest layout/nav values.
-  const itemWidthRef = useRef(itemWidth);
   const countRef = useRef(count);
   const stateIndexRef = useRef(state.index);
   const routesRef = useRef(state.routes);
   const navigateRef = useRef(navigateToTab);
+  const slotsRef = useRef<Slot[]>(slots);
+  const rtlRef = useRef(rtl);
 
-  itemWidthRef.current = itemWidth;
   countRef.current = count;
   stateIndexRef.current = state.index;
   routesRef.current = state.routes;
   navigateRef.current = navigateToTab;
+  slotsRef.current = slots;
+  rtlRef.current = rtl;
+
+  /** Puts the lens between two tabs at fractional index `progress`. */
+  const placeLens = useCallback(
+    (progress: number) => {
+      const boxes = slotsRef.current;
+      if (boxes.length === 0) return;
+
+      const last = boxes.length - 1;
+      const value = clamp(progress, 0, last);
+      const low = Math.floor(value);
+      const high = Math.min(last, low + 1);
+      const t = value - low;
+      const a = boxes[low];
+      const b = boxes[high] ?? a;
+      if (!a || !b) return;
+
+      const x = a.x + (b.x - a.x) * t;
+      const width = a.width + (b.width - a.width) * t;
+      lensX.setValue(x + LENS_INSET);
+      lensW.setValue(Math.max(24, width - LENS_INSET * 2));
+    },
+    [lensW, lensX]
+  );
 
   const finishDrag = useCallback(() => {
     if (!dragging.current) return;
@@ -158,7 +288,7 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
     setDragIndex(null);
 
     const max = Math.max(0, countRef.current - 1);
-    const nearest = Math.max(0, Math.min(max, Math.round(dragProgress.current)));
+    const nearest = clamp(Math.round(dragProgress.current), 0, max);
 
     if (nearest !== stateIndexRef.current) {
       const route = routesRef.current[nearest];
@@ -173,7 +303,7 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
         // Only claim a deliberate horizontal drag, so taps still reach tabs and
         // vertical swipes still scroll the screen behind the bar.
         onMoveShouldSetPanResponderCapture: (_event, gesture) =>
-          itemWidthRef.current > 0 &&
+          slotsRef.current.length > 0 &&
           Math.abs(gesture.dx) > 8 &&
           Math.abs(gesture.dx) > Math.abs(gesture.dy),
         onPanResponderGrant: () => {
@@ -182,12 +312,16 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
           dragProgress.current = stateIndexRef.current;
         },
         onPanResponderMove: (_event, gesture) => {
-          const width = itemWidthRef.current;
-          if (!width) return;
+          const boxes = slotsRef.current;
+          if (boxes.length === 0) return;
 
+          const average =
+            boxes.reduce((sum, slot) => sum + slot.width, 0) / boxes.length || tabBar.cell;
+          const step = (rtlRef.current ? -gesture.dx : gesture.dx) / average;
           const max = Math.max(0, countRef.current - 1);
-          const next = Math.max(0, Math.min(max, dragStart.current + gesture.dx / width));
+          const next = clamp(dragStart.current + step, 0, max);
           dragProgress.current = next;
+          placeLens(next);
 
           const nearest = Math.round(next);
           if (nearest !== dragIndexRef.current) {
@@ -199,10 +333,12 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
         onPanResponderTerminate: finishDrag,
         onPanResponderTerminationRequest: () => false,
       }),
-    [finishDrag]
+    [finishDrag, placeLens]
   );
 
-  // Arrow keys on web move between tabs, matching the ARIA tab pattern.
+  // Arrow keys on web move between tabs, matching the ARIA tab pattern. In a
+  // right-to-left row the visual direction is mirrored, so the arrow that moves
+  // right steps back through the route list.
   useEffect(() => {
     if (Platform.OS !== 'web') return;
 
@@ -217,12 +353,17 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
 
       const last = Math.max(0, routesRef.current.length - 1);
       const current = stateIndexRef.current;
+      const forward = key === 'ArrowRight' ? !rtlRef.current : key === 'ArrowLeft' ? rtlRef.current : false;
       const next =
         key === 'Home'
-          ? 0
-          : key === 'End'
+          ? rtlRef.current
             ? last
-            : key === 'ArrowRight'
+            : 0
+          : key === 'End'
+            ? rtlRef.current
+              ? 0
+              : last
+            : forward
               ? (current + 1) % (last + 1)
               : (current - 1 + last + 1) % (last + 1);
 
@@ -265,31 +406,12 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
     };
   }, [hide]);
 
-  const handleLayout = (event: LayoutChangeEvent) => {
-    const next = event.nativeEvent.layout.width;
-    setBarWidth((previous) => (Math.abs(previous - next) < 0.5 ? previous : next));
-  };
-
   const dockStyle = {
     opacity: hide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
     transform: [
       { translateY: hide.interpolate({ inputRange: [0, 1], outputRange: [0, 120] }) },
     ],
   };
-
-  /**
-   * The lens sits on the tab's own tile, not on the whole slot: the slot is
-   * wider than the glyph-and-caption column, so it is inset by half the
-   * difference and then travels one slot per index.
-   */
-  const lastIndex = Math.max(1, count - 1);
-  /** The lens sits 3px inside its slot, so the gap between neighbours matches. */
-  const lensInset = Math.min(3, Math.max(0, itemWidth / 4));
-  const lensWidth = Math.max(0, itemWidth - lensInset * 2);
-  const lensTranslate = lens.interpolate({
-    inputRange: [0, lastIndex],
-    outputRange: [lensInset, lensInset + itemWidth * lastIndex],
-  });
 
   const visualIndex = dragIndex ?? state.index;
 
@@ -302,7 +424,6 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
         ref={(node) => {
           barRef.current = node;
         }}
-        onLayout={handleLayout}
         style={styles.bar}
         role="tablist"
         accessibilityLabel="Primary tabs"
@@ -319,24 +440,19 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
           <View style={[StyleSheet.absoluteFill, styles.rim]} />
         </View>
 
-        <View style={styles.row}>
-          {/*
-            The active state: a faint blur with a hairline rim, travelling to the
-            selected tab on the damped lens spring instead of blinking in place.
-          */}
-          {/* Not rendered until the bar has been measured: an unmeasured row
-              would park the lens in the corner for one frame. */}
-          {itemWidth > 0 && (
+        <View
+          ref={(node) => {
+            rowRef.current = node;
+          }}
+          style={styles.row}
+        >
+          {/* The active state: a faint blur with a hairline rim, parked on the
+              selected tab's measured box. Not rendered until every tab has been
+              measured: an unmeasured row would flash the lens in the corner. */}
+          {measured && (
             <Animated.View
               pointerEvents="none"
-              style={[
-                styles.lens,
-                {
-                  width: lensWidth,
-                  height: tabBar.pill,
-                  transform: [{ translateX: lensTranslate }],
-                },
-              ]}
+              style={[styles.lens, { width: lensW, transform: [{ translateX: lensX }] }]}
             >
               <BlurView intensity={glass.blurLens} tint="dark" style={StyleSheet.absoluteFill} />
               {/* The lens wash: opacity from an accent tint, not a white sheen. */}
@@ -367,6 +483,7 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
                 buttonRef={(node) => {
                   tabRefs.current[index] = node;
                 }}
+                onMeasure={(slot) => reportSlot(index, slot)}
                 onPress={() => {
                   if (dragging.current || index === state.index) return;
                   navigateToTab(route.key);
@@ -389,8 +506,8 @@ const styles = StyleSheet.create({
     zIndex: 50,
   },
   bar: {
-    // Intrinsic width: the rail hugs its three cells and never stretches with
-    // the viewport, so the selection tile always fills its cell exactly.
+    // Intrinsic width: the rail hugs its cells and never stretches with the
+    // viewport, so the selection tile always sits exactly on a tab.
     alignSelf: 'center',
     maxWidth: tabBar.maxWidth,
     height: tabBar.height,
@@ -424,13 +541,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
-    // The lens is the tab's own tile: same width as the slot minus its gap, so
-    // the selection reads as a segment rather than a floating dot.
+    height: tabBar.pill,
+    // The lens is the tab's own tile, so the selection reads as a segment
+    // rather than a floating dot.
     borderRadius: tabBar.tileRadius,
     overflow: 'hidden',
   },
   tab: {
-    width: tabBar.cell,
+    // A full cell minimum, and wider when the label needs it (200% text size,
+    // or a longer translation), so a caption never spills under its neighbour.
+    minWidth: tabBar.cell,
+    flexGrow: 1,
+    flexShrink: 1,
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',

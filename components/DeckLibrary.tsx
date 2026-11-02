@@ -8,6 +8,7 @@ import { groupDecksByFolder } from '../data/folders';
 import type { Deck, DeckFolder } from '../data/types';
 import { alpha, colors, fills, heights, iconSize, radii, spacing, veil } from '../theme/tokens';
 import { usePressFeedback } from '../motion';
+import { useRtl } from '../services/direction';
 
 export type DeckLibraryEntry = {
   deck: Deck;
@@ -159,15 +160,26 @@ function Rail({
   /** Deck colour for the leaf's branch; only deck rows pass it. */
   branchColor?: string;
 }) {
+  const rtl = useRtl();
+
   // A flexible half of the trunk. The two halves meeting at the middle is what
-  // keeps the node and the branch on the row's midline at any row height.
+  // keeps the node and the branch on the row's midline at any row height. The
+  // line sits on the reading edge, so it mirrors in a right-to-left page.
   const half = (draw: boolean) => (
     <View
       style={{
         flex: 1,
-        marginLeft: TRUNK,
-        borderLeftWidth: draw ? 1 : 0,
-        borderLeftColor: fills.track,
+        ...(rtl
+          ? {
+              marginRight: TRUNK,
+              borderRightWidth: draw ? 1 : 0,
+              borderRightColor: fills.track,
+            }
+          : {
+              marginLeft: TRUNK,
+              borderLeftWidth: draw ? 1 : 0,
+              borderLeftColor: fills.track,
+            }),
       }}
     />
   );
@@ -175,7 +187,13 @@ function Rail({
   return (
     <View
       pointerEvents="none"
-      style={{ position: 'absolute', left: spacing.gutter, top: 0, bottom: 0, width: RAIL }}
+      style={{
+        position: 'absolute',
+        ...(rtl ? { right: spacing.gutter } : { left: spacing.gutter }),
+        top: 0,
+        bottom: 0,
+        width: RAIL,
+      }}
     >
       {half(connectAbove)}
       {node ? (
@@ -184,6 +202,7 @@ function Rail({
             width: NODE,
             height: NODE,
             borderRadius: NODE / 2,
+            alignSelf: rtl ? 'flex-end' : 'flex-start',
             backgroundColor: node === 'folder' ? colors.primary : colors.outline,
           }}
         />
@@ -192,17 +211,17 @@ function Rail({
           style={{
             width: RAIL - TRUNK,
             height: 1,
-            marginLeft: TRUNK,
-            borderLeftWidth: 1,
-            borderLeftColor: fills.track,
+            ...(rtl ? { marginRight: TRUNK } : { marginLeft: TRUNK }),
+            ...(rtl
+              ? { borderRightWidth: 1, borderRightColor: fills.track }
+              : { borderLeftWidth: 1, borderLeftColor: fills.track }),
           }}
         >
           {branchColor ? (
             <View
               style={{
                 position: 'absolute',
-                left: 1,
-                right: 0,
+                ...(rtl ? { right: 1, left: 0 } : { left: 1, right: 0 }),
                 top: 0,
                 height: 1,
                 backgroundColor: branchColor,
@@ -259,6 +278,7 @@ function TreeHeader({
   onToggle: () => void;
 }) {
   const press = usePressFeedback({ scale: 0.995 });
+  const rtl = useRtl();
   const countLabel = `${count} ${count === 1 ? 'deck' : 'decks'}`;
 
   return (
@@ -276,8 +296,8 @@ function TreeHeader({
           minHeight: heights.row,
           flexDirection: 'row',
           alignItems: 'center',
-          paddingLeft: spacing.gutter + RAIL,
-          paddingRight: spacing.gutter,
+          paddingLeft: rtl ? spacing.gutter : spacing.gutter + RAIL,
+          paddingRight: rtl ? spacing.gutter + RAIL : spacing.gutter,
         }}
       >
         <PressVeil value={press.value} />
@@ -305,12 +325,13 @@ function TreeHeader({
  * folder reads as a dead end instead of a cut line.
  */
 function EmptyFolder({ terminal }: { terminal: boolean }) {
+  const rtl = useRtl();
   return (
     <View
       style={{
         position: 'relative',
-        paddingLeft: spacing.gutter + RAIL,
-        paddingRight: spacing.gutter,
+        paddingLeft: rtl ? spacing.gutter : spacing.gutter + RAIL,
+        paddingRight: rtl ? spacing.gutter + RAIL : spacing.gutter,
         paddingTop: 22,
         paddingBottom: 16,
       }}
@@ -319,7 +340,9 @@ function EmptyFolder({ terminal }: { terminal: boolean }) {
         pointerEvents="none"
         style={{
           position: 'absolute',
-          left: spacing.gutter + TRUNK,
+          ...(rtl
+            ? { right: spacing.gutter + TRUNK }
+            : { left: spacing.gutter + TRUNK }),
           top: 0,
           bottom: terminal ? undefined : 0,
           height: terminal ? 22 : undefined,
@@ -331,7 +354,9 @@ function EmptyFolder({ terminal }: { terminal: boolean }) {
         pointerEvents="none"
         style={{
           position: 'absolute',
-          left: spacing.gutter + TRUNK,
+          ...(rtl
+            ? { right: spacing.gutter + TRUNK }
+            : { left: spacing.gutter + TRUNK }),
           top: 22,
           width: 12,
           height: 1,
@@ -362,6 +387,7 @@ function DeckRow({
   onPress: () => void;
 }) {
   const press = usePressFeedback({ scale: 0.995 });
+  const rtl = useRtl();
   const { deck, cardCount, due, progress } = entry;
   const percent = Math.round(Math.max(0, Math.min(1, progress)) * 100);
   const percentLabel = percent === 0 && progress > 0 ? '<1%' : `${percent}%`;
@@ -385,8 +411,8 @@ function DeckRow({
             minHeight: heights.deckSlab,
             flexDirection: 'row',
             alignItems: 'center',
-            paddingLeft: tree ? spacing.gutter + RAIL : spacing.gutter,
-            paddingRight: spacing.gutter,
+            paddingLeft: tree && !rtl ? spacing.gutter + RAIL : spacing.gutter,
+            paddingRight: tree && rtl ? spacing.gutter + RAIL : spacing.gutter,
             paddingVertical: 12,
           }}
         >

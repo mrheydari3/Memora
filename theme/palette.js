@@ -336,8 +336,8 @@ const motion = {
 /**
  * Floating tab capsule geometry.
  *
- * Deliberately narrow and tall: a compact dock (264px ceiling) that is 68px
- * high, so the glyphs sit in a 56px pill instead of being squeezed by a wide,
+ * Deliberately narrow and tall: a compact dock (300px ceiling) that is 64px
+ * high, so the glyphs sit in a 52px pill instead of being squeezed by a wide,
  * shallow bar.
  */
 const tabBar = {
@@ -349,7 +349,12 @@ const tabBar = {
    */
   cell: 88,
   height: 64,
-  maxWidth: 276,
+  /**
+   * The dock's ceiling. Three full cells plus padding is 276; the extra room is
+   * for a label that grows (200% text size) so the tab widens instead of
+   * truncating its caption.
+   */
+  maxWidth: 300,
   gutter: 12,
   padding: 6,
   /** The tappable tile that holds one glyph and its caption. */

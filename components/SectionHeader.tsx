@@ -41,7 +41,10 @@ export function SectionHeader({
           variant="label"
           weight="medium"
           tone="tertiary"
-          className={rule ? '' : 'ml-2'}
+          // Logical inset: the hint follows the label instead of sitting on a
+          // fixed physical side, so a right-to-left row does not run the two
+          // texts together.
+          style={rule ? undefined : { marginStart: 8 }}
         >
           {hint}
         </AppText>
@@ -73,7 +76,7 @@ function HeaderAction({
   const press = usePressFeedback({ scale: 0.94 });
 
   return (
-    <Animated.View style={[{ marginLeft: 'auto' }, press.style]}>
+    <Animated.View style={[{ marginStart: 'auto' }, press.style]}>
       <Pressable
         className="flex-row items-center gap-1"
         // The label is 20px tall; the press box is 44. `hitSlop` does nothing
