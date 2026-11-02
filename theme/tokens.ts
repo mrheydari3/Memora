@@ -158,6 +158,7 @@ type Palette = {
     closeOverscroll: number;
     minShrink: number;
     minDragHeight: number;
+    minBody: number;
     handleWidth: number;
     handleActiveWidth: number;
     handleHeight: number;

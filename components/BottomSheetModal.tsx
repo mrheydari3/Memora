@@ -45,6 +45,8 @@ type SheetPanelProps = {
   grabber?: React.ReactNode;
   style?: ViewStyle | ViewStyle[];
   onLayout?: (event: LayoutChangeEvent) => void;
+  /** Natural body height, used to keep the body visible at the drag floor. */
+  onBodyLayout?: (event: LayoutChangeEvent) => void;
   /**
    * Scrolls the body instead of clipping it. The modal turns this on only while
    * the sheet is resized: at its natural height the body must lay out exactly
@@ -93,6 +95,7 @@ export function SheetPanel({
   grabber,
   style,
   onLayout,
+  onBodyLayout,
   scroll = false,
 }: SheetPanelProps) {
   return (
@@ -154,7 +157,9 @@ export function SheetPanel({
             {children}
           </ScrollView>
         ) : (
-          <View className={title || subtitle ? 'mt-3' : ''}>{children}</View>
+          <View className={title || subtitle ? 'mt-3' : ''} onLayout={onBodyLayout}>
+            {children}
+          </View>
         )}
       </SheetScrollContext.Provider>
     </View>
@@ -259,6 +264,7 @@ export function BottomSheetModal({
   const [resized, setResized] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [naturalHeight, setNaturalHeight] = useState(0);
+  const [bodyHeight, setBodyHeight] = useState(0);
 
   const naturalRef = useRef(0);
   const resizedRef = useRef(false);
@@ -277,9 +283,21 @@ export function BottomSheetModal({
    */
   const contentHeight =
     naturalHeight > 0 ? naturalHeight : Math.round(windowHeight * sheet.minHeightRatio);
-  const floor = Math.max(
-    Math.min(contentHeight, sheet.minDragHeight),
-    Math.min(contentHeight - sheet.minShrink, Math.round(windowHeight * sheet.minHeightRatio))
+  /**
+   * The grabber, the header and the panel's padding cannot scroll, so the floor
+   * stops where the body still has room. Without this a short sheet could be
+   * dragged until its content area collapsed to nothing.
+   */
+  const chromeHeight = naturalHeight > 0 && bodyHeight > 0 ? naturalHeight - bodyHeight : 0;
+  const floor = Math.min(
+    contentHeight,
+    Math.max(
+      Math.max(
+        Math.min(contentHeight, sheet.minDragHeight),
+        Math.min(contentHeight - sheet.minShrink, Math.round(windowHeight * sheet.minHeightRatio))
+      ),
+      chromeHeight + sheet.minBody
+    )
   );
 
   floorRef.current = floor;
@@ -471,6 +489,12 @@ export function BottomSheetModal({
     setNaturalHeight((previous) => (Math.abs(previous - next) < 0.5 ? previous : next));
   };
 
+  const handleBodyLayout = (event: LayoutChangeEvent) => {
+    if (resizedRef.current) return;
+    const next = event.nativeEvent.layout.height;
+    setBodyHeight((previous) => (Math.abs(previous - next) < 0.5 ? previous : next));
+  };
+
   if (!mounted) return null;
 
   const translateY = value.interpolate({ inputRange: [0, 1], outputRange: [96, 0] });
@@ -522,6 +546,7 @@ export function BottomSheetModal({
             subtitle={subtitle}
             onClose={onClose}
             onLayout={handlePanelLayout}
+            onBodyLayout={handleBodyLayout}
             style={resized ? styles.fill : undefined}
             scroll={resized}
             grabber={

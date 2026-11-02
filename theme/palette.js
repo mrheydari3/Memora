@@ -303,6 +303,11 @@ const sheet = {
   minShrink: 72,
   /** No floor may go below this, so the grab handle and title stay usable. */
   minDragHeight: 120,
+  /**
+   * The body keeps at least one row of room. The floor is derived from the
+   * panel's own chrome, so a short sheet stops while its content is readable.
+   */
+  minBody: 56,
   /** The grab handle: quiet at rest, wider while held. */
   handleWidth: 44,
   handleActiveWidth: 58,
