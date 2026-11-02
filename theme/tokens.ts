@@ -64,6 +64,7 @@ type Palette = {
   glass: {
     fill: string;
     strong: string;
+    appBar: string;
     accent: string;
     tab: string;
     tabOverlay: string;
@@ -74,10 +75,11 @@ type Palette = {
     blur: number;
     blurStrong: number;
     blurTab: number;
+    blurLens: number;
+    lensWash: string;
     saturate: number;
     saturateStrong: number;
   };
-  ambient: Record<'blue' | 'amber' | 'green', { web: string; native: string }>;
   radii: Record<'micro' | 'sm' | 'control' | 'pane' | 'sheet' | 'pill', number>;
   heights: Record<
     | 'appbar'
@@ -107,7 +109,7 @@ type Palette = {
     | 'sheetCompact',
     number
   >;
-  iconSize: Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'display', number>;
+  iconSize: Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'nav' | 'display', number>;
   typography: Record<
     'display' | 'title' | 'headline' | 'bodyLg' | 'body' | 'bodySm' | 'label' | 'caption',
     { fontSize: number; lineHeight: number; letterSpacing: number }
@@ -165,11 +167,13 @@ type Palette = {
     handleHeight: number;
   };
   tabBar: {
+    cell: number;
     height: number;
     maxWidth: number;
     gutter: number;
     padding: number;
     pill: number;
+    tileRadius: number;
   };
 };
 
@@ -181,7 +185,6 @@ export const fills = palette.fills;
 export const rims = palette.rims;
 export const veil = palette.veil;
 export const glass = palette.glass;
-export const ambient = palette.ambient;
 export const radii = palette.radii;
 export const heights = palette.heights;
 export const iconSize = palette.iconSize;
@@ -202,7 +205,7 @@ export const paneAccent = glass.accent;
 
 /**
  * The frosted pane fill, shared by every pane, the app bar, the tab bar and the
- * rating tiles so every surface reads the same. Web forwards `backdropFilter`
+ * rating tiles so every surface reads the same. The fill is opaque — there is no
  * to the DOM; React Native's style types don't include it, hence the cast.
  */
 const isWeb = Platform.OS === 'web';
@@ -215,11 +218,7 @@ const isWeb = Platform.OS === 'web';
  * Safari only the prefix — so writing both is the fallback, with the standard
  * property last so it wins where it is understood.
  */
-const backdrop = (blur: number, saturate: number) =>
-  ({
-    WebkitBackdropFilter: `blur(${blur}px) saturate(${saturate}%)`,
-    backdropFilter: `blur(${blur}px) saturate(${saturate}%)`,
-  } as unknown as ViewStyle);
+const backdrop = (_blur: number, _saturate: number) => ({}) as ViewStyle;
 
 export const glassFill: ViewStyle = {
   backgroundColor: glass.fill,
@@ -229,6 +228,14 @@ export const glassFill: ViewStyle = {
 export const glassFillStrong: ViewStyle = {
   backgroundColor: glass.strong,
   ...(isWeb ? backdrop(glass.blurStrong, glass.saturateStrong) : {}),
+};
+
+/**
+ * The top app bar: the pane ink at a fifth of its weight, so the body scrolls
+ * visibly underneath the bar instead of vanishing behind a solid strip.
+ */
+export const glassFillAppBar: ViewStyle = {
+  backgroundColor: glass.appBar,
 };
 
 /** The lit 1px rim used at the top of every pane. */

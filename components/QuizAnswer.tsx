@@ -50,10 +50,12 @@ export function QuizAnswer({
   useEffect(() => {
     if (state !== 'correct' && state !== 'wrong') return;
     if (prefersReducedMotion()) return;
+    // One small settle when an option resolves: enough to confirm the press,
+    // never enough to bounce the grid.
     pop.setValue(0);
     Animated.sequence([
-      Animated.spring(pop, { toValue: 1, ...motion.spring, useNativeDriver: USE_NATIVE_DRIVER }),
-      Animated.spring(pop, { toValue: 0, ...motion.spring, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.spring(pop, { toValue: 1, speed: 40, bounciness: 0, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.spring(pop, { toValue: 0, speed: 20, bounciness: 0, useNativeDriver: USE_NATIVE_DRIVER }),
     ]).start();
   }, [state, pop]);
 
@@ -62,7 +64,7 @@ export function QuizAnswer({
       <Animated.View
         style={{
           flex: 1,
-          transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [1, 1.035] }) }],
+          transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [1, 1.02] }) }],
         }}
       >
         <Pressable

@@ -101,7 +101,7 @@ theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌
 | `spacing.tabClearance` | ۱۰۴ | فضای انتهای صفحه‌های تب‌دار |
 | `spacing.screenBottom` | ۴۰ | فضای انتهای صفحه‌های بدون تب |
 
-**صفحه‌ها حاشیهٔ افقی خودشان را تعیین نمی‌کنند.** `Screen` پس‌زمینه، `AmbientBackdrop`، safe area، نوار بالای ثابت، بدنهٔ اسکرول‌شونده و فضای انتهایی را می‌دهد.
+**صفحه‌ها حاشیهٔ افقی خودشان را تعیین نمی‌کنند.** `Screen` پس‌زمینهٔ تخت، safe area، نوار بالای ثابت، بدنهٔ اسکرول‌شونده و فضای انتهایی را می‌دهد.
 
 ```tsx
 <Screen
@@ -171,7 +171,7 @@ theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌
 
 همه از `@components/index` قابل import هستند.
 
-**چیدمان و سطح:** `Screen` (+ `ScreenScroll`, `ScreenBody`, `AmbientBackdrop`) · `GlassCard` · `SectionHeader` · `ListRow` · `TopAppBar` · `BottomSheetModal` + `SheetPanel`
+**چیدمان و سطح:** `Screen` (+ `ScreenScroll`, `ScreenBody`) · `GlassCard` · `SectionHeader` · `ListRow` · `TopAppBar` · `BottomSheetModal` + `SheetPanel`
 
 **کنترل:** `Button` (`primary` / `primaryQuiet` / `secondary` / `outline` / `text`، به‌همراه پرچم `destructive` و اندازه‌های `md`/`lg`) · `PrimaryButton` · `GhostButton` · `IconButton` · `ToggleSwitch` · `SearchBar` · `Chip` (`filter`/`select`) · `SegmentedControl` · `Stepper` · `Field` · `Pill` (`neutral`/`accent`/`warning`)
 

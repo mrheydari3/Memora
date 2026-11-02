@@ -8,7 +8,16 @@ import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
 import { buildStudyQueue } from '../../data/session';
 import { exportJson } from '../../services/export';
-import { alpha, colors, heights, iconSize, motion, spacing, stateColors } from '../../theme/tokens';
+import {
+  alpha,
+  colors,
+  fills,
+  heights,
+  iconSize,
+  motion,
+  spacing,
+  stateColors,
+} from '../../theme/tokens';
 import { useReveal } from '../../motion';
 import {
   AppText,
@@ -629,6 +638,14 @@ function LegendItem({ color, value, label }: { color: string; value: number; lab
 }
 
 /** One row of every sheet on this screen: bare icon, label, 52px minimum. */
+/**
+ * One option inside a sheet: a soft tile with its glyph, its label and — for a
+ * destructive action — a warmer weight.
+ *
+ * Each option sits on its own inset fill instead of a flat line of text, so a
+ * menu reads as a stack of choices rather than a paragraph, and the tint stays
+ * exactly one step above the sheet's own surface.
+ */
 function SheetRow({
   icon,
   label,
@@ -646,12 +663,15 @@ function SheetRow({
     <ListRow
       title={label}
       icon={icon}
-      tile="none"
+      tile="sm"
       density="compact"
+      titleWeight={destructive ? 'semibold' : 'medium'}
+      iconTone={destructive ? 'destructive' : 'neutral'}
       destructive={destructive}
       showChevron={false}
-      gutter={8}
-      className="-mx-2 rounded-md"
+      gutter={12}
+      className="mb-1.5 rounded-md"
+      style={{ backgroundColor: fills.inset }}
       onPress={onPress}
       accessibilityLabel={accessibilityLabel ?? label}
     />

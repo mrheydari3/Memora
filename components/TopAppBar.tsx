@@ -2,7 +2,7 @@ import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppText } from './AppText';
 import { IconButton } from './IconButton';
-import { glassFillStrong, heights, iconSize } from '../theme/tokens';
+import { glassFillAppBar, heights, iconSize } from '../theme/tokens';
 
 type IconName = React.ComponentProps<typeof import('@expo/vector-icons').MaterialIcons>['name'];
 
@@ -21,12 +21,12 @@ type TopAppBarProps = {
 };
 
 /**
- * TopAppBar — the standard bar: 56px tall, frosted to match the panes below it,
- * 17px semibold title, 38px circular filled icon buttons.
+ * TopAppBar — the standard bar: 56px tall, a fifth-weight ink wash rather than
+ * a solid strip, 17px semibold title, 38px circular filled icon buttons.
  *
- * The bar has no bottom rule: it is a stronger frosted fill than the page, and
- * the scrolling body passes underneath it. Where a line is genuinely meaningful
- * — the study session's progress — the screen draws that one line itself.
+ * The bar has no bottom rule and casts no shadow: the body stays visible as it
+ * scrolls underneath. Where a line is genuinely meaningful — the study
+ * session's progress — the screen draws that one line itself.
  */
 export function TopAppBar({
   title,
@@ -41,7 +41,7 @@ export function TopAppBar({
   return (
     <View
       className="flex-row items-center pl-2 pr-3"
-      style={[glassFillStrong, { height: heights.appbar }]}
+      style={[glassFillAppBar, { height: heights.appbar }]}
     >
       {leftContent ? (
         leftContent

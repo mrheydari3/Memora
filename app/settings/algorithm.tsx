@@ -353,6 +353,7 @@ export default function AlgorithmSettingsScreen() {
               tile="none"
               density="compact"
               showChevron={false}
+              highlighted={params.maximumInterval === days}
               divider={i < MAX_INTERVAL_OPTIONS.length - 1}
               trailing={
                 params.maximumInterval === days ? (

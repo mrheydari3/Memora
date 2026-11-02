@@ -75,23 +75,20 @@ export default function AddDeckScreen() {
     <Screen>
       <Pressable className="flex-1" onPress={() => router.back()} accessibilityLabel="Close" />
 
+      {/* The router presents this route as a sheet, so it carries the same inset
+          and rounding the modal sheets do. */}
       <SheetPanel
         title="New deck"
         subtitle="Start from scratch or bring your existing cards with you."
       >
         <GlassCard className="mt-2" padding="none">
           <ListRow
-            icon="style"
-            tile="lg"
-            iconTone="accent"
             title="Add manually"
             subtitle="Create a deck and write cards one by one"
             onPress={() => setFormVisible(true)}
           />
           <View className="h-2" />
           <ListRow
-            icon="file-download"
-            tile="lg"
             title="Bulk import"
             subtitle="Anki, Quizlet or CSV"
             onPress={() => pushOnce(router, '/mass-import')}

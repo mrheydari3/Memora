@@ -35,11 +35,11 @@ export function MiniBarChart({ data, height = 56, maxValue, showValues = false }
       grow.setValue(1);
       return;
     }
+    // One short pass on mount: the bars rise from the baseline and stop.
     grow.setValue(0);
     Animated.timing(grow, {
       toValue: 1,
-      duration: motion.slow + 140,
-      delay: 80,
+      duration: motion.base,
       easing: EASE.standard,
       useNativeDriver: USE_NATIVE_DRIVER,
     }).start();

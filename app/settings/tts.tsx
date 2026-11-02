@@ -17,7 +17,7 @@ import {
   ListRow,
   RevealItem,
 } from '../../components';
-import { colors, heights, iconSize } from '../../theme/tokens';
+import { colors, fills, heights, iconSize } from '../../theme/tokens';
 
 const LANGUAGES: { code: string; name: string }[] = [
   { code: 'en-US', name: 'English (en-US)' },
@@ -162,12 +162,18 @@ export default function TTSSettingsScreen() {
           {LANGUAGES.map((lang) => {
             const selected = lang.code === active;
             return (
-              <View key={lang.code} className="mb-1">
+              <View
+                key={lang.code}
+                className="mb-1.5 overflow-hidden rounded-md"
+                style={{ backgroundColor: fills.inset }}
+              >
                 <ListRow
                   title={lang.name}
-                  tile="none"
+                  icon="translate"
+                  tile="sm"
+                  iconTone={selected ? 'accent' : 'neutral'}
                   density="compact"
-                  divider
+                  gutter={12}
                   trailing={
                     selected ? (
                       <MaterialIcons name="check" size={iconSize.md} color={colors.primary} />

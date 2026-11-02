@@ -3,7 +3,7 @@ export { AppText } from './AppText';
 export type { AppTextProps, TextTone, TextVariant, TextWeight } from './AppText';
 
 // Layout and surfaces
-export { Screen, AmbientBackdrop } from './Screen';
+export { Screen } from './Screen';
 export { GlassCard } from './GlassCard';
 export { SectionHeader } from './SectionHeader';
 export { ListRow } from './ListRow';

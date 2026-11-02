@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
 import { BlurView } from 'expo-blur';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { colors, glass, iconSize, motion, shadow, tabBar } from '../theme/tokens';
-import { prefersReducedMotion, springTo } from '../motion';
+import { AppText } from './AppText';
+import { colors, glass, iconSize, motion, rimColor, shadow, tabBar } from '../theme/tokens';
+import { prefersReducedMotion, springLiquidTo } from '../motion';
 
 type TabBarState = {
   index: number;
@@ -43,24 +43,20 @@ type LiquidTabBarProps = {
 function TabItem({
   focused,
   label,
+  title,
   icon,
   buttonRef,
   onPress,
 }: {
   focused: boolean;
+  /** Accessible name, read by assistive tech. */
   label: string;
+  /** Visible caption under the glyph. */
+  title: string;
   icon: React.ReactNode;
   buttonRef: (node: unknown) => void;
   onPress: () => void;
 }) {
-  const selected = useRef(new Animated.Value(focused ? 1 : 0)).current;
-
-  useEffect(() => {
-    springTo(selected, focused ? 1 : 0);
-  }, [focused, selected]);
-
-  const scale = selected.interpolate({ inputRange: [0, 1], outputRange: [1, 1.05] });
-  const haloScale = selected.interpolate({ inputRange: [0, 1], outputRange: [0.88, 1] });
   // React Native Web honours tabIndex; native ignores it. The cast keeps the
   // DOM-only prop out of the native prop contract.
   const webFocusProps: object = Platform.OS === 'web' ? { tabIndex: 0 } : {};
@@ -77,23 +73,32 @@ function TabItem({
       accessibilityLabel={label}
       focusable
     >
-      <Animated.View
+      {/*
+        The native arrangement: a glyph over its caption, both in the same
+        column. Nothing paints behind the selected tab — iOS marks selection by
+        tint, not by a filled tile.
+      */}
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
         style={{
-          width: tabBar.pill,
-          height: tabBar.pill - 8,
+          width: tabBar.cell,
+          height: tabBar.pill,
           alignItems: 'center',
           justifyContent: 'center',
-          transform: [{ scale }],
         }}
       >
-        <Animated.View
-          pointerEvents="none"
-          style={[styles.activePill, { opacity: selected, transform: [{ scale: haloScale }] }]}
-        />
-        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          {icon}
-        </View>
-      </Animated.View>
+        {icon}
+        <AppText
+          variant="caption"
+          weight={focused ? 'semibold' : 'medium'}
+          tone={focused ? 'accent' : 'muted'}
+          numberOfLines={1}
+          className="mt-px"
+        >
+          {title}
+        </AppText>
+      </View>
     </Pressable>
   );
 }
@@ -101,12 +106,11 @@ function TabItem({
 /**
  * LiquidTabBar — the floating iOS 26-style glass capsule.
  *
- * A borderless icon dock: expo-blur carries the material, a deep ink tint
- * keeps the capsule fully dark over the content behind it, and a layered shadow
- * plus a lower shade define the edge. There are no labels and no white
- * highlights; the active tab is marked only by its accent and scale, and the
- * bar settles on the nearest tab on release. Every colour and geometry value
- * comes from the design tokens.
+ * A borderless dock: a solid ink fill carries the material and a rounded accent
+ * tile marks the active tab, whose glyph and caption turn accent at the same
+ * time. The bar draws no shadow and no lower shade; every colour and geometry
+ * value comes from the design tokens, so the capsule, the tile and the glyph
+ * step stay in sync.
  */
 export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: LiquidTabBarProps) {
   const count = state.routes.length;
@@ -115,6 +119,12 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
     count > 0 ? Math.max(0, (barWidth - tabBar.padding * 2) / count) : 0;
 
   const hide = useRef(new Animated.Value(0)).current;
+  /** The selection lens: an index that springs from the old tab to the new one. */
+  const lens = useRef(new Animated.Value(state.index)).current;
+
+  useEffect(() => {
+    springLiquidTo(lens, state.index);
+  }, [lens, state.index]);
 
   // Host handles stay `unknown`: RN 0.88 no longer exports its host element
   // type from the package root, and only the web keyboard code reads them.
@@ -267,6 +277,20 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
     ],
   };
 
+  /**
+   * The lens sits on the tab's own tile, not on the whole slot: the slot is
+   * wider than the glyph-and-caption column, so it is inset by half the
+   * difference and then travels one slot per index.
+   */
+  const lastIndex = Math.max(1, count - 1);
+  /** The lens sits 3px inside its slot, so the gap between neighbours matches. */
+  const lensInset = Math.min(3, Math.max(0, itemWidth / 4));
+  const lensWidth = Math.max(0, itemWidth - lensInset * 2);
+  const lensTranslate = lens.interpolate({
+    inputRange: [0, lastIndex],
+    outputRange: [lensInset, lensInset + itemWidth * lastIndex],
+  });
+
   const visualIndex = dragIndex ?? state.index;
 
   return (
@@ -284,25 +308,42 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
         accessibilityLabel="Primary tabs"
         {...panResponder.panHandlers}
       >
+        {/*
+          The material: a real blur under a tinted ink wash, exactly how a
+          native tab bar reads the content behind it. The hairline rim keeps the
+          capsule's edge defined now that it casts no shadow.
+        */}
         <View pointerEvents="none" style={styles.clip}>
           <BlurView intensity={glass.blurTab} tint="dark" style={StyleSheet.absoluteFill} />
           <View style={[StyleSheet.absoluteFill, { backgroundColor: glass.tabOverlay }]} />
-
-          <View style={styles.shade}>
-            <Svg width="100%" height="100%" viewBox="0 0 360 64" preserveAspectRatio="none">
-              <Defs>
-                <LinearGradient id="tabShade" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0" stopColor={colors.background} stopOpacity={0} />
-                  <Stop offset="0.72" stopColor={colors.background} stopOpacity={0} />
-                  <Stop offset="1" stopColor={colors.background} stopOpacity={0.28} />
-                </LinearGradient>
-              </Defs>
-              <Rect width="360" height="64" fill="url(#tabShade)" />
-            </Svg>
-          </View>
+          <View style={[StyleSheet.absoluteFill, styles.rim]} />
         </View>
 
         <View style={styles.row}>
+          {/*
+            The active state: a faint blur with a hairline rim, travelling to the
+            selected tab on the damped lens spring instead of blinking in place.
+          */}
+          {/* Not rendered until the bar has been measured: an unmeasured row
+              would park the lens in the corner for one frame. */}
+          {itemWidth > 0 && (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.lens,
+                {
+                  width: lensWidth,
+                  height: tabBar.pill,
+                  transform: [{ translateX: lensTranslate }],
+                },
+              ]}
+            >
+              <BlurView intensity={glass.blurLens} tint="dark" style={StyleSheet.absoluteFill} />
+              {/* The lens wash: opacity from an accent tint, not a white sheen. */}
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: glass.lensWash }]} />
+            </Animated.View>
+          )}
+
           {state.routes.map((route, index) => {
             const options = descriptors[route.key]?.options;
             const focused = visualIndex === index;
@@ -313,7 +354,7 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
                 ? options.tabBarAccessibilityLabel
                 : label;
             const icon = options?.tabBarIcon
-              ? options.tabBarIcon({ focused, color, size: iconSize.xl })
+              ? options.tabBarIcon({ focused, color, size: iconSize.nav })
               : null;
 
             return (
@@ -321,6 +362,7 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
                 key={route.key}
                 focused={focused}
                 label={accessibilityLabel}
+                title={label}
                 icon={icon}
                 buttonRef={(node) => {
                   tabRefs.current[index] = node;
@@ -347,7 +389,9 @@ const styles = StyleSheet.create({
     zIndex: 50,
   },
   bar: {
-    width: '92%',
+    // Intrinsic width: the rail hugs its three cells and never stretches with
+    // the viewport, so the selection tile always fills its cell exactly.
+    alignSelf: 'center',
     maxWidth: tabBar.maxWidth,
     height: tabBar.height,
     padding: tabBar.padding,
@@ -367,31 +411,29 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     overflow: 'hidden',
   },
-  shade: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
   row: {
     flex: 1,
     flexDirection: 'row',
   },
-  activePill: {
+  rim: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: rimColor,
+    borderRadius: tabBar.height / 2,
+  },
+  lens: {
     position: 'absolute',
     top: 0,
     left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: (tabBar.pill - 8) / 2,
-    backgroundColor: colors.accentActive,
+    // The lens is the tab's own tile: same width as the slot minus its gap, so
+    // the selection reads as a segment rather than a floating dot.
+    borderRadius: tabBar.tileRadius,
+    overflow: 'hidden',
   },
   tab: {
-    flex: 1,
+    width: tabBar.cell,
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: tabBar.pill / 2,
+    borderRadius: tabBar.tileRadius,
   },
 });

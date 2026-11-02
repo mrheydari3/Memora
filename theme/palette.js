@@ -19,7 +19,7 @@ const colors = {
   surfaceContainer: '#11161F',
   surfaceContainerHigh: '#18202B',
   surfaceContainerHighest: '#202A38',
-  onSurface: '#F2F5F9',
+  onSurface: '#DCE2EB',
   onSurfaceVariant: '#A2ACBC',
   inverseSurface: '#E8EDF4',
   inverseOnSurface: '#141A22',
@@ -76,64 +76,70 @@ const colors = {
  */
 const fills = {
   /** Dashed empty frames, the quietest surface. */
-  subtle: 'rgba(255, 255, 255, 0.03)',
+  subtle: 'rgba(255, 255, 255, 0.022)',
   /** Content nested inside another pane. */
-  inset: 'rgba(255, 255, 255, 0.05)',
+  inset: 'rgba(255, 255, 255, 0.04)',
   /** Icon tiles, chips and press feedback. */
-  tile: 'rgba(255, 255, 255, 0.06)',
+  tile: 'rgba(255, 255, 255, 0.05)',
   /** Inputs, icon buttons, segmented rails. */
-  control: 'rgba(255, 255, 255, 0.075)',
+  control: 'rgba(255, 255, 255, 0.06)',
   /** Progress rails and meters. */
-  track: 'rgba(255, 255, 255, 0.09)',
+  track: 'rgba(255, 255, 255, 0.07)',
 };
 
 /** The single lit 1px rim a pane may carry at its top edge. */
 const rims = {
-  soft: 'rgba(255, 255, 255, 0.10)',
+  soft: 'rgba(255, 255, 255, 0.08)',
   /** The same light, at tile scale (rating keys). */
-  tile: 'rgba(255, 255, 255, 0.16)',
+  tile: 'rgba(255, 255, 255, 0.12)',
 };
 
 /** Press veils animate opacity over this. */
 const veil = '#000000';
 
 const glass = {
-  fill: 'rgba(20, 26, 36, 0.62)',
-  strong: 'rgba(10, 14, 20, 0.82)',
+  // Opaque by design: with the blur gone there is no frosted layer to hide
+  // behind, so a pane must not let the page read through it.
+  fill: '#141a24',
+  strong: '#0a0e14',
+  /**
+   * The top app bar. One fifth of the pane ink, so the page scrolls visibly
+   * underneath it instead of disappearing behind a solid strip.
+   */
+  appBar: 'rgba(10, 14, 20, 0.20)',
   /** The blue tint of a hero/accent pane — one value for every selected pane. */
-  accent: 'rgba(28, 52, 80, 0.56)',
+  accent: '#1c3450',
   /**
    * Floating icon-only tab capsule: a near-black ink tint plus the layer that
    * pulls expo-blur back to the app's navy. Opaque enough to stay fully dark
    * over bright content, while the strong blur still softens the edge.
    */
-  tab: 'rgba(3, 6, 10, 0.84)',
-  tabOverlay: 'rgba(0, 0, 0, 0.28)',
+  tab: 'rgba(6, 9, 15, 0.55)',
+  tabOverlay: 'rgba(0, 0, 0, 0.22)',
   /** The flashcard face reads a touch brighter than a normal pane. */
-  cardFace: 'rgba(23, 30, 41, 0.72)',
+  cardFace: '#171e29',
   /**
    * The sheet face. Nearly opaque on purpose: a sheet carries text over a live
    * page, and 0.82 let a large heading behind it read through the rows.
    */
-  sheet: 'rgba(9, 13, 19, 0.94)',
+  sheet: '#090d13',
   /** The two panes peeking out under the flashcard. */
-  stackNear: 'rgba(13, 18, 26, 0.62)',
-  stackFar: 'rgba(9, 13, 19, 0.55)',
-  blur: 22,
-  blurStrong: 26,
-  blurTab: 100,
-  saturate: 130,
-  saturateStrong: 120,
-};
-
-/**
- * Three soft colour fields behind every screen. Deep and low-alpha so the
- * canvas stays dark; the motion layer drifts and breathes them slowly.
- */
-const ambient = {
-  blue: { web: 'rgba(0, 132, 255, 0.18)', native: 'rgba(0, 132, 255, 0.06)' },
-  amber: { web: 'rgba(255, 200, 90, 0.09)', native: 'rgba(255, 200, 90, 0.045)' },
-  green: { web: 'rgba(90, 220, 170, 0.09)', native: 'rgba(90, 220, 170, 0.035)' },
+  stackNear: '#0d121a',
+  stackFar: '#090d13',
+  // The dock is the one surface that keeps its blur: iOS reads it as material
+  // behind the interface rather than as a painted strip.
+  blur: 0,
+  blurStrong: 0,
+  blurTab: 80,
+  /** The selection lens: a denser blur than the rail around it. */
+  blurLens: 40,
+  /**
+   * The lens wash. It is the lens's opacity: an accent tint laid over the blur,
+   * not a white highlight, so the active tile reads solid without a sheen.
+   */
+  lensWash: 'rgba(124, 187, 255, 0.20)',
+  saturate: 100,
+  saturateStrong: 100,
 };
 
 /** Radii by role: controls 14, panes 24, sheets 28, pills full. */
@@ -150,9 +156,9 @@ const radii = {
 /** Control and row heights. Nothing measures itself with a magic number. */
 const heights = {
   appbar: 56,
-  rowCompact: 52,
-  row: 58,
-  rowTall: 66,
+  rowCompact: 56,
+  row: 60,
+  rowTall: 68,
   field: 44,
   fieldTall: 48,
   buttonSm: 48,
@@ -186,6 +192,8 @@ const iconSize = {
   md: 18,
   lg: 20,
   xl: 22,
+  /** The bottom dock's glyphs: one step up from xl, sized for a taller capsule. */
+  nav: 24,
   display: 28,
 };
 
@@ -214,19 +222,14 @@ const weights = {
 
 /** Depth by role: a pane sits, an action lifts, the flashcard floats. */
 const shadows = {
-  pane: '0 10px 28px rgba(0, 0, 0, 0.24)',
-  /** A neutral lift: the primary action is separated by its rim, not a halo. */
-  action: '0 8px 18px rgba(0, 0, 0, 0.34)',
-  tile: '0 8px 18px rgba(0, 0, 0, 0.30)',
-  floating: '0 10px 24px rgba(0, 0, 0, 0.40)',
-  card: '0 24px 56px rgba(0, 0, 0, 0.50)',
-  /**
-   * The borderless liquid-glass capsule: one far ambient shadow, one tighter
-   * contact shadow and a hairline grounding shadow, so the edge is defined by
-   * light and depth rather than a stroke.
-   */
-  liquidTab:
-    '0 18px 44px rgba(0, 0, 0, 0.42), 0 6px 16px rgba(0, 0, 0, 0.26), 0 1px 3px rgba(0, 0, 0, 0.18)',
+  // Flat UI: nothing in the app casts a shadow. Every role stays declared so a
+  // caller keeps its token name, but each one resolves to no shadow at all.
+  pane: 'none',
+  action: 'none',
+  tile: 'none',
+  floating: 'none',
+  card: 'none',
+  liquidTab: 'none',
 };
 
 /**
@@ -289,14 +292,14 @@ const layout = {
  * viewport, and a release past that floor dismisses it.
  */
 const sheet = {
-  /** expo-blur intensity (1–100) of the layer behind the panel. */
-  scrimBlur: 60,
-  /** Extra ink over the blur, so text behind never competes with the panel. */
-  scrimDim: 0.22,
+  /** No blur behind a sheet; the scrim is a flat ink wash. */
+  scrimBlur: 0,
+  /** Ink wash behind a sheet: deep enough that the page reads as background. */
+  scrimDim: 0.78,
   /** Share of the viewport a sheet may grow to. */
-  maxHeightRatio: 0.9,
-  /** Floor a dragged sheet shrinks to, before it closes. */
-  minHeightRatio: 0.34,
+  maxHeightRatio: 0.94,
+  /** Share of the viewport a short sheet still occupies: sheets read tall. */
+  minHeightRatio: 0.46,
   /** How far past the floor a release must travel to close instead of snap. */
   closeOverscroll: 40,
   /** A sheet always keeps at least this much travel to shrink, in px. */
@@ -330,13 +333,29 @@ const motion = {
   liquidSpring: { speed: 20, bounciness: 9 },
 };
 
-/** Floating liquid-glass tab capsule geometry. */
+/**
+ * Floating tab capsule geometry.
+ *
+ * Deliberately narrow and tall: a compact dock (264px ceiling) that is 68px
+ * high, so the glyphs sit in a 56px pill instead of being squeezed by a wide,
+ * shallow bar.
+ */
 const tabBar = {
-  height: 60,
-  maxWidth: 300,
-  gutter: 16,
+  /**
+   * The dock is sized by its content, not by the viewport: three fixed cells
+   * plus the rail's padding. A percentage width made the same dock look narrow
+   * on phones and stretched on tablets, and it forced the selection tile to
+   * float inside a slot wider than itself.
+   */
+  cell: 88,
+  height: 64,
+  maxWidth: 276,
+  gutter: 12,
   padding: 6,
-  pill: 48,
+  /** The tappable tile that holds one glyph and its caption. */
+  pill: 52,
+  /** Half a tile's height (52 / 2): the selection tile is a pill, fully round. */
+  tileRadius: 26,
 };
 
 module.exports = {
@@ -345,7 +364,6 @@ module.exports = {
   rims,
   veil,
   glass,
-  ambient,
   radii,
   heights,
   iconSize,

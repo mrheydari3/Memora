@@ -21,9 +21,9 @@ import { AppSplash } from '../components/AppSplash';
 const SPLASH_TIMEOUT_MS = 1200;
 
 const styles = StyleSheet.create({
-  // `overflow: hidden` clips the decorative ambient fields and the tab capsule's
-  // negative insets: at 320px they pushed the document 3px wide (a horizontal
-  // scrollbar on a page that has nothing to scroll). Nothing here is content.
+  // `overflow: hidden` clips the tab capsule's negative insets: at 320px they
+  // pushed the document 3px wide (a horizontal scrollbar on a page that has
+  // nothing to scroll). Nothing here is content.
   shell: { flex: 1, overflow: 'hidden' },
 });
 

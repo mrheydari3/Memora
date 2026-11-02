@@ -232,9 +232,9 @@ export function FlashcardView({
       style={[
         styles.wrapper,
         { marginHorizontal: spacing.screen, marginVertical: spacing.row },
-        // The study screen centres the card instead of stretching it: a card is
-        // only as tall as the column allows, and its content sits in the middle.
-        full && { flex: 1, justifyContent: 'center' },
+        // The study card owns the whole column between the app bar and the
+        // rating row; only its content is centred inside that height.
+        full && { flex: 1 },
       ]}
     >
       {/* Two panes peeking out below the card read as the rest of the deck. */}
@@ -251,7 +251,9 @@ export function FlashcardView({
       <Animated.View
         style={[
           styles.card,
-          full && { flex: 1, maxHeight: layout.cardMaxHeight },
+          // No height cap in a session: the card reaches the top and bottom of
+          // the stage instead of floating with empty bands above and below it.
+          full && { flex: 1 },
           {
             // Never enters from invisible: the card is the only content on the
             // study screen, so a 0-opacity start is a blank screen for a beat.

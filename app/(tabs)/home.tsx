@@ -78,6 +78,14 @@ export default function HomeScreen() {
     [decks, cardsByDeck, reviewLog]
   );
 
+  // What the section header can actually tell you: how many cards are waiting
+  // across the whole library, instead of repeating the deck count of the pane
+  // below it.
+  const totalDue = useMemo(
+    () => deckQueues.reduce((sum, entry) => sum + entry.total, 0),
+    [deckQueues]
+  );
+
   const lastStudiedDeckId = useMemo(() => {
     let latest: { deckId: string; reviewedAt: number } | null = null;
     for (const entry of reviewLog) {
@@ -276,7 +284,9 @@ export default function HomeScreen() {
             label="My decks"
             // A bare "1" next to the label read as a step number; the unit makes it
             // a count at a glance.
-            hint={`${deckQueues.length} ${deckQueues.length === 1 ? 'deck' : 'decks'}`}
+            hint={`${deckQueues.length} ${deckQueues.length === 1 ? 'deck' : 'decks'} · ${
+              totalDue > 0 ? `${totalDue} due` : 'caught up'
+            }`}
             action={{ label: 'Folders', icon: 'folder', onPress: () => setFolderSheet(true) }}
           />
 

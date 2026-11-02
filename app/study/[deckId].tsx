@@ -21,7 +21,7 @@ import {
   alpha,
   colors,
   fills,
-  glassFillStrong,
+  glassFillAppBar,
   heights,
   iconSize,
   layout,
@@ -249,7 +249,7 @@ export default function StudyScreen() {
   const studyHeader = (right?: React.ReactNode, center?: React.ReactNode) => (
     <View
       className="flex-row items-center justify-between px-2"
-      style={[glassFillStrong, { height: heights.appbar }]}
+      style={[glassFillAppBar, { height: heights.appbar }]}
     >
       <IconButton icon="close" onPress={() => router.back()} accessibilityLabel="Close" />
       {center ?? <View />}

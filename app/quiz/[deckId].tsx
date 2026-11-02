@@ -42,7 +42,7 @@ import {
   alpha,
   colors,
   fills,
-  glassFillStrong,
+  glassFillAppBar,
   heights,
   iconSize,
   layout,
@@ -339,7 +339,7 @@ export default function QuizScreen() {
   const header = (
     <View
       className="flex-row items-center px-2"
-      style={[glassFillStrong, { height: heights.appbar }]}
+      style={[glassFillAppBar, { height: heights.appbar }]}
     >
       <IconButton icon="close" onPress={() => router.back()} accessibilityLabel="Close quiz" />
       <View className="flex-1 items-center px-2">

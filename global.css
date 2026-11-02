@@ -35,6 +35,18 @@ body {
   overscroll-behavior-y: none;
 }
 
+/* Scroll panes: one behaviour everywhere. Momentum stays with the pane that
+   was touched instead of chaining the gesture to the page behind it, and a
+   programmatic scroll (a list reopening at a saved offset) glides into place
+   rather than snapping. RN-web renders every ScrollView as its own overflow
+   div, so this reaches all of them without a per-component prop. The
+   reduced-motion block below turns this back off. */
+* {
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Only suppress the pointer-click ring; keyboard focus keeps one. Written with
    longhands so a missing `--memora-focus` degrades to `currentColor` (still
    visible) instead of invalidating the whole shorthand and leaving no ring. */
@@ -55,6 +67,36 @@ body {
 ::selection {
   background-color: theme('colors.accent-soft');
   color: theme('colors.on-primary');
+}
+
+/*
+ * A decorative clip box is not a scroller.
+ *
+ * Chromium treats any `overflow: hidden` box as a scroll container and latches
+ * wheel input onto it. A card that clips a decoration therefore swallowed the
+ * wheel, and the list behind it stopped scrolling wherever one of those cards
+ * sat under the pointer (roughly y≈420px on the deck list). `clip` clips exactly
+ * the same way without creating a scroller, so the wheel reaches the real
+ * ScrollView. Web-only; native never loads this stylesheet.
+ */
+@supports (overflow: clip) {
+  .overflow-hidden {
+    overflow: clip;
+  }
+
+  /*
+   * Ellipsized labels are scroll containers too: React Native Web renders every
+   * single-line label as a box with `overflow: hidden` + `text-overflow:
+   * ellipsis`, and a wheel landing on one of those labels was swallowed exactly
+   * like a card. That is why the dead bands were exactly the labels: the
+   * "Start session" text (y≈317–369) on the deck list, the "Cards" statistic on
+   * settings. These are single-line labels that never need to be a hit target
+   * themselves — events now reach the button, row or scroll view behind them —
+   * while multi-line body copy keeps its pointer events and stays selectable.
+   */
+  [class*='r-textOverflow'] {
+    pointer-events: none;
+  }
 }
 
 /* A single global fallback for CSS-driven motion. The JS motion helpers already

@@ -6,7 +6,7 @@ import { GlassCard } from './GlassCard';
 import { ProgressRail } from './DeckProgressCard';
 import { groupDecksByFolder } from '../data/folders';
 import type { Deck, DeckFolder } from '../data/types';
-import { alpha, colors, fills, heights, iconSize, radii, spacing } from '../theme/tokens';
+import { alpha, colors, fills, heights, iconSize, radii, spacing, veil } from '../theme/tokens';
 import { usePressFeedback } from '../motion';
 
 export type DeckLibraryEntry = {
@@ -24,6 +24,15 @@ type DeckLibraryProps = {
   onOpenDeck: (deckId: string) => void;
 };
 
+/** Width of the trunk column, from the pane's gutter to the content inset. */
+const RAIL = 20;
+/** The trunk line's centre inside that column. */
+const TRUNK = 4;
+/** Diameter of a header node. */
+const NODE = 8;
+/** Collapse state key for the group of decks that has no folder. */
+const KNOWN_KEY = 'known';
+
 /**
  * DeckLibrary — the Library box as a tree.
  *
@@ -33,6 +42,14 @@ type DeckLibraryProps = {
  * studied meter stays quiet beneath the title. The trunk is structural, not
  * decoration — it is how the folder/deck relationship stays visible without
  * indenting every row into a separate card.
+ *
+ * Decks with no folder collect under **Known** at the end. It is a folder-shaped
+ * group, not a second kind of heading: it collapses, prints its own count and
+ * keeps its chevron, so the tree never ends in a row that looks tappable but
+ * does nothing.
+ *
+ * With no folders there is nothing to branch, so the trunk, its root node and
+ * the Known group are all dropped: a tree of one leaf is just a list.
  */
 export function DeckLibrary({ folders, entries, onOpenDeck }: DeckLibraryProps) {
   // Absent = open. Storing only the collapsed ids keeps a newly created folder
@@ -43,13 +60,19 @@ export function DeckLibrary({ folders, entries, onOpenDeck }: DeckLibraryProps) 
     folders
   );
   const byDeckId = new Map(entries.map((entry) => [entry.deck.id, entry]));
+  const tree = folders.length > 0;
+
+  const toggle = (key: string, open: boolean) =>
+    setCollapsed((current) => ({ ...current, [key]: open }));
 
   return (
     <GlassCard padding="none">
       {groups.map((group, groupIndex) => {
         const folder = group.folder;
-        const open = folder ? !collapsed[folder.id] : true;
+        const key = folder?.id ?? KNOWN_KEY;
+        const open = !collapsed[key];
         const isLastGroup = groupIndex === groups.length - 1;
+        const connectAbove = groupIndex > 0;
         const finalLeaf = !open
           ? 'header'
           : group.decks.length > 0
@@ -60,31 +83,30 @@ export function DeckLibrary({ folders, entries, onOpenDeck }: DeckLibraryProps) 
         const terminalHeader = isLastGroup && finalLeaf === 'header';
 
         return (
-          <View key={folder?.id ?? 'unfiled'}>
+          <View key={key}>
             {folder ? (
-              <FolderHeader
-                folder={folder}
+              <TreeHeader
+                name={folder.name}
                 count={group.decks.length}
                 open={open}
-                connectAbove={groupIndex > 0}
+                node="folder"
+                label={`Folder ${folder.name}`}
+                connectAbove={connectAbove}
                 terminal={terminalHeader}
-                onToggle={() =>
-                  setCollapsed((current) => ({ ...current, [folder.id]: open }))
-                }
+                onToggle={() => toggle(key, open)}
               />
-            ) : folders.length > 0 ? (
-              <UnfiledHeader
+            ) : tree ? (
+              <TreeHeader
+                name="Known"
                 count={group.decks.length}
-                connectAbove={groupIndex > 0}
+                open={open}
+                node="known"
+                label="Known, decks without a folder"
+                connectAbove={connectAbove}
                 terminal={terminalHeader}
+                onToggle={() => toggle(key, open)}
               />
-            ) : (
-              <RootHeader
-                count={group.decks.length}
-                connectAbove={groupIndex > 0}
-                terminal={terminalHeader}
-              />
-            )}
+            ) : null}
 
             {open && group.decks.length === 0 && folder && (
               <EmptyFolder terminal={isLastGroup && finalLeaf === 'empty'} />
@@ -98,6 +120,7 @@ export function DeckLibrary({ folders, entries, onOpenDeck }: DeckLibraryProps) 
                   <DeckRow
                     key={deck.id}
                     entry={entry}
+                    tree={tree}
                     terminal={
                       isLastGroup &&
                       finalLeaf === 'deck' &&
@@ -114,194 +137,193 @@ export function DeckLibrary({ folders, entries, onOpenDeck }: DeckLibraryProps) 
   );
 }
 
-/** The small node that sits on the trunk. */
-function TreeNode({ muted = false }: { muted?: boolean }) {
-  return (
+/**
+ * The trunk column of one row: the segments above and below the row's centre,
+ * plus whatever sits on that centre — a header node or a deck's branch.
+ *
+ * Laid out as two flexible halves around a fixed middle instead of absolute
+ * offsets, so the node and the branch stay on the row's midline however tall
+ * the row grows (a deck name that wraps to two lines used to leave its branch
+ * 20px above the icon it points at).
+ */
+function Rail({
+  connectAbove,
+  connectBelow,
+  node,
+  branchColor,
+}: {
+  connectAbove: boolean;
+  connectBelow: boolean;
+  /** A folder node, the muted Known node, or nothing for a deck leaf. */
+  node?: 'folder' | 'known';
+  /** Deck colour for the leaf's branch; only deck rows pass it. */
+  branchColor?: string;
+}) {
+  // A flexible half of the trunk. The two halves meeting at the middle is what
+  // keeps the node and the branch on the row's midline at any row height.
+  const half = (draw: boolean) => (
     <View
       style={{
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        marginRight: 12,
-        backgroundColor: muted ? colors.outline : colors.primary,
+        flex: 1,
+        marginLeft: TRUNK,
+        borderLeftWidth: draw ? 1 : 0,
+        borderLeftColor: fills.track,
+      }}
+    />
+  );
+
+  return (
+    <View
+      pointerEvents="none"
+      style={{ position: 'absolute', left: spacing.gutter, top: 0, bottom: 0, width: RAIL }}
+    >
+      {half(connectAbove)}
+      {node ? (
+        <View
+          style={{
+            width: NODE,
+            height: NODE,
+            borderRadius: NODE / 2,
+            backgroundColor: node === 'folder' ? colors.primary : colors.outline,
+          }}
+        />
+      ) : (
+        <View
+          style={{
+            width: RAIL - TRUNK,
+            height: 1,
+            marginLeft: TRUNK,
+            borderLeftWidth: 1,
+            borderLeftColor: fills.track,
+          }}
+        >
+          {branchColor ? (
+            <View
+              style={{
+                position: 'absolute',
+                left: 1,
+                right: 0,
+                top: 0,
+                height: 1,
+                backgroundColor: branchColor,
+              }}
+            />
+          ) : null}
+        </View>
+      )}
+      {half(connectBelow)}
+    </View>
+  );
+}
+
+/** The press veil every row in the app answers a touch with. */
+function PressVeil({ value }: { value: Animated.Value }) {
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: veil,
+        opacity: value.interpolate({ inputRange: [0, 1], outputRange: [0, 0.05] }),
       }}
     />
   );
 }
 
-/** The two halves of the trunk that meet at a node. */
-function HeaderLines({ connectAbove, terminal }: { connectAbove: boolean; terminal: boolean }) {
-  return (
-    <>
-      {connectAbove && (
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            left: spacing.gutter + 4,
-            top: 0,
-            height: heights.row / 2,
-            width: 1,
-            backgroundColor: fills.track,
-          }}
-        />
-      )}
-      {!terminal && (
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            left: spacing.gutter + 4,
-            top: heights.row / 2,
-            bottom: 0,
-            width: 1,
-            backgroundColor: fills.track,
-          }}
-        />
-      )}
-    </>
-  );
-}
-
-/** A folder node on the trunk: name, count and a collapse control. */
-function FolderHeader({
-  folder,
+/**
+ * A header row on the trunk: name, count and the collapse control. Folders and
+ * the Known group are the same row, so they collapse the same way.
+ */
+function TreeHeader({
+  name,
   count,
   open,
+  node,
+  label,
   connectAbove,
   terminal,
   onToggle,
 }: {
-  folder: DeckFolder;
+  name: string;
   count: number;
   open: boolean;
+  node: 'folder' | 'known';
+  /** Leading label, e.g. "Folder German A2" — the name alone is ambiguous to a screen reader. */
+  label: string;
   connectAbove: boolean;
   terminal: boolean;
   onToggle: () => void;
 }) {
+  const press = usePressFeedback({ scale: 0.995 });
   const countLabel = `${count} ${count === 1 ? 'deck' : 'decks'}`;
 
   return (
-    <Pressable
-      onPress={onToggle}
-      accessibilityRole="button"
-      accessibilityLabel={`Folder ${folder.name}, ${countLabel}`}
-      aria-expanded={open}
-      accessibilityHint={open ? 'Collapse folder' : 'Expand folder'}
-      style={{
-        position: 'relative',
-        minHeight: heights.row,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: spacing.gutter,
-      }}
-    >
-      <HeaderLines connectAbove={connectAbove} terminal={terminal} />
-      <TreeNode />
-      <AppText variant="body" weight="semibold" className="flex-1" numberOfLines={1}>
-        {folder.name}
-      </AppText>
-      <AppText variant="caption" weight="medium" tone="muted">
-        {countLabel}
-      </AppText>
-      <MaterialIcons
-        name={open ? 'expand-more' : 'chevron-right'}
-        size={iconSize.md}
-        color={colors.outline}
-        style={{ marginLeft: 6 }}
-      />
-    </Pressable>
+    <Animated.View style={press.style}>
+      <Pressable
+        onPress={onToggle}
+        onPressIn={press.onPressIn}
+        onPressOut={press.onPressOut}
+        accessibilityRole="button"
+        accessibilityLabel={`${label}, ${countLabel}`}
+        aria-expanded={open}
+        accessibilityHint={open ? 'Collapse' : 'Expand'}
+        style={{
+          position: 'relative',
+          minHeight: heights.row,
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingLeft: spacing.gutter + RAIL,
+          paddingRight: spacing.gutter,
+        }}
+      >
+        <PressVeil value={press.value} />
+        <Rail connectAbove={connectAbove} connectBelow={!terminal} node={node} />
+        <AppText variant="body" weight="semibold" className="flex-1" numberOfLines={1}>
+          {name}
+        </AppText>
+        <AppText variant="caption" weight="medium" tone="muted">
+          {countLabel}
+        </AppText>
+        <MaterialIcons
+          name={open ? 'expand-more' : 'chevron-right'}
+          size={iconSize.md}
+          color={colors.outline}
+          style={{ marginLeft: 6 }}
+        />
+      </Pressable>
+    </Animated.View>
   );
 }
 
-/** The root node used when the library has no folders yet. */
-function RootHeader({
-  count,
-  connectAbove,
-  terminal,
-}: {
-  count: number;
-  connectAbove: boolean;
-  terminal: boolean;
-}) {
-  const countLabel = `${count} ${count === 1 ? 'deck' : 'decks'}`;
-
-  return (
-    <View
-      style={{
-        position: 'relative',
-        minHeight: heights.row,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: spacing.gutter,
-      }}
-    >
-      <HeaderLines connectAbove={connectAbove} terminal={terminal} />
-      <TreeNode muted />
-      <AppText variant="body" weight="semibold" className="flex-1">
-        All decks
-      </AppText>
-      <AppText variant="caption" weight="medium" tone="muted">
-        {countLabel}
-      </AppText>
-    </View>
-  );
-}
-
-/** The node that keeps decks without a folder visible when folders exist. */
-function UnfiledHeader({
-  count,
-  connectAbove,
-  terminal,
-}: {
-  count: number;
-  connectAbove: boolean;
-  terminal: boolean;
-}) {
-  const countLabel = `${count} ${count === 1 ? 'deck' : 'decks'}`;
-
-  return (
-    <View
-      style={{
-        position: 'relative',
-        minHeight: heights.row,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: spacing.gutter,
-      }}
-    >
-      <HeaderLines connectAbove={connectAbove} terminal={terminal} />
-      <TreeNode muted />
-      <AppText variant="body" weight="semibold" className="flex-1">
-        Unfiled
-      </AppText>
-      <AppText variant="caption" weight="medium" tone="muted">
-        {countLabel}
-      </AppText>
-    </View>
-  );
-}
-
+/**
+ * A folder with nothing in it yet. The trunk runs through to the next group, or
+ * ends here in a short stub when this is the last thing in the box, so an empty
+ * folder reads as a dead end instead of a cut line.
+ */
 function EmptyFolder({ terminal }: { terminal: boolean }) {
   return (
     <View
       style={{
         position: 'relative',
-        paddingLeft: spacing.gutter + 20,
+        paddingLeft: spacing.gutter + RAIL,
         paddingRight: spacing.gutter,
-        paddingTop: 2,
-        paddingBottom: spacing.gutter,
+        paddingTop: 22,
+        paddingBottom: 16,
       }}
     >
       <View
         pointerEvents="none"
         style={{
           position: 'absolute',
-          left: spacing.gutter + 4,
+          left: spacing.gutter + TRUNK,
           top: 0,
           bottom: terminal ? undefined : 0,
+          height: terminal ? 22 : undefined,
           width: 1,
-          height: terminal ? 10 : undefined,
           backgroundColor: fills.track,
         }}
       />
@@ -309,9 +331,9 @@ function EmptyFolder({ terminal }: { terminal: boolean }) {
         pointerEvents="none"
         style={{
           position: 'absolute',
-          left: spacing.gutter + 4,
-          top: 10,
-          width: 16,
+          left: spacing.gutter + TRUNK,
+          top: 22,
+          width: 12,
           height: 1,
           backgroundColor: fills.track,
         }}
@@ -329,10 +351,13 @@ function EmptyFolder({ terminal }: { terminal: boolean }) {
  */
 function DeckRow({
   entry,
+  tree,
   terminal,
   onPress,
 }: {
   entry: DeckLibraryEntry;
+  /** Draw the trunk and this row's branch. Off when the library has no folders. */
+  tree: boolean;
   terminal: boolean;
   onPress: () => void;
 }) {
@@ -349,6 +374,9 @@ function DeckRow({
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
         accessibilityRole="button"
+        // The visible row is four separate numbers; naming it after them keeps
+        // the label and the content in the same words (WCAG 2.5.3).
+        accessibilityLabel={`${deck.name}, ${cardCount} ${cardLabel}, ${percentLabel} studied, ${due} due`}
         accessibilityHint="Open deck"
       >
         <View
@@ -357,36 +385,20 @@ function DeckRow({
             minHeight: heights.deckSlab,
             flexDirection: 'row',
             alignItems: 'center',
-            paddingLeft: spacing.gutter + 20,
+            paddingLeft: tree ? spacing.gutter + RAIL : spacing.gutter,
             paddingRight: spacing.gutter,
             paddingVertical: 12,
           }}
         >
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              left: spacing.gutter + 4,
-              top: 0,
-              bottom: terminal ? undefined : 0,
-              height: terminal ? 34 : undefined,
-              width: 1,
-              backgroundColor: fills.track,
-            }}
-          />
+          {tree && (
+            <Rail
+              connectAbove
+              connectBelow={!terminal}
+              branchColor={alpha(deck.color, 0.55)}
+            />
+          )}
 
-          {/* The leaf branch: from the trunk to the deck's icon tile. */}
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              left: spacing.gutter + 4,
-              top: 34,
-              width: 16,
-              height: 1,
-              backgroundColor: alpha(deck.color, 0.55),
-            }}
-          />
+          <PressVeil value={press.value} />
 
           <View
             style={{
@@ -410,16 +422,11 @@ function DeckRow({
               {deck.name}
             </AppText>
             <AppText variant="caption" weight="medium" tone="muted" className="mt-0.5">
-              {cardCount} {cardLabel}
+              {cardCount} {cardLabel} · {percentLabel} studied
             </AppText>
 
-            <View className="mt-2 flex-row items-center">
-              <View className="flex-1">
-                <ProgressRail value={progress} color={deck.color} height={4} />
-              </View>
-              <AppText variant="caption" weight="semibold" tone="muted" className="ml-2.5">
-                {percentLabel}
-              </AppText>
+            <View className="mt-2">
+              <ProgressRail value={progress} color={deck.color} height={4} />
             </View>
           </View>
 
@@ -427,11 +434,7 @@ function DeckRow({
             <AppText variant="title" tone={due > 0 ? 'default' : 'muted'}>
               {due}
             </AppText>
-            <AppText
-              variant="caption"
-              weight="semibold"
-              tone={due > 0 ? 'accent' : 'muted'}
-            >
+            <AppText variant="caption" weight="semibold" tone={due > 0 ? 'accent' : 'muted'}>
               due
             </AppText>
           </View>

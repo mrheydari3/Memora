@@ -1,11 +1,13 @@
 /**
  * Memora motion layer — the one place that starts animations.
  *
- * Screens describe intent (`useReveal`, `usePressFeedback`, `timingTo`) and this
- * module owns the curves, the native driver decision and the reduced-motion
- * switch, so a screen can never drift into its own hand-tuned duration. Every
- * helper reads the OS "reduce motion" preference at the moment it starts, so a
- * user who asked for less motion gets the end state immediately.
+ * The system is restrained on purpose: short durations, one decelerating curve,
+ * and springs only where a physical object is implied (press feedback, the tab
+ * lens, a card settling). Nothing overshoots and nothing loops for its own sake,
+ * so the UI feels responsive rather than decorated.
+ *
+ * Every helper reads the OS "reduce motion" preference at the moment it starts,
+ * so a user who asked for less motion gets the end state immediately.
  *
  * Tokens live in `theme/palette.js` (`motion.fast|base|slow|flip|spring`).
  */
@@ -18,12 +20,15 @@ export const IS_WEB = Platform.OS === 'web';
 /** Layout properties (width, height) can never run on the native driver. */
 export const USE_NATIVE_DRIVER = !IS_WEB;
 
-/** The three curves the app uses. `standard` eases out, `flip` is symmetric. */
+/** The three curves the app uses. `standard` decelerates into place, no bounce. */
 export const EASE = {
-  standard: Easing.out(Easing.cubic),
+  standard: Easing.bezier(0.22, 0.61, 0.36, 1),
   flip: Easing.inOut(Easing.cubic),
   press: Easing.out(Easing.quad),
 } as const;
+
+/** The tab lens settles quickly but without the old bouncy overshoot. */
+const LENS_SPRING = { speed: 28, bounciness: 0 } as const;
 
 const REDUCE_QUERY = '(prefers-reduced-motion: reduce)';
 
@@ -54,8 +59,8 @@ function listenToNativePreference() {
 }
 
 /**
- * Synchronous check. The animation helpers call this as they start, so a change
- * in the OS setting applies to the very next transition without a re-render.
+ * Synchronous check. The helpers call this as they start, so a change in the OS
+ * setting applies to the very next transition without a re-render.
  */
 export function prefersReducedMotion(): boolean {
   if (IS_WEB) {
@@ -111,8 +116,7 @@ export function timingTo(
   toValue: number,
   options: TimingOptions
 ): Promise<void> {
-  const reduced = options.reduced ?? prefersReducedMotion();
-  if (reduced) {
+  if (options.reduced ?? prefersReducedMotion()) {
     value.setValue(toValue);
     return Promise.resolve();
   }
@@ -145,10 +149,7 @@ export function springTo(
   }).start();
 }
 
-/**
- * The liquid-glass settle: a spring with a little bounce, used by the tab bar's
- * travelling lens. Reduce motion jumps straight to the end value.
- */
+/** The tab bar's travelling lens: a quick, damped settle. */
 export function springLiquidTo(
   value: Animated.Value,
   toValue: number,
@@ -160,7 +161,7 @@ export function springLiquidTo(
   }
   Animated.spring(value, {
     toValue,
-    ...motion.liquidSpring,
+    ...LENS_SPRING,
     useNativeDriver: USE_NATIVE_DRIVER,
   }).start();
 }
@@ -191,7 +192,7 @@ export function springToAsync(
 type RevealOptions = {
   /** Delay in ms, for staggering siblings. */
   delay?: number;
-  /** Defaults to motion.slow. */
+  /** Defaults to motion.base: a screen is readable within a quarter second. */
   duration?: number;
   /** Vertical rise in px; 0 fades in place (used for list re-reveals). */
   distance?: number;
@@ -204,18 +205,18 @@ type RevealOptions = {
  *
  * Not 0: a reveal wraps a whole screen's body, and a 0 start means the first
  * frames after a navigation paint nothing below the app bar — the "blank
- * screen" people read as a broken page. Starting part-way keeps the fade and
- * the rise while guaranteeing the content is on screen from the first frame.
+ * screen" people read as a broken page. Starting near-opaque keeps a soft fade
+ * while guaranteeing the content is legible from the first frame.
  */
-export const REVEAL_OPACITY_FLOOR = 0.6;
+export const REVEAL_OPACITY_FLOOR = 0.92;
 
 /**
- * A 0→1 reveal that replays whenever `key` changes (mount included). The
- * returned style is ready to spread on an Animated.View. Opacity travels
- * `REVEAL_OPACITY_FLOOR`→1 rather than 0→1, so a reveal can never hide content.
+ * A restrained reveal: a short fade from `REVEAL_OPACITY_FLOOR` plus an 8px
+ * rise, replayed whenever `key` changes (mount included). The returned style is
+ * ready to spread on an Animated.View.
  */
 export function useReveal(key: unknown, options: RevealOptions = {}) {
-  const { delay = 0, duration = motion.slow, distance = 12, scale } = options;
+  const { delay = 0, duration = motion.base, distance = 8, scale } = options;
   const value = useRef(new Animated.Value(1)).current;
   const reduced = useReducedMotion();
 
@@ -260,16 +261,16 @@ export function useReveal(key: unknown, options: RevealOptions = {}) {
 }
 
 type PressOptions = {
-  /** Scale reached while pressed. Keep it above ~0.94 for full-width rows. */
+  /** Scale reached while pressed. Keep it above ~0.96 for full-width rows. */
   scale?: number;
 };
 
 /**
- * Press feedback: a spring from 1 to `scale` on press-in, back on release.
- * The raw value is returned too, so a row can drive a press veil with it.
+ * Press feedback: a damped spring from 1 to `scale` on press-in, back on
+ * release. The raw value is returned too, so a row can drive a press veil.
  */
 export function usePressFeedback(options: PressOptions = {}) {
-  const { scale = 0.98 } = options;
+  const { scale = 0.985 } = options;
   const value = useRef(new Animated.Value(0)).current;
 
   const onPressIn = () => springTo(value, 1);
@@ -297,10 +298,10 @@ export function usePressFeedback(options: PressOptions = {}) {
 /**
  * Stagger — the delay for the nth member of an entrance group.
  *
- * Capped, because a 40-row deck list should not spend two seconds cascading:
- * past the cap every remaining row enters with the last group instead.
+ * Short and capped: four steps of 24ms is enough to read as a cascade, while a
+ * forty-row list still finishes inside a single breath.
  */
-export function staggerDelay(index: number, step = 40, cap = 8): number {
+export function staggerDelay(index: number, step = 24, cap = 4): number {
   return Math.min(Math.max(0, index), cap) * step;
 }
 
@@ -329,7 +330,7 @@ export function useSharedShimmer(): Animated.Value {
       shimmerLoop = Animated.loop(
         Animated.timing(value, {
           toValue: 1,
-          duration: 1500,
+          duration: 1600,
           easing: Easing.inOut(Easing.quad),
           useNativeDriver: USE_NATIVE_DRIVER,
         })

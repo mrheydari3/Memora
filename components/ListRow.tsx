@@ -2,6 +2,7 @@ import { Animated, View, Pressable } from 'react-native';
 import { MaterialIcons } from './Icon';
 import { AppText } from './AppText';
 import { alpha, colors, fills, heights, iconSize, veil } from '../theme/tokens';
+import type { ViewStyle } from 'react-native';
 import { usePressFeedback } from '../motion';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -42,6 +43,8 @@ type ListRowProps = {
   disabled?: boolean;
   destructive?: boolean;
   className?: string;
+  /** Extra row style — a fill, a radius, a margin. Merged into the geometry. */
+  style?: ViewStyle | ViewStyle[];
   accessibilityLabel?: string;
 };
 
@@ -110,6 +113,7 @@ export function ListRow({
   disabled = false,
   destructive = false,
   className = '',
+  style,
   accessibilityLabel,
 }: ListRowProps) {
   // Every pressable row answers a touch the same way: a spring dip and a faint
@@ -218,6 +222,7 @@ export function ListRow({
     minHeight: DENSITY[density],
     paddingHorizontal: gutter,
     ...(highlighted ? { backgroundColor: colors.accentFaint } : {}),
+    ...(style as ViewStyle),
   };
 
   // A row is named by its own content (title, subtitle, value), so an explicit

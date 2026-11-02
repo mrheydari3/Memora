@@ -40,8 +40,8 @@ export function RevealItem({
   delay = 0,
   step = 40,
   cap = 8,
-  distance = 10,
-  duration = motion.slow,
+  distance = 8,
+  duration = motion.base,
   style,
 }: RevealItemProps) {
   const reveal = useReveal(`reveal:${index}`, {

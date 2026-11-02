@@ -177,9 +177,9 @@ export function SegmentedControl({
                   {/*
                     `muted`, not `tertiary`: an 11px caption in the tertiary
                     tone measures 3.88:1 on a raised tile (axe, 320px), because
-                    the tile over a warm ambient field is lighter than the
-                    canvas the tone was chosen for. Quiet text on a raised
-                    surface uses the next tone up.
+                    a raised tile is lighter than the flat canvas the tone was
+                    chosen for. Quiet text on a raised surface uses the next
+                    tone up.
                   */}
                   <AppText
                     variant="caption"
