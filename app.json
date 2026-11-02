@@ -3,29 +3,11 @@
     "name": "Memora",
     "slug": "memora",
     "version": "1.0.0",
+    "platforms": ["web"],
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",
     "scheme": "memora",
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.memory.app",
-      "infoPlist": {
-        "UIBackgroundModes": [
-          "audio"
-        ]
-      }
-    },
-    "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#07090E",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
-      },
-      "package": "com.memory.app",
-      "predictiveBackGestureEnabled": false
-    },
     "web": {
       "bundler": "metro",
       "favicon": "./assets/favicon.png",
