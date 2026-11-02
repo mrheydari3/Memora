@@ -206,7 +206,14 @@ export default function HomeScreen() {
       ) : (
         <RevealItem index={1}>
           <GlassCard tone="accent" className="mt-6">
-            <View className="flex-row items-center">
+            {/*
+              The title owns the card's full width. Beside a fixed 44px tile it
+              had about 130px at 320px with 200% text, which broke the deck name
+              in the middle of a word; here the tile and the status share the top
+              row and the unclamped title sits below them, so the whole name is
+              readable at every width and text size.
+            */}
+            <View className="flex-row items-center gap-3">
               <View
                 className="items-center justify-center rounded-md"
                 style={{
@@ -222,25 +229,19 @@ export default function HomeScreen() {
                 />
               </View>
 
-              <View className="ml-3 flex-1">
-                <AppText
-                  variant="caption"
-                  weight="semibold"
-                  tone="accent"
-                  className="uppercase"
-                >
-                  {continueDue === 0 ? 'All caught up' : resuming ? 'Continue' : 'Up next'}
-                </AppText>
-                <AppText
-                  variant="title"
-                  className="mt-0.5"
-                  numberOfLines={2}
-                  headingLevel={2}
-                >
-                  {continueEntry.deck.name}
-                </AppText>
-              </View>
+              <AppText
+                variant="caption"
+                weight="semibold"
+                tone="accent"
+                className="flex-1 uppercase"
+              >
+                {continueDue === 0 ? 'All caught up' : resuming ? 'Continue' : 'Up next'}
+              </AppText>
             </View>
+
+            <AppText variant="title" className="mt-2" headingLevel={2}>
+              {continueEntry.deck.name}
+            </AppText>
 
             <AppText variant="bodySm" tone="muted" className="mt-3">
               {continueDue > 0

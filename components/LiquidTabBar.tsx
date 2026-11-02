@@ -98,10 +98,14 @@ function TabItem({
         importantForAccessibility="no-hide-descendants"
         style={{
           minWidth: tabBar.cell,
-          height: tabBar.pill,
+          // A minimum, like the tab itself: at 200% text size the glyph and its
+          // caption need more room, and the capsule grows instead of cutting
+          // the caption off at the tile's edge.
+          minHeight: tabBar.pill,
           alignItems: 'center',
           justifyContent: 'center',
           paddingHorizontal: 6,
+          paddingVertical: 2,
         }}
       >
         {icon}
@@ -510,7 +514,7 @@ const styles = StyleSheet.create({
     // viewport, so the selection tile always sits exactly on a tab.
     alignSelf: 'center',
     maxWidth: tabBar.maxWidth,
-    height: tabBar.height,
+    minHeight: tabBar.height,
     padding: tabBar.padding,
     flexDirection: 'row',
     borderRadius: tabBar.height / 2,
@@ -540,8 +544,8 @@ const styles = StyleSheet.create({
   lens: {
     position: 'absolute',
     top: 0,
+    bottom: 0,
     left: 0,
-    height: tabBar.pill,
     // The lens is the tab's own tile, so the selection reads as a segment
     // rather than a floating dot.
     borderRadius: tabBar.tileRadius,

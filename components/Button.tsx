@@ -106,7 +106,10 @@ export function Button({
         <Pressable
           className="w-full flex-row items-center justify-center rounded-md px-5"
           style={[
-            { height: isText ? undefined : height, minHeight: isText ? 44 : undefined },
+            // A minimum, not a fixed height: at 200% text size the label wraps
+            // onto a second line and the button grows with it instead of
+            // clipping the words.
+            { minHeight: isText ? 44 : height, paddingVertical: 12 },
             background,
             depth,
             isQuiet && { overflow: 'hidden' },
@@ -143,10 +146,15 @@ export function Button({
                   name={icon}
                   size={iconSize.lg}
                   color={glyph}
-                  style={label ? { marginRight: 8 } : undefined}
+                  style={label ? { marginEnd: 8 } : undefined}
                 />
               )}
-              <AppText variant="body" weight="semibold" tone={labelTone} numberOfLines={1}>
+              <AppText
+                variant="body"
+                weight="semibold"
+                tone={labelTone}
+                style={{ textAlign: 'center' }}
+              >
                 {label}
               </AppText>
             </>

@@ -444,7 +444,10 @@ function DeckRow({
           </View>
 
           <View className="ml-3 flex-1">
-            <AppText variant="bodyLg" weight="semibold" numberOfLines={2}>
+            {/* No line clamp: at 200% text size a two-line cap cut the deck
+                name off mid-word. The row (and the tree's branch with it) grows
+                instead, so the whole name stays readable. */}
+            <AppText variant="bodyLg" weight="semibold">
               {deck.name}
             </AppText>
             <AppText variant="caption" weight="medium" tone="muted" className="mt-0.5">

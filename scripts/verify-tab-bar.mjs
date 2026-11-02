@@ -247,6 +247,48 @@ for (const { w, h } of [
   await context.close();
 }
 
+// ── 5. 200% text: the hero deck title must stay whole ─────────────────────
+for (const { w, h } of [
+  { w: 320, h: 700 },
+  { w: 390, h: 844 },
+  { w: 431, h: 822 },
+  { w: 768, h: 900 },
+]) {
+  const { context, page } = await openPage(w, h);
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '32px';
+  });
+  await page.waitForTimeout(700);
+
+  const hero = await page.evaluate(() => {
+    const upNext = [...document.querySelectorAll('div')].find(
+      (el) => el.children.length === 0 && /^up next$/i.test((el.textContent ?? '').trim())
+    );
+    const card = upNext ? upNext.closest('[class*="overflow"]') : null;
+    const title = card ? card.querySelector('[role="heading"]') : null;
+    if (!title || !card) return null;
+    const style = getComputedStyle(title);
+    return {
+      text: (title.textContent ?? '').trim(),
+      clipped: title.scrollHeight - title.clientHeight > 1 || title.scrollWidth - title.clientWidth > 1,
+      clamp: style.webkitLineClamp,
+      cardOverflowX: card.scrollWidth - card.clientWidth,
+      pageOverflowX: document.documentElement.scrollWidth - window.innerWidth,
+    };
+  });
+
+  check(
+    `${w}px @200%: deck title is complete, not ellipsized`,
+    !!hero && hero.clipped === false && hero.clamp === 'none' && hero.text.length > 0,
+    hero ? `clamp ${hero.clamp} · clipped ${hero.clipped} · "${hero.text}"` : 'no hero title'
+  );
+  check(`${w}px @200%: hero card does not overflow`, !!hero && hero.cardOverflowX <= 1, hero ? `${hero.cardOverflowX}px` : 'unknown');
+  check(`${w}px @200%: no sideways overflow`, !!hero && hero.pageOverflowX <= 1, hero ? `${hero.pageOverflowX}px` : 'unknown');
+
+  await page.screenshot({ path: `${OUT}/tab-${w}-zoom200.png` });
+  await context.close();
+}
+
 await browser.close();
 
 const failed = results.filter((r) => !r.ok);
