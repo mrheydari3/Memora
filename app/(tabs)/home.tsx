@@ -1,37 +1,32 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Pressable } from 'react-native';
+import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
 import { buildStudyQueue } from '../../data/session';
 import { computeStreak } from '../../data/streak';
+import { folderDeckCount } from '../../data/folders';
 import {
   AppText,
   Screen,
   TopAppBar,
   GlassCard,
   SectionHeader,
-  DeckListItem,
   PrimaryButton,
   EmptyState,
-  IconButton,
   RevealItem,
-  SkeletonRow,
+  HeroSkeleton,
+  DeckShelfSkeleton,
+  ProgressRail,
+  DeckLibrary,
+  BottomSheetModal,
+  Field,
+  ListRow,
+  IconButton,
 } from '../../components';
-import {
-  alpha,
-  colors,
-  glassFill,
-  heights,
-  iconSize,
-} from '../../theme/tokens';
-
-const EXPLORE = [
-  { key: 'discover', icon: 'explore', title: 'Discover', subtitle: 'Curated decks', href: '/library?tab=discover' },
-  { key: 'insights', icon: 'insights', title: 'Insights', subtitle: 'Streak & progress', href: '/statistics' },
-] as const;
+import { alpha, colors, heights, iconSize, spacing } from '../../theme/tokens';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -42,29 +37,70 @@ export default function HomeScreen() {
   const loaded = useDeckStore((s) => s.loaded);
   const reviewLog = useReviewStore((s) => s.reviewLog);
   const reviewLoaded = useReviewStore((s) => s.loaded);
-  const [editMode, setEditMode] = useState(false);
+  const folders = useDeckStore((s) => s.folders);
+  const addFolder = useDeckStore((s) => s.addFolder);
+  const deleteFolder = useDeckStore((s) => s.deleteFolder);
 
   useEffect(() => {
     if (!loaded) useDeckStore.getState().load();
     if (!reviewLoaded) useReviewStore.getState().load();
   }, [loaded, reviewLoaded]);
 
+  const ready = loaded && reviewLoaded;
+
+  // Folders are a browsing layer: creating one is local, deleting one only
+  // unfiles its decks, so neither can touch a card or a review.
+  const [folderSheet, setFolderSheet] = useState(false);
+  const [folderDraft, setFolderDraft] = useState('');
+  const [folderError, setFolderError] = useState<string | null>(null);
   const streak = useMemo(() => computeStreak(reviewLog.map((e) => e.reviewedAt)), [reviewLog]);
 
-  // One queue per deck, using the same helper as the study session so the
-  // numbers agree with what the session will actually show.
+  // One queue per active deck, using the same helper as the study session so
+  // the numbers agree with what the session will actually show. Progress is
+  // the share of cards that have been studied at least once.
   const deckQueues = useMemo(
     () =>
-      decks.map((deck) => {
-        const cards = cardsByDeck[deck.id] ?? [];
-        return { deck, cardCount: cards.length, total: buildStudyQueue(deck, cards, reviewLog).total };
-      }),
+      decks
+        .filter((deck) => !deck.archivedAt)
+        .map((deck) => {
+          const cards = cardsByDeck[deck.id] ?? [];
+          const studied = cards.reduce(
+            (count, card) => count + (card.fsrs.last_review != null ? 1 : 0),
+            0
+          );
+          return {
+            deck,
+            cardCount: cards.length,
+            total: buildStudyQueue(deck, cards, reviewLog).total,
+            progress: cards.length > 0 ? studied / cards.length : 0,
+          };
+        }),
     [decks, cardsByDeck, reviewLog]
   );
 
-  const dueCount = deckQueues.reduce((sum, entry) => sum + entry.total, 0);
-  const nextDeck = deckQueues.find((entry) => entry.total > 0);
-  const activeDecks = deckQueues.filter((entry) => entry.total > 0).length;
+  const lastStudiedDeckId = useMemo(() => {
+    let latest: { deckId: string; reviewedAt: number } | null = null;
+    for (const entry of reviewLog) {
+      if (!latest || entry.reviewedAt > latest.reviewedAt) latest = entry;
+    }
+    return latest?.deckId ?? null;
+  }, [reviewLog]);
+
+  const lastStudiedEntry = deckQueues.find((entry) => entry.deck.id === lastStudiedDeckId);
+  // Prefer the deck the learner left off in, but never point the hero at a
+  // caught-up deck while another one still has cards waiting.
+  const continueEntry =
+    (lastStudiedEntry && lastStudiedEntry.total > 0 ? lastStudiedEntry : undefined) ??
+    deckQueues.find((entry) => entry.total > 0) ??
+    lastStudiedEntry ??
+    deckQueues[0];
+  const resuming = Boolean(lastStudiedEntry && continueEntry?.deck.id === lastStudiedEntry.deck.id);
+  const continueDue = continueEntry?.total ?? 0;
+  const continuePercent = continueEntry ? Math.round(continueEntry.progress * 100) : 0;
+  const continuePercentLabel =
+    continueEntry && continueEntry.progress > 0 && continuePercent === 0
+      ? '<1%'
+      : `${continuePercent}%`;
 
   return (
     <Screen
@@ -76,7 +112,7 @@ export default function HomeScreen() {
           leftContent={
             <View className="flex-1 flex-row items-center gap-2 pl-1">
               <View
-                className="items-center justify-center rounded-md border border-accent-line"
+                className="items-center justify-center rounded-md"
                 style={{
                   width: heights.icon,
                   height: heights.icon,
@@ -91,193 +127,254 @@ export default function HomeScreen() {
             </View>
           }
           actions={[
-            { icon: 'create-new-folder', accessibilityLabel: 'Add Deck', onPress: () => pushOnce(router, '/add-deck') },
             {
-              icon: editMode ? 'check' : 'edit',
-              accessibilityLabel: editMode ? 'Exit edit mode' : 'Edit mode',
-              onPress: () => setEditMode((v) => !v),
+              icon: 'create-new-folder',
+              accessibilityLabel: 'Add deck',
+              onPress: () => pushOnce(router, '/add-deck'),
             },
           ]}
         />
       }
     >
-
       <RevealItem index={0}>
-      {/* Greeting + streak */}
-      <View className="flex-row items-start justify-between">
-        <View className="flex-1 pr-3">
-          <AppText variant="caption" weight="semibold" tone="muted" className="uppercase">
-            Your library
-          </AppText>
-          <AppText variant="title" className="mt-1">
-            Good to see you.
-          </AppText>
-        </View>
-        <View
-          className="flex-row items-center gap-1.5 rounded-full border border-hairline px-3 py-1.5"
-          style={{ backgroundColor: alpha(colors.warning, 0.08) }}
-        >
-          <MaterialIcons
-            name="local-fire-department"
-            size={iconSize.sm}
-            color={streak > 0 ? colors.warning : colors.outline}
-          />
-          <AppText variant="bodySm" weight="semibold">
-            {streak}
-          </AppText>
-          <AppText variant="caption" weight="medium" tone="muted">
-            {streak === 1 ? 'day' : 'days'}
-          </AppText>
-        </View>
-      </View>
-      </RevealItem>
-
-      <RevealItem index={1}>
-      {/* Today's session */}
-      <GlassCard tone="accent" className="mt-6">
         <View className="flex-row items-start justify-between">
-          <View>
-            <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
-              Today
+          <View className="flex-1 pr-3">
+            <AppText variant="caption" weight="semibold" tone="muted" className="uppercase">
+              Your library
             </AppText>
-            <AppText variant="display" className="mt-1">
-              {dueCount}
-            </AppText>
-            <AppText variant="bodySm" tone="muted" className="mt-1">
-              {dueCount > 0
-                ? `cards due across ${activeDecks} ${activeDecks === 1 ? 'deck' : 'decks'}`
-                : 'Nothing due — you are all caught up'}
+            <AppText variant="title" className="mt-1" headingLevel={1}>
+              Good to see you.
             </AppText>
           </View>
           <View
-            className="items-center justify-center rounded-full border border-accent-line"
-            style={{
-              width: heights.iconLg,
-              height: heights.iconLg,
-              backgroundColor: colors.accentFaint,
-            }}
+            className="flex-row items-center gap-1.5 rounded-full px-3 py-1.5"
+            style={{ backgroundColor: alpha(colors.warning, 0.12) }}
           >
             <MaterialIcons
-              name={dueCount > 0 ? 'bolt' : 'check'}
-              size={iconSize.lg}
-              color={colors.primary}
+              name="local-fire-department"
+              size={iconSize.sm}
+              color={streak > 0 ? colors.warning : colors.outline}
             />
+            <AppText variant="bodySm" weight="semibold">
+              {streak}
+            </AppText>
+            <AppText variant="caption" weight="medium" tone="muted">
+              {streak === 1 ? 'day' : 'days'}
+            </AppText>
           </View>
         </View>
-
-        <PrimaryButton
-          className="mt-5"
-          label="Start session"
-          icon={dueCount > 0 ? 'play-arrow' : undefined}
-          disabled={!nextDeck}
-          onPress={() => nextDeck && pushOnce(router, `/study/${nextDeck.deck.id}`)}
-        />
-        {nextDeck && (
-          <AppText
-            variant="caption"
-            weight="medium"
-            tone="muted"
-            align="center"
-            className="mt-2.5"
-            numberOfLines={1}
-          >
-            Next up · {nextDeck.deck.name}
-          </AppText>
-        )}
-      </GlassCard>
       </RevealItem>
 
-      {/* Decks */}
-      <RevealItem index={2}>
-      <SectionHeader
-        className="mt-8"
-        label="Decks"
-        hint={String(decks.length)}
-        action={{ label: 'New deck', icon: 'add', onPress: () => pushOnce(router, '/add-deck') }}
-      />
-
-      <GlassCard padding="none" className="mt-3">
-        {!loaded ? (
-          <View>
-            {[0, 1, 2].map((i) => (
-              <View key={i}>
-                <SkeletonRow tall />
-                {i < 2 && <View className="mx-4 h-px bg-hairline" />}
-              </View>
-            ))}
+      {!ready ? (
+        <RevealItem index={1}>
+          <View className="mt-6">
+            <HeroSkeleton />
           </View>
-        ) : deckQueues.length === 0 ? (
-          <EmptyState
-            icon="library-books"
-            title="No decks yet"
-            description="Create your first deck to start building a memory."
-            className="px-6 py-8"
-          />
-        ) : (
-          deckQueues.map(({ deck, cardCount, total }, i) => (
-            <DeckListItem
-              key={deck.id}
-              name={deck.name}
-              icon={deck.icon as React.ComponentProps<typeof MaterialIcons>['name']}
-              color={deck.color}
-              meta={`${cardCount} cards · ${total > 0 ? `${total} due` : 'nothing due'}`}
-              divider={i < deckQueues.length - 1}
-              onPress={() => pushOnce(router, `/deck/${deck.id}`)}
-              trailing={
-                editMode ? (
-                  <IconButton
-                    icon="delete-outline"
-                    size="sm"
-                    tone="danger"
-                    onPress={(event) => {
-                      // The row itself opens the deck; without this the delete
-                      // tap also navigates on web, where clicks bubble.
-                      event.stopPropagation();
-                      useDeckStore.getState().deleteDeck(deck.id);
-                    }}
-                    accessibilityLabel={`Delete ${deck.name}`}
+        </RevealItem>
+      ) : !continueEntry ? (
+        <RevealItem index={1}>
+          <GlassCard className="mt-6">
+            <EmptyState
+              icon="library-books"
+              title="No decks yet"
+              description="Create your first deck to start building a memory."
+              className="py-6"
+              action={
+                <View className="w-52">
+                  <PrimaryButton
+                    label="Create a deck"
+                    icon="add"
+                    onPress={() => pushOnce(router, '/add-deck')}
                   />
-                ) : undefined
+                </View>
               }
             />
-          ))
-        )}
-      </GlassCard>
-      </RevealItem>
+          </GlassCard>
+        </RevealItem>
+      ) : (
+        <RevealItem index={1}>
+          <GlassCard tone="accent" className="mt-6">
+            <View className="flex-row items-center">
+              <View
+                className="items-center justify-center rounded-md"
+                style={{
+                  width: heights.tileLg,
+                  height: heights.tileLg,
+                  backgroundColor: alpha(continueEntry.deck.color, 0.16),
+                }}
+              >
+                <MaterialIcons
+                  name={continueEntry.deck.icon as React.ComponentProps<typeof MaterialIcons>['name']}
+                  size={iconSize.lg}
+                  color={continueEntry.deck.color}
+                />
+              </View>
 
-      {/* Secondary destinations */}
-      <RevealItem index={3}>
-      <SectionHeader className="mt-8" label="Explore" />
-      <View className="mt-3 flex-row gap-3">
-        {EXPLORE.map((item) => (
-          <Pressable
-            key={item.key}
-            className="flex-1 rounded-xl border border-hairline p-4 active:opacity-80"
-            style={glassFill}
-            onPress={() => pushOnce(router, item.href)}
-            accessibilityRole="button"
-            accessibilityLabel={item.title}
-          >
-            <View
-              className="items-center justify-center rounded-md border border-hairline"
-              style={{
-                width: heights.tile,
-                height: heights.tile,
-                backgroundColor: colors.accentFaint,
-              }}
-            >
-              <MaterialIcons name={item.icon} size={iconSize.md} color={colors.primary} />
+              <View className="ml-3 flex-1">
+                <AppText
+                  variant="caption"
+                  weight="semibold"
+                  tone="accent"
+                  className="uppercase"
+                >
+                  {continueDue === 0 ? 'All caught up' : resuming ? 'Continue' : 'Up next'}
+                </AppText>
+                <AppText
+                  variant="title"
+                  className="mt-0.5"
+                  numberOfLines={2}
+                  headingLevel={2}
+                >
+                  {continueEntry.deck.name}
+                </AppText>
+              </View>
             </View>
-            <AppText variant="body" weight="semibold" className="mt-3">
-              {item.title}
+
+            <AppText variant="bodySm" tone="muted" className="mt-3">
+              {continueDue > 0
+                ? `${continueDue} ${continueDue === 1 ? 'card' : 'cards'} due today`
+                : 'Nothing due — you are all caught up'}
             </AppText>
-            <AppText variant="bodySm" tone="muted" className="mt-0.5">
-              {item.subtitle}
+
+            <View className="mt-4">
+              <View className="mb-2 flex-row items-center justify-between">
+                <AppText variant="caption" weight="medium" tone="muted">
+                  {continueEntry.cardCount}{' '}
+                  {continueEntry.cardCount === 1 ? 'card' : 'cards'}
+                </AppText>
+                <AppText variant="caption" weight="semibold" tone="accent">
+                  {continuePercentLabel} studied
+                </AppText>
+              </View>
+              <ProgressRail value={continueEntry.progress} />
+            </View>
+
+            <PrimaryButton
+              className="mt-5"
+              label={
+                continueDue > 0 ? (resuming ? 'Continue' : 'Start session') : 'Nothing due today'
+              }
+              icon={continueDue > 0 ? 'play-arrow' : undefined}
+              disabled={continueDue === 0}
+              onPress={() => pushOnce(router, `/study/${continueEntry.deck.id}`)}
+            />
+          </GlassCard>
+        </RevealItem>
+      )}
+
+      {!ready ? (
+        <RevealItem index={2}>
+          <SectionHeader className="mt-8" label="My decks" />
+          <View className="mt-3">
+            <DeckShelfSkeleton count={2} />
+          </View>
+        </RevealItem>
+      ) : deckQueues.length > 0 ? (
+        <RevealItem index={2}>
+          <SectionHeader
+            className="mt-8"
+            label="My decks"
+            // A bare "1" next to the label read as a step number; the unit makes it
+            // a count at a glance.
+            hint={`${deckQueues.length} ${deckQueues.length === 1 ? 'deck' : 'decks'}`}
+            action={{ label: 'Folders', icon: 'folder', onPress: () => setFolderSheet(true) }}
+          />
+
+          {/* One box, folders as headers, decks nested underneath. */}
+          <View className="mt-3">
+            <DeckLibrary
+              folders={folders}
+              entries={deckQueues.map(({ deck, cardCount, total, progress }) => ({
+                deck,
+                cardCount,
+                due: total,
+                progress,
+              }))}
+              onOpenDeck={(deckId) => pushOnce(router, `/deck/${deckId}`)}
+            />
+          </View>
+        </RevealItem>
+      ) : null}
+
+      {/* Folders: create, see how many decks each holds, delete. */}
+      <BottomSheetModal
+        visible={folderSheet}
+        onClose={() => {
+          setFolderSheet(false);
+          setFolderError(null);
+        }}
+        title="Folders"
+        subtitle="Group decks for browsing. Nothing is moved or copied."
+      >
+        <Field
+          label="New folder"
+          value={folderDraft}
+          onChangeText={(text) => {
+            setFolderDraft(text);
+            setFolderError(null);
+          }}
+          placeholder="e.g. German A2"
+          maxLength={40}
+        />
+        {folderError && (
+          <AppText variant="bodySm" tone="danger" className="mt-2">
+            {folderError}
+          </AppText>
+        )}
+        <View className="mt-3">
+          <PrimaryButton
+            label="Create folder"
+            icon="create-new-folder"
+            disabled={folderDraft.trim().length === 0}
+            onPress={async () => {
+              const result = await addFolder(folderDraft);
+              if (!result.ok) {
+                setFolderError(
+                  result.error === 'duplicate'
+                    ? 'A folder with that name already exists.'
+                    : 'Give the folder a name.'
+                );
+                return;
+              }
+              setFolderDraft('');
+              setFolderError(null);
+            }}
+          />
+        </View>
+
+        {folders.length > 0 && (
+          <View className="mt-5">
+            <AppText variant="label" tone="muted" className="uppercase">
+              Your folders
             </AppText>
-          </Pressable>
-        ))}
-      </View>
-      </RevealItem>
+            <View className="mt-2">
+              {folders.map((folder) => {
+                const count = folderDeckCount(decks, folder.id);
+                return (
+                  <ListRow
+                    key={folder.id}
+                    title={folder.name}
+                    subtitle={`${count} ${count === 1 ? 'deck' : 'decks'}`}
+                    icon="folder"
+                    tile="sm"
+                    density="compact"
+                    showChevron={false}
+                    trailing={
+                      <IconButton
+                        icon="delete-outline"
+                        size="sm"
+                        tone="danger"
+                        accessibilityLabel={`Delete folder ${folder.name}`}
+                        onPress={() => void deleteFolder(folder.id)}
+                      />
+                    }
+                  />
+                );
+              })}
+            </View>
+          </View>
+        )}
+      </BottomSheetModal>
     </Screen>
   );
 }

@@ -1,14 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Platform, View, TextInput } from 'react-native';
-import type { TextStyle } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Animated, View, TextInput } from 'react-native';
+import { MaterialIcons } from './Icon';
 import { IconButton } from './IconButton';
-import { colors, fills, glassFill, heights, iconSize, motion, radii } from '../theme/tokens';
+import { colors, fills, heights, iconSize, motion, radii } from '../theme/tokens';
 import { timingTo } from '../motion';
-
-/** Browser focus rings are the OS accent; the wrapper border is the real cue. */
-const NO_BROWSER_OUTLINE =
-  Platform.OS === 'web' ? ({ outlineStyle: 'none' } as unknown as TextStyle) : undefined;
 
 type SearchBarProps = {
   value: string;
@@ -17,12 +12,17 @@ type SearchBarProps = {
 };
 
 /**
- * SearchBar — the standard input: glass fill, hairline border, 44px tall,
- * 18px leading icon, clear affordance once there is a query.
+ * SearchBar — the standard input: control fill, 44px tall, 18px leading icon,
+ * clear affordance once there is a query.
  *
- * Focus fades an accent ring in over the hairline instead of flipping the border
- * colour, so the field never jumps; the clear button is the standard icon
- * control and answers a touch like every other one.
+ * No resting outline: the field is one fill step above its pane. Focus fades an
+ * accent ring in (the one border in the system that carries meaning), so the
+ * field never jumps.
+ *
+ * The browser's own ring is *not* suppressed: a keyboard user needs a cue that
+ * survives an interrupted animation, and the audit measured this input as the
+ * one control with no visible focus at all. The animated accent border is an
+ * enhancement on top of the 2px `:focus-visible` ring in global.css.
  */
 export function SearchBar({ value, onChangeText, placeholder = 'Search…' }: SearchBarProps) {
   const [focused, setFocused] = useState(false);
@@ -34,8 +34,8 @@ export function SearchBar({ value, onChangeText, placeholder = 'Search…' }: Se
 
   return (
     <View
-      className="flex-row items-center rounded-md border border-hairline pl-3 pr-1.5"
-      style={[glassFill, { backgroundColor: fills.control, height: heights.field }]}
+      className="flex-row items-center rounded-md pl-3 pr-1.5"
+      style={{ backgroundColor: fills.control, height: heights.field }}
     >
       <Animated.View
         pointerEvents="none"
@@ -54,7 +54,6 @@ export function SearchBar({ value, onChangeText, placeholder = 'Search…' }: Se
       <MaterialIcons name="search" size={iconSize.md} color={colors.outline} />
       <TextInput
         className="ml-2 flex-1 text-body font-inter-regular text-on-surface"
-        style={NO_BROWSER_OUTLINE}
         value={value}
         onChangeText={onChangeText}
         onFocus={() => setFocused(true)}

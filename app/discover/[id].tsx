@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '../../components/Icon';
 import { fetchFeaturedDecks, importDeck, type FeaturedDeck } from '../../services/discovery';
 import { textDirection } from '../../data/text';
 import {
@@ -131,7 +131,7 @@ export default function DiscoverDeckPreviewScreen() {
                 >
                   {card.front}
                 </AppText>
-                <View className="my-2.5 h-px bg-hairline" />
+                <View className="h-2.5" />
                 <AppText
                   variant="bodySm"
                   tone="muted"
@@ -154,7 +154,7 @@ export default function DiscoverDeckPreviewScreen() {
                   <GlassCard padding="sm">
                     <View className="flex-row items-center gap-2.5">
                       <View
-                        className="items-center justify-center rounded-full border border-hairline"
+                        className="items-center justify-center rounded-full"
                         style={{
                           width: heights.iconSm,
                           height: heights.iconSm,

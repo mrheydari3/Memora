@@ -3,44 +3,40 @@ import { View, Pressable, Animated, StyleSheet } from 'react-native';
 import type { Rating, RatingButtonLabel } from '../data/types';
 import { AppText } from './AppText';
 import { EASE, timingTo, usePressFeedback, useReveal } from '../motion';
-import { alpha, colors, motion, radii, rims } from '../theme/tokens';
+import { alpha, colors, heights, motion, radii } from '../theme/tokens';
 
 // The four ratings carry the only colour on this screen: red → green → azure.
 const RATING_META: Record<
   Rating,
-  { name: string; tint: string; bg: string; border: string; activeBg: string }
+  { name: string; tint: string; bg: string; activeBg: string }
 > = {
   1: {
     name: 'Again',
     tint: colors.error,
     bg: alpha(colors.error, 0.1),
-    border: alpha(colors.error, 0.26),
     activeBg: alpha(colors.error, 0.16),
   },
   2: {
     name: 'Hard',
     tint: colors.warning,
     bg: alpha(colors.warning, 0.09),
-    border: alpha(colors.warning, 0.24),
     activeBg: alpha(colors.warning, 0.15),
   },
   3: {
     name: 'Good',
     tint: colors.success,
     bg: alpha(colors.success, 0.09),
-    border: alpha(colors.success, 0.24),
     activeBg: alpha(colors.success, 0.15),
   },
   4: {
     name: 'Easy',
     tint: colors.primary,
     bg: alpha(colors.primary, 0.12),
-    border: alpha(colors.primary, 0.3),
     activeBg: alpha(colors.primary, 0.18),
   },
 };
 
-const TILE_HEIGHT = 68;
+const TILE_HEIGHT = heights.ratingTile;
 
 type RatingButtonRowProps = {
   labels: RatingButtonLabel[];
@@ -91,7 +87,6 @@ function RatingTile({ rating, label, index, disabled, onRate }: RatingTileProps)
           styles.tile,
           {
             backgroundColor: pressed ? meta.activeBg : meta.bg,
-            borderColor: meta.border,
             opacity: disabled ? 0.4 : 1,
           },
         ]}
@@ -115,7 +110,6 @@ function RatingTile({ rating, label, index, disabled, onRate }: RatingTileProps)
             },
           ]}
         />
-        <View style={styles.rim} />
 
         {hasLabel && (
           // Never uppercased: these are interval units, and "1m" (one minute)
@@ -148,6 +142,9 @@ function RatingTile({ rating, label, index, disabled, onRate }: RatingTileProps)
  * RatingButtonRow — four smoked-glass tiles tinted by rating. Each tile shows a
  * small interval above the rating name; the semantic tint is the only colour, so
  * the row sits inside the same frosted language as the card above it.
+ *
+ * The tiles are tinted fills, not outlined boxes: the four ratings are read from
+ * their colour and their label, and the tint is what makes them pressable keys.
  */
 export function RatingButtonRow({ labels, onRate, disabled = false }: RatingButtonRowProps) {
   return (
@@ -180,20 +177,10 @@ const styles = StyleSheet.create({
   tile: {
     height: TILE_HEIGHT,
     borderRadius: radii.control,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     boxShadow: `0 8px 18px ${alpha(colors.background, 0.3)}`,
-  },
-  rim: {
-    position: 'absolute',
-    top: 0,
-    left: 10,
-    right: 10,
-    height: 1,
-    backgroundColor: rims.tile,
-    pointerEvents: 'none',
   },
   sheen: {
     position: 'absolute',

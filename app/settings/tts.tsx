@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, ScrollView } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '../../components/Icon';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { speak, stopSpeaking } from '../../services/tts';
 import {

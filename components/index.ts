@@ -8,6 +8,7 @@ export { GlassCard } from './GlassCard';
 export { SectionHeader } from './SectionHeader';
 export { ListRow } from './ListRow';
 export { TopAppBar } from './TopAppBar';
+export { LiquidTabBar } from './LiquidTabBar';
 
 // Controls
 export { Button } from './Button';
@@ -31,7 +32,10 @@ export { SettingsPlate } from './SettingsPlate';
 export type { LedgerEntry } from './SettingsPlate';
 export { SettingsNote } from './SettingsNote';
 export { DeckCard } from './DeckCard';
+export { DeckLibrary } from './DeckLibrary';
+export type { DeckLibraryEntry } from './DeckLibrary';
 export { DeckListItem } from './DeckListItem';
+export { DeckProgressCard, ProgressRail } from './DeckProgressCard';
 export { StatPill } from './StatPill';
 export { FlashcardView } from './Flashcard';
 export { CardStack } from './CardStack';
@@ -61,6 +65,7 @@ export {
   SkeletonRow,
   DeckListSkeleton,
   DeckCardGridSkeleton,
+  DeckShelfSkeleton,
   HeroSkeleton,
   StatisticsSkeleton,
   SettingsGroupSkeleton,

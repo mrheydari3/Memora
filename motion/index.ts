@@ -146,6 +146,26 @@ export function springTo(
 }
 
 /**
+ * The liquid-glass settle: a spring with a little bounce, used by the tab bar's
+ * travelling lens. Reduce motion jumps straight to the end value.
+ */
+export function springLiquidTo(
+  value: Animated.Value,
+  toValue: number,
+  options: { reduced?: boolean } = {}
+): void {
+  if (options.reduced ?? prefersReducedMotion()) {
+    value.setValue(toValue);
+    return;
+  }
+  Animated.spring(value, {
+    toValue,
+    ...motion.liquidSpring,
+    useNativeDriver: USE_NATIVE_DRIVER,
+  }).start();
+}
+
+/**
  * Spring one value to `toValue` and resolve when it settles. Card paging uses
  * this so the swap waits for the physical motion instead of a clock, and
  * reduce-motion resolves on the same tick with the end state applied.

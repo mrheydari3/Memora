@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, TextInput } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '../../../components/Icon';
 import { useDeckStore } from '../../../store/useDeckStore';
 import { defaultFSRSState } from '../../../data/seed';
 import { textDirection } from '../../../data/text';
@@ -154,7 +154,7 @@ export default function AddCardScreen() {
           Additional info
         </AppText>
         <GlassCard padding="none">
-          <View className="flex-row items-center border-b border-hairline px-4 py-3">
+          <View className="flex-row items-center px-4 py-3">
             <MaterialIcons name="format-quote" size={iconSize.sm} color={colors.outline} />
             <TextInput
               className="ml-3 flex-1 text-body font-inter-regular text-on-surface"

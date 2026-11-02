@@ -1,0 +1,75 @@
+{
+  "generatedAt": "2026-11-02T15:08:54.150Z",
+  "engines": "chromium",
+  "runs": [
+    {
+      "preference": "reduce",
+      "route": "home",
+      "mediaMatches": true,
+      "nodesSampled": 19,
+      "changedNodes": 0,
+      "pageErrors": []
+    },
+    {
+      "preference": "reduce",
+      "route": "library",
+      "mediaMatches": true,
+      "nodesSampled": 14,
+      "changedNodes": 0,
+      "pageErrors": []
+    },
+    {
+      "preference": "reduce",
+      "route": "study",
+      "mediaMatches": true,
+      "nodesSampled": 15,
+      "changedNodes": 0,
+      "pageErrors": []
+    },
+    {
+      "preference": "reduce",
+      "route": "quiz",
+      "mediaMatches": true,
+      "nodesSampled": 12,
+      "changedNodes": 0,
+      "pageErrors": []
+    },
+    {
+      "preference": "no-preference",
+      "route": "home",
+      "mediaMatches": false,
+      "nodesSampled": 21,
+      "changedNodes": 9,
+      "pageErrors": []
+    },
+    {
+      "preference": "no-preference",
+      "route": "library",
+      "mediaMatches": false,
+      "nodesSampled": 16,
+      "changedNodes": 6,
+      "pageErrors": []
+    },
+    {
+      "preference": "no-preference",
+      "route": "study",
+      "mediaMatches": false,
+      "nodesSampled": 18,
+      "changedNodes": 16,
+      "pageErrors": []
+    },
+    {
+      "preference": "no-preference",
+      "route": "quiz",
+      "mediaMatches": false,
+      "nodesSampled": 14,
+      "changedNodes": 7,
+      "pageErrors": []
+    }
+  ],
+  "zoomWithReducedMotion": {
+    "before": 20,
+    "after": 40,
+    "grew": true
+  }
+}

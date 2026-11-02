@@ -12,7 +12,7 @@
 import { useState } from 'react';
 import { Animated, View } from 'react-native';
 import type { DimensionValue, ViewStyle } from 'react-native';
-import { colors, fills, glassFill, heights, radii, spacing } from '../theme/tokens';
+import { colors, fills, glassFill, heights, layout, radii, spacing } from '../theme/tokens';
 import { useReducedMotion, useSharedShimmer } from '../motion';
 
 type SkeletonProps = {
@@ -122,13 +122,13 @@ export function SkeletonRow({ tall = false }: { tall?: boolean }) {
 export function DeckListSkeleton({ rows = 4 }: { rows?: number }) {
   return (
     <View
-      className="overflow-hidden rounded-xl border border-hairline"
+      className="overflow-hidden rounded-xl"
       style={glassFill}
     >
       {Array.from({ length: rows }).map((_, index) => (
         <View key={index}>
           <SkeletonRow tall />
-          {index < rows - 1 && <View className="mx-4 h-px" style={{ backgroundColor: colors.hairline }} />}
+          {index < rows - 1 && <View className="h-1" />}
         </View>
       ))}
     </View>
@@ -142,7 +142,7 @@ export function DeckCardGridSkeleton({ count = 3 }: { count?: number }) {
       {Array.from({ length: count }).map((_, index) => (
         <View
           key={index}
-          className="rounded-xl border border-hairline p-5"
+          className="rounded-xl p-5"
           style={glassFill}
         >
           <Skeleton width={heights.tileLg} height={heights.tileLg} radius={radii.control} />
@@ -158,11 +158,85 @@ export function DeckCardGridSkeleton({ count = 3 }: { count?: number }) {
   );
 }
 
+/** The Library tree box: a node, connected leaf rows, title, meter and due count. */
+export function DeckShelfSkeleton({ count = 2 }: { count?: number }) {
+  return (
+    <View className="overflow-hidden rounded-xl" style={glassFill}>
+      <View
+        style={{
+          position: 'relative',
+          minHeight: heights.row,
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: spacing.gutter,
+        }}
+      >
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: spacing.gutter + 4,
+            top: heights.row / 2,
+            bottom: 0,
+            width: 1,
+            backgroundColor: fills.track,
+          }}
+        />
+        <Skeleton width={8} height={8} radius={4} />
+        <Skeleton width={92} height={11} radius={5} style={{ marginLeft: 12 }} />
+      </View>
+      {Array.from({ length: count }).map((_, index) => (
+        <View
+          key={index}
+          style={{
+            position: 'relative',
+            flexDirection: 'row',
+            alignItems: 'center',
+            minHeight: heights.deckSlab,
+            paddingLeft: spacing.gutter + 20,
+            paddingRight: spacing.gutter,
+            paddingVertical: 12,
+          }}
+        >
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: spacing.gutter + 4,
+              top: 0,
+              bottom: index < count - 1 ? 0 : undefined,
+              height: index < count - 1 ? undefined : 34,
+              width: 1,
+              backgroundColor: fills.track,
+            }}
+          />
+          <Skeleton
+            width={16}
+            height={1}
+            radius={0}
+            style={{ position: 'absolute', left: spacing.gutter + 4, top: 34 }}
+          />
+          <Skeleton width={heights.tileLg} height={heights.tileLg} radius={radii.micro} />
+          <View className="ml-3 flex-1">
+            <Skeleton height={13} width="58%" radius={6} />
+            <Skeleton height={9} width="28%" radius={5} style={{ marginTop: 8 }} />
+            <Skeleton height={4} width="100%" radius={2} style={{ marginTop: 10 }} />
+          </View>
+          <View className="ml-3 items-end">
+            <Skeleton width={28} height={22} radius={5} />
+            <Skeleton width={18} height={8} radius={4} style={{ marginTop: 6 }} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 /** The accent hero panes (today's queue, streak, profile identity). */
 export function HeroSkeleton({ height = 196 }: { height?: number }) {
   return (
     <View
-      className="rounded-xl border border-accent-line p-5"
+      className="rounded-xl p-5"
       style={[glassFill, { minHeight: height }]}
     >
       <Skeleton width={64} height={9} radius={5} />
@@ -178,7 +252,7 @@ export function StatisticsSkeleton() {
   return (
     <View style={{ gap: spacing.row }}>
       <HeroSkeleton height={186} />
-      <View className="rounded-xl border border-hairline p-5" style={glassFill}>
+      <View className="rounded-xl p-5" style={glassFill}>
         <View className="flex-row items-center">
           <Skeleton width={124} height={124} radius={62} />
           <View className="ml-5 flex-1" style={{ gap: 14 }}>
@@ -189,12 +263,12 @@ export function StatisticsSkeleton() {
         </View>
       </View>
       <View className="flex-row" style={{ gap: spacing.row }}>
-        <View className="flex-1 rounded-xl border border-hairline p-4" style={glassFill}>
+        <View className="flex-1 rounded-xl p-4" style={glassFill}>
           <Skeleton width={18} height={18} radius={6} />
           <Skeleton height={18} width="52%" radius={7} style={{ marginTop: 12 }} />
           <Skeleton height={8} width="38%" radius={4} style={{ marginTop: 8 }} />
         </View>
-        <View className="flex-1 rounded-xl border border-hairline p-4" style={glassFill}>
+        <View className="flex-1 rounded-xl p-4" style={glassFill}>
           <Skeleton width={18} height={18} radius={6} />
           <Skeleton height={18} width="52%" radius={7} style={{ marginTop: 12 }} />
           <Skeleton height={8} width="38%" radius={4} style={{ marginTop: 8 }} />
@@ -207,13 +281,11 @@ export function StatisticsSkeleton() {
 /** A settings group: a few rows inside one pane. */
 export function SettingsGroupSkeleton({ rows = 4 }: { rows?: number }) {
   return (
-    <View className="overflow-hidden rounded-xl border border-hairline" style={glassFill}>
+    <View className="overflow-hidden rounded-xl" style={glassFill}>
       {Array.from({ length: rows }).map((_, index) => (
         <View key={index}>
           <SkeletonRow />
-          {index < rows - 1 && (
-            <View className="mx-4 h-px" style={{ backgroundColor: colors.hairline }} />
-          )}
+          {index < rows - 1 && <View className="h-1" />}
         </View>
       ))}
     </View>
@@ -223,13 +295,16 @@ export function SettingsGroupSkeleton({ rows = 4 }: { rows?: number }) {
 /** The quiz board: a question pane over the 2×2 answer grid. */
 export function QuizSkeleton() {
   return (
-    <View className="w-full max-w-[620px] flex-1 self-center px-5 pb-6">
+    <View
+      className="w-full flex-1 self-center px-5 pb-6"
+      style={{ maxWidth: layout.contentMaxWidth }}
+    >
       <View className="mt-4 flex-row items-center justify-between">
         <Skeleton width={54} height={11} radius={5} />
         <Skeleton width={38} height={18} radius={9} />
       </View>
       <View className="flex-1 justify-center py-4">
-        <View className="rounded-xl border border-accent-line p-5" style={glassFill}>
+        <View className="rounded-xl p-5" style={glassFill}>
           <Skeleton width={86} height={9} radius={5} />
           <Skeleton height={30} radius={10} style={{ marginTop: 18 }} />
           <Skeleton height={30} width="72%" radius={10} style={{ marginTop: 10, alignSelf: 'center' }} />
@@ -250,9 +325,12 @@ export function QuizSkeleton() {
 /** One study card and its footer action. */
 export function StudyCardSkeleton() {
   return (
-    <View className="w-full max-w-[620px] flex-1 self-center px-5">
+    <View
+      className="w-full flex-1 self-center px-5"
+      style={{ maxWidth: layout.contentMaxWidth }}
+    >
       <View
-        className="flex-1 items-center justify-center rounded-2xl border border-hairline p-6"
+        className="flex-1 items-center justify-center rounded-2xl p-6"
         style={glassFill}
       >
         <Skeleton height={26} width="76%" radius={9} />

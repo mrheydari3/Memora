@@ -2,7 +2,7 @@
  * AppSplash — the app's first second.
  *
  * A single identity moment: the accent mark settles in, the wordmark rises under
- * it, and a hairline rail fills. Nothing else moves, nothing waits on a network
+ * it, and a thin rail fills. Nothing else moves, nothing waits on a network
  * call, and the whole overlay cross-fades away as soon as fonts and the stores
  * are hydrated — so the hand-off to Home is a dissolve, not a flash.
  *
@@ -12,7 +12,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { Animated, View } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from './Icon';
 import { AppText } from './AppText';
 import { colors, fills, iconSize, motion, radii, spacing } from '../theme/tokens';
 import { timingTo, USE_NATIVE_DRIVER } from '../motion';
@@ -74,8 +74,14 @@ export function AppSplash({ ready, onDone }: AppSplashProps) {
         backgroundColor: colors.background,
         alignItems: 'center',
         justifyContent: 'center',
+        // The exit scales to 1.02, which widened the document by 3px for the
+        // length of the dissolve (the splash sits outside the clipped app shell).
+        overflow: 'hidden',
+        // The exit is a pure dissolve. A 1.02 scale on a full-screen fixed
+        // layer rescaled the document (3px of horizontal overflow for the
+        // length of the animation) and repainted 100% of the viewport for a
+        // change nobody can see.
         opacity: exit.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
-        transform: [{ scale: exit.interpolate({ inputRange: [0, 1], outputRange: [1, 1.02] }) }],
       }}
     >
       <Animated.View
@@ -83,8 +89,6 @@ export function AppSplash({ ready, onDone }: AppSplashProps) {
           width: MARK_SIZE,
           height: MARK_SIZE,
           borderRadius: radii.pane,
-          borderWidth: 1,
-          borderColor: colors.accentLine,
           backgroundColor: colors.accentSoft,
           alignItems: 'center',
           justifyContent: 'center',

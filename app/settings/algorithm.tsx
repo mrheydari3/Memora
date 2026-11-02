@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import {
   MAX_INTERVAL_OPTIONS,

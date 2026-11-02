@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from './Icon';
 import { AppText } from './AppText';
 import { GlassCard } from './GlassCard';
 import { colors, iconSize } from '../theme/tokens';
@@ -41,9 +41,10 @@ const STATUS_COLOR = {
 /**
  * SettingsPlate — the instrument panel every settings screen opens with.
  *
- * One eyebrow, one subject, and a hairline-ruled ledger of the numbers that
- * describe it. Readouts are right-aligned in tabular figures, so the values
- * line up like an engraved gauge instead of floating in three stat columns.
+ * One eyebrow, one subject, and a ledger of the numbers that describe it.
+ * Readouts are right-aligned in tabular figures, so the values line up like an
+ * engraved gauge instead of floating in three stat columns. The ledger is held
+ * together by row height alone — no rules.
  * A screen has at most one plate, and only the settings index uses the accent
  * tone.
  */
@@ -102,13 +103,11 @@ export function SettingsPlate({
       )}
 
       {ledger.length > 0 && (
-        <View className="mt-4 border-t border-hairline">
-          {ledger.map((entry, index) => (
+        <View className="mt-4">
+          {ledger.map((entry) => (
             <View
               key={entry.label}
-              className={`flex-row items-baseline justify-between py-2.5 ${
-                index < ledger.length - 1 ? 'border-b border-hairline-faint' : ''
-              }`}
+              className="flex-row items-baseline justify-between py-2.5"
             >
               <AppText variant="bodySm" tone="muted" className="flex-1" numberOfLines={1}>
                 {entry.label}

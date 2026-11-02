@@ -1,5 +1,5 @@
 import { ScrollView, View } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from './Icon';
 import { GlassCard } from './GlassCard';
 import { AppText } from './AppText';
 import { Button } from './Button';
@@ -25,7 +25,7 @@ type QuizStartCardProps = {
 };
 
 /**
- * QuizStartCard — the game's launch pane at the top of the Library.
+ * QuizStartCard — the game's launch pane on the Game tab.
  *
  * One accent pane, one action: pick a playable deck, then play a 60-second
  * round. The best score is the only progress it shows, because it is the only
@@ -53,7 +53,7 @@ export function QuizStartCard({
           </AppText>
         </View>
         <View
-          className="items-center justify-center rounded-full border border-accent-line"
+          className="items-center justify-center rounded-full"
           style={{
             width: heights.tileLg,
             height: heights.tileLg,
@@ -76,8 +76,11 @@ export function QuizStartCard({
 
       {playable ? (
         <>
+          {/* Keyboard-scrollable: the deck picker is otherwise unreachable
+              without a pointer (axe: scrollable-region-focusable). */}
           <ScrollView
             horizontal
+            focusable
             showsHorizontalScrollIndicator={false}
             className="mt-4"
             contentContainerStyle={{ gap: 8 }}

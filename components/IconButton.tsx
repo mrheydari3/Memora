@@ -1,7 +1,7 @@
 import { Animated, Pressable, View } from 'react-native';
 import type { GestureResponderEvent } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import { colors, fills, heights, iconSize } from '../theme/tokens';
+import { MaterialIcons } from './Icon';
+import { alpha, colors, fills, heights, iconSize } from '../theme/tokens';
 import { usePressFeedback } from '../motion';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -25,13 +25,18 @@ type IconButtonProps = {
 const DIAMETER = { sm: heights.iconSm, md: heights.icon, lg: heights.iconLg } as const;
 
 /**
- * IconButton — a hairline circle with a single glyph. The app bar, deck cards,
+ * IconButton — a filled circle with a single glyph. The app bar, deck cards,
  * sheets, steppers and the study header all use this shape, so an icon control
  * looks the same everywhere.
  *
- * Its hit target is always at least 44px: the visual circle can be 32 or 38.
- * The press dips to 0.92 on a spring, which is what makes the small circles feel
- * responsive under a thumb.
+ * No outline: the circle is a fill step against its parent, and a danger or
+ * active state re-tints that fill instead of drawing a ring.
+ *
+ * The circle is the *visual* size (32/38/44); the press target is always at
+ * least 44×44. `hitSlop` alone was not enough: react-native-web drops it, so a
+ * phone got the padding while a browser got a 38px target that fails WCAG 2.5.8.
+ * The target is therefore laid out, not slopped on, and the fill is drawn by an
+ * inner view so the larger box stays invisible.
  */
 export function IconButton({
   icon,
@@ -45,6 +50,7 @@ export function IconButton({
   className = '',
 }: IconButtonProps) {
   const diameter = DIAMETER[size];
+  const target = Math.max(diameter, heights.hit);
   const press = usePressFeedback({ scale: 0.92 });
 
   const glyph = active
@@ -55,27 +61,39 @@ export function IconButton({
         ? colors.primary
         : colors.onSurfaceVariant;
 
+  const background = active
+    ? colors.accentActive
+    : tone === 'danger'
+      ? alpha(colors.error, 0.12)
+      : tone === 'accent'
+        ? colors.accentFaint
+        : fills.control;
+
   return (
     <View className={className}>
-      <Animated.View style={[{ width: diameter, height: diameter }, press.style]}>
+      <Animated.View style={press.style}>
         <Pressable
-          className={`items-center justify-center rounded-full border ${
-            active ? 'border-accent-line' : 'border-hairline'
-          } ${disabled ? 'opacity-40' : ''}`}
-          style={{
-            width: diameter,
-            height: diameter,
-            backgroundColor: active ? colors.accentActive : fills.control,
-          }}
+          style={{ width: target, height: target, alignItems: 'center', justifyContent: 'center' }}
           onPress={disabled ? undefined : onPress}
           onPressIn={disabled ? undefined : press.onPressIn}
           onPressOut={disabled ? undefined : press.onPressOut}
           accessibilityRole="button"
           accessibilityLabel={accessibilityLabel}
           accessibilityState={{ disabled }}
-          hitSlop={Math.max(0, (44 - diameter) / 2)}
         >
-          <MaterialIcons name={icon} size={glyphSize} color={glyph} />
+          <View
+            style={{
+              width: diameter,
+              height: diameter,
+              borderRadius: diameter / 2,
+              backgroundColor: background,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: disabled ? 0.4 : 1,
+            }}
+          >
+            <MaterialIcons name={icon} size={glyphSize} color={glyph} />
+          </View>
         </Pressable>
       </Animated.View>
     </View>

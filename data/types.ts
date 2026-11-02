@@ -52,6 +52,16 @@ export type Flashcard = {
 
 export type AlgorithmPreset = 'fsrs' | 'fast' | 'general';
 
+/**
+ * A folder groups decks for browsing. It owns nothing: deleting one only clears
+ * `Deck.folderId`, so no card, schedule or review is ever at risk.
+ */
+export type DeckFolder = {
+  id: string;
+  name: string;
+  createdAt: number;
+};
+
 export type Deck = {
   id: string;
   name: string;
@@ -79,6 +89,8 @@ export type Deck = {
   createdAt: number;
   archivedAt?: number | null;
   saved?: boolean; // bookmark state on Library cards
+  /** Optional browsing folder. Absent on decks saved before folders existed. */
+  folderId?: string | null;
 };
 
 // ---- Review Log -------------------------------------------------------------

@@ -23,7 +23,13 @@ const colors = {
   onSurfaceVariant: '#A2ACBC',
   inverseSurface: '#E8EDF4',
   inverseOnSurface: '#141A22',
-  outline: '#77839A',
+  /**
+   * Tertiary text and quiet glyphs. Raised from #77839A: at 11px a caption sat
+   * at ~5.0:1 on the canvas but fell under 4.5:1 once it landed on a frosted
+   * pane, which axe reported as a serious contrast failure. This step is ~6.5:1
+   * on ink and still ~5:1 on the accent pane.
+   */
+  outline: '#8B97A9',
   /** Unlit stars and other deliberately quiet glyphs. */
   outlineSoft: '#3A4453',
   outlineVariant: 'rgba(146, 176, 214, 0.16)',
@@ -46,11 +52,13 @@ const colors = {
   success: '#5FD39A',
   warning: '#F1C75B',
   surfaceVariant: '#202A38',
-  /** The only borders in the system. */
-  hairline: 'rgba(146, 176, 214, 0.16)',
+  /**
+   * The only line colours left in the system, for the four cases that still
+   * draw one: a focus ring, a dashed empty frame, the radio dot and a thin
+   * decorative rule. Nothing else in the app is outlined.
+   */
   hairlineStrong: 'rgba(146, 176, 214, 0.28)',
-  /** Stacked layers behind the flashcard, and dashed empty frames. */
-  hairlineFaint: 'rgba(146, 176, 214, 0.10)',
+  /** Shimmer sweep and quiet fills — a wash, never a line. */
   hairlineGhost: 'rgba(146, 176, 214, 0.07)',
   /** Accent washes: faint = avatars/hero glyphs, soft = chips, active = selection. */
   accentFaint: 'rgba(124, 187, 255, 0.10)',
@@ -62,26 +70,28 @@ const colors = {
 /**
  * Neutral white layers. Five roles only — every translucent fill in the app is
  * one of these, so a tile never reads darker on one screen than another.
+ *
+ * Since the app separates surfaces by fill (not by outline), these steps carry
+ * the whole depth scale: each is one perceptible step lighter than its parent.
  */
 const fills = {
   /** Dashed empty frames, the quietest surface. */
-  subtle: 'rgba(255, 255, 255, 0.02)',
+  subtle: 'rgba(255, 255, 255, 0.03)',
   /** Content nested inside another pane. */
-  inset: 'rgba(255, 255, 255, 0.035)',
-  /** Icon tiles and press feedback. */
-  tile: 'rgba(255, 255, 255, 0.04)',
+  inset: 'rgba(255, 255, 255, 0.05)',
+  /** Icon tiles, chips and press feedback. */
+  tile: 'rgba(255, 255, 255, 0.06)',
   /** Inputs, icon buttons, segmented rails. */
-  control: 'rgba(255, 255, 255, 0.05)',
+  control: 'rgba(255, 255, 255, 0.075)',
   /** Progress rails and meters. */
-  track: 'rgba(255, 255, 255, 0.06)',
+  track: 'rgba(255, 255, 255, 0.09)',
 };
 
-/** The lit 1px rim at the top of every pane, and the hairline on filled actions. */
+/** The single lit 1px rim a pane may carry at its top edge. */
 const rims = {
   soft: 'rgba(255, 255, 255, 0.10)',
-  faint: 'rgba(255, 255, 255, 0.14)',
+  /** The same light, at tile scale (rating keys). */
   tile: 'rgba(255, 255, 255, 0.16)',
-  strong: 'rgba(255, 255, 255, 0.20)',
 };
 
 /** Press veils animate opacity over this. */
@@ -92,9 +102,13 @@ const glass = {
   strong: 'rgba(10, 14, 20, 0.82)',
   /** The blue tint of a hero/accent pane — one value for every selected pane. */
   accent: 'rgba(28, 52, 80, 0.56)',
-  /** Floating tab capsule: base tint + the layer that pulls expo-blur back to ink. */
-  tab: 'rgba(10, 14, 20, 0.55)',
-  tabOverlay: 'rgba(10, 14, 20, 0.38)',
+  /**
+   * Floating icon-only tab capsule: a near-black ink tint plus the layer that
+   * pulls expo-blur back to the app's navy. Opaque enough to stay fully dark
+   * over bright content, while the strong blur still softens the edge.
+   */
+  tab: 'rgba(3, 6, 10, 0.84)',
+  tabOverlay: 'rgba(0, 0, 0, 0.28)',
   /** The flashcard face reads a touch brighter than a normal pane. */
   cardFace: 'rgba(23, 30, 41, 0.72)',
   /** The two panes peeking out under the flashcard. */
@@ -102,16 +116,19 @@ const glass = {
   stackFar: 'rgba(9, 13, 19, 0.55)',
   blur: 22,
   blurStrong: 26,
-  blurTab: 75,
+  blurTab: 100,
   saturate: 130,
   saturateStrong: 120,
 };
 
-/** Three soft colour fields behind every screen. */
+/**
+ * Three soft colour fields behind every screen. Deep and low-alpha so the
+ * canvas stays dark; the motion layer drifts and breathes them slowly.
+ */
 const ambient = {
-  blue: { web: 'rgba(0, 132, 255, 0.20)', native: 'rgba(0, 132, 255, 0.07)' },
-  amber: { web: 'rgba(255, 200, 90, 0.10)', native: 'rgba(255, 200, 90, 0.05)' },
-  green: { web: 'rgba(90, 220, 170, 0.10)', native: 'rgba(90, 220, 170, 0.04)' },
+  blue: { web: 'rgba(0, 132, 255, 0.18)', native: 'rgba(0, 132, 255, 0.06)' },
+  amber: { web: 'rgba(255, 200, 90, 0.09)', native: 'rgba(255, 200, 90, 0.045)' },
+  green: { web: 'rgba(90, 220, 170, 0.09)', native: 'rgba(90, 220, 170, 0.035)' },
 };
 
 /** Radii by role: controls 14, panes 24, sheets 28, pills full. */
@@ -135,13 +152,20 @@ const heights = {
   fieldTall: 48,
   buttonSm: 48,
   button: 52,
+  /** Minimum interactive area for any control, however small it draws. */
+  hit: 44,
   iconSm: 32,
   icon: 38,
   iconLg: 44,
+  /** Quiz answer option and the study screen's rating tiles. */
+  quizAnswer: 64,
+  ratingTile: 68,
   tile: 38,
   tileLg: 44,
   avatar: 56,
   avatarLg: 64,
+  /** Minimum height of a My decks tree row. */
+  deckSlab: 96,
   toggle: 26,
   toggleWidth: 46,
   studyFooter: 108,
@@ -191,6 +215,13 @@ const shadows = {
   tile: '0 8px 18px rgba(0, 0, 0, 0.30)',
   floating: '0 10px 24px rgba(0, 0, 0, 0.40)',
   card: '0 24px 56px rgba(0, 0, 0, 0.50)',
+  /**
+   * The borderless liquid-glass capsule: one far ambient shadow, one tighter
+   * contact shadow and a hairline grounding shadow, so the edge is defined by
+   * light and depth rather than a stroke.
+   */
+  liquidTab:
+    '0 18px 44px rgba(0, 0, 0, 0.42), 0 6px 16px rgba(0, 0, 0, 0.26), 0 1px 3px rgba(0, 0, 0, 0.18)',
 };
 
 /**
@@ -209,10 +240,39 @@ const spacing = {
   gutter: 16,
   row: 16,
   section: 28,
-  /** Clears the floating tab capsule (48 + 20 inset + 36 gap). */
-  tabClearance: 104,
+  /** Legend text aligns under its dot (10px dot + 8px gap). */
+  legendIndent: 18,
+  /** Inner padding of the flashcard, one step wider than a pane's 20. */
+  cardPad: 24,
+  /** Clears the floating tab capsule (64 + 16 inset + 32 gap). */
+  tabClearance: 112,
   /** Bottom padding of a screen that has no tab bar. */
   screenBottom: 40,
+};
+
+/**
+ * Page geometry that used to be a raw number per screen: one content column,
+ * one card proportion, one chart size. Wide screens cap themselves with these.
+ */
+const layout = {
+  /** The reading column on wide screens; phones are narrower than this. */
+  contentMaxWidth: 620,
+  /** The quiz result panel: a short column, not a page. */
+  resultMaxWidth: 420,
+  /** The flashcard's prompt and its narrower answer measure. */
+  cardMeasure: 520,
+  answerMeasure: 480,
+  /** Deck gallery card proportions. */
+  cardRatio: 0.8,
+  cardMinHeight: 300,
+  cardMaxHeight: 460,
+  /** Statistics donut. */
+  donut: 124,
+  /** Achievement badge column. */
+  badgeColumn: 72,
+  /** Splash mark and its loading rail. */
+  splashMark: 76,
+  splashRail: 132,
 };
 
 const motion = {
@@ -221,10 +281,18 @@ const motion = {
   slow: 420,
   flip: 480,
   spring: { speed: 45, bounciness: 0 },
+  /** The bouncy settle the liquid-glass tab lens uses (the HTML spring). */
+  liquidSpring: { speed: 20, bounciness: 9 },
 };
 
-/** Floating tab capsule geometry. */
-const tabBar = { height: 48, itemWidth: 64, gutter: 20, pill: 34 };
+/** Floating liquid-glass tab capsule geometry. */
+const tabBar = {
+  height: 60,
+  maxWidth: 300,
+  gutter: 16,
+  padding: 6,
+  pill: 48,
+};
 
 module.exports = {
   colors,
@@ -241,6 +309,7 @@ module.exports = {
   shadows,
   stateColors,
   spacing,
+  layout,
   motion,
   tabBar,
 };

@@ -33,6 +33,8 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.64.1",
     "@types/node": "^26.6.6",
     "@types/react": "~19.3.0",
     "babel-preset-expo": "~58.0.23",
@@ -40,6 +42,8 @@
   },
   "scripts": {
     "test": "node --import ./scripts/ts-resolve.mjs --test \"data/**/*.test.ts\"",
+    "test:e2e": "playwright test",
+    "audit": "node scripts/audit.mjs",
     "check:design": "node scripts/check-design-tokens.mjs",
     "start": "expo start",
     "android": "expo start --android",

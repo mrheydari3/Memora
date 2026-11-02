@@ -39,7 +39,8 @@ export function DeckListItem({
       trailing={trailing}
       divider={divider}
       onPress={onPress}
-      accessibilityLabel={name}
+      // No explicit label: the row's own title and meta line name it, and a
+      // label that omits the visible meta text fails WCAG 2.5.3.
     />
   );
 }

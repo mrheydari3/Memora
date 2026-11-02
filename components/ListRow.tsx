@@ -1,5 +1,5 @@
 import { Animated, View, Pressable } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from './Icon';
 import { AppText } from './AppText';
 import { alpha, colors, fills, heights, iconSize, veil } from '../theme/tokens';
 import { usePressFeedback } from '../motion';
@@ -34,7 +34,7 @@ type ListRowProps = {
   trailing?: React.ReactNode;
   /** Chevron on a pressable row. Off for sheet actions, which are already a menu. */
   showChevron?: boolean;
-  /** Hairline divider under the row; omit on the last row of a group. */
+  /** Kept for call-site compatibility: rows are grouped by spacing, not rules. */
   divider?: boolean;
   /** Tints the row with the accent wash, e.g. the selected option in a picker. */
   highlighted?: boolean;
@@ -61,22 +61,11 @@ function tileBackground(
     case 'accent':
       return colors.accentFaint;
     case 'deck':
-      return alpha(deckColor ?? colors.primary, 0.12);
+      return alpha(deckColor ?? colors.primary, 0.16);
     case 'destructive':
-      return alpha(colors.error, 0.12);
+      return alpha(colors.error, 0.14);
     default:
       return fills.tile;
-  }
-}
-
-function tileBorder(tone: NonNullable<ListRowProps['iconTone']>, deckColor?: string): string {
-  switch (tone) {
-    case 'accent':
-      return colors.accentLine;
-    case 'deck':
-      return alpha(deckColor ?? colors.primary, 0.2);
-    default:
-      return colors.hairline;
   }
 }
 
@@ -97,8 +86,8 @@ function glyphColor(tone: NonNullable<ListRowProps['iconTone']>, deckColor?: str
  * ListRow — the one row shape in the app: a tinted icon tile, a 15px title with
  * an optional 13px secondary line, and a trailing chevron or custom element.
  *
- * Deck lists, settings groups, import sources and sheets all render this, so
- * row heights, tile sizes and hit targets cannot drift between screens.
+ * Neither the row nor its tile is outlined. The tile is a fill step, the row is
+ * separated from its neighbours by height and the pane's padding.
  */
 export function ListRow({
   title,
@@ -147,8 +136,6 @@ export function ListRow({
             style={{
               width: TILE[tile],
               height: TILE[tile],
-              borderWidth: 1,
-              borderColor: tileBorder(iconTone, deckColor),
               backgroundColor: tileBackground(iconTone, deckColor),
             }}
           >
@@ -225,18 +212,21 @@ export function ListRow({
     </>
   );
 
-  const base = `flex-row items-center ${divider ? 'border-b border-hairline' : ''} ${
-    disabled ? 'opacity-45' : ''
-  } ${className}`;
+  // Rows sit in the pane's own rhythm; a rule under each one is gone.
+  const base = `flex-row items-center ${disabled ? 'opacity-45' : ''} ${className}`;
   const geometry = {
     minHeight: DENSITY[density],
     paddingHorizontal: gutter,
     ...(highlighted ? { backgroundColor: colors.accentFaint } : {}),
   };
 
+  // A row is named by its own content (title, subtitle, value), so an explicit
+  // label is only used when a caller passes one. Deriving it from the title
+  // alone dropped the visible meta text and failed WCAG 2.5.3
+  // ("label-content-name-mismatch" on the settings and deck rows).
   if (!onPress || disabled) {
     return (
-      <View className={base} style={geometry} accessibilityLabel={accessibilityLabel ?? title}>
+      <View className={base} style={geometry} accessibilityLabel={accessibilityLabel}>
         {content}
       </View>
     );
@@ -251,7 +241,7 @@ export function ListRow({
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
         accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel ?? title}
+        accessibilityLabel={accessibilityLabel}
       >
         <Animated.View
           pointerEvents="none"

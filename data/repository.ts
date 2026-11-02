@@ -6,12 +6,13 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Deck, Flashcard, GameRecord, ReviewLogEntry, Settings } from './types';
+import type { Deck, DeckFolder, Flashcard, GameRecord, ReviewLogEntry, Settings } from './types';
 
 // ---- Storage Keys -----------------------------------------------------------
 
 const KEYS = {
   decks: 'memory:decks',
+  folders: 'memory:folders',
   cards: (deckId: string) => `memory:cards:${deckId}`,
   allCards: 'memory:cards:all', // flat index for quick lookup across decks
   reviewLog: 'memory:reviewLog',
@@ -43,6 +44,20 @@ export async function loadDecks(): Promise<Deck[]> {
 
 export async function saveDecks(decks: Deck[]): Promise<void> {
   await setJSON(KEYS.decks, decks);
+}
+
+// ---- Folders ----------------------------------------------------------------
+
+/**
+ * Folders live in their own collection so an empty folder survives a reload —
+ * deriving them from the decks would silently drop the one you just created.
+ */
+export async function loadFolders(): Promise<DeckFolder[]> {
+  return (await getJSON<DeckFolder[]>(KEYS.folders)) ?? [];
+}
+
+export async function saveFolders(folders: DeckFolder[]): Promise<void> {
+  await setJSON(KEYS.folders, folders);
 }
 
 // ---- Cards ------------------------------------------------------------------

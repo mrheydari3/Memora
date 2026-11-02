@@ -1,7 +1,7 @@
 import { View } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '../components/Icon';
 import { AppText, Screen, TopAppBar, GlassCard, ListRow, RevealItem } from '../components';
-import { colors, iconSize } from '../theme/tokens';
+import { colors, fills, iconSize } from '../theme/tokens';
 
 const SOURCES = [
   { id: 'anki', title: 'Anki', subtitle: '.apkg / .colpkg files', icon: 'school' },
@@ -42,7 +42,10 @@ export default function MassImportScreen() {
       </RevealItem>
 
       <RevealItem index={2}>
-      <View className="mt-4 flex-row items-start gap-2 rounded-md border border-hairline px-4 py-3">
+      <View
+        className="mt-4 flex-row items-start gap-2 rounded-md px-4 py-3"
+        style={{ backgroundColor: fills.subtle }}
+      >
         <MaterialIcons name="info-outline" size={iconSize.sm} color={colors.outline} />
         <AppText variant="bodySm" tone="muted" className="flex-1">
           File parsing is not wired up yet, so importing is disabled for now.

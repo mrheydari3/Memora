@@ -17,8 +17,8 @@ type FieldProps = {
 };
 
 /**
- * Field — the standard form input: optional uppercase label, hairline control
- * on the control fill, 44px single line or a 64px writing area.
+ * Field — the standard form input: optional uppercase label, a control fill at
+ * 44px (or a 64px writing area when multiline and tall). No outline at rest.
  */
 export function Field({
   label,
@@ -40,7 +40,7 @@ export function Field({
         </AppText>
       )}
       <TextInput
-        className="rounded-md border border-hairline px-4 text-body font-inter-regular text-on-surface"
+        className="rounded-md px-4 text-body font-inter-regular text-on-surface"
         style={{
           backgroundColor: fills.control,
           borderRadius: radii.control,

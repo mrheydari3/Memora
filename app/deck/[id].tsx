@@ -3,7 +3,7 @@ import { View, ScrollView, Animated } from 'react-native';
 import type { ViewStyle } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
 import { buildStudyQueue } from '../../data/session';
@@ -71,10 +71,13 @@ export default function DeckDetailsScreen() {
   const updateDeck = useDeckStore((s) => s.updateDeck);
   const duplicateDeck = useDeckStore((s) => s.duplicateDeck);
   const resetDeckProgress = useDeckStore((s) => s.resetDeckProgress);
+  const folders = useDeckStore((s) => s.folders);
+  const setDeckFolder = useDeckStore((s) => s.setDeckFolder);
 
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [renameVisible, setRenameVisible] = useState(false);
   const [moveVisible, setMoveVisible] = useState(false);
+  const [folderVisible, setFolderVisible] = useState(false);
   const [cardMenuId, setCardMenuId] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('created');
@@ -240,9 +243,7 @@ export default function DeckDetailsScreen() {
             style={{
               width: heights.tileLg,
               height: heights.tileLg,
-              borderWidth: 1,
-              borderColor: alpha(deck.color, 0.2),
-              backgroundColor: alpha(deck.color, 0.12),
+              backgroundColor: alpha(deck.color, 0.16),
             }}
           >
             <MaterialIcons name={deck.icon as IconName} size={iconSize.lg} color={deck.color} />
@@ -456,6 +457,14 @@ export default function DeckDetailsScreen() {
             setMoveVisible(true);
           }}
         />
+        <SheetRow
+          icon="folder-shared"
+          label="Move to folder"
+          onPress={() => {
+            setOptionsVisible(false);
+            setFolderVisible(true);
+          }}
+        />
         <SheetRow icon="content-copy" label="Duplicate Deck" onPress={handleDuplicate} />
         <SheetRow
           icon="archive"
@@ -464,7 +473,7 @@ export default function DeckDetailsScreen() {
         />
         <SheetRow icon="upload" label="Export Deck" onPress={handleExport} />
         <SheetRow icon="refresh" label="Reset Progress" onPress={handleReset} />
-        <View className="my-2 h-px bg-hairline" />
+        <View className="h-2" />
         <SheetRow icon="delete-outline" label="Delete Deck" onPress={handleDelete} destructive />
       </BottomSheetModal>
 
@@ -519,6 +528,44 @@ export default function DeckDetailsScreen() {
         </ScrollView>
       </BottomSheetModal>
 
+      {/* Folder sheet — a browsing label only: the deck keeps its cards,
+          schedule and history wherever it is filed. */}
+      <BottomSheetModal
+        visible={folderVisible}
+        onClose={() => setFolderVisible(false)}
+        title="Move to folder"
+      >
+        {folders.length === 0 ? (
+          <View className="px-1 pb-2">
+            <AppText variant="bodySm" tone="muted">
+              No folders yet. Create one from the Folders sheet on the home screen.
+            </AppText>
+          </View>
+        ) : (
+          <ScrollView style={{ maxHeight: heights.sheetCompact }}>
+            <SheetRow
+              icon="folder-open"
+              label="No folder"
+              onPress={async () => {
+                await setDeckFolder(deck.id, null);
+                setFolderVisible(false);
+              }}
+            />
+            {folders.map((folder) => (
+              <SheetRow
+                key={folder.id}
+                icon="folder"
+                label={folder.name}
+                onPress={async () => {
+                  await setDeckFolder(deck.id, folder.id);
+                  setFolderVisible(false);
+                }}
+              />
+            ))}
+          </ScrollView>
+        )}
+      </BottomSheetModal>
+
       {/* Per-card Edit/Delete sheet */}
       <BottomSheetModal
         visible={!!cardMenuCard}
@@ -567,7 +614,13 @@ function LegendItem({ color, value, label }: { color: string; value: number; lab
           {formatCount(value)}
         </AppText>
       </View>
-      <AppText variant="caption" weight="medium" tone="muted" className="ml-[18px] mt-0.5 uppercase">
+      <AppText
+        variant="caption"
+        weight="medium"
+        tone="muted"
+        className="mt-0.5 uppercase"
+        style={{ marginLeft: spacing.legendIndent }}
+      >
         {label}
       </AppText>
     </View>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Pressable } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import {
   isFsrsLearningStepValid,

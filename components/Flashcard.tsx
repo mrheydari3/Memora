@@ -11,7 +11,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import type { ScrollViewInstance, TextStyle, ViewStyle } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from './Icon';
 import type { Flashcard as FlashcardType } from '../data/types';
 import { AppText } from './AppText';
 import { EASE, REVEAL_OPACITY_FLOOR, timingTo } from '../motion';
@@ -20,10 +20,13 @@ import {
   fills,
   glass,
   glassFill,
+  heights,
+  iconSize,
+  layout,
   motion,
   radii,
-  rimColor,
   shadow,
+  spacing,
   typography,
 } from '../theme/tokens';
 
@@ -123,6 +126,8 @@ function FaceScroll({
  *
  * Each face is a reading surface: short copy centers like a poster, long copy
  * starts at the top and scrolls, so the pane can keep one height for every card.
+ * Only the card carries a rim; the two layers behind it are pure fills, and the
+ * card itself has no outline at all.
  */
 export function FlashcardView({
   card,
@@ -226,8 +231,10 @@ export function FlashcardView({
     <View
       style={[
         styles.wrapper,
-        { marginHorizontal: 20, marginVertical: 14 },
-        full && { flex: 1 },
+        { marginHorizontal: spacing.screen, marginVertical: spacing.row },
+        // The study screen centres the card instead of stretching it: a card is
+        // only as tall as the column allows, and its content sits in the middle.
+        full && { flex: 1, justifyContent: 'center' },
       ]}
     >
       {/* Two panes peeking out below the card read as the rest of the deck. */}
@@ -244,7 +251,7 @@ export function FlashcardView({
       <Animated.View
         style={[
           styles.card,
-          full && { flex: 1 },
+          full && { flex: 1, maxHeight: layout.cardMaxHeight },
           {
             // Never enters from invisible: the card is the only content on the
             // study screen, so a 0-opacity start is a blank screen for a beat.
@@ -256,24 +263,6 @@ export function FlashcardView({
           },
         ]}
       >
-        {/* Lit top rim */}
-        <View style={[styles.rim, styles.nonInteractive]} />
-
-        {/* Answer state: the hairline warms to the accent as the card turns. */}
-        <Animated.View
-          style={[
-            styles.nonInteractive,
-            styles.accentRing,
-            {
-              opacity: flip.interpolate({
-                inputRange: [0, 0.7],
-                outputRange: [0, 1],
-                extrapolate: 'clamp',
-              }),
-            },
-          ]}
-        />
-
         {/* Card chrome — stays put while the faces turn underneath it. */}
         <View style={styles.header}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -306,7 +295,7 @@ export function FlashcardView({
               accessibilityLabel={speakLabel}
               hitSlop={10}
             >
-              <MaterialIcons name="volume-up" size={18} color={colors.primary} />
+              <MaterialIcons name="volume-up" size={iconSize.md} color={colors.primary} />
             </Pressable>
           )}
         </View>
@@ -429,57 +418,34 @@ const styles = StyleSheet.create({
   stackLayer: {
     position: 'absolute',
     borderRadius: radii.pane,
-    borderWidth: 1,
   },
   nonInteractive: {
     pointerEvents: 'none',
   },
   stackNear: {
-    left: 12,
-    right: 12,
-    top: 14,
+    left: spacing.gutter / 2 - 4,
+    right: spacing.gutter / 2 - 4,
+    top: spacing.row - 2,
     bottom: -9,
     backgroundColor: glass.stackNear,
-    borderColor: colors.hairlineFaint,
   },
   stackFar: {
-    left: 24,
-    right: 24,
-    top: 26,
+    left: spacing.gutter / 2 + 4,
+    right: spacing.gutter / 2 + 4,
+    top: spacing.section - 2,
     bottom: -17,
     backgroundColor: glass.stackFar,
-    borderColor: colors.hairlineGhost,
   },
   card: {
     position: 'relative',
     borderRadius: radii.pane,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    padding: 24,
-    minHeight: 300,
+    padding: spacing.cardPad,
+    minHeight: layout.cardMinHeight,
     ...glassFill,
     // A touch more luminance than the shared pane: this card is the only thing
     // on screen, so it has to read as a surface rather than as the background.
     backgroundColor: glass.cardFace,
     boxShadow: shadow.card,
-  },
-  rim: {
-    position: 'absolute',
-    top: 0,
-    left: 24,
-    right: 24,
-    height: 1,
-    backgroundColor: rimColor,
-  },
-  accentRing: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: radii.pane,
-    borderWidth: 1,
-    borderColor: colors.accentLine,
   },
   header: {
     zIndex: 3,
@@ -512,14 +478,14 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   speak: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    // 44 rather than 38: this is the one control a thumb aims at while holding
+    // a phone in one hand, and the audit measured it under the 44px minimum.
+    width: heights.iconLg,
+    height: heights.iconLg,
+    borderRadius: heights.iconLg / 2,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: fills.control,
-    borderWidth: 1,
-    borderColor: colors.hairline,
   },
   speakPressed: {
     opacity: 0.55,
@@ -557,20 +523,20 @@ const styles = StyleSheet.create({
   },
   copy: {
     width: '100%',
-    maxWidth: 520,
+    maxWidth: layout.cardMeasure,
   },
   // The answer reads on a slightly narrower measure than the prompt, and the
   // column itself stays centered in the pane.
   answerCopy: {
-    maxWidth: 480,
+    maxWidth: layout.answerMeasure,
   },
   frontText: {
     width: '100%',
-    maxWidth: 520,
+    maxWidth: layout.cardMeasure,
   },
   backText: {
     width: '100%',
-    maxWidth: 480,
+    maxWidth: layout.answerMeasure,
   },
   answerRule: {
     width: 36,
@@ -582,12 +548,10 @@ const styles = StyleSheet.create({
   },
   example: {
     width: '100%',
-    maxWidth: 440,
+    maxWidth: layout.answerMeasure,
     paddingVertical: 13,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.hairlineFaint,
+    paddingHorizontal: spacing.gutter,
+    borderRadius: radii.control,
     backgroundColor: fills.inset,
   },
 });

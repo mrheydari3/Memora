@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { AppText } from './AppText';
 import { IconButton } from './IconButton';
-import { colors, fills, iconSize } from '../theme/tokens';
+import { colors, fills, heights, iconSize } from '../theme/tokens';
 
 type LearningStepRowProps = {
   index: number; // 0-indexed
@@ -15,16 +15,17 @@ type LearningStepRowProps = {
  * LearningStepRow — a numbered step inside the learning-phase pane. Every step
  * is editable; the first one is protected from removal (a schedule needs at
  * least one step) and callers that allow "no steps" pass isFirst={false}.
+ * Steps are separated by height, not by a rule under each one.
  */
 export function LearningStepRow({ index, step, isFirst, onEdit, onRemove }: LearningStepRowProps) {
   return (
     <View
-      className="flex-row items-center border-b border-hairline px-4"
-      style={{ minHeight: 52 }}
+      className="flex-row items-center px-4"
+      style={{ minHeight: heights.rowCompact }}
     >
       <View
-        className="mr-3 h-6 w-6 items-center justify-center rounded-full border border-hairline"
-        style={{ backgroundColor: fills.tile }}
+        className="mr-3 h-6 w-6 items-center justify-center rounded-full"
+        style={{ backgroundColor: fills.inset }}
       >
         <AppText variant="caption" weight="semibold" tone="muted">
           {index + 1}

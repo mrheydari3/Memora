@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { View } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '../components/Icon';
 import { useDeckStore } from '../store/useDeckStore';
 import { useReviewStore } from '../store/useReviewStore';
 import { addLocalDays, computeStreak, startOfLocalDay } from '../data/streak';
@@ -139,7 +139,6 @@ export default function StatisticsScreen() {
       <GlassCard className="mt-3">
         <View className="flex-row items-center">
           <DonutChart
-            size={124}
             strokeWidth={10}
             centerLabel={String(total)}
             centerSubtitle="cards"

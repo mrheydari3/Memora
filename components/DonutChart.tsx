@@ -1,7 +1,7 @@
 import { Animated, View } from 'react-native';
 import Svg, { Circle, G } from 'react-native-svg';
 import { AppText } from './AppText';
-import { fills, motion } from '../theme/tokens';
+import { fills, layout, motion } from '../theme/tokens';
 import { useReveal } from '../motion';
 
 type DonutSegment = {
@@ -27,7 +27,7 @@ type DonutChartProps = {
  */
 export function DonutChart({
   segments,
-  size = 124,
+  size = layout.donut,
   strokeWidth = 10,
   centerLabel,
   centerSubtitle,

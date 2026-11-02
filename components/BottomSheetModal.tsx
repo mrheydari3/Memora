@@ -1,6 +1,7 @@
 import { Animated, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from './AppText';
-import { glassFillStrong, motion, veil } from '../theme/tokens';
+import { IconButton } from './IconButton';
+import { glassFillStrong, iconSize, motion, veil } from '../theme/tokens';
 import { usePresence } from '../motion';
 
 type SheetPanelProps = {
@@ -8,31 +9,63 @@ type SheetPanelProps = {
   subtitle?: string;
   children: React.ReactNode;
   className?: string;
+  /** Renders the 44px close control in the sheet header. */
+  onClose?: () => void;
 };
 
 /**
- * SheetPanel — the frosted panel itself: 28px top radius, hairline top edge, a
- * grab handle and a 20px inner gutter. Shared by the modal sheet and the
- * add-deck route, which is presented as a sheet by the router.
+ * SheetPanel — the frosted panel itself: 28px top radius, a grab handle and a
+ * 20px inner gutter. Shared by the modal sheet and the add-deck route, which is
+ * presented as a sheet by the router. It lifts off the dimmed canvas by its
+ * fill and shadow; there is no rule along its top edge.
  */
-export function SheetPanel({ title, subtitle, children, className = '' }: SheetPanelProps) {
+export function SheetPanel({
+  title,
+  subtitle,
+  children,
+  className = '',
+  onClose,
+}: SheetPanelProps) {
   return (
     <View
-      className={`rounded-t-2xl border-t border-hairline px-5 pb-9 ${className}`}
+      className={`rounded-t-2xl px-5 pb-9 ${className}`}
       style={glassFillStrong}
     >
       <View className="items-center py-3">
         <View className="rounded-full bg-hairline-strong" style={{ height: 4, width: 40 }} />
       </View>
-      {title && (
-        <AppText variant="headline" weight="semibold" className="mb-1" numberOfLines={1}>
-          {title}
-        </AppText>
-      )}
-      {subtitle && (
-        <AppText variant="bodySm" tone="muted" className="mb-3">
-          {subtitle}
-        </AppText>
+      {(title || subtitle || onClose) && (
+        <View className="flex-row items-start">
+          <View className="flex-1">
+            {title && (
+              <AppText variant="headline" weight="semibold" className="mb-1" numberOfLines={1}>
+                {title}
+              </AppText>
+            )}
+            {subtitle && (
+              <AppText variant="bodySm" tone="muted" className="mb-3">
+                {subtitle}
+              </AppText>
+            )}
+          </View>
+          {/*
+            The close affordance is a real button in the header. It used to be
+            the backdrop alone — a plain div carrying `aria-label`, which axe
+            reports as `aria-prohibited-attr` and which a keyboard user could
+            not reach at all.
+          */}
+          {onClose && (
+            <View className="ml-2">
+              <IconButton
+                icon="close"
+                size="sm"
+                glyphSize={iconSize.md}
+                onPress={onClose}
+                accessibilityLabel="Close sheet"
+              />
+            </View>
+          )}
+        </View>
       )}
       <View className={title || subtitle ? 'mt-3' : ''}>{children}</View>
     </View>
@@ -79,9 +112,11 @@ export function BottomSheetModal({
           pointerEvents="none"
           style={[StyleSheet.absoluteFill, { backgroundColor: veil, opacity: backdropOpacity }]}
         />
-        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close sheet" />
+        {/* The backdrop still dismisses a pointer press, but it is decoration
+            for assistive tech: the header's close button is the accessible one. */}
+        <Pressable className="flex-1" onPress={onClose} accessible={false} />
         <Animated.View style={{ opacity: panelOpacity, transform: [{ translateY }] }}>
-          <SheetPanel title={title} subtitle={subtitle}>
+          <SheetPanel title={title} subtitle={subtitle} onClose={onClose}>
             {children}
           </SheetPanel>
         </Animated.View>

@@ -1,3 +1,72 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Web base layer.
+ *
+ * Values come from CSS custom properties that app/+html.tsx writes from
+ * theme/palette.js, so nothing here re-declares a brand colour: the palette
+ * stays the only source of truth.
+ *
+ *  - `color-scheme: dark` makes UA-owned surfaces (scrollbars, form controls,
+ *    caret, autofill, overscroll glow) match the ink canvas. Without it, the
+ *    browser paints light widgets inside a dark app.
+ *  - Focus is visible on every control, from a 2px accent ring drawn *inside*
+ *    the element so an `overflow: hidden` pane can never clip it (WCAG 2.4.11).
+ *  - Type sizes are rem-based (see tailwind.config.js), so a browser text zoom
+ *    of 200% really doubles the text instead of leaving it at 15px.
+ */
+
+:root {
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
+body {
+  background-color: theme('colors.background');
+}
+
+/* RN-web scroll views already disable the document scroll; this stops the
+   rubber-band overscroll from revealing a white page behind the canvas. */
+body {
+  overscroll-behavior-y: none;
+}
+
+/* Only suppress the pointer-click ring; keyboard focus keeps one. Written with
+   longhands so a missing `--memora-focus` degrades to `currentColor` (still
+   visible) instead of invalidating the whole shorthand and leaving no ring. */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* `theme()` is resolved by Tailwind at build time from tailwind.config.js,
+   which reads theme/palette.js — so the ring colour is still a token, not a
+   literal, and it cannot drift from the accent. */
+:focus-visible {
+  outline-width: 2px;
+  outline-style: solid;
+  outline-offset: -2px;
+  outline-color: theme('colors.primary');
+}
+
+::selection {
+  background-color: theme('colors.accent-soft');
+  color: theme('colors.on-primary');
+}
+
+/* A single global fallback for CSS-driven motion. The JS motion helpers already
+   honour the preference themselves; this catches anything that animates through
+   a stylesheet instead of the native driver. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

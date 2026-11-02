@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Platform, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '../../components/Icon';
 import * as Haptics from 'expo-haptics';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useDeckStore } from '../../store/useDeckStore';
@@ -38,7 +38,16 @@ import {
   Screen,
 } from '../../components';
 import type { QuizAnswerState } from '../../components';
-import { alpha, colors, fills, glassFillStrong, heights, iconSize, motion } from '../../theme/tokens';
+import {
+  alpha,
+  colors,
+  fills,
+  glassFillStrong,
+  heights,
+  iconSize,
+  layout,
+  motion,
+} from '../../theme/tokens';
 import { EASE, timingTo, useReveal } from '../../motion';
 
 const TICK_MS = 100;
@@ -366,10 +375,10 @@ export default function QuizScreen() {
             icon="search-off"
             title="Deck not found"
             titleVariant="headline"
-            description="It may have been deleted. Go back to your library to pick another one."
+            description="It may have been deleted. Go back to Game to pick another deck."
             action={
               <GhostButton
-                label="Back to Library"
+                label="Back to Game"
                 className="px-6"
                 onPress={() => router.replace('/(tabs)/library')}
               />
@@ -434,7 +443,10 @@ export default function QuizScreen() {
       </View>
 
       {question ? (
-        <View className="w-full max-w-[620px] flex-1 self-center px-5 pb-6">
+        <View
+          className="w-full flex-1 self-center px-5 pb-6"
+          style={{ maxWidth: layout.contentMaxWidth }}
+        >
           <View className="mt-4 flex-row items-center justify-between">
             <View className="flex-row items-center gap-1.5">
               <MaterialIcons
@@ -510,7 +522,7 @@ export default function QuizScreen() {
 
       {phase === 'over' && (
         <Animated.View style={[styles.result, resultReveal.style]}>
-          <View className="w-full max-w-[420px] items-center px-5">
+          <View className="w-full items-center px-5" style={{ maxWidth: layout.resultMaxWidth }}>
             <AppText variant="label" weight="semibold" tone="accent" className="uppercase">
               {round.cleared ? 'Deck cleared' : "Time's up"}
             </AppText>
@@ -549,7 +561,7 @@ export default function QuizScreen() {
             />
             <GhostButton
               className="mt-3"
-              label="Back to Library"
+              label="Back to Game"
               onPress={() => router.replace('/(tabs)/library')}
             />
           </View>
@@ -573,9 +585,7 @@ function shuffleCards<T>(items: T[]): T[] {
 function ResultRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
   return (
     <View
-      className={`flex-row items-center justify-between py-2.5 ${
-        last ? '' : 'border-b border-hairline-faint'
-      }`}
+      className="flex-row items-center justify-between py-2.5"
     >
       <AppText variant="bodySm" tone="muted" className="flex-1">
         {label}

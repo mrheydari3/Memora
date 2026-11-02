@@ -1,0 +1,1379 @@
+{
+  "chromium": {
+    "engine": "chromium",
+    "version": "156.0.8078.4",
+    "routes": [
+      {
+        "label": "chromium-320-home",
+        "width": 320,
+        "route": "/",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Add Deck",
+            "ring": true
+          },
+          {
+            "label": "Edit mode",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "chromium-320-library",
+        "width": 320,
+        "route": "/library",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Add Deck",
+            "ring": true
+          },
+          {
+            "label": "Settings",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "chromium-320-deck",
+        "width": 320,
+        "route": "/deck/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "Search cards",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "chromium-320-study",
+        "width": 320,
+        "route": "/study/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Close",
+            "ring": true
+          },
+          {
+            "label": "Undo last review",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "chromium-320-quiz",
+        "width": 320,
+        "route": "/quiz/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Close quiz",
+            "ring": true
+          },
+          {
+            "label": "Answer 1: قفل، کاخ، قصر",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "chromium-320-statistics",
+        "width": 320,
+        "route": "/statistics",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "Learning streak0 daysConsecut",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "chromium-320-profile",
+        "width": 320,
+        "route": "/profile",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "First Card7-Day Streak100 ",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "chromium-320-settings",
+        "width": 320,
+        "route": "/settings",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "AlgorithmFSRS-6How reviews a",
+            "ring": true
+          },
+          {
+            "label": "Text-to-SpeechOnRead cards a",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "chromium-320-not-found",
+        "width": 320,
+        "route": "/this-route-does-not-exist",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "Back to Game",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "chromium-1440-home",
+        "width": 1440,
+        "route": "/",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Add Deck",
+            "ring": true
+          },
+          {
+            "label": "Edit mode",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "chromium-1440-library",
+        "width": 1440,
+        "route": "/library",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Add Deck",
+            "ring": true
+          },
+          {
+            "label": "Settings",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "chromium-1440-deck",
+        "width": 1440,
+        "route": "/deck/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "Search cards",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "chromium-1440-study",
+        "width": 1440,
+        "route": "/study/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Close",
+            "ring": true
+          },
+          {
+            "label": "Undo last review",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "chromium-1440-quiz",
+        "width": 1440,
+        "route": "/quiz/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Close quiz",
+            "ring": true
+          },
+          {
+            "label": "Answer 1: با صدای بلند خواندن",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "chromium-1440-statistics",
+        "width": 1440,
+        "route": "/statistics",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          null
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "chromium-1440-profile",
+        "width": 1440,
+        "route": "/profile",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "First Card7-Day Streak100 ",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "chromium-1440-settings",
+        "width": 1440,
+        "route": "/settings",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "AlgorithmFSRS-6How reviews a",
+            "ring": true
+          },
+          {
+            "label": "Text-to-SpeechOnRead cards a",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "chromium-1440-not-found",
+        "width": 1440,
+        "route": "/this-route-does-not-exist",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "Back to Game",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      }
+    ],
+    "failures": [],
+    "textZoom": {
+      "before": 20,
+      "after": 40,
+      "grew": true
+    }
+  },
+  "firefox": {
+    "engine": "firefox",
+    "version": "157.0",
+    "routes": [
+      {
+        "label": "firefox-320-home",
+        "width": 320,
+        "route": "/",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Add Deck",
+            "ring": true
+          },
+          {
+            "label": "Edit mode",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "firefox-320-library",
+        "width": 320,
+        "route": "/library",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Add Deck",
+            "ring": true
+          },
+          {
+            "label": "Settings",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "firefox-320-deck",
+        "width": 320,
+        "route": "/deck/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "Search cards",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "firefox-320-study",
+        "width": 320,
+        "route": "/study/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Close",
+            "ring": true
+          },
+          {
+            "label": "Undo last review",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "firefox-320-quiz",
+        "width": 320,
+        "route": "/quiz/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Close quiz",
+            "ring": true
+          },
+          {
+            "label": "Answer 1: لینک (اینترنت)",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "firefox-320-statistics",
+        "width": 320,
+        "route": "/statistics",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "Learning streak0 daysConsecut",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "firefox-320-profile",
+        "width": 320,
+        "route": "/profile",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "First Card7-Day Streak100 ",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "firefox-320-settings",
+        "width": 320,
+        "route": "/settings",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Local-firstOn this deviceYour",
+            "ring": true
+          },
+          {
+            "label": "AlgorithmFSRS-6How reviews a",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "firefox-320-not-found",
+        "width": 320,
+        "route": "/this-route-does-not-exist",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "Back to Game",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "firefox-1440-home",
+        "width": 1440,
+        "route": "/",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Add Deck",
+            "ring": true
+          },
+          {
+            "label": "Edit mode",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "firefox-1440-library",
+        "width": 1440,
+        "route": "/library",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Add Deck",
+            "ring": true
+          },
+          {
+            "label": "Settings",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "firefox-1440-deck",
+        "width": 1440,
+        "route": "/deck/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "Search cards",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "firefox-1440-study",
+        "width": 1440,
+        "route": "/study/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Close",
+            "ring": true
+          },
+          {
+            "label": "Undo last review",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "firefox-1440-quiz",
+        "width": 1440,
+        "route": "/quiz/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Close quiz",
+            "ring": true
+          },
+          {
+            "label": "Answer 1: اقامت شبانه",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "firefox-1440-statistics",
+        "width": 1440,
+        "route": "/statistics",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "Go back",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "firefox-1440-profile",
+        "width": 1440,
+        "route": "/profile",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "First Card7-Day Streak100 ",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "firefox-1440-settings",
+        "width": 1440,
+        "route": "/settings",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Local-firstOn this deviceYour",
+            "ring": true
+          },
+          {
+            "label": "AlgorithmFSRS-6How reviews a",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "firefox-1440-not-found",
+        "width": 1440,
+        "route": "/this-route-does-not-exist",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "Back to Game",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      }
+    ],
+    "failures": [],
+    "textZoom": {
+      "before": 20,
+      "after": 40,
+      "grew": true
+    }
+  },
+  "webkit": {
+    "engine": "webkit",
+    "version": "27.2",
+    "routes": [
+      {
+        "label": "webkit-320-home",
+        "width": 320,
+        "route": "/",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Add Deck",
+            "ring": true
+          },
+          {
+            "label": "Edit mode",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "webkit-320-library",
+        "width": 320,
+        "route": "/library",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Add Deck",
+            "ring": true
+          },
+          {
+            "label": "Settings",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "webkit-320-deck",
+        "width": 320,
+        "route": "/deck/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "Search cards",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "webkit-320-study",
+        "width": 320,
+        "route": "/study/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Close",
+            "ring": true
+          },
+          {
+            "label": "Undo last review",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "webkit-320-quiz",
+        "width": 320,
+        "route": "/quiz/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Close quiz",
+            "ring": true
+          },
+          {
+            "label": "Answer 1: رفتار کردن",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "webkit-320-statistics",
+        "width": 320,
+        "route": "/statistics",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          null
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "webkit-320-profile",
+        "width": 320,
+        "route": "/profile",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "First Card7-Day Streak100 ",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "webkit-320-settings",
+        "width": 320,
+        "route": "/settings",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "AlgorithmFSRS-6How reviews a",
+            "ring": true
+          },
+          {
+            "label": "Text-to-SpeechOnRead cards a",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "webkit-320-not-found",
+        "width": 320,
+        "route": "/this-route-does-not-exist",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "Back to Game",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "webkit-1440-home",
+        "width": 1440,
+        "route": "/",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Add Deck",
+            "ring": true
+          },
+          {
+            "label": "Edit mode",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "webkit-1440-library",
+        "width": 1440,
+        "route": "/library",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Add Deck",
+            "ring": true
+          },
+          {
+            "label": "Settings",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "webkit-1440-deck",
+        "width": 1440,
+        "route": "/deck/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "Search cards",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "webkit-1440-study",
+        "width": 1440,
+        "route": "/study/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Close",
+            "ring": true
+          },
+          {
+            "label": "Undo last review",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "webkit-1440-quiz",
+        "width": 1440,
+        "route": "/quiz/deck-german-a2b1",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Close quiz",
+            "ring": true
+          },
+          {
+            "label": "Answer 1: هشدار دادن",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "webkit-1440-statistics",
+        "width": 1440,
+        "route": "/statistics",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          null
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "webkit-1440-profile",
+        "width": 1440,
+        "route": "/profile",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "First Card7-Day Streak100 ",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "webkit-1440-settings",
+        "width": 1440,
+        "route": "/settings",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "AlgorithmFSRS-6How reviews a",
+            "ring": true
+          },
+          {
+            "label": "Text-to-SpeechOnRead cards a",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      },
+      {
+        "label": "webkit-1440-not-found",
+        "width": 1440,
+        "route": "/this-route-does-not-exist",
+        "axe": [],
+        "overflow": 0,
+        "smallTargets": [],
+        "colorScheme": "dark",
+        "schemeSupported": true,
+        "focusVisibleSupported": true,
+        "smallTargetCount": 0,
+        "focus": [
+          {
+            "label": "Go back",
+            "ring": true
+          },
+          {
+            "label": "Back to Game",
+            "ring": true
+          }
+        ],
+        "consoleErrors": [],
+        "pageErrors": [],
+        "failedRequests": []
+      }
+    ],
+    "failures": [],
+    "textZoom": {
+      "before": 20,
+      "after": 40,
+      "grew": true
+    }
+  }
+}

@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { View, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../services/navigation';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '../components/Icon';
 import { useDeckStore } from '../store/useDeckStore';
 import { useReviewStore } from '../store/useReviewStore';
 import { computeStreak, startOfLocalDay } from '../data/streak';
@@ -18,7 +18,7 @@ import {
   HeroSkeleton,
   SettingsGroupSkeleton,
 } from '../components';
-import { colors, heights, iconSize } from '../theme/tokens';
+import { colors, fills, heights, iconSize } from '../theme/tokens';
 
 type Achievement = {
   id: string;
@@ -106,17 +106,19 @@ export default function ProfileScreen() {
       <GlassCard tone="accent">
         <View className="flex-row items-center">
           <View
-            className="items-center justify-center rounded-full border border-accent-line"
+            className="items-center justify-center rounded-full"
             style={{
               width: heights.avatarLg,
               height: heights.avatarLg,
               backgroundColor: colors.accentFaint,
             }}
           >
-            <MaterialIcons name="person" size={30} color={colors.primary} />
+            <MaterialIcons name="person" size={iconSize.display} color={colors.primary} />
           </View>
           <View className="ml-4 flex-1">
-            <AppText variant="headline">User</AppText>
+            <AppText variant="headline" headingLevel={2}>
+              User
+            </AppText>
             <View className="mt-1 flex-row items-center gap-1.5">
               <MaterialIcons name="arrow-upward" size={iconSize.xs} color={colors.success} />
               <AppText variant="bodySm" weight="medium" tone="muted">
@@ -127,7 +129,7 @@ export default function ProfileScreen() {
         </View>
 
         <View className="mt-5">
-          <View className="h-2 overflow-hidden rounded-full border border-hairline">
+          <View className="h-2 overflow-hidden rounded-full" style={{ backgroundColor: fills.track }}>
             <View
               className="h-full rounded-full bg-primary"
               style={{ width: `${XP_PROGRESS * 100}%` }}
@@ -155,7 +157,15 @@ export default function ProfileScreen() {
       />
       <GlassCard className="mt-3" padding="sm">
         <View className="-mx-2">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4, paddingHorizontal: 8 }}>
+          {/* `focusable`: a horizontal scroller must be reachable and scrollable
+              from the keyboard, otherwise the badges are mouse/touch only
+              (axe: "scrollable-region-focusable"). */}
+          <ScrollView
+            horizontal
+            focusable
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 4, paddingHorizontal: 8 }}
+          >
             {achievements.map((a, index) => (
               <AchievementBadge
                 key={a.id}
@@ -173,11 +183,7 @@ export default function ProfileScreen() {
 
       <RevealItem index={2}>
       {/* Decks */}
-      <SectionHeader
-        className="mt-7"
-        label="My decks"
-        action={{ label: 'View all', onPress: () => pushOnce(router, '/library') }}
-      />
+      <SectionHeader className="mt-7" label="My decks" />
       <GlassCard className="mt-3" padding="none">
         {decks.length === 0 && (
           <View className="px-4 py-5">
@@ -199,7 +205,6 @@ export default function ProfileScreen() {
             titleWeight="semibold"
             divider={i < Math.min(decks.length, 5) - 1}
             onPress={() => pushOnce(router, `/deck/${deck.id}`)}
-            accessibilityLabel={deck.name}
           />
         ))}
       </GlassCard>

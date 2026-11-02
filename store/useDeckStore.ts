@@ -1,6 +1,13 @@
 import { create } from 'zustand';
-import type { Deck, Flashcard } from '../data/types';
+import type { Deck, DeckFolder, Flashcard } from '../data/types';
 import * as repo from '../data/repository';
+import {
+  createFolder,
+  detachDecksFromFolder,
+  removeFolder,
+  renameFolder,
+  type FolderError,
+} from '../data/folders';
 import { defaultFSRSState, sampleDecks, sampleCards } from '../data/seed';
 import { resolveFsrsParams } from '../data/fsrs-params';
 import { useReviewStore } from './useReviewStore';
@@ -8,11 +15,16 @@ import { useReviewStore } from './useReviewStore';
 type DeckStore = {
   // State
   decks: Deck[];
+  folders: DeckFolder[];
   cardsByDeck: Record<string, Flashcard[]>;
   loaded: boolean;
 
   // Actions
   load: () => Promise<void>;
+  addFolder: (name: string) => Promise<{ ok: true; folder: DeckFolder } | { ok: false; error: FolderError }>;
+  renameFolder: (id: string, name: string) => Promise<{ ok: boolean; error?: FolderError }>;
+  deleteFolder: (id: string) => Promise<void>;
+  setDeckFolder: (deckId: string, folderId: string | null) => Promise<void>;
   addDeck: (deck: Deck) => Promise<void>;
   updateDeck: (id: string, partial: Partial<Deck>) => Promise<void>;
   deleteDeck: (id: string) => Promise<void>;
@@ -30,19 +42,21 @@ type DeckStore = {
 
 export const useDeckStore = create<DeckStore>((set, get) => ({
   decks: [],
+  folders: [],
   cardsByDeck: {},
   loaded: false,
 
   load: async () => {
     try {
       let decks = await repo.loadDecks();
+      const folders = await repo.loadFolders();
       const allCards = await repo.loadAllCards();
 
       // First run: seed the shipped deck.
       if (decks.length === 0) {
         await repo.saveDecks(sampleDecks);
         await repo.saveAllCards(sampleCards);
-        set({ decks: sampleDecks, cardsByDeck: sampleCards, loaded: true });
+        set({ decks: sampleDecks, folders, cardsByDeck: sampleCards, loaded: true });
         return;
       }
 
@@ -99,12 +113,45 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       if (decksChanged) await repo.saveDecks(decks);
       if (cardsChanged) await repo.saveAllCards(allCards);
 
-      set({ decks, cardsByDeck: allCards, loaded: true });
+      set({ decks, folders, cardsByDeck: allCards, loaded: true });
     } catch (e) {
       console.error('Failed to load decks:', e);
       // Fallback to sample data
-      set({ decks: sampleDecks, cardsByDeck: sampleCards, loaded: true });
+      set({ decks: sampleDecks, folders: [], cardsByDeck: sampleCards, loaded: true });
     }
+  },
+
+  addFolder: async (name) => {
+    const result = createFolder(get().folders, name);
+    if (!result.ok) return { ok: false, error: result.error };
+    await repo.saveFolders(result.folders);
+    set({ folders: result.folders });
+    return { ok: true, folder: result.folder };
+  },
+
+  renameFolder: async (id, name) => {
+    const result = renameFolder(get().folders, id, name);
+    if (!result.ok) return { ok: false, error: result.error };
+    await repo.saveFolders(result.folders);
+    set({ folders: result.folders });
+    return { ok: true };
+  },
+
+  deleteFolder: async (id) => {
+    const folders = removeFolder(get().folders, id);
+    // Decks are only unfiled, never deleted: a folder owns nothing.
+    const decks = detachDecksFromFolder(get().decks, id);
+    await repo.saveFolders(folders);
+    if (decks !== get().decks) await repo.saveDecks(decks);
+    set({ folders, decks });
+  },
+
+  setDeckFolder: async (deckId, folderId) => {
+    const decks = get().decks.map((deck) =>
+      deck.id === deckId ? { ...deck, folderId } : deck
+    );
+    await repo.saveDecks(decks);
+    set({ decks });
   },
 
   addDeck: async (deck) => {

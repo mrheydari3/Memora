@@ -16,15 +16,17 @@ type TopAppBarProps = {
   leftContent?: React.ReactNode;
   /** Custom right content replaces the icon actions. */
   rightContent?: React.ReactNode;
+  /** Kept for call-site compatibility; the bar has no rule to draw. */
   showBorder?: boolean;
 };
 
 /**
  * TopAppBar — the standard bar: 56px tall, frosted to match the panes below it,
- * 17px semibold title, 38px circular glass icon buttons, hairline bottom edge.
+ * 17px semibold title, 38px circular filled icon buttons.
  *
- * The bar names the route; a page's own subject heading (the deck name, the
- * home greeting) belongs to the body.
+ * The bar has no bottom rule: it is a stronger frosted fill than the page, and
+ * the scrolling body passes underneath it. Where a line is genuinely meaningful
+ * — the study session's progress — the screen draws that one line itself.
  */
 export function TopAppBar({
   title,
@@ -38,7 +40,7 @@ export function TopAppBar({
 
   return (
     <View
-      className={`flex-row items-center pl-2 pr-3 ${showBorder ? 'border-b border-hairline' : ''}`}
+      className="flex-row items-center pl-2 pr-3"
       style={[glassFillStrong, { height: heights.appbar }]}
     >
       {leftContent ? (
@@ -54,7 +56,15 @@ export function TopAppBar({
             />
           )}
           {title && (
-            <AppText variant="bodyLg" weight="semibold" className="ml-2 flex-1" numberOfLines={1}>
+            // The bar title is the page's h1: it gives every route a document
+            // outline instead of one flat run of anonymous text.
+            <AppText
+              variant="bodyLg"
+              weight="semibold"
+              className="ml-2 flex-1"
+              numberOfLines={1}
+              headingLevel={1}
+            >
               {title}
             </AppText>
           )}

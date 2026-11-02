@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, View } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from './Icon';
 import { AppText } from './AppText';
-import { alpha, colors, fills, iconSize, radii } from '../theme/tokens';
+import { alpha, colors, fills, heights, iconSize, radii } from '../theme/tokens';
 import { springTo, usePressFeedback } from '../motion';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -28,7 +28,7 @@ type SegmentedControlProps = {
   onChange?: (key: string) => void;
   /** fill = the selected segment carries the accent fill; plain = text only. */
   appearance?: 'fill' | 'plain';
-  /** Hairline rule between segments. */
+  /** Kept for call-site compatibility; the rail has no inner rules. */
   divider?: boolean;
   className?: string;
 };
@@ -42,7 +42,8 @@ function SegmentPress({
   children,
 }: {
   onPress: () => void;
-  accessibilityLabel: string;
+  /** Optional: a segment is named by its own visible label + badge. */
+  accessibilityLabel?: string;
   selected: boolean;
   style?: object;
   children: React.ReactNode;
@@ -53,7 +54,9 @@ function SegmentPress({
     <Animated.View style={[{ flex: 1 }, press.style]}>
       <Pressable
         className="flex-1 flex-row items-center justify-center gap-1.5"
-        style={style}
+        // 44px minimum touch height (WCAG 2.5.8 / 2.2 Target Size): the rail
+        // used to draw 36px segments, which a thumb misses on a phone.
+        style={[style, { minHeight: heights.hit, justifyContent: 'center' }]}
         onPress={onPress}
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
@@ -102,8 +105,8 @@ export function SegmentedControl({
   return (
     <View
       onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
-      className={`flex-row overflow-hidden rounded-md border border-hairline ${className}`}
-      style={{ backgroundColor: fills.tile }}
+      className={`flex-row overflow-hidden rounded-md ${className}`}
+      style={{ backgroundColor: fills.control }}
     >
       {sliding && (
         <Animated.View
@@ -134,12 +137,12 @@ export function SegmentedControl({
 
         return (
           <View key={segment.key} className="flex-1 flex-row">
-            {divider && index > 0 && (
-              <View className="my-2 w-px" style={{ backgroundColor: colors.hairline }} />
-            )}
             <SegmentPress
               onPress={segment.onPress ?? (() => onChange?.(segment.key))}
-              accessibilityLabel={segment.label}
+              // The segment's own text (label + badge) names it. A hand-written
+              // label could not match the visible run exactly — even adding the
+              // badge produced "Discover Soon" against "DiscoverSoon", which
+              // axe reported as label-content-name-mismatch.
               selected={active}
               style={
                 filled && !sliding
@@ -164,19 +167,24 @@ export function SegmentedControl({
               </AppText>
               {segment.badge && (
                 <View
-                  className={`ml-1 rounded-full px-1.5 py-0.5 ${
-                    filled ? '' : 'border border-hairline'
-                  }`}
+                  className="ml-1 rounded-full px-1.5 py-0.5"
                   style={
                     filled
                       ? { backgroundColor: alpha(colors.onPrimaryContainer, 0.15) }
                       : { backgroundColor: fills.tile }
                   }
                 >
+                  {/*
+                    `muted`, not `tertiary`: an 11px caption in the tertiary
+                    tone measures 3.88:1 on a raised tile (axe, 320px), because
+                    the tile over a warm ambient field is lighter than the
+                    canvas the tone was chosen for. Quiet text on a raised
+                    surface uses the next tone up.
+                  */}
                   <AppText
                     variant="caption"
                     weight="semibold"
-                    tone={filled ? 'onAccent' : 'tertiary'}
+                    tone={filled ? 'onAccent' : 'muted'}
                     className="uppercase"
                   >
                     {segment.badge}

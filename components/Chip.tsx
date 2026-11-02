@@ -1,11 +1,16 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Pressable, View } from 'react-native';
 import { AppText } from './AppText';
-import { colors, fills } from '../theme/tokens';
+import { colors, fills, heights } from '../theme/tokens';
 import { springTo, usePressFeedback } from '../motion';
 
 type ChipProps = {
   label: string;
+  /**
+   * Longer, self-explanatory name for assistive tech ("Folder German A2").
+   * Must contain the visible label, or it contradicts the screen (WCAG 2.5.3).
+   */
+  accessibilityLabel?: string;
   active: boolean;
   onPress: () => void;
   /**
@@ -17,13 +22,18 @@ type ChipProps = {
 
 /**
  * Chip — the one pill-shaped choice in the app. Two appearances only: a filter
- * that fills with the accent when on, and a selector that rims with it.
+ * that fills with the accent when on, and a selector that tints with it.
  *
- * Selection is a fill that fades and scales in behind the label instead of a
- * background that snaps on, and the pill dips under a finger — both native
- * driver, both skipped under reduce-motion.
+ * No outline on either: selection is the fill behind the label. The pill dips
+ * under a finger, both on the native driver and skipped under reduce-motion.
  */
-export function Chip({ label, active, onPress, variant = 'filter' }: ChipProps) {
+export function Chip({
+  label,
+  accessibilityLabel,
+  active,
+  onPress,
+  variant = 'filter',
+}: ChipProps) {
   const press = usePressFeedback({ scale: 0.94 });
   const filled = variant === 'filter' && active;
   const rimmed = variant === 'select' && active;
@@ -36,20 +46,26 @@ export function Chip({ label, active, onPress, variant = 'filter' }: ChipProps) 
   return (
     <Animated.View style={press.style}>
       <Pressable
-        className={`overflow-hidden rounded-full border px-4 py-2 ${
-          rimmed ? 'border-accent-line' : filled ? 'border-transparent' : 'border-hairline'
-        }`}
-        style={
-          rimmed
-            ? { backgroundColor: colors.accentActive }
-            : { backgroundColor: fills.tile }
-        }
+        className="overflow-hidden rounded-full px-4"
+        // A chip used to draw 36px; the pill keeps its shape but the press box
+        // is 44px tall, which is what WCAG 2.5.8 and a thumb ask for.
+        style={{
+          backgroundColor: rimmed ? colors.accentActive : fills.tile,
+          minHeight: heights.hit,
+          justifyContent: 'center',
+        }}
         onPress={onPress}
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
         accessibilityRole="button"
         accessibilityState={{ selected: active }}
-        accessibilityLabel={label}
+        /*
+         * `aria-pressed`, not only `accessibilityState`: react-native-web does
+         * not expose `selected` on a button, so a screen reader could not tell
+         * which filter was on ("Bio" and "Chimi" read identically).
+         */
+        aria-pressed={active}
+        accessibilityLabel={accessibilityLabel ?? label}
       >
         {variant === 'filter' && (
           <Animated.View

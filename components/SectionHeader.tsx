@@ -1,7 +1,7 @@
 import { Animated, View, Pressable } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from './Icon';
 import { AppText } from './AppText';
-import { colors, iconSize } from '../theme/tokens';
+import { colors, heights, iconSize } from '../theme/tokens';
 import { usePressFeedback } from '../motion';
 
 type SectionHeaderProps = {
@@ -18,8 +18,8 @@ type SectionHeaderProps = {
  * SectionHeader — uppercase 12px label with 0.6 letter-spacing. The only
  * section marker in the app: no mixed-case headings above lists.
  *
- * `rule` draws a hairline from the label to the right edge, which turns a
- * chapter heading into a divider in settings; lists stay rule-free.
+ * `rule` used to draw a hairline across the row. It now only reserves the gap,
+ * because chapters are separated by spacing (28px) instead of by rules.
  */
 export function SectionHeader({
   label,
@@ -30,12 +30,12 @@ export function SectionHeader({
 }: SectionHeaderProps) {
   return (
     <View className={`flex-row items-center ${className}`}>
-      <AppText variant="label" tone="muted" className="uppercase">
+      {/* A real heading: without it, "Decks" and its count ran together into one
+          anonymous text node ("Decks 1") with nothing to navigate by. */}
+      <AppText variant="label" tone="muted" className="uppercase" headingLevel={2}>
         {label}
       </AppText>
-      {rule ? (
-        <View className="mx-3 h-px flex-1" style={{ backgroundColor: colors.hairline }} />
-      ) : null}
+      {rule ? <View className="mx-3 flex-1" /> : null}
       {hint && (
         <AppText
           variant="label"
@@ -76,12 +76,14 @@ function HeaderAction({
     <Animated.View style={[{ marginLeft: 'auto' }, press.style]}>
       <Pressable
         className="flex-row items-center gap-1"
+        // The label is 20px tall; the press box is 44. `hitSlop` does nothing
+        // on the web, so the size is laid out here instead of slopped on.
+        style={{ minHeight: heights.hit, justifyContent: 'center' }}
         onPress={onPress}
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
         accessibilityRole="button"
         accessibilityLabel={label}
-        hitSlop={8}
       >
         {icon && <MaterialIcons name={icon} size={iconSize.xs} color={colors.primary} />}
         <AppText variant="bodySm" weight="semibold" tone="accent">

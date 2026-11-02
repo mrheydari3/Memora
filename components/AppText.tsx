@@ -1,4 +1,4 @@
-import { Text } from 'react-native';
+import { Platform, Text } from 'react-native';
 import type { TextProps, TextStyle } from 'react-native';
 
 export type TextVariant =
@@ -73,6 +73,17 @@ export type AppTextProps = TextProps & {
   weight?: TextWeight;
   align?: TextStyle['textAlign'];
   className?: string;
+  /**
+   * Renders a real heading (`role=heading` + `aria-level`) instead of a styled
+   * div, so a screen reader can navigate the page by its outline instead of
+   * reading one flat run of text (WCAG 1.3.1 / 2.4.6).
+   */
+  headingLevel?: 1 | 2 | 3;
+  /**
+   * BCP-47 tag for text that is not English — a Persian card back read by an
+   * English voice is unintelligible, so the language travels with the string.
+   */
+  language?: string;
 };
 
 /**
@@ -89,14 +100,29 @@ export function AppText({
   align,
   className = '',
   style,
+  headingLevel,
+  language,
   ...rest
 }: AppTextProps) {
   const resolvedWeight = weight ?? DEFAULT_WEIGHT[variant];
+
+  // Spread as plain objects: `aria-level` and `lang` are only meaningful on
+  // web, and a platform check keeps React Native from receiving DOM attributes.
+  const heading = headingLevel
+    ? ({ role: 'heading', 'aria-level': headingLevel } as Record<string, unknown>)
+    : undefined;
+  const lang = language
+    ? Platform.OS === 'web'
+      ? ({ lang: language } as Record<string, unknown>)
+      : ({ accessibilityLanguage: language } as Record<string, unknown>)
+    : undefined;
 
   return (
     <Text
       className={`${FAMILY[resolvedWeight]} ${SIZE[variant]} ${TONE[tone]} ${className}`}
       style={align ? [{ textAlign: align }, style] : style}
+      {...heading}
+      {...lang}
       {...rest}
     />
   );

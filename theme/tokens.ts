@@ -50,9 +50,7 @@ type Palette = {
     | 'success'
     | 'warning'
     | 'surfaceVariant'
-    | 'hairline'
     | 'hairlineStrong'
-    | 'hairlineFaint'
     | 'hairlineGhost'
     | 'accentFaint'
     | 'accentSoft'
@@ -61,7 +59,7 @@ type Palette = {
     string
   >;
   fills: Record<'subtle' | 'inset' | 'tile' | 'control' | 'track', string>;
-  rims: Record<'soft' | 'faint' | 'tile' | 'strong', string>;
+  rims: Record<'soft' | 'tile', string>;
   veil: string;
   glass: {
     fill: string;
@@ -92,10 +90,14 @@ type Palette = {
     | 'iconSm'
     | 'icon'
     | 'iconLg'
+    | 'quizAnswer'
+    | 'ratingTile'
+    | 'hit'
     | 'tile'
     | 'tileLg'
     | 'avatar'
     | 'avatarLg'
+    | 'deckSlab'
     | 'toggle'
     | 'toggleWidth'
     | 'studyFooter'
@@ -113,17 +115,47 @@ type Palette = {
     'display' | 'title' | 'headline' | 'bodyLg' | 'body' | 'bodySm' | 'label' | 'caption',
     string
   >;
-  shadows: Record<'pane' | 'action' | 'tile' | 'floating' | 'card', string>;
+  shadows: Record<'pane' | 'action' | 'tile' | 'floating' | 'card' | 'liquidTab', string>;
   stateColors: Record<'New' | 'Learning' | 'Relearning' | 'Review', string>;
-  spacing: Record<'screen' | 'gutter' | 'row' | 'section' | 'tabClearance' | 'screenBottom', number>;
+  spacing: Record<
+    | 'screen'
+    | 'gutter'
+    | 'row'
+    | 'section'
+    | 'tabClearance'
+    | 'screenBottom'
+    | 'legendIndent'
+    | 'cardPad',
+    number
+  >;
+  layout: {
+    contentMaxWidth: number;
+    resultMaxWidth: number;
+    cardMeasure: number;
+    answerMeasure: number;
+    cardRatio: number;
+    cardMinHeight: number;
+    cardMaxHeight: number;
+    donut: number;
+    badgeColumn: number;
+    splashMark: number;
+    splashRail: number;
+  };
   motion: {
     fast: number;
     base: number;
     slow: number;
     flip: number;
     spring: { speed: number; bounciness: number };
+    liquidSpring: { speed: number; bounciness: number };
   };
-  tabBar: { height: number; itemWidth: number; gutter: number; pill: number };
+  tabBar: {
+    height: number;
+    maxWidth: number;
+    gutter: number;
+    padding: number;
+    pill: number;
+  };
 };
 
 // palette.js is plain CommonJS so tailwind.config.js can require it too.
@@ -142,6 +174,7 @@ export const typography = palette.typography;
 export const weights = palette.weights;
 export const stateColors = palette.stateColors;
 export const spacing = palette.spacing;
+export const layout = palette.layout;
 export const motion = palette.motion;
 export const tabBar = palette.tabBar;
 
@@ -158,22 +191,28 @@ export const paneAccent = glass.accent;
  */
 const isWeb = Platform.OS === 'web';
 
+/**
+ * The frosted-pane filter, with the vendor prefix Safari needed before 18.
+ *
+ * Measured in the audit engines: Chromium 156 and Firefox 157 support the
+ * unprefixed property and ignore the prefix; WebKit 27 supports both, and older
+ * Safari only the prefix — so writing both is the fallback, with the standard
+ * property last so it wins where it is understood.
+ */
+const backdrop = (blur: number, saturate: number) =>
+  ({
+    WebkitBackdropFilter: `blur(${blur}px) saturate(${saturate}%)`,
+    backdropFilter: `blur(${blur}px) saturate(${saturate}%)`,
+  } as unknown as ViewStyle);
+
 export const glassFill: ViewStyle = {
   backgroundColor: glass.fill,
-  ...(isWeb
-    ? ({
-        backdropFilter: `blur(${glass.blur}px) saturate(${glass.saturate}%)`,
-      } as unknown as ViewStyle)
-    : {}),
+  ...(isWeb ? backdrop(glass.blur, glass.saturate) : {}),
 };
 
 export const glassFillStrong: ViewStyle = {
   backgroundColor: glass.strong,
-  ...(isWeb
-    ? ({
-        backdropFilter: `blur(${glass.blurStrong}px) saturate(${glass.saturateStrong}%)`,
-      } as unknown as ViewStyle)
-    : {}),
+  ...(isWeb ? backdrop(glass.blurStrong, glass.saturateStrong) : {}),
 };
 
 /** The lit 1px rim used at the top of every pane. */

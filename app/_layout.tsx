@@ -2,7 +2,7 @@
 import '../global.css';
 
 import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Stack, usePathname } from 'expo-router';
 import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
@@ -18,6 +18,13 @@ import { AppSplash } from '../components/AppSplash';
 
 /** The longest the splash may wait for hydration before handing over anyway. */
 const SPLASH_TIMEOUT_MS = 1200;
+
+const styles = StyleSheet.create({
+  // `overflow: hidden` clips the decorative ambient fields and the tab capsule's
+  // negative insets: at 320px they pushed the document 3px wide (a horizontal
+  // scrollbar on a page that has nothing to scroll). Nothing here is content.
+  shell: { flex: 1, overflow: 'hidden' },
+});
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -72,20 +79,28 @@ export default function RootLayout() {
         <meta name="apple-mobile-web-app-capable" content="yes" />
       </Head>
       <StatusBar style="light" />
-      {ready && (
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.background },
-            animation: 'slide_from_right',
-            animationDuration: motion.base,
-            gestureEnabled: true,
-          }}
-        >
-          {/* Add Deck presents as a bottom sheet per the spec (6.4) */}
-          <Stack.Screen name="add-deck" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-        </Stack>
-      )}
+      {/*
+        One main landmark for the whole app. It wraps the navigator rather than
+        each screen, because the router renders the floating tab capsule outside
+        the screen tree — inside a per-screen <main> that bar counted as content
+        outside a landmark on every route (axe `region`).
+      */}
+      <View style={styles.shell} role="main">
+        {ready && (
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.background },
+              animation: 'slide_from_right',
+              animationDuration: motion.base,
+              gestureEnabled: true,
+            }}
+          >
+            {/* Add Deck presents as a bottom sheet per the spec (6.4) */}
+            <Stack.Screen name="add-deck" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+          </Stack>
+        )}
+      </View>
       {!splashDone && <AppSplash ready={ready} onDone={() => setSplashDone(true)} />}
     </>
   );

@@ -1,7 +1,7 @@
 import { View, TextInput } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from './Icon';
 import { AppText } from './AppText';
-import { colors, glassFill, iconSize, radii } from '../theme/tokens';
+import { colors, fills, glassFill, iconSize, radii } from '../theme/tokens';
 
 type RichTextFieldProps = {
   placeholder: string;
@@ -10,21 +10,24 @@ type RichTextFieldProps = {
 };
 
 /**
- * RichTextField — the card editor input: glass pane, hairline toolbar strip on
- * top, a 96px writing area, and an actions strip on the bottom. Toolbar actions
- * are placeholders for now, so they stay quiet (muted icons, no accent).
+ * RichTextField — the card editor input: glass pane with an inset toolbar strip
+ * on top, a 96px writing area, and an actions strip at the bottom. Toolbar
+ * actions are placeholders for now, so they stay quiet (muted icons, no accent).
+ * The strips are separated by their fill, not by rules.
  */
 export function RichTextField({ placeholder, value, onChangeText }: RichTextFieldProps) {
   return (
     <View
-      className="overflow-hidden rounded-xl border border-hairline"
+      className="overflow-hidden rounded-xl"
       style={[glassFill, { borderRadius: radii.pane }]}
     >
-      <View className="h-10 flex-row items-center gap-1 border-b border-hairline px-2">
+      <View
+        className="h-10 flex-row items-center gap-1 px-2"
+        style={{ backgroundColor: fills.inset }}
+      >
         <ToolbarButton icon="format-bold" />
         <ToolbarButton icon="format-italic" />
         <ToolbarButton icon="format-underlined" />
-        <View className="mx-1 h-4 w-px bg-hairline" />
         <ToolbarButton icon="format-list-bulleted" />
       </View>
 
@@ -40,14 +43,17 @@ export function RichTextField({ placeholder, value, onChangeText }: RichTextFiel
         accessibilityLabel={placeholder}
       />
 
-      <View className="h-11 flex-row items-center justify-between border-t border-hairline px-3">
-        <View className="flex-row items-center gap-1.5 rounded-full border border-hairline px-2.5 py-1">
+      <View
+        className="h-11 flex-row items-center justify-between px-3"
+        style={{ backgroundColor: fills.inset }}
+      >
+        <View className="flex-row items-center gap-1.5 rounded-full px-2.5 py-1" style={{ backgroundColor: fills.tile }}>
           <MaterialIcons name="image" size={iconSize.xs} color={colors.outline} />
           <AppText variant="caption" weight="medium" tone="muted">
             Add image
           </AppText>
         </View>
-        <View className="h-7 w-7 items-center justify-center rounded-full border border-hairline">
+        <View className="h-7 w-7 items-center justify-center rounded-full" style={{ backgroundColor: fills.tile }}>
           <MaterialIcons name="mic" size={iconSize.sm} color={colors.outline} />
         </View>
       </View>

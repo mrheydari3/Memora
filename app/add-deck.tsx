@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../services/navigation';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '../components/Icon';
 import { useDeckStore } from '../store/useDeckStore';
 import { FSRS_DEFAULTS } from '../data/fsrs-params';
 import {
@@ -87,7 +87,7 @@ export default function AddDeckScreen() {
             subtitle="Create a deck and write cards one by one"
             onPress={() => setFormVisible(true)}
           />
-          <View className="mx-4 h-px bg-hairline" />
+          <View className="h-2" />
           <ListRow
             icon="file-download"
             tile="lg"
@@ -124,9 +124,7 @@ export default function AddDeckScreen() {
               return (
                 <Pressable
                   key={choice}
-                  className={`items-center justify-center rounded-md border ${
-                    active ? 'border-accent-line' : 'border-hairline'
-                  }`}
+                  className="items-center justify-center rounded-md"
                   style={{
                     width: heights.tileLg,
                     height: heights.tileLg,
@@ -156,13 +154,11 @@ export default function AddDeckScreen() {
               return (
                 <Pressable
                   key={choice}
-                  className={`items-center justify-center rounded-full border ${
-                    active ? 'border-accent-line' : 'border-hairline'
-                  }`}
+                  className="items-center justify-center rounded-full"
                   style={{
                     width: heights.tileLg,
                     height: heights.tileLg,
-                    backgroundColor: alpha(choice, 0.1),
+                    backgroundColor: alpha(choice, active ? 0.28 : 0.12),
                   }}
                   onPress={() => setColor(choice)}
                   accessibilityRole="radio"

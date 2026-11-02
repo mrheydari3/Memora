@@ -9,7 +9,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import type { ViewStyle } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from './Icon';
 import type { Flashcard } from '../data/types';
 import { AppText } from './AppText';
 import { IconButton } from './IconButton';
@@ -20,10 +20,12 @@ import {
   fills,
   glass,
   heights,
+  iconSize,
+  layout,
   motion,
   radii,
-  rimColor,
   shadow,
+  spacing,
   stateColors,
 } from '../theme/tokens';
 
@@ -41,12 +43,12 @@ type CardStackProps = {
   onMenu: (card: Flashcard) => void;
 };
 
-/** The card never grows past this width, however wide the window gets. */
-const MAX_CARD_WIDTH = 520;
+/** The card never grows past the page's reading measure, however wide it gets. */
+const MAX_CARD_WIDTH = layout.cardMeasure;
 /** Card proportions; taller than a bank card so two languages fit comfortably. */
-const CARD_RATIO = 0.8;
-const MIN_CARD_HEIGHT = 286;
-const MAX_CARD_HEIGHT = 420;
+const CARD_RATIO = layout.cardRatio;
+const MIN_CARD_HEIGHT = layout.cardMinHeight;
+const MAX_CARD_HEIGHT = layout.cardMaxHeight;
 /** How far the card must travel before the gesture counts as a page turn. */
 const COMMIT_FRACTION = 0.22;
 const COMMIT_VELOCITY = 0.55;
@@ -59,6 +61,9 @@ const WEB_DRAG_SURFACE: ViewStyle =
 
 /**
  * CardStack — the gallery view of a deck: one card at a time on a 3D stack.
+ *
+ * The layers behind the card are pure fills (nearer = lighter), so the stack
+ * reads as depth rather than as three outlined rectangles.
  *
  * Drag it with a mouse or a finger in either direction, use the arrows, or press
  * the arrow keys on the web. The card that leaves keeps its momentum and the
@@ -293,7 +298,6 @@ export function CardStack({
           ]}
           {...panResponder.panHandlers}
         >
-          <View style={styles.rim} />
           <View style={styles.flipStage}>
             <Animated.View
               style={[
@@ -312,7 +316,9 @@ export function CardStack({
                 className="flex-1"
                 onPress={toggleFlip}
                 accessibilityRole="button"
-                accessibilityLabel={`${card.front.text}. ${card.back.text}`}
+                // Named by its content (word, translation, example). The old
+                // label repeated front+back but still omitted the visible
+                // example and state text, so axe flagged the mismatch.
                 accessibilityHint="Tap for the card details"
               >
                 <View style={styles.faceBody}>
@@ -352,7 +358,7 @@ export function CardStack({
                   <View style={styles.bottomRow}>
                     <StateTick state={card.fsrs.state} />
                     <View style={styles.hint}>
-                      <MaterialIcons name="flip" size={13} color={colors.outline} />
+                      <MaterialIcons name="flip" size={iconSize.xs} color={colors.outline} />
                       <AppText variant="caption" weight="medium" tone="tertiary" className="ml-1">
                         Tap for details
                       </AppText>
@@ -382,11 +388,15 @@ export function CardStack({
               accessibilityElementsHidden={!flipped}
               importantForAccessibility={flipped ? 'auto' : 'no-hide-descendants'}
             >
+              {/*
+                No aria-label: the face contains the word, the translation and
+                the example, and a label of "Details for …" contradicted all of
+                it (axe label-content-name-mismatch). The hint is enough.
+              */}
               <Pressable
                 className="flex-1"
                 onPress={toggleFlip}
                 accessibilityRole="button"
-                accessibilityLabel={`Details for ${card.front.text}`}
                 accessibilityHint="Tap to return to the word"
               >
                 <View style={styles.faceBody}>
@@ -513,27 +523,13 @@ const styles = StyleSheet.create({
   wrapper: { width: '100%', alignItems: 'center' },
   stackLayer: {
     position: 'absolute',
-    borderWidth: 1,
-    borderColor: colors.hairlineStrong,
     borderRadius: radii.pane,
   },
   card: {
     borderRadius: radii.pane,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
     backgroundColor: glass.cardFace,
     boxShadow: shadow.card,
     overflow: 'hidden',
-  },
-  rim: {
-    position: 'absolute',
-    top: 0,
-    left: 22,
-    right: 22,
-    height: 1,
-    backgroundColor: rimColor,
-    pointerEvents: 'none',
-    zIndex: 2,
   },
   flipStage: { flex: 1 },
   face: {
@@ -584,8 +580,6 @@ const styles = StyleSheet.create({
   example: { alignItems: 'center', maxWidth: '92%' },
   meta: {
     flexDirection: 'row',
-    borderTopWidth: 1,
-    borderColor: colors.hairlineFaint,
     paddingTop: 10,
   },
   metaCell: { flex: 1 },
@@ -593,7 +587,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 16,
+    marginTop: spacing.row,
   },
   position: { alignItems: 'center' },
   track: {

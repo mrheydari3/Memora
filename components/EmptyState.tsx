@@ -1,5 +1,5 @@
 import { Animated, View } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from './Icon';
 import { AppText } from './AppText';
 import { colors, iconSize } from '../theme/tokens';
 import type { TextVariant } from './AppText';

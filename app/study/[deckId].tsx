@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Animated } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
@@ -24,6 +24,7 @@ import {
   glassFillStrong,
   heights,
   iconSize,
+  layout,
   motion,
 } from '../../theme/tokens';
 import { EASE, REVEAL_OPACITY_FLOOR, timingTo, useReveal } from '../../motion';
@@ -302,7 +303,7 @@ export default function StudyScreen() {
           disabled={!lastUndo}
           accessibilityLabel="Undo last review"
         />,
-        <View className="rounded-full border border-hairline px-3 py-1">
+        <View className="rounded-full px-3 py-1" style={{ backgroundColor: fills.inset }}>
           <AppText variant="bodySm" weight="semibold" tone="muted">
             {index + 1} / {queue.length}
           </AppText>
@@ -325,7 +326,7 @@ export default function StudyScreen() {
 
       {/* Card — capped to a readable column on wide screens. The wrapper owns
           the exit, the flashcard owns the entrance and the turn. */}
-      <View className="w-full max-w-[620px] flex-1 self-center">
+      <View className="w-full flex-1 self-center" style={{ maxWidth: layout.contentMaxWidth }}>
         <Animated.View
           style={{
             flex: 1,
@@ -355,8 +356,11 @@ export default function StudyScreen() {
           the schedule. Hidden for new cards, which have no state yet. */}
       {showAnswer && memoryState && (
         <Animated.View style={memoryReveal.style}>
-          <View className="w-full max-w-[620px] self-center px-5 pb-1">
-            <View className="flex-row items-center justify-center gap-1.5 self-center rounded-full border border-hairline px-3 py-1">
+          <View className="w-full self-center px-5 pb-1" style={{ maxWidth: layout.contentMaxWidth }}>
+            <View
+              className="flex-row items-center justify-center gap-1.5 self-center rounded-full px-3 py-1"
+              style={{ backgroundColor: fills.inset }}
+            >
               <MaterialIcons name="memory" size={iconSize.xs} color={colors.outline} />
               <AppText variant="caption" weight="medium" tone="muted">
                 S {memoryState.stability} · D {memoryState.difficulty} · R {memoryState.retrievability}
@@ -368,8 +372,12 @@ export default function StudyScreen() {
 
       {/* Footer — fixed height, so revealing the answer never resizes the card */}
       <View
-        className="w-full max-w-[620px] self-center px-5 pb-8"
-        style={{ height: heights.studyFooter, justifyContent: 'center' }}
+        className="w-full self-center px-5 pb-8"
+        style={{
+          maxWidth: layout.contentMaxWidth,
+          height: heights.studyFooter,
+          justifyContent: 'center',
+        }}
       >
         {!showAnswer ? (
           <Animated.View

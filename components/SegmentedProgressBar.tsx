@@ -16,8 +16,8 @@ type SegmentedProgressBarProps = {
 
 /**
  * SegmentedProgressBar — a 6px track split into proportional colour segments
- * (mastered / learning / new). The track is a hairline-bordered glass rail so it
- * reads on every pane.
+ * (mastered / learning / new). The track is a recessed fill, one step darker
+ * than the pane, so the meter reads without an outline.
  */
 export function SegmentedProgressBar({
   segments,
@@ -29,7 +29,7 @@ export function SegmentedProgressBar({
 
   return (
     <View
-      className={`flex-row overflow-hidden rounded-full border border-hairline ${className}`}
+      className={`flex-row overflow-hidden rounded-full ${className}`}
       style={{ height, backgroundColor: fills.track, gap }}
     >
       {segments.map((segment, i) => {

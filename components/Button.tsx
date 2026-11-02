@@ -6,19 +6,9 @@ import {
   View,
 } from 'react-native';
 import type { ViewStyle } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from './Icon';
 import { AppText } from './AppText';
-import {
-  alpha,
-  colors,
-  fills,
-  glassFill,
-  heights,
-  iconSize,
-  rims,
-  shadow,
-  veil,
-} from '../theme/tokens';
+import { alpha, colors, fills, heights, iconSize, shadow, veil } from '../theme/tokens';
 import { usePressFeedback } from '../motion';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -69,23 +59,17 @@ export function Button({
   const isPrimary = variant === 'primary';
   const isQuiet = variant === 'primaryQuiet';
   const isText = variant === 'text';
+  const isOutline = variant === 'outline';
   const filled = isPrimary || isQuiet;
 
+  // No outlines: a variant is a fill plus a weight of shadow, nothing more.
   const background: ViewStyle | undefined = filled
     ? { backgroundColor: disabled ? fills.control : colors.primaryContainer }
     : variant === 'secondary'
-      ? glassFill
-      : undefined;
-
-  const border = isPrimary
-    ? disabled
-      ? 'border-hairline'
-      : 'border-transparent'
-    : variant === 'outline'
-      ? 'border-accent-line'
-      : variant === 'secondary'
-        ? 'border-hairline'
-        : 'border-transparent';
+      ? { backgroundColor: fills.control }
+      : isOutline
+        ? { backgroundColor: colors.accentSoft }
+        : undefined;
 
   const labelTone = filled
     ? disabled
@@ -93,7 +77,7 @@ export function Button({
       : 'onAccent'
     : destructive
       ? 'danger'
-      : isText
+      : isText || isOutline
         ? 'accent'
         : 'default';
 
@@ -103,7 +87,7 @@ export function Button({
       : colors.onPrimaryContainer
     : destructive
       ? colors.error
-      : isText
+      : isText || isOutline
         ? colors.primary
         : colors.onSurface;
 
@@ -112,16 +96,15 @@ export function Button({
     : isQuiet
       ? styles.quiet
       : isPrimary
-        ? // The primary action carries a lit rim and a neutral lift, so it reads
-          // as a clean raised key on any surface instead of glowing into it.
-          { borderColor: rims.faint, boxShadow: shadow.action }
+        ? // The primary action is separated by its lift, not by a halo or a rim.
+          { boxShadow: shadow.action }
         : undefined;
 
   return (
     <View className={className}>
       <Animated.View style={press.style}>
         <Pressable
-          className={`w-full flex-row items-center justify-center rounded-md border px-5 ${border}`}
+          className="w-full flex-row items-center justify-center rounded-md px-5"
           style={[
             { height: isText ? undefined : height, minHeight: isText ? 44 : undefined },
             background,
@@ -150,7 +133,6 @@ export function Button({
               ]}
             />
           )}
-          {isQuiet && !disabled && <View style={styles.rim} />}
 
           {loading ? (
             <ActivityIndicator color={colors.onPrimaryContainer} />
@@ -177,7 +159,6 @@ export function Button({
 
 const styles = StyleSheet.create({
   quiet: {
-    borderColor: rims.faint,
     // The rating tiles' depth, plus a whisper of the accent so the CTA still
     // reads as the primary action without a halo.
     boxShadow: `0 8px 18px ${alpha(veil, 0.3)}, 0 4px 14px ${alpha(
@@ -192,13 +173,5 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: veil,
-  },
-  rim: {
-    position: 'absolute',
-    top: 0,
-    left: 12,
-    right: 12,
-    height: 1,
-    backgroundColor: rims.tile,
   },
 });

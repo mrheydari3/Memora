@@ -9,13 +9,22 @@ const colors = {
   ...Object.fromEntries(Object.entries(p.fills).map(([key, value]) => [`fill-${key}`, value])),
 };
 
-/** The eight-step type scale; each step carries its own line-height and tracking. */
+/**
+ * The eight-step type scale; each step carries its own line-height and tracking.
+ *
+ * Sizes are emitted in `rem`, not `px`: a browser text zoom of 200% then really
+ * doubles the type (WCAG 1.4.4) instead of leaving a 15px label at 15px. Native
+ * is unaffected — `metro.config.js` sets NativeWind's `inlineRem` to 16, so
+ * 0.9375rem resolves to exactly 15dp on a phone.
+ */
+const rem = (value) => `${Number((value / 16).toFixed(4))}rem`;
+
 const fontSize = Object.fromEntries(
   Object.entries(p.typography).map(([key, value]) => [
     kebab(key),
     [
-      `${value.fontSize}px`,
-      { lineHeight: `${value.lineHeight}px`, letterSpacing: `${value.letterSpacing}px` },
+      rem(value.fontSize),
+      { lineHeight: rem(value.lineHeight), letterSpacing: `${value.letterSpacing}px` },
     ],
   ])
 );
@@ -51,6 +60,10 @@ module.exports = {
         section: `${p.spacing.section}px`,
         tab: `${p.spacing.tabClearance}px`,
       },
+      // A 44px minimum press box, addressable from a utility instead of a
+      // literal. `hit` is what WCAG 2.5.8 and a thumb both ask for.
+      minHeight: { hit: `${p.heights.hit}px` },
+      minWidth: { hit: `${p.heights.hit}px` },
       fontFamily: {
         sans: ['Inter_400Regular'],
         'inter-regular': ['Inter_400Regular'],

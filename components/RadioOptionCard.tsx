@@ -1,5 +1,5 @@
 import { View, Pressable } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from './Icon';
 import { GlassCard } from './GlassCard';
 import { AppText } from './AppText';
 import { Pill } from './Pill';

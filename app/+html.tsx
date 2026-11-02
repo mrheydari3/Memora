@@ -20,6 +20,15 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <script dangerouslySetInnerHTML={{
           __html: `document.documentElement.classList.add('dark');`,
         }} />
+        {/*
+          The canvas is painted before the stylesheet arrives, so the first
+          paint is ink rather than a white flash. The value comes from the
+          palette; the rest of the base layer lives in global.css, where
+          Tailwind resolves the same tokens.
+        */}
+        <style dangerouslySetInnerHTML={{
+          __html: `:root{color-scheme:dark;background-color:${colors.background}}`,
+        }} />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content={colors.background} />
         <meta name="apple-mobile-web-app-capable" content="yes" />
