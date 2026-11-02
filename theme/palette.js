@@ -308,6 +308,12 @@ const sheet = {
    * panel's own chrome, so a short sheet stops while its content is readable.
    */
   minBody: 56,
+  /**
+   * A height to measure against when the browser reports none (a PWA restored
+   * in the background, an embedded webview before its first layout). Roughly a
+   * small phone, so a sheet still opens at a usable size.
+   */
+  fallbackViewport: 640,
   /** The grab handle: quiet at rest, wider while held. */
   handleWidth: 44,
   handleActiveWidth: 58,

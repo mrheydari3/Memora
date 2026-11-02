@@ -159,6 +159,7 @@ type Palette = {
     minShrink: number;
     minDragHeight: number;
     minBody: number;
+    fallbackViewport: number;
     handleWidth: number;
     handleActiveWidth: number;
     handleHeight: number;

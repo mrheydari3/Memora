@@ -258,7 +258,17 @@ export function BottomSheetModal({
   children,
 }: BottomSheetModalProps) {
   const { mounted, value } = usePresence(visible, { duration: motion.base });
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: measuredHeight } = useWindowDimensions();
+  /**
+   * A browser can report no window height at all — a PWA restored in the
+   * background, a phone rotating on open, an embedded webview before layout.
+   * Multiplying that by `maxHeightRatio` used to clamp the panel to 0: the
+   * scrim faded in over the page and the sheet itself never appeared. An
+   * unknown height therefore leaves the panel unclamped, so it lays out at its
+   * own content height instead of collapsing.
+   */
+  const windowHeight =
+    Number.isFinite(measuredHeight) && measuredHeight > 0 ? measuredHeight : 0;
 
   const heightAnim = useRef(new Animated.Value(0)).current;
   const [resized, setResized] = useState(false);
@@ -275,14 +285,17 @@ export function BottomSheetModal({
   const windowRef = useRef(windowHeight);
   const onCloseRef = useRef(onClose);
 
-  const maxHeight = Math.round(windowHeight * sheet.maxHeightRatio);
+  const maxHeight =
+    windowHeight > 0 ? Math.round(windowHeight * sheet.maxHeightRatio) : undefined;
   /**
    * The floor leaves every sheet something to drag: a short sheet (the folders
    * sheet is ~260px) sits below the viewport fraction, and using that fraction
    * blindly made it impossible to shrink — only to dismiss.
    */
   const contentHeight =
-    naturalHeight > 0 ? naturalHeight : Math.round(windowHeight * sheet.minHeightRatio);
+    naturalHeight > 0
+      ? naturalHeight
+      : Math.round((windowHeight || sheet.fallbackViewport) * sheet.minHeightRatio);
   /**
    * The grabber, the header and the panel's padding cannot scroll, so the floor
    * stops where the body still has room. Without this a short sheet could be
@@ -301,7 +314,7 @@ export function BottomSheetModal({
   );
 
   floorRef.current = floor;
-  maxRef.current = maxHeight;
+  maxRef.current = maxHeight ?? 0;
   windowRef.current = windowHeight;
   onCloseRef.current = onClose;
 
@@ -381,7 +394,7 @@ export function BottomSheetModal({
   const beginDrag = useCallback(() => {
     const start =
       (resizedRef.current ? currentRef.current : naturalRef.current) ||
-      Math.round(windowRef.current * sheet.minHeightRatio);
+      Math.round((windowRef.current || sheet.fallbackViewport) * sheet.minHeightRatio);
     startRef.current = start;
     currentRef.current = start;
     heightAnim.setValue(start);
@@ -507,10 +520,18 @@ export function BottomSheetModal({
   return (
     <Modal visible transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <View style={{ flex: 1 }}>
-        {/* The scrim: a frosted layer plus a fixed ink wash, both faded in. */}
+        {/*
+          The scrim: a frosted layer plus a fixed ink wash, both faded in.
+
+          It stays in the modal's lowest layer (`styles.backdrop`): a blurred
+          layer is composited separately from a painted fill, and on mobile
+          Safari such a layer can be promoted above the siblings that follow
+          it — the page dims and the panel never shows. Isolating the blur
+          keeps it inside its own layer, and the panel claims the one above.
+        */}
         <Animated.View
           pointerEvents="none"
-          style={[StyleSheet.absoluteFill, { opacity: value }]}
+          style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: value }]}
         >
           <BlurView
             intensity={sheet.scrimBlur}
@@ -566,7 +587,15 @@ export function BottomSheetModal({
 }
 
 const styles = StyleSheet.create({
+  // The blur owns the bottom layer; the panel must always paint over it.
+  backdrop: {
+    zIndex: 0,
+    ...(Platform.OS === 'web' ? ({ isolation: 'isolate' } as unknown as ViewStyle) : {}),
+  },
   panel: {
+    // Explicit layer instead of relying on document order: a blurred scrim is a
+    // composited layer on some mobile browsers and would otherwise cover it.
+    zIndex: 1,
     overflow: 'hidden',
     borderTopLeftRadius: radii.sheet,
     borderTopRightRadius: radii.sheet,
