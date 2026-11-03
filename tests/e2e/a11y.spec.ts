@@ -20,6 +20,8 @@ const ROUTES = [
   { label: 'deck', path: '/deck/deck-german-a2b1' },
   { label: 'study', path: '/study/deck-german-a2b1' },
   { label: 'settings', path: '/settings' },
+  { label: 'algorithm', path: '/settings/algorithm' },
+  { label: 'tts', path: '/settings/tts' },
   { label: 'profile', path: '/profile' },
 ];
 
