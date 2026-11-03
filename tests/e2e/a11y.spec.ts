@@ -23,6 +23,7 @@ const ROUTES = [
   { label: 'algorithm', path: '/settings/algorithm' },
   { label: 'tts', path: '/settings/tts' },
   { label: 'offline', path: '/settings/offline' },
+  { label: 'import', path: '/mass-import' },
   { label: 'profile', path: '/profile' },
 ];
 
