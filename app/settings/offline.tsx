@@ -24,11 +24,13 @@ export default function OfflineScreen() {
   // screen mounts, and a one-off check would never show the install button.
   const canPrompt = deferredPrompt !== null && !installed;
 
-  // Lazy service-worker registration: only when the user opens this screen.
+  // Lazy service-worker registration is an opt-in: opening this screen while
+  // the cache is off must not register a worker behind the user's back.
   useEffect(() => {
     if (Platform.OS !== 'web') return;
-    registerServiceWorker();
-  }, []);
+    if (settings.offlineCacheEnabled) void registerServiceWorker();
+    else void unregisterServiceWorker();
+  }, [settings.offlineCacheEnabled]);
 
   const handleOfflineToggle = async (value: boolean) => {
     await update({ offlineCacheEnabled: value });

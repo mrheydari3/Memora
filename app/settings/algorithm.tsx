@@ -103,6 +103,8 @@ export default function AlgorithmSettingsScreen() {
       enableShortTerm: params.enableShortTerm,
       fsrsLearningSteps: params.fsrsLearningSteps,
       fsrsRelearningSteps: params.fsrsRelearningSteps,
+      learningSteps: deck.learningSteps,
+      masteredIntervalMultiplier: deck.masteredIntervalMultiplier,
       newCardsPerDay: deck.newCardsPerDay,
       maxCardsPerDay: deck.maxCardsPerDay,
       shuffleCards: deck.shuffleCards,

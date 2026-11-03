@@ -11,6 +11,7 @@ import {
 import { defaultFSRSState, sampleDecks, sampleCards } from '../data/seed';
 import { resolveFsrsParams } from '../data/fsrs-params';
 import { useReviewStore } from './useReviewStore';
+import { useGameStore } from './useGameStore';
 
 type DeckStore = {
   // State
@@ -26,6 +27,8 @@ type DeckStore = {
   deleteFolder: (id: string) => Promise<void>;
   setDeckFolder: (deckId: string, folderId: string | null) => Promise<void>;
   addDeck: (deck: Deck) => Promise<void>;
+  /** Add a deck and all of its cards in one write (Discover import). */
+  addDeckWithCards: (deck: Deck, cards: Flashcard[]) => Promise<void>;
   updateDeck: (id: string, partial: Partial<Deck>) => Promise<void>;
   deleteDeck: (id: string) => Promise<void>;
   duplicateDeck: (id: string) => Promise<string | null>;
@@ -37,7 +40,6 @@ type DeckStore = {
   // Getters
   getDeck: (id: string) => Deck | undefined;
   getCards: (deckId: string) => Flashcard[];
-  getDueCards: (deckId: string) => Flashcard[];
 };
 
 export const useDeckStore = create<DeckStore>((set, get) => ({
@@ -51,14 +53,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       let decks = await repo.loadDecks();
       const folders = await repo.loadFolders();
       const allCards = await repo.loadAllCards();
-
-      // First run: seed the shipped deck.
-      if (decks.length === 0) {
-        await repo.saveDecks(sampleDecks);
-        await repo.saveAllCards(sampleCards);
-        set({ decks: sampleDecks, folders, cardsByDeck: sampleCards, loaded: true });
-        return;
-      }
+      const initialized = await repo.isInitialized();
 
       // Migration: remove the old placeholder sample decks (German A1 / CS /
       // Law) and only their cards. Everything the user created is kept — the
@@ -76,13 +71,19 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
         cardsChanged = true;
       }
 
-      // If removing the legacy decks left the library empty, restore the seed.
-      if (decks.length === 0) {
-        decks = sampleDecks;
-        Object.assign(allCards, sampleCards);
-        decksChanged = true;
-        cardsChanged = true;
+      // Seed only on a genuine first run. `initialized` distinguishes that
+      // from a library the user emptied on purpose, and `hasCards` keeps a
+      // corrupt decks array from overwriting cards that are still on disk.
+      const hasCards = Object.values(allCards).some((cards) => cards.length > 0);
+      if (decks.length === 0 && !initialized && !hasCards) {
+        await repo.saveDecks(sampleDecks);
+        await repo.saveAllCards(sampleCards);
+        await repo.markInitialized();
+        set({ decks: sampleDecks, folders, cardsByDeck: sampleCards, loaded: true });
+        return;
       }
+
+      if (!initialized) await repo.markInitialized();
 
       // Backfill fields added after a deck was first saved (e.g. rating).
       const sampleMap = new Map(sampleDecks.map((d) => [d.id, d]));
@@ -116,8 +117,9 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       set({ decks, folders, cardsByDeck: allCards, loaded: true });
     } catch (e) {
       console.error('Failed to load decks:', e);
-      // Fallback to sample data
-      set({ decks: sampleDecks, folders: [], cardsByDeck: sampleCards, loaded: true });
+      // Never install the seed in memory after a read failure: the next card
+      // mutation would persist it over the real library.
+      set({ decks: [], folders: [], cardsByDeck: {}, loaded: true });
     }
   },
 
@@ -156,8 +158,21 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
 
   addDeck: async (deck) => {
     const decks = [...get().decks, deck];
+    // A new deck starts with an (empty) card bucket, so every screen can read
+    // `cardsByDeck[id]` without treating "not there yet" as "still loading".
+    const cardsByDeck = { ...get().cardsByDeck };
+    if (!cardsByDeck[deck.id]) cardsByDeck[deck.id] = [];
     await repo.saveDecks(decks);
-    set({ decks });
+    await repo.saveAllCards(cardsByDeck);
+    set({ decks, cardsByDeck });
+  },
+
+  addDeckWithCards: async (deck, cards) => {
+    const decks = [...get().decks, deck];
+    const cardsByDeck = { ...get().cardsByDeck, [deck.id]: cards };
+    await repo.saveAllCards(cardsByDeck);
+    await repo.saveDecks(decks);
+    set({ decks, cardsByDeck });
   },
 
   updateDeck: async (id, partial) => {
@@ -173,24 +188,42 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     await repo.saveDecks(decks);
     await repo.saveAllCards(cardsByDeck);
     set({ decks, cardsByDeck });
+    // A deleted deck must not keep shaping statistics, the streak, the game
+    // records or the legacy per-deck key. Cleanup is best-effort: the library
+    // change has already landed, and a stale log is preferable to a failed
+    // delete that leaves the deck on screen.
+    try {
+      await repo.removeDeckCardsKey(id);
+      await useReviewStore.getState().clearDeckLog(id);
+      await useGameStore.getState().clearDeckRecord(id);
+    } catch (e) {
+      console.error('Failed to clean up deleted deck:', e);
+    }
   },
 
   duplicateDeck: async (id) => {
     const source = get().decks.find((d) => d.id === id);
     if (!source) return null;
-    const newId = `deck-${Date.now()}`;
+    const now = Date.now();
+    const newId = `deck-${now}`;
     const copy: Deck = {
       ...source,
       id: newId,
       name: `${source.name} (Copy)`,
-      createdAt: Date.now(),
+      archivedAt: null,
+      createdAt: now,
     };
     const decks = [...get().decks, copy];
     const cardsByDeck = { ...get().cardsByDeck };
-    cardsByDeck[newId] = (cardsByDeck[id] ?? []).map((c) => ({
+    // A copy is a fresh start: carrying the source's FSRS state without its
+    // review log would make the duplicate look pre-studied and due on dates
+    // no review of this deck ever produced.
+    cardsByDeck[newId] = (cardsByDeck[id] ?? []).map((c, i) => ({
       ...c,
-      id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: `card-${now}-${Math.random().toString(36).slice(2, 8)}`,
       deckId: newId,
+      createdAt: now + i,
+      fsrs: defaultFSRSState(),
     }));
     await repo.saveDecks(decks);
     await repo.saveAllCards(cardsByDeck);
@@ -224,33 +257,42 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
 
   updateCard: async (cardId, partial) => {
     const cardsByDeck = { ...get().cardsByDeck };
-    for (const deckId of Object.keys(cardsByDeck)) {
-      cardsByDeck[deckId] = cardsByDeck[deckId].map((c) =>
-        c.id === cardId ? { ...c, ...partial } : c
-      );
+    let deckId: string | null = null;
+    for (const key of Object.keys(cardsByDeck)) {
+      if (cardsByDeck[key].some((card) => card.id === cardId)) {
+        deckId = key;
+        break;
+      }
     }
+    if (!deckId) return;
+    cardsByDeck[deckId] = cardsByDeck[deckId].map((card) =>
+      card.id === cardId ? { ...card, ...partial } : card
+    );
     await repo.saveAllCards(cardsByDeck);
     set({ cardsByDeck });
   },
 
   deleteCard: async (cardId) => {
     const cardsByDeck = { ...get().cardsByDeck };
-    for (const deckId of Object.keys(cardsByDeck)) {
-      cardsByDeck[deckId] = cardsByDeck[deckId].filter((c) => c.id !== cardId);
+    let deckId: string | null = null;
+    for (const key of Object.keys(cardsByDeck)) {
+      if (cardsByDeck[key].some((card) => card.id === cardId)) {
+        deckId = key;
+        break;
+      }
     }
+    if (!deckId) return;
+    cardsByDeck[deckId] = cardsByDeck[deckId].filter((card) => card.id !== cardId);
     await repo.saveAllCards(cardsByDeck);
     set({ cardsByDeck });
+    // The card is gone; its review history no longer describes anything.
+    try {
+      await useReviewStore.getState().clearCardLog(cardId);
+    } catch (e) {
+      console.error('Failed to clean up deleted card history:', e);
+    }
   },
 
   getDeck: (id) => get().decks.find((d) => d.id === id),
   getCards: (deckId) => get().cardsByDeck[deckId] ?? [],
-  getDueCards: (deckId) => {
-    const cards = get().cardsByDeck[deckId] ?? [];
-    const now = Date.now();
-    // New cards are always available to study, so they count as due here the
-    // same way every screen counts them. Compare parsed dates, not ISO strings.
-    return cards.filter(
-      (c) => c.fsrs.state === 'New' || new Date(c.fsrs.due).getTime() <= now
-    );
-  },
 }));

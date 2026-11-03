@@ -24,7 +24,9 @@ export async function exportJson(fileName: string, data: unknown): Promise<void>
     document.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(url);
+    // Revoking synchronously can cancel the download before the browser has
+    // read the blob (Safari/Firefox). Give it a tick, then release the URL.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     return;
   }
 

@@ -25,14 +25,24 @@ export default function DiscoverDeckPreviewScreen() {
   const [deck, setDeck] = useState<FeaturedDeck | null>(null);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    fetchFeaturedDecks().then((decks) => {
-      if (!active) return;
-      setDeck(decks.find((d) => d.id === id) ?? null);
-      setLoading(false);
-    });
+    fetchFeaturedDecks()
+      .then((decks) => {
+        if (!active) return;
+        setDeck(decks.find((d) => d.id === id) ?? null);
+      })
+      .catch((e) => {
+        if (!active) return;
+        console.error('Failed to load Discover deck:', e);
+        setError('Could not load Discover right now.');
+        setDeck(null);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
     return () => {
       active = false;
     };
@@ -41,9 +51,13 @@ export default function DiscoverDeckPreviewScreen() {
   const handleAdd = async () => {
     if (!deck || importing) return;
     setImporting(true);
+    setError(null);
     try {
       const importedId = await importDeck(deck);
       router.replace(`/deck/${importedId}`);
+    } catch (e) {
+      console.error('Failed to import deck:', e);
+      setError('Could not add this deck. Please try again.');
     } finally {
       setImporting(false);
     }
@@ -78,7 +92,7 @@ export default function DiscoverDeckPreviewScreen() {
             icon="search-off"
             title="Deck not found"
             titleVariant="headline"
-            description="This deck is no longer in Discover."
+            description={error ?? 'This deck is no longer in Discover.'}
             action={<GhostButton label="Back to Discover" className="px-6" onPress={() => router.back()} />}
           />
         </View>
@@ -114,6 +128,11 @@ export default function DiscoverDeckPreviewScreen() {
             loading={importing}
             onPress={handleAdd}
           />
+          {error && (
+            <AppText variant="bodySm" tone="danger" className="mt-3">
+              {error}
+            </AppText>
+          )}
           </RevealItem>
 
           <RevealItem index={1}>

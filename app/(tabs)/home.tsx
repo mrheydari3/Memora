@@ -53,7 +53,17 @@ export default function HomeScreen() {
   const [folderSheet, setFolderSheet] = useState(false);
   const [folderDraft, setFolderDraft] = useState('');
   const [folderError, setFolderError] = useState<string | null>(null);
-  const streak = useMemo(() => computeStreak(reviewLog.map((e) => e.reviewedAt)), [reviewLog]);
+  const activeDeckIds = useMemo(
+    () => new Set(decks.filter((deck) => !deck.archivedAt).map((deck) => deck.id)),
+    [decks]
+  );
+  const streak = useMemo(
+    () =>
+      computeStreak(
+        reviewLog.filter((entry) => activeDeckIds.has(entry.deckId)).map((e) => e.reviewedAt)
+      ),
+    [reviewLog, activeDeckIds]
+  );
 
   // One queue per active deck, using the same helper as the study session so
   // the numbers agree with what the session will actually show. Progress is
@@ -89,10 +99,11 @@ export default function HomeScreen() {
   const lastStudiedDeckId = useMemo(() => {
     let latest: { deckId: string; reviewedAt: number } | null = null;
     for (const entry of reviewLog) {
+      if (!activeDeckIds.has(entry.deckId)) continue;
       if (!latest || entry.reviewedAt > latest.reviewedAt) latest = entry;
     }
     return latest?.deckId ?? null;
-  }, [reviewLog]);
+  }, [reviewLog, activeDeckIds]);
 
   const lastStudiedEntry = deckQueues.find((entry) => entry.deck.id === lastStudiedDeckId);
   // Prefer the deck the learner left off in, but never point the hero at a
@@ -137,7 +148,7 @@ export default function HomeScreen() {
           }
           actions={[
             {
-              icon: 'create-new-folder',
+              icon: 'add',
               accessibilityLabel: 'Add deck',
               onPress: () => pushOnce(router, '/add-deck'),
             },

@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, View } from 'react-native';
 import { MaterialIcons } from './Icon';
 import { AppText } from './AppText';
-import { alpha, colors, fills, heights, iconSize, radii } from '../theme/tokens';
-import { springTo, usePressFeedback } from '../motion';
+import { alpha, colors, fills, heights, iconSize } from '../theme/tokens';
+import { usePressFeedback } from '../motion';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -17,15 +16,12 @@ export type Segment = {
   badge?: string;
   /** Per-segment handler; when given, the segment acts on its own. */
   onPress?: () => void;
-  /** Explicit active state for split controls that have no single value. */
+  /** Explicit active state for a segment that acts on its own. */
   active?: boolean;
 };
 
 type SegmentedControlProps = {
   segments: Segment[];
-  /** The selected key, for a single-value control. */
-  value?: string;
-  onChange?: (key: string) => void;
   /** fill = the selected segment carries the accent fill; plain = text only. */
   appearance?: 'fill' | 'plain';
   /** Kept for call-site compatibility; the rail has no inner rules. */
@@ -71,81 +67,38 @@ function SegmentPress({
 }
 
 /**
- * SegmentedControl — one rail split into two or three choices. It covers both
- * the library's tab switch (one value) and the deck's sort/filter pair (each
- * segment cycles on its own), so the two never drift apart.
+ * SegmentedControl — one rail split into two or three choices.
  *
- * In fill mode the selection is one accent indicator that slides between
- * segments (translateX on the native driver) rather than a background that
- * jumps; the split controls keep their per-segment state and no indicator.
+ * Each segment owns its action and, for split controls such as the deck's
+ * sort/filter pair, its own active state. The rail carries no shared value:
+ * the only call site cycles each side independently.
  */
 export function SegmentedControl({
   segments,
-  value,
-  onChange,
   appearance = 'fill',
   divider = false,
   className = '',
 }: SegmentedControlProps) {
-  const [width, setWidth] = useState(0);
-  const activeIndex = Math.max(
-    0,
-    segments.findIndex((segment) => segment.active ?? segment.key === value)
-  );
-  const position = useRef(new Animated.Value(activeIndex)).current;
-
-  useEffect(() => {
-    springTo(position, activeIndex);
-  }, [activeIndex, position]);
-
-  const count = Math.max(1, segments.length);
-  const segmentWidth = width / count;
-  const sliding = appearance === 'fill' && value !== undefined && width > 0;
-
   return (
     <View
-      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
       className={`flex-row overflow-hidden rounded-md ${className}`}
       style={{ backgroundColor: fills.control }}
     >
-      {sliding && (
-        <Animated.View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            left: 0,
-            width: segmentWidth,
-            borderRadius: radii.control - 6,
-            backgroundColor: colors.primary,
-            transform: [
-              {
-                translateX: position.interpolate({
-                  inputRange: [0, Math.max(1, count - 1)],
-                  outputRange: [0, segmentWidth * (count - 1)],
-                }),
-              },
-            ],
-          }}
-        />
-      )}
-
-      {segments.map((segment, index) => {
-        const active = segment.active ?? segment.key === value;
+      {segments.map((segment) => {
+        const active = segment.active ?? false;
         const filled = appearance === 'fill' && active;
 
         return (
           <View key={segment.key} className="flex-1 flex-row">
             <SegmentPress
-              onPress={segment.onPress ?? (() => onChange?.(segment.key))}
+              onPress={segment.onPress ?? (() => {})}
               // The segment's own text (label + badge) names it. A hand-written
               // label could not match the visible run exactly — even adding the
               // badge produced "Discover Soon" against "DiscoverSoon", which
               // axe reported as label-content-name-mismatch.
               selected={active}
               style={
-                filled && !sliding
+                filled
                   ? { backgroundColor: colors.primary, paddingVertical: 8 }
                   : { paddingVertical: appearance === 'fill' ? 8 : 10 }
               }

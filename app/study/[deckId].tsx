@@ -28,7 +28,7 @@ import {
   motion,
 } from '../../theme/tokens';
 import { EASE, REVEAL_OPACITY_FLOOR, timingTo, useReveal } from '../../motion';
-import { speakCard, speak } from '../../services/tts';
+import { speakCard, speak, stopSpeaking } from '../../services/tts';
 import type { Flashcard, FSRSLogSnapshot, Rating, RatingButtonLabel } from '../../data/types';
 
 /** Format a stability value (in days) for the memory-state chip. */
@@ -95,7 +95,12 @@ export default function StudyScreen() {
 
     let next = [...newCards, ...dueCards];
     if (deck.shuffleCards) {
-      next = next.sort(() => Math.random() - 0.5);
+      // Fisher–Yates: `sort(() => Math.random() - 0.5)` is biased and leaves
+      // some cards far more likely to stay near their original position.
+      for (let i = next.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [next[i], next[j]] = [next[j], next[i]];
+      }
     }
     setQueue(next);
   }, [deck]);
@@ -126,7 +131,7 @@ export default function StudyScreen() {
   // TTS: auto-play per settings when a new card appears
   useEffect(() => {
     if (!currentCard) return;
-    speakCard(currentCard.front.text, currentCard.back.text, {
+    void speakCard(currentCard.front.text, currentCard.back.text, {
       ttsEnabled: settings.ttsEnabled,
       ttsReadWholeCard: settings.ttsReadWholeCard,
       ttsAutoPlay: settings.ttsAutoPlay,
@@ -143,6 +148,9 @@ export default function StudyScreen() {
     speak({ text: currentCard.back.text, language: settings.ttsBackVoiceLang });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showAnswer]);
+
+  // Leaving the session must not leave a card talking in the background.
+  useEffect(() => () => void stopSpeaking(), []);
 
   const progressTarget =
     queue.length > 0 ? (index + (showAnswer ? 0.5 : 0)) / queue.length : 0;
@@ -177,73 +185,88 @@ export default function StudyScreen() {
     // card arrives instead of the old one snapping to a new layout.
     setAdvancing(true);
     exitShift.current = rating <= 2 ? -16 : 16;
-    await timingTo(cardExit, 1, { duration: motion.fast, easing: EASE.standard });
+    let succeeded = false;
+    try {
+      await timingTo(cardExit, 1, { duration: motion.fast, easing: EASE.standard });
 
-    const now = Date.now();
-    const { updatedCard, log } = scheduler.schedule(currentCard, rating, new Date(now));
+      const now = Date.now();
+      const { updatedCard, log } = scheduler.schedule(currentCard, rating, new Date(now));
 
-    // Persist updated card + review log. The snapshot records the pre-review
-    // memory state, which is what undo and (later) parameter optimization need.
-    await updateCard(currentCard.id, { fsrs: updatedCard.fsrs });
-    await logReview({
-      cardId: currentCard.id,
-      deckId: deck.id,
-      rating,
-      reviewedAt: now,
-      elapsedMs: Math.max(0, now - cardShownAt),
-      cardWasNew: currentCard.fsrs.state === 'New',
-      fsrs: log,
-    });
+      // Persist updated card + review log. The snapshot records the pre-review
+      // memory state, which is what undo and (later) parameter optimization need.
+      await updateCard(currentCard.id, { fsrs: updatedCard.fsrs });
+      await logReview({
+        cardId: currentCard.id,
+        deckId: deck.id,
+        rating,
+        reviewedAt: now,
+        elapsedMs: Math.max(0, now - cardShownAt),
+        cardWasNew: currentCard.fsrs.state === 'New',
+        stateBefore: currentCard.fsrs.state,
+        fsrs: log,
+      });
 
-    setLastUndo(log ? { preCard: currentCard, log } : null);
+      setLastUndo(log ? { preCard: currentCard, log } : null);
 
-    // Fast Repetition: no advancement — re-queue the card by rating.
-    // Again = re-insert near front, Easy = push near back.
-    if (deck.algorithmPreset === 'fast') {
-      const next = [...queue];
-      next.splice(index, 1);
-      if (rating === 1) {
-        next.splice(index, 0, currentCard);
-      } else if (rating === 2) {
-        next.splice(Math.min(next.length, index + Math.ceil((next.length - index) / 3)), 0, currentCard);
-      } else if (rating === 3) {
-        next.splice(Math.min(next.length, index + Math.ceil((2 * (next.length - index)) / 3)), 0, currentCard);
-      } else {
-        next.push(currentCard);
+      // Fast Repetition: no advancement — re-queue the card by rating.
+      // Again = re-insert near front, Easy = push near back.
+      if (deck.algorithmPreset === 'fast') {
+        const next = [...queue];
+        next.splice(index, 1);
+        if (rating === 1) {
+          next.splice(index, 0, currentCard);
+        } else if (rating === 2) {
+          next.splice(Math.min(next.length, index + Math.ceil((next.length - index) / 3)), 0, currentCard);
+        } else if (rating === 3) {
+          next.splice(Math.min(next.length, index + Math.ceil((2 * (next.length - index)) / 3)), 0, currentCard);
+        } else {
+          next.push(currentCard);
+        }
+        setQueue(next);
+        setShowAnswer(false);
+        setCardShownAt(Date.now());
+        succeeded = true;
+        cardExit.setValue(0);
+        return;
       }
-      setQueue(next);
+
+      // Advance. At the end of the queue this leaves `currentCard` undefined and
+      // renders the completion screen instead of navigating away, so the last
+      // review stays undoable.
+      setIndex(index + 1);
       setShowAnswer(false);
       setCardShownAt(Date.now());
+      succeeded = true;
+    } catch (e) {
+      // A failed write must not leave the card invisible and every rating
+      // button disabled: the finally block restores it for another try.
+      console.error('Failed to save review:', e);
+    } finally {
       setAdvancing(false);
-      cardExit.setValue(0);
-      return;
+      if (!succeeded) cardExit.setValue(0);
     }
-
-    // Advance. At the end of the queue this leaves `currentCard` undefined and
-    // renders the completion screen instead of navigating away, so the last
-    // review stays undoable.
-    setIndex(index + 1);
-    setShowAnswer(false);
-    setCardShownAt(Date.now());
-    setAdvancing(false);
   };
 
   const undoLastReview = async () => {
     if (!lastUndo) return;
     const { preCard } = lastUndo;
 
-    await updateCard(preCard.id, { fsrs: preCard.fsrs });
+    try {
+      await updateCard(preCard.id, { fsrs: preCard.fsrs });
 
-    // Only pop the log if it is still this card's entry.
-    const latest = reviewLog[reviewLog.length - 1];
-    if (latest && latest.cardId === preCard.id) {
-      await removeLastReview();
+      // Only pop the log if it is still this card's entry.
+      const latest = reviewLog[reviewLog.length - 1];
+      if (latest && latest.cardId === preCard.id) {
+        await removeLastReview();
+      }
+
+      setLastUndo(null);
+      setIndex(Math.max(0, index - 1));
+      setShowAnswer(true);
+      setCardShownAt(Date.now());
+    } catch (e) {
+      console.error('Failed to undo review:', e);
     }
-
-    setLastUndo(null);
-    setIndex(Math.max(0, index - 1));
-    setShowAnswer(true);
-    setCardShownAt(Date.now());
   };
 
   const studyHeader = (right?: React.ReactNode, center?: React.ReactNode) => (

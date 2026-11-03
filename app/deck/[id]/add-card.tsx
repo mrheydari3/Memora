@@ -54,7 +54,7 @@ export default function AddCardScreen() {
       // the store is still loading, and creating would duplicate it.
       if (!existingCard) return;
       await updateCard(editCardId, {
-        front: { text: front.trim(), direction: existingCard.front.direction },
+        front: { text: front.trim(), direction: textDirection(front) },
         back: { text: back.trim(), direction: textDirection(back) },
         example: example.trim() || undefined,
         synonyms: synonyms.trim() || undefined,

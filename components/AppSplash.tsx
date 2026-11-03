@@ -1,70 +1,60 @@
 /**
- * AppSplash — the app's first second.
+ * AppSplash — the app's first paint.
  *
- * A single identity moment: the accent mark settles in, the wordmark rises under
- * it, and a thin rail fills. Nothing else moves, nothing waits on a network
- * call, and the whole overlay cross-fades away as soon as fonts and the stores
- * are hydrated — so the hand-off to Home is a dissolve, not a flash.
+ * It used to be a brand moment: mark, wordmark, rail. That read as a second
+ * logo screen on every refresh. Now it draws the page the user is about to get:
+ * the same app-bar, content column and tab dock, with the existing skeleton
+ * grammar inside. When the fonts and stores hydrate, the whole layer dissolves
+ * and the real page is already in the same place.
  *
- * Everything is transform/opacity except the rail's width, which is one 2px view
- * animating once. Reduce-motion renders the finished composition and simply
- * fades it out.
+ * Only opacity is animated on exit, and reduce-motion resolves it on the same
+ * tick. The skeleton's own shimmer is owned by the `Skeleton` components.
  */
 import { useEffect, useRef } from 'react';
-import { Animated, View } from 'react-native';
-import { MaterialIcons } from './Icon';
-import { AppText } from './AppText';
-import { colors, fills, iconSize, motion, radii, spacing } from '../theme/tokens';
+import { Animated } from 'react-native';
+import { colors, motion } from '../theme/tokens';
 import { timingTo, USE_NATIVE_DRIVER } from '../motion';
+import { LaunchSkeleton } from './LaunchSkeleton';
 
 type AppSplashProps = {
   /** Fonts + stores are ready: start the exit. */
   ready: boolean;
+  /** The route that is about to render, so the skeleton can match its shape. */
+  pathname?: string;
   /** The exit finished; the caller unmounts the splash. */
   onDone: () => void;
 };
 
-/** The shortest the mark may stay up, so a warm start never blinks. */
-const MIN_VISIBLE_MS = 620;
-const MARK_SIZE = 76;
-const RAIL_WIDTH = 132;
+/** The shortest the skeleton may stay up, so a warm start never blinks. */
+const MIN_VISIBLE_MS = 420;
 
-export function AppSplash({ ready, onDone }: AppSplashProps) {
-  const mark = useRef(new Animated.Value(0)).current;
-  const word = useRef(new Animated.Value(0)).current;
-  const rail = useRef(new Animated.Value(0)).current;
+export function AppSplash({ ready, pathname = '/', onDone }: AppSplashProps) {
   const exit = useRef(new Animated.Value(0)).current;
   const mountedAt = useRef(Date.now());
   const exiting = useRef(false);
 
-  // Entrance: mark → wordmark → rail, each starting where the last one landed.
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      await timingTo(mark, 1, { duration: motion.slow, delay: 40, nativeDriver: USE_NATIVE_DRIVER });
-      if (cancelled) return;
-      await timingTo(word, 1, { duration: motion.base, nativeDriver: USE_NATIVE_DRIVER });
-      if (cancelled) return;
-      await timingTo(rail, 1, { duration: 680, nativeDriver: false });
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [mark, word, rail]);
-
-  // Exit: hold until the minimum has elapsed, then dissolve.
+  // Exit: hold until the minimum has elapsed, then dissolve. There is no
+  // entrance animation — the skeleton is already the page, so moving it in
+  // would only delay the moment the learner can read the layout.
   useEffect(() => {
     if (!ready || exiting.current) return;
     exiting.current = true;
     const wait = Math.max(0, MIN_VISIBLE_MS - (Date.now() - mountedAt.current));
     void (async () => {
-      await timingTo(exit, 1, { duration: motion.slow, delay: wait, nativeDriver: USE_NATIVE_DRIVER });
+      await timingTo(exit, 1, {
+        duration: motion.slow,
+        delay: wait,
+        nativeDriver: USE_NATIVE_DRIVER,
+      });
       onDone();
     })();
   }, [ready, exit, onDone]);
 
   return (
     <Animated.View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel="Loading Memora"
       style={{
         position: 'absolute',
         top: 0,
@@ -72,67 +62,13 @@ export function AppSplash({ ready, onDone }: AppSplashProps) {
         right: 0,
         bottom: 0,
         backgroundColor: colors.background,
-        alignItems: 'center',
-        justifyContent: 'center',
-        // The exit scales to 1.02, which widened the document by 3px for the
-        // length of the dissolve (the splash sits outside the clipped app shell).
+        // The layer sits outside the clipped app shell; keep the moving
+        // skeleton from widening the document on a narrow viewport.
         overflow: 'hidden',
-        // The exit is a pure dissolve. A 1.02 scale on a full-screen fixed
-        // layer rescaled the document (3px of horizontal overflow for the
-        // length of the animation) and repainted 100% of the viewport for a
-        // change nobody can see.
         opacity: exit.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
       }}
     >
-      <Animated.View
-        style={{
-          width: MARK_SIZE,
-          height: MARK_SIZE,
-          borderRadius: radii.pane,
-          backgroundColor: colors.accentSoft,
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: mark,
-          transform: [{ scale: mark.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }) }],
-        }}
-      >
-        <MaterialIcons name="blur-on" size={iconSize.display} color={colors.primary} />
-      </Animated.View>
-
-      <Animated.View
-        style={{
-          alignItems: 'center',
-          opacity: word,
-          transform: [{ translateY: word.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
-        }}
-      >
-        <AppText variant="title" weight="semibold" className="mt-5">
-          Memora
-        </AppText>
-        <AppText variant="caption" weight="medium" tone="muted" className="mt-1 uppercase">
-          Memory, kept
-        </AppText>
-      </Animated.View>
-
-      <View
-        style={{
-          marginTop: spacing.section,
-          width: RAIL_WIDTH,
-          height: 2,
-          borderRadius: 1,
-          backgroundColor: fills.track,
-          overflow: 'hidden',
-        }}
-      >
-        <Animated.View
-          style={{
-            height: '100%',
-            borderRadius: 1,
-            backgroundColor: colors.primary,
-            width: rail.interpolate({ inputRange: [0, 1], outputRange: [0, RAIL_WIDTH] }),
-          }}
-        />
-      </View>
+      <LaunchSkeleton pathname={pathname} />
     </Animated.View>
   );
 }

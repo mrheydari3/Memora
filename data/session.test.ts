@@ -56,10 +56,15 @@ function makeCard(
   };
 }
 
-function log(cardId: string, state: FSRSState, cardWasNew = false): ReviewLogEntry {
+function log(
+  cardId: string,
+  state: FSRSState,
+  cardWasNew = false,
+  deckId = 'deck'
+): ReviewLogEntry {
   return {
     cardId,
-    deckId: 'deck',
+    deckId,
     rating: 3,
     reviewedAt: NOW - 60_000,
     elapsedMs: 1000,
@@ -123,6 +128,62 @@ test('review cards are capped by reviews already done today', () => {
   const queue = buildStudyQueue(deck, cards, reviewLog, NOW);
   assert.equal(queue.dueCards.length, 1, '3/day cap minus 2 done = 1 more review card');
   assert.equal(queue.dueCards[0].id, 'd', 'the oldest due card is kept');
+});
+
+test("another deck's reviews do not spend this deck's review cap", () => {
+  const deck = makeDeck({ id: 'deck', maxCardsPerDay: 1 });
+  const otherDeck = makeDeck({ id: 'other', maxCardsPerDay: 1 });
+  const cards = [makeCard('due', 'Review', NOW - DAY)];
+  const reviewLog = [log('other-card', 'Review', false, otherDeck.id)];
+
+  const queue = buildStudyQueue(deck, cards, reviewLog, NOW);
+  assert.deepEqual(
+    queue.dueCards.map((c) => c.id),
+    ['due'],
+    'a review in another deck must not consume this deck’s budget'
+  );
+});
+
+test("another deck's new cards do not spend this deck's new-card cap", () => {
+  const deck = makeDeck({ id: 'deck', newCardsPerDay: 1 });
+  const otherDeck = makeDeck({ id: 'other', newCardsPerDay: 1 });
+  const cards = [makeCard('new', 'New', NOW, 100)];
+  // The other deck already introduced one new card today.
+  const reviewLog = [log('other-new', 'Learning', true, otherDeck.id)];
+
+  const queue = buildStudyQueue(deck, cards, reviewLog, NOW);
+  assert.deepEqual(
+    queue.newCards.map((c) => c.id),
+    ['new'],
+    'new-card introductions in another deck are a separate budget'
+  );
+});
+
+test('learning repetitions with only stateBefore do not consume the review cap', () => {
+  const deck = makeDeck({ maxCardsPerDay: 1 });
+  const cards = [
+    makeCard('learning', 'Learning', NOW - 60_000),
+    makeCard('review', 'Review', NOW - DAY),
+  ];
+  // SM-2 has no FSRS snapshot, so the cap has to read the pre-review state.
+  const reviewLog: ReviewLogEntry[] = [
+    {
+      cardId: 'learning',
+      deckId: deck.id,
+      rating: 3,
+      reviewedAt: NOW - 60_000,
+      elapsedMs: 1000,
+      cardWasNew: false,
+      stateBefore: 'Learning',
+    },
+  ];
+
+  const queue = buildStudyQueue(deck, cards, reviewLog, NOW);
+  assert.deepEqual(
+    queue.dueCards.map((c) => c.id),
+    ['learning', 'review'],
+    'a learning repetition must not spend the review budget'
+  );
 });
 
 test('new cards respect the daily new-card cap and creation order', () => {

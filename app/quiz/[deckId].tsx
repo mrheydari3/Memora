@@ -65,6 +65,7 @@ export default function QuizScreen() {
 
   const deck = useDeckStore((s) => s.decks.find((d) => d.id === deckId));
   const cards = useDeckStore((s) => s.cardsByDeck[deckId]);
+  const loaded = useDeckStore((s) => s.loaded);
   const updateCard = useDeckStore((s) => s.updateCard);
   const logReview = useReviewStore((s) => s.logReview);
   const settings = useSettingsStore((s) => s.settings);
@@ -85,6 +86,8 @@ export default function QuizScreen() {
   const lockedRef = useRef(false);
   const shownAtRef = useRef(Date.now());
   const advanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTickRef = useRef(Date.now());
+  const mountedRef = useRef(true);
   const timerWidth = useRef(new Animated.Value(1)).current;
 
   const correctSound = useAudioPlayer(require('../../assets/sfx/correct.wav'));
@@ -193,8 +196,12 @@ export default function QuizScreen() {
         void useGameStore
           .getState()
           .submitRound(deck.id, final.score, final.bestCombo)
-          .then(setNewBest)
-          .catch(() => setNewBest(false));
+          .then((best) => {
+            if (mountedRef.current) setNewBest(best);
+          })
+          .catch(() => {
+            if (mountedRef.current) setNewBest(false);
+          });
       }
     },
     [commitRound, deck, endSound, haptic, playSfx]
@@ -205,11 +212,17 @@ export default function QuizScreen() {
     endRoundRef.current = endRound;
   }, [endRound]);
 
-  // The clock only runs while a question is up and the round is live.
+  // The clock only runs while a question is up and the round is live. Measure
+  // real elapsed time: a throttled tab can fire this interval far less often
+  // than 100ms, and a fixed decrement would then hand out a longer round.
   useEffect(() => {
     if (phase !== 'playing') return;
+    lastTickRef.current = Date.now();
     const id = setInterval(() => {
-      const next = tick(roundRef.current, TICK_MS);
+      const now = Date.now();
+      const elapsed = Math.max(0, now - lastTickRef.current);
+      lastTickRef.current = now;
+      const next = tick(roundRef.current, elapsed);
       if (next === roundRef.current) return;
       roundRef.current = next;
       setRound(next);
@@ -225,6 +238,13 @@ export default function QuizScreen() {
       nativeDriver: false,
     });
   }, [round.timeLeftMs, timerWidth]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(
     () => () => {
@@ -249,6 +269,7 @@ export default function QuizScreen() {
           reviewedAt: at,
           elapsedMs: Math.max(0, at - shownAtRef.current),
           cardWasNew: card.fsrs.state === 'New',
+          stateBefore: card.fsrs.state,
           fsrs: log,
         });
       } catch {
@@ -367,6 +388,17 @@ export default function QuizScreen() {
     </View>
   );
 
+  // A missing card key is not a loading state: the store may legitimately have
+  // no bucket for an old or empty deck. Only the store's own `loaded` flag can
+  // tell us whether the first read has finished.
+  if (!loaded) {
+    return (
+      <Screen edges={['top', 'bottom']} header={header}>
+        <QuizSkeleton />
+      </Screen>
+    );
+  }
+
   if (!deck) {
     return (
       <Screen edges={['top', 'bottom']} header={header}>
@@ -389,15 +421,7 @@ export default function QuizScreen() {
     );
   }
 
-  if (!cards) {
-    return (
-      <Screen edges={['top', 'bottom']} header={header}>
-        <QuizSkeleton />
-      </Screen>
-    );
-  }
-
-  if (!isDeckPlayable(cards)) {
+  if (!cards || !isDeckPlayable(cards)) {
     return (
       <Screen edges={['top', 'bottom']} header={header}>
         <View className="flex-1 items-center justify-center px-8">

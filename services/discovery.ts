@@ -63,10 +63,7 @@ export async function importDeck(
     fsrs: defaultFSRSState(),
   }));
 
-  await useDeckStore.getState().addDeck(deck);
-  for (const card of cards) {
-    await useDeckStore.getState().addCard(card);
-  }
+  await useDeckStore.getState().addDeckWithCards(deck, cards);
 
   // Returned so the caller can open the imported deck instead of guessing an id.
   return deckId;

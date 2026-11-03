@@ -57,7 +57,8 @@ function buildAchievements(totalCards: number, streak: number): Achievement[] {
   ];
 }
 
-const XP_PROGRESS = 0.65;
+const XP_PER_REVIEW = 10;
+const XP_PER_LEVEL = 1000;
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -73,8 +74,30 @@ export default function ProfileScreen() {
     useReviewStore.getState().load();
   }, []);
 
-  const totalCards = decks.reduce((sum, deck) => sum + (cardsByDeck[deck.id] ?? []).length, 0);
-  const streak = useMemo(() => computeStreak(reviewLog.map((e) => e.reviewedAt)), [reviewLog]);
+  const totalCards = useMemo(
+    () =>
+      decks
+        .filter((deck) => !deck.archivedAt)
+        .reduce((sum, deck) => sum + (cardsByDeck[deck.id] ?? []).length, 0),
+    [decks, cardsByDeck]
+  );
+
+  // XP is what the log can prove: ten points per review. Archived decks are
+  // excluded so the profile agrees with the rest of the app's totals.
+  const activeDeckIds = useMemo(
+    () => new Set(decks.filter((deck) => !deck.archivedAt).map((deck) => deck.id)),
+    [decks]
+  );
+  const activeLog = useMemo(
+    () => reviewLog.filter((entry) => activeDeckIds.has(entry.deckId)),
+    [reviewLog, activeDeckIds]
+  );
+  const xp = activeLog.length * XP_PER_REVIEW;
+  const level = Math.floor(xp / XP_PER_LEVEL) + 1;
+  const xpIntoLevel = xp % XP_PER_LEVEL;
+  const xpProgress = xpIntoLevel / XP_PER_LEVEL;
+
+  const streak = useMemo(() => computeStreak(activeLog.map((e) => e.reviewedAt)), [activeLog]);
   const achievements = buildAchievements(totalCards, streak);
 
   const lastStudiedLabel = (deckId: string) => {
@@ -122,7 +145,7 @@ export default function ProfileScreen() {
             <View className="mt-1 flex-row items-center gap-1.5">
               <MaterialIcons name="arrow-upward" size={iconSize.xs} color={colors.success} />
               <AppText variant="bodySm" weight="medium" tone="muted">
-                Level 3
+                Level {level}
               </AppText>
             </View>
           </View>
@@ -132,7 +155,7 @@ export default function ProfileScreen() {
           <View className="h-2 overflow-hidden rounded-full" style={{ backgroundColor: fills.track }}>
             <View
               className="h-full rounded-full bg-primary"
-              style={{ width: `${XP_PROGRESS * 100}%` }}
+              style={{ width: `${xpProgress * 100}%` }}
             />
           </View>
           <View className="mt-2 flex-row justify-between">
@@ -140,7 +163,7 @@ export default function ProfileScreen() {
               Experience
             </AppText>
             <AppText variant="caption" weight="medium" tone="muted">
-              650 / 1000 XP
+              {xpIntoLevel} / {XP_PER_LEVEL} XP
             </AppText>
           </View>
         </View>

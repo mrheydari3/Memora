@@ -47,7 +47,7 @@ function parseSM2State(card: Flashcard): SM2CardState {
   };
 }
 
-function packSM2State(card: Flashcard, state: SM2CardState): Flashcard {
+function packSM2State(card: Flashcard, state: SM2CardState, now: Date): Flashcard {
   // This only runs after a rating, so an ungraduated card is by definition in
   // learning (or relearning) — never 'New'.
   const stateName: Flashcard['fsrs']['state'] = state.graduated
@@ -70,7 +70,7 @@ function packSM2State(card: Flashcard, state: SM2CardState): Flashcard {
       // and the daily caps work the same way they do under FSRS.
       reps: card.fsrs.reps + 1,
       lapses: state.lapses,
-      last_review: new Date().toISOString(),
+      last_review: now.toISOString(),
     },
   };
 }
@@ -83,9 +83,9 @@ function formatIntervalDays(days: number): string {
 }
 
 function addDays(iso: string, days: number): string {
-  const d = new Date(iso);
-  d.setDate(d.getDate() + days);
-  return d.toISOString();
+  // Elapsed time, not a calendar day: SM-2 steps can be fractions of a day
+  // ("12 hours"), and Date#setDate truncates those to a whole day.
+  return new Date(new Date(iso).getTime() + days * 86_400_000).toISOString();
 }
 
 /**
@@ -94,13 +94,27 @@ function addDays(iso: string, days: number): string {
  */
 function parseStepToDays(step: string | undefined): number {
   if (!step) return 1;
-  const match = step.match(/^(\d+)\s*(m|min|minute|minutes|h|hour|hours|d|day|days)$/i);
+  const match = step.match(
+    /^(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days)$/i
+  );
   if (!match) return 1; // default 1 day
   const value = parseInt(match[1], 10);
   const unit = match[2].toLowerCase();
   if (unit.startsWith('m')) return value / (24 * 60);
   if (unit.startsWith('h')) return value / 24;
   return value; // days
+}
+
+/**
+ * Validate a hand-typed SM-2 step before it is saved. Without this, a typo
+ * like "twelve hours" would silently become the 1-day fallback above.
+ */
+export function isSM2StepValid(step: string): boolean {
+  const match = step.trim().match(
+    /^(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days)$/i
+  );
+  if (!match) return false;
+  return parseInt(match[1], 10) > 0;
 }
 
 // ---- Engine -----------------------------------------------------------------
@@ -111,22 +125,22 @@ export function createSM2Scheduler(deck: Deck): SchedulerEngine {
   const multiplier = deck.masteredIntervalMultiplier;
 
   return {
-    getIntervalPreviews(card: Flashcard): IntervalPreviews {
+    getIntervalPreviews(card: Flashcard, now = new Date()): IntervalPreviews {
       const state = parseSM2State(card);
       const results: IntervalPreviews = [];
 
       for (const rating of [1, 2, 3, 4] as Rating[]) {
-        const preview = simulateSM2(state, rating, steps, multiplier);
+        const preview = simulateSM2(state, rating, steps, multiplier, now);
         results.push({ rating, label: preview.label });
       }
 
       return results;
     },
 
-    schedule(card: Flashcard, rating: Rating): ScheduleResult {
+    schedule(card: Flashcard, rating: Rating, now = new Date()): ScheduleResult {
       const state = parseSM2State(card);
-      const result = simulateSM2(state, rating, steps, multiplier);
-      const updatedCard = packSM2State(card, result.state);
+      const result = simulateSM2(state, rating, steps, multiplier, now);
+      const updatedCard = packSM2State(card, result.state, now);
 
       return { updatedCard, intervalPreviewLabel: result.label };
     },
@@ -137,9 +151,10 @@ function simulateSM2(
   state: SM2CardState,
   rating: Rating,
   steps: string[],
-  multiplier: number
+  multiplier: number,
+  now: Date
 ): { state: SM2CardState; label: string } {
-  const now = new Date().toISOString();
+  const iso = now.toISOString();
   const newState = { ...state };
 
   if (rating === 1) {
@@ -153,7 +168,7 @@ function simulateSM2(
     newState.graduated = false;
 
     newState.interval = parseStepToDays(steps[0]);
-    newState.nextReviewDate = addDays(now, newState.interval);
+    newState.nextReviewDate = addDays(iso, newState.interval);
     return { state: newState, label: formatIntervalDays(newState.interval) };
   }
 
@@ -168,16 +183,16 @@ function simulateSM2(
         newState.relearning = false;
         newState.repetitions = 1;
         newState.interval = 1 * multiplier; // First post-graduation interval
-        newState.nextReviewDate = addDays(now, newState.interval);
+        newState.nextReviewDate = addDays(iso, newState.interval);
         return { state: newState, label: formatIntervalDays(newState.interval) };
       }
       newState.interval = parseStepToDays(steps[newState.learningStep]);
-      newState.nextReviewDate = addDays(now, newState.interval);
+      newState.nextReviewDate = addDays(iso, newState.interval);
       return { state: newState, label: formatIntervalDays(newState.interval) };
     } else {
       // Hard (rating 2): stay on same step
       newState.interval = parseStepToDays(steps[newState.learningStep] ?? steps[0]);
-      newState.nextReviewDate = addDays(now, newState.interval);
+      newState.nextReviewDate = addDays(iso, newState.interval);
       return { state: newState, label: formatIntervalDays(newState.interval) };
     }
   }
@@ -198,7 +213,7 @@ function simulateSM2(
   }
 
   newState.interval = Math.max(1, Math.round(newState.interval * mod));
-  newState.nextReviewDate = addDays(now, newState.interval);
+  newState.nextReviewDate = addDays(iso, newState.interval);
 
   // Adjust ease
   if (rating === 4) newState.ease = Math.min(3.0, state.ease + 0.15);

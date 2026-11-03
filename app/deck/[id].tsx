@@ -46,6 +46,12 @@ type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 type SortMode = 'created' | 'alpha' | 'due';
 type FilterMode = 'all' | 'new' | 'learning' | 'mastered';
 
+/** Destructive actions run only after the user confirms them in a sheet. */
+type ConfirmAction =
+  | { kind: 'reset' }
+  | { kind: 'delete-deck' }
+  | { kind: 'delete-card'; cardId: string; front: string };
+
 const SORT_LABELS: Record<SortMode, string> = {
   created: 'Newest',
   alpha: 'A–Z',
@@ -75,7 +81,6 @@ export default function DeckDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const deck = useDeckStore((s) => s.decks.find((d) => d.id === id));
-  const decks = useDeckStore((s) => s.decks);
   const loaded = useDeckStore((s) => s.loaded);
   const deleteCard = useDeckStore((s) => s.deleteCard);
   const updateDeck = useDeckStore((s) => s.updateDeck);
@@ -86,8 +91,8 @@ export default function DeckDetailsScreen() {
 
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [renameVisible, setRenameVisible] = useState(false);
-  const [moveVisible, setMoveVisible] = useState(false);
   const [folderVisible, setFolderVisible] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const [cardMenuId, setCardMenuId] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('created');
@@ -224,18 +229,35 @@ export default function DeckDetailsScreen() {
     }
   };
 
-  const handleReset = async () => {
+  const handleReset = () => {
     setOptionsVisible(false);
-    await resetDeckProgress(deck.id);
+    setConfirmAction({ kind: 'reset' });
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     setOptionsVisible(false);
+    setConfirmAction({ kind: 'delete-deck' });
+  };
+
+  const runConfirmed = async () => {
+    const action = confirmAction;
+    setConfirmAction(null);
+    if (!action) return;
+
+    if (action.kind === 'reset') {
+      await resetDeckProgress(deck.id);
+      return;
+    }
+
+    if (action.kind === 'delete-card') {
+      await deleteCard(action.cardId);
+      return;
+    }
+
     await useDeckStore.getState().deleteDeck(deck.id);
     router.replace('/(tabs)/home');
   };
 
-  const sortedDecks = decks.filter((d) => d.id !== deck.id);
   const cardsEmpty = deckCards.length === 0;
   const filtered = visibleCards.length !== deckCards.length;
 
@@ -460,14 +482,6 @@ export default function DeckDetailsScreen() {
       >
         <SheetRow icon="edit" label="Rename Deck" onPress={openRename} />
         <SheetRow
-          icon="shortcut"
-          label="Move Deck"
-          onPress={() => {
-            setOptionsVisible(false);
-            setMoveVisible(true);
-          }}
-        />
-        <SheetRow
           icon="folder-shared"
           label="Move to folder"
           onPress={() => {
@@ -503,39 +517,6 @@ export default function DeckDetailsScreen() {
             }}
           />
         </View>
-      </BottomSheetModal>
-
-      {/* Move sheet */}
-      <BottomSheetModal visible={moveVisible} onClose={() => setMoveVisible(false)} title="Move Deck under…">
-        {sortedDecks.length === 0 && (
-          <View className="px-1 pb-2">
-            <AppText variant="bodySm" tone="muted">
-              No other decks available.
-            </AppText>
-          </View>
-        )}
-        <SheetScrollView style={{ maxHeight: heights.sheetCompact }}>
-          <SheetRow
-            icon="folder-open"
-            label="Top level (no parent)"
-            onPress={async () => {
-              await updateDeck(deck.id, { parentId: null });
-              setMoveVisible(false);
-            }}
-          />
-          {sortedDecks.map((d) => (
-            <SheetRow
-              key={d.id}
-              icon="folder"
-              label={d.name}
-              accessibilityLabel={`Move under ${d.name}`}
-              onPress={async () => {
-                await updateDeck(deck.id, { parentId: d.id });
-                setMoveVisible(false);
-              }}
-            />
-          ))}
-        </SheetScrollView>
       </BottomSheetModal>
 
       {/* Folder sheet — a browsing label only: the deck keeps its cards,
@@ -597,12 +578,50 @@ export default function DeckDetailsScreen() {
           icon="delete-outline"
           label="Delete"
           destructive
-          onPress={async () => {
-            const cardId = cardMenuCard?.id;
+          onPress={() => {
+            const card = cardMenuCard;
             closeCardMenu();
-            if (cardId) await deleteCard(cardId);
+            if (card) {
+              setConfirmAction({ kind: 'delete-card', cardId: card.id, front: card.front.text });
+            }
           }}
         />
+      </BottomSheetModal>
+
+      {/* Destructive actions are confirmed here, never from the options sheet. */}
+      <BottomSheetModal
+        visible={confirmAction !== null}
+        onClose={() => setConfirmAction(null)}
+        title={
+          confirmAction?.kind === 'reset'
+            ? 'Reset progress?'
+            : confirmAction?.kind === 'delete-card'
+              ? 'Delete card?'
+              : 'Delete deck?'
+        }
+        subtitle={
+          confirmAction?.kind === 'reset'
+            ? 'Every card returns to new and this deck\u2019s review history is removed. The cards themselves stay.'
+            : confirmAction?.kind === 'delete-card'
+              ? `\u201c${confirmAction.front}\u201d will be removed along with its review history.`
+              : `\u201c${deck.name}\u201d and all of its cards will be deleted. This cannot be undone.`
+        }
+      >
+        <View className="gap-3">
+          <Button
+            variant="secondary"
+            destructive
+            label={
+              confirmAction?.kind === 'reset'
+                ? 'Reset progress'
+                : confirmAction?.kind === 'delete-card'
+                  ? 'Delete card'
+                  : 'Delete deck'
+            }
+            onPress={runConfirmed}
+          />
+          <Button variant="text" label="Cancel" onPress={() => setConfirmAction(null)} />
+        </View>
       </BottomSheetModal>
     </Screen>
   );

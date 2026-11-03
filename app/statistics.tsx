@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { MaterialIcons } from '../components/Icon';
 import { useDeckStore } from '../store/useDeckStore';
@@ -36,26 +36,44 @@ export default function StatisticsScreen() {
     if (!reviewLog.length) useReviewStore.getState().load();
   }, [loaded, reviewLog.length]);
 
-  // Card state totals across all decks. Subscribing to cardsByDeck keeps these
-  // numbers correct after reviews; the old getState() read was memoized on the
-  // deck list, which reviewing never changes.
-  const allCards = useMemo(() => decks.flatMap((deck) => cardsByDeck[deck.id] ?? []), [decks, cardsByDeck]);
-  const now = Date.now();
+  // Archived decks are out of the way, not gone: their cards and history must
+  // not keep inflating the library-wide numbers.
+  const activeDecks = useMemo(() => decks.filter((deck) => !deck.archivedAt), [decks]);
+  const activeDeckIds = useMemo(() => new Set(activeDecks.map((deck) => deck.id)), [activeDecks]);
+
+  // Card state totals across all active decks. Subscribing to cardsByDeck keeps
+  // these numbers correct after reviews; the old getState() read was memoized
+  // on the deck list, which reviewing never changes.
+  const allCards = useMemo(
+    () => activeDecks.flatMap((deck) => cardsByDeck[deck.id] ?? []),
+    [activeDecks, cardsByDeck]
+  );
+  const activeLog = useMemo(
+    () => reviewLog.filter((entry) => activeDeckIds.has(entry.deckId)),
+    [reviewLog, activeDeckIds]
+  );
+
+  // Due dates are wall-clock facts. Without a tick the "upcoming" chart keeps
+  // counting yesterday's schedule for as long as this screen stays open.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   const newCount = allCards.filter((c) => c.fsrs.state === 'New').length;
   // Relearning belongs with Learning: a card that lapsed is in progress, not
   // New, and leaving it out made the three segments stop adding up to 100%.
   const inProgress = allCards.filter(
-    (c) =>
-      c.fsrs.state === 'Learning' ||
-      c.fsrs.state === 'Relearning' ||
-      (c.fsrs.state === 'Review' && new Date(c.fsrs.due).getTime() <= now)
+    (c) => c.fsrs.state === 'Learning' || c.fsrs.state === 'Relearning'
   ).length;
-  const mastered = allCards.filter(
-    (c) => c.fsrs.state === 'Review' && new Date(c.fsrs.due).getTime() > now
-  ).length;
+  // "Mastered" means graduated to Review, the same definition deck details
+  // uses. Filtering on `due > now` made a card silently stop being mastered
+  // the moment it came due.
+  const mastered = allCards.filter((c) => c.fsrs.state === 'Review').length;
   const total = allCards.length;
 
-  const streak = useMemo(() => computeStreak(reviewLog.map((e) => e.reviewedAt)), [reviewLog]);
+  const streak = useMemo(() => computeStreak(activeLog.map((e) => e.reviewedAt)), [activeLog]);
 
   // Reviews per day for the last 7 calendar days, ending today.
   const weekData = useMemo(() => {
@@ -64,7 +82,7 @@ export default function StatisticsScreen() {
     for (let i = 0; i < 7; i++) indexByDay.set(addLocalDays(today0, i - 6), i);
 
     const counts = Array(7).fill(0);
-    for (const e of reviewLog) {
+    for (const e of activeLog) {
       const idx = indexByDay.get(startOfLocalDay(e.reviewedAt));
       if (idx !== undefined) counts[idx] += 1;
     }
@@ -72,7 +90,7 @@ export default function StatisticsScreen() {
       const day = addLocalDays(today0, i - 6);
       return { value, label: weekdayInitial(day), highlight: day === today0 };
     });
-  }, [reviewLog]);
+  }, [activeLog]);
 
   // Upcoming: cards due per day over the next 7 days
   const upcomingData = useMemo(() => {
@@ -89,14 +107,14 @@ export default function StatisticsScreen() {
       if (idx !== undefined) counts[idx] += 1;
     }
     return counts.map((value, i) => ({ value, label: weekdayInitial(addLocalDays(today0, i)) }));
-  }, [allCards]);
+  }, [allCards, now]);
 
   // Time studied: sum of elapsedMs per entry (per-card time)
   const msToday = useMemo(() => {
     const today0 = startOfLocalDay();
-    return reviewLog.filter((e) => e.reviewedAt >= today0).reduce((s, e) => s + e.elapsedMs, 0);
-  }, [reviewLog]);
-  const msTotal = useMemo(() => reviewLog.reduce((s, e) => s + e.elapsedMs, 0), [reviewLog]);
+    return activeLog.filter((e) => e.reviewedAt >= today0).reduce((s, e) => s + e.elapsedMs, 0);
+  }, [activeLog]);
+  const msTotal = useMemo(() => activeLog.reduce((s, e) => s + e.elapsedMs, 0), [activeLog]);
 
   const pct = (n: number) => (total === 0 ? 0 : Math.round((n / total) * 100));
 

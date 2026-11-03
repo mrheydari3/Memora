@@ -12,8 +12,10 @@ type ReviewStore = {
   logReview: (entry: ReviewLogEntry) => Promise<void>;
   /** Pop the most recent entry (undo). Returns it, or null when the log is empty. */
   removeLastReview: () => Promise<ReviewLogEntry | null>;
-  /** Drop a deck's history, used when its progress is reset. */
+  /** Drop a deck's history, used when its progress is reset or it is deleted. */
   clearDeckLog: (deckId: string) => Promise<void>;
+  /** Drop one card's history, used when the card is deleted. */
+  clearCardLog: (cardId: string) => Promise<void>;
   getLogsForCard: (cardId: string) => ReviewLogEntry[];
   getLogsForDeck: (deckId: string) => ReviewLogEntry[];
 };
@@ -49,6 +51,12 @@ export const useReviewStore = create<ReviewStore>((set, get) => ({
 
   clearDeckLog: async (deckId) => {
     const reviewLog = get().reviewLog.filter((e) => e.deckId !== deckId);
+    await repo.saveReviewLog(reviewLog);
+    set({ reviewLog });
+  },
+
+  clearCardLog: async (cardId) => {
+    const reviewLog = get().reviewLog.filter((e) => e.cardId !== cardId);
     await repo.saveReviewLog(reviewLog);
     set({ reviewLog });
   },

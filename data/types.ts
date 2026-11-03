@@ -122,6 +122,8 @@ export type ReviewLogEntry = {
   reviewedAt: number; // epoch ms
   elapsedMs: number;
   cardWasNew?: boolean; // enables Anki-style "new cards per day" caps from the log
+  /** State before the review, for schedulers that do not emit an FSRS log (SM-2). */
+  stateBefore?: FSRSState;
   /** Present for FSRS reviews; absent on entries written before this existed. */
   fsrs?: FSRSLogSnapshot;
 };

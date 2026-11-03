@@ -101,6 +101,11 @@ export function CardStack({
   const [flipped, setFlipped] = useState(false);
   /** True while a committed turn is animating, so a second turn cannot overlap. */
   const turning = useRef(false);
+  /**
+   * Bumped whenever the visible card changes. A turn that started on the old
+   * card must not page the gallery after the card underneath it changed.
+   */
+  const turnGeneration = useRef(0);
 
   // PanResponder is created once; its callbacks read the current props through
   // this ref, so a new card or a resized window never rebuilds the responder.
@@ -109,10 +114,12 @@ export function CardStack({
 
   // A new card always lands face-up and ready to drag.
   useEffect(() => {
+    turnGeneration.current += 1;
     setFlipped(false);
     flip.setValue(0);
+    drag.setValue(0);
     turning.current = false;
-  }, [card.id, flip]);
+  }, [card.id, flip, drag]);
 
   // The position rail fills card by card instead of jumping between stops.
   useEffect(() => {
@@ -128,10 +135,12 @@ export function CardStack({
       if (direction > 0 && !hasPrev) return;
 
       turning.current = true;
+      const generation = turnGeneration.current;
       // Next = the card leaves to the left, previous = to the right. A spring
       // carries the card off, so the turn keeps its momentum instead of
       // stopping on a clock; the swap happens only once it has really left.
       springToAsync(drag, direction * width * 1.14).then(() => {
+        if (turnGeneration.current !== generation) return;
         if (direction < 0) onNext();
         else onPrevious();
         // Only after the turn actually committed does the device tick.

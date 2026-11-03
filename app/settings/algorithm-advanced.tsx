@@ -8,6 +8,7 @@ import {
   normalizeFsrsStep,
   resolveFsrsParams,
 } from '../../data/fsrs-params';
+import { isSM2StepValid } from '../../data/schedulers/sm2';
 import {
   AppText,
   Screen,
@@ -32,11 +33,15 @@ const DEFAULT_SM2_STEPS = ['12 hours', '1 day', '2 days', '3 days'];
 type StepList = 'fsrs' | 'relearn' | 'sm2';
 
 export default function AlgorithmAdvancedScreen() {
-  const { deckId } = useLocalSearchParams<{ deckId?: string }>();
+  const { deckId } = useLocalSearchParams<{ deckId?: string | string[] }>();
   const decks = useDeckStore((s) => s.decks);
+  const loaded = useDeckStore((s) => s.loaded);
   const updateDeck = useDeckStore((s) => s.updateDeck);
 
-  const deck = decks.find((d) => d.id === deckId) ?? decks[0];
+  // Never fall back to `decks[0]` for a stale or missing id: that silently
+  // tuned a different deck than the one the user opened.
+  const requestedId = Array.isArray(deckId) ? deckId[0] : deckId;
+  const deck = requestedId ? decks.find((d) => d.id === requestedId) : undefined;
   const preset = deck?.algorithmPreset ?? 'fsrs';
 
   const [steps, setSteps] = useState<string[]>(DEFAULT_SM2_STEPS);
@@ -151,9 +156,14 @@ export default function AlgorithmAdvancedScreen() {
     const { list, index } = editTarget;
 
     if (list === 'sm2') {
-      if (!stepDraft.trim()) return;
+      const candidate = stepDraft.trim();
+      if (!candidate) return;
+      if (!isSM2StepValid(candidate)) {
+        setStepError('Use a duration like 30m, 12 hours or 2 days.');
+        return;
+      }
       const next = [...steps];
-      next[index] = stepDraft.trim();
+      next[index] = candidate;
       setSteps(next);
       setEditTarget(null);
       return;
@@ -184,6 +194,35 @@ export default function AlgorithmAdvancedScreen() {
   };
 
   const deckName = deck?.name ?? 'this deck';
+
+  // The store hydrates asynchronously, and the deck may legitimately have been
+  // deleted while this screen was open. Say so instead of editing another deck.
+  if (!deck && !loaded) {
+    return (
+      <Screen header={<TopAppBar title="Advanced" back />}>
+        <GlassCard className="mt-4">
+          <AppText variant="bodySm" tone="muted">
+            Loading deck…
+          </AppText>
+        </GlassCard>
+      </Screen>
+    );
+  }
+
+  if (!deck) {
+    return (
+      <Screen header={<TopAppBar title="Advanced" back />}>
+        <GlassCard className="mt-4">
+          <AppText variant="body" weight="medium">
+            Deck not found
+          </AppText>
+          <AppText variant="bodySm" tone="muted" className="mt-1">
+            This deck may have been deleted. Go back and pick a deck that still exists.
+          </AppText>
+        </GlassCard>
+      </Screen>
+    );
+  }
 
   return (
     <Screen scroll gutter header={<TopAppBar title="Advanced" back />}>

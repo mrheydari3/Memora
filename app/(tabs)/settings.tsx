@@ -36,30 +36,34 @@ export default function SettingsScreen() {
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.update);
 
+  // Archived decks keep their cards and history, but they are not part of what
+  // the library is currently working through.
+  const activeDecks = useMemo(() => decks.filter((deck) => !deck.archivedAt), [decks]);
+
   const totalCards = useMemo(
-    () => decks.reduce((sum, deck) => sum + (cardsByDeck[deck.id]?.length ?? 0), 0),
-    [decks, cardsByDeck]
+    () => activeDecks.reduce((sum, deck) => sum + (cardsByDeck[deck.id]?.length ?? 0), 0),
+    [activeDecks, cardsByDeck]
   );
 
   // The same queue the session builds, so "due today" here always matches the
   // number on the home card and on the deck screen.
   const dueToday = useMemo(
     () =>
-      decks.reduce(
+      activeDecks.reduce(
         (sum, deck) => sum + buildStudyQueue(deck, cardsByDeck[deck.id] ?? [], reviewLog).total,
         0
       ),
-    [decks, cardsByDeck, reviewLog]
+    [activeDecks, cardsByDeck, reviewLog]
   );
 
   // Each deck owns its scheduler, so the index only names one when the whole
   // library agrees; otherwise it says so instead of showing deck one's setting.
   const presetLabel = useMemo(() => {
-    if (decks.length === 0) return undefined;
-    const [first] = decks;
-    const shared = decks.every((deck) => deck.algorithmPreset === first.algorithmPreset);
+    if (activeDecks.length === 0) return undefined;
+    const [first] = activeDecks;
+    const shared = activeDecks.every((deck) => deck.algorithmPreset === first.algorithmPreset);
     return shared ? PRESET_LABELS[first.algorithmPreset] : 'Per deck';
-  }, [decks]);
+  }, [activeDecks]);
 
   const handleExportAll = async () => {
     try {
@@ -90,7 +94,7 @@ export default function SettingsScreen() {
         ledger={[
           { label: 'Due today', value: formatCount(dueToday), accent: dueToday > 0 },
           { label: 'Cards', value: formatCount(totalCards) },
-          { label: 'Decks', value: formatCount(decks.length) },
+          { label: 'Decks', value: formatCount(activeDecks.length) },
         ]}
       />
       </RevealItem>

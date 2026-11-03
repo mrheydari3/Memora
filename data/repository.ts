@@ -13,11 +13,13 @@ import type { Deck, DeckFolder, Flashcard, GameRecord, ReviewLogEntry, Settings 
 const KEYS = {
   decks: 'memory:decks',
   folders: 'memory:folders',
+  /** Legacy per-deck key, only read to clean it up. */
   cards: (deckId: string) => `memory:cards:${deckId}`,
   allCards: 'memory:cards:all', // flat index for quick lookup across decks
   reviewLog: 'memory:reviewLog',
   settings: 'memory:settings',
   gameRecords: 'memory:gameRecords',
+  initialized: 'memory:initialized',
 } as const;
 
 // ---- Generic helpers --------------------------------------------------------
@@ -62,26 +64,23 @@ export async function saveFolders(folders: DeckFolder[]): Promise<void> {
 
 // ---- Cards ------------------------------------------------------------------
 
-export async function loadCards(deckId: string): Promise<Flashcard[]> {
-  return (await getJSON<Flashcard[]>(KEYS.cards(deckId))) ?? [];
-}
-
-export async function saveCards(deckId: string, cards: Flashcard[]): Promise<void> {
-  await setJSON(KEYS.cards(deckId), cards);
-}
-
 /** Load all cards across all decks using the flat index. */
 export async function loadAllCards(): Promise<Record<string, Flashcard[]>> {
   return (await getJSON<Record<string, Flashcard[]>>(KEYS.allCards)) ?? {};
 }
 
-/** Save all cards indexed by deckId. Also saves per-deck for faster single-deck loads. */
+/**
+ * Save the flat card index. One write per change: the legacy per-deck keys are
+ * not written any more (nothing reads them), so a review on a large library no
+ * longer serializes every deck twice.
+ */
 export async function saveAllCards(allCards: Record<string, Flashcard[]>): Promise<void> {
   await setJSON(KEYS.allCards, allCards);
-  // Also persist per-deck for faster access
-  for (const [deckId, cards] of Object.entries(allCards)) {
-    await setJSON(KEYS.cards(deckId), cards);
-  }
+}
+
+/** Drop a legacy per-deck card key left behind by an older build. */
+export async function removeDeckCardsKey(deckId: string): Promise<void> {
+  await AsyncStorage.removeItem(KEYS.cards(deckId));
 }
 
 // ---- Review Log -------------------------------------------------------------
@@ -114,13 +113,17 @@ export async function saveGameRecords(records: Record<string, GameRecord>): Prom
   await setJSON(KEYS.gameRecords, records);
 }
 
-// ---- Seed / Reset -----------------------------------------------------------
+// ---- First-run marker -------------------------------------------------------
 
-/** Clear all Memora data. */
-export async function clearAll(): Promise<void> {
-  const allKeys = await AsyncStorage.getAllKeys();
-  const memoryKeys = allKeys.filter((k) => k.startsWith('memory:'));
-  if (memoryKeys.length > 0) {
-    await AsyncStorage.multiRemove(memoryKeys);
-  }
+/**
+ * True once this install has stored a library. It distinguishes a genuine
+ * first run (seed the shipped deck) from "the user deleted every deck" and
+ * from a failed/corrupt read, neither of which may resurrect seed data.
+ */
+export async function isInitialized(): Promise<boolean> {
+  return (await AsyncStorage.getItem(KEYS.initialized)) !== null;
+}
+
+export async function markInitialized(): Promise<void> {
+  await AsyncStorage.setItem(KEYS.initialized, '1');
 }

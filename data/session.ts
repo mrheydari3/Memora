@@ -15,7 +15,7 @@ export type StudyQueue = {
 };
 
 const STATE_OF = (entry: ReviewLogEntry) =>
-  entry.fsrs?.state ?? (entry.cardWasNew ? 'New' : 'Review');
+  entry.fsrs?.state ?? entry.stateBefore ?? (entry.cardWasNew ? 'New' : 'Review');
 
 /**
  * Daily caps use local midnight, while ts-fsrs measures elapsed days as UTC
@@ -37,7 +37,11 @@ export function buildStudyQueue(
 ): StudyQueue {
   const startOfToday = startOfDay(now);
 
-  const todaysLogs = reviewLog.filter((e) => e.reviewedAt >= startOfToday);
+  // Caps are per deck: a session in deck A must not spend deck B's budget,
+  // even though both write to one shared log.
+  const todaysLogs = reviewLog.filter(
+    (e) => e.deckId === deck.id && e.reviewedAt >= startOfToday
+  );
   // Anki-style caps:
   //  - distinct new cards seen today count against newCardsPerDay
   //  - review cards answered today count against maxCardsPerDay

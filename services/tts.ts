@@ -30,11 +30,6 @@ export async function speak({ text, language, onDone }: TTSSpeakOptions): Promis
   await Speech.speak(text, options);
 }
 
-/** Check if TTS is available on this platform. */
-export function isSpeechAvailable(): boolean {
-  return true; // expo-speech handles fallback
-}
-
 /** Stop any in-progress speech. */
 export async function stopSpeaking(): Promise<void> {
   await Speech.stop();
@@ -56,6 +51,11 @@ export async function speakCard(
   }
 ): Promise<void> {
   if (!options.ttsEnabled) return;
+
+  // Advancing to the next card while the old one is still being read used to
+  // queue both utterances, so the user heard the previous card over the new
+  // one. Cut the old speech first.
+  await stopSpeaking();
 
   if (options.ttsReadWholeCard) {
     // Read entire card
