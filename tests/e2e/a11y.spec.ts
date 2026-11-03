@@ -22,6 +22,7 @@ const ROUTES = [
   { label: 'settings', path: '/settings' },
   { label: 'algorithm', path: '/settings/algorithm' },
   { label: 'tts', path: '/settings/tts' },
+  { label: 'offline', path: '/settings/offline' },
   { label: 'profile', path: '/profile' },
 ];
 
