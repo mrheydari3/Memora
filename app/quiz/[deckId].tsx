@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Platform, StyleSheet, View } from 'react-native';
+import {
+  Animated,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Svg, { Circle } from 'react-native-svg';
 import { MaterialIcons } from '../../components/Icon';
 import * as Haptics from 'expo-haptics';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
@@ -15,10 +23,10 @@ import {
   accuracy,
   applyAnswer,
   buildQuestion,
-  playableCards,
   createRound,
   finishCleared,
   isDeckPlayable,
+  playableCards,
   tick,
   type QuizOption,
   type QuizQuestion,
@@ -32,36 +40,334 @@ import {
   GlassCard,
   IconButton,
   Pill,
-  PrimaryButton,
-  QuizAnswer,
   QuizSkeleton,
   Screen,
 } from '../../components';
-import type { QuizAnswerState } from '../../components';
+import { StartButton } from '../../components/v2';
 import {
   alpha,
   colors,
   fills,
+  glassFill,
   glassFillAppBar,
   heights,
   iconSize,
   layout,
   motion,
+  rims,
 } from '../../theme/tokens';
-import { EASE, timingTo, useReveal } from '../../motion';
+import { v2 } from '../../theme/v2';
+import {
+  EASE,
+  USE_NATIVE_DRIVER,
+  prefersReducedMotion,
+  timingTo,
+  usePressFeedback,
+  useReveal,
+} from '../../motion';
 
 const TICK_MS = 100;
 const CORRECT_REVEAL_MS = 320;
 const WRONG_REVEAL_MS = 700;
+
+type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
 function formatClock(ms: number): string {
   const total = Math.ceil(ms / 1000);
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
 
+/** Fisher-Yates: one uniform order per round, decided once. */
+function shuffleCards<T>(items: T[]): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/**
+ * The round's clock as a ring. The arc is the remaining time; the number in
+ * the middle is the same clock every other surface shows. The ring turns to
+ * the warning tone under 10 seconds and is decorative: the time is text.
+ */
+function TimerRing({
+  size,
+  progress,
+  low,
+  label,
+}: {
+  size: number;
+  progress: number;
+  low: boolean;
+  label: string;
+}) {
+  const stroke = Math.max(5, Math.round(size / 20));
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={fills.track}
+          strokeWidth={stroke}
+          fill="none"
+        />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={low ? colors.warning : colors.primary}
+          strokeWidth={stroke}
+          fill="none"
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={circumference * (1 - Math.max(0, Math.min(1, progress)))}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      <AppText
+        variant="display"
+        className={
+          size > 100
+            ? 'text-[2rem] leading-[2.25rem] tracking-[-0.07rem]'
+            : 'text-[1rem] leading-[1.25rem] tracking-[-0.02rem]'
+        }
+        style={{ fontVariant: ['tabular-nums'], color: low ? colors.warning : undefined }}
+      >
+        {label}
+      </AppText>
+      {size > 100 && (
+        <AppText variant="caption" tone="muted">
+          left
+        </AppText>
+      )}
+    </View>
+  );
+}
+
+type ArenaAnswerState = 'idle' | 'correct' | 'wrong' | 'dimmed';
+
+const ARENA_TINT: Record<
+  Exclude<ArenaAnswerState, 'idle' | 'dimmed'>,
+  { fill: string; glyph: string }
+> = {
+  correct: { fill: alpha(colors.success, 0.16), glyph: colors.success },
+  wrong: { fill: alpha(colors.error, 0.16), glyph: colors.error },
+};
+
+type ArenaAnswerProps = {
+  text: string;
+  state: ArenaAnswerState;
+  disabled: boolean;
+  onPress: () => void;
+  position: number;
+  direction: 'ltr' | 'rtl';
+};
+
+/**
+ * One answer pad. It carries the slot numeral twice — a small keycap for the
+ * eye and a huge watermark for the game surface — while the accessible name
+ * stays the answer itself. The pad dips and settles exactly like a rating key.
+ */
+function ArenaAnswer({ text, state, disabled, onPress, position, direction }: ArenaAnswerProps) {
+  const press = usePressFeedback({ scale: 0.975 });
+  const pop = useRef(new Animated.Value(0)).current;
+  const tint = state === 'correct' || state === 'wrong' ? ARENA_TINT[state] : null;
+  const dimmed = state === 'dimmed';
+
+  useEffect(() => {
+    if (state !== 'correct' && state !== 'wrong') return;
+    if (prefersReducedMotion()) return;
+    pop.setValue(0);
+    Animated.sequence([
+      Animated.spring(pop, {
+        toValue: 1,
+        speed: 40,
+        bounciness: 0,
+        useNativeDriver: USE_NATIVE_DRIVER,
+      }),
+      Animated.spring(pop, {
+        toValue: 0,
+        speed: 20,
+        bounciness: 0,
+        useNativeDriver: USE_NATIVE_DRIVER,
+      }),
+    ]).start();
+  }, [state, pop]);
+
+  return (
+    <Animated.View style={[{ flex: 1 }, press.style]}>
+      <Animated.View
+        style={{
+          flex: 1,
+          transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [1, 1.018] }) }],
+        }}
+      >
+        <Pressable
+          onPress={onPress}
+          onPressIn={disabled ? undefined : press.onPressIn}
+          onPressOut={disabled ? undefined : press.onPressOut}
+          disabled={disabled}
+          accessibilityRole="button"
+          testID={`answer-${position}`}
+          accessibilityState={{ disabled, selected: state === 'correct' }}
+          style={{
+            flex: 1,
+            minHeight: heights.quizAnswer + 6,
+            borderRadius: v2.radii.card,
+            backgroundColor: tint?.fill ?? fills.tile,
+            opacity: dimmed ? 0.42 : 1,
+            overflow: 'hidden',
+            borderTopWidth: 1,
+            borderTopColor: rims.tile,
+            paddingHorizontal: 14,
+            paddingVertical: 12,
+            justifyContent: 'center',
+          }}
+        >
+          <View
+            aria-hidden
+            accessible={false}
+            pointerEvents="none"
+            style={{ position: 'absolute', right: -10, bottom: -38, opacity: 0.07 }}
+          >
+            <AppText
+              variant="display"
+              className="text-[6rem] leading-[6rem] tracking-[-0.15rem]"
+              style={{ color: colors.onSurface }}
+            >
+              {position}
+            </AppText>
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View
+              aria-hidden
+              accessible={false}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 9,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: tint ? alpha(tint.glyph, 0.14) : fills.inset,
+                borderTopWidth: 1,
+                borderTopColor: rims.tile,
+              }}
+            >
+              <AppText variant="caption" weight="semibold" tone={tint ? 'default' : 'muted'}>
+                {position}
+              </AppText>
+            </View>
+
+            <AppText
+              variant="body"
+              weight="semibold"
+              numberOfLines={3}
+              style={{
+                flex: 1,
+                writingDirection: direction,
+                textAlign: direction === 'rtl' ? 'right' : 'left',
+              }}
+            >
+              {text}
+            </AppText>
+
+            {tint && (
+              <View
+                aria-hidden
+                accessible={false}
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 13,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: alpha(tint.glyph, 0.16),
+                }}
+              >
+                <MaterialIcons
+                  name={state === 'correct' ? 'check' : 'close'}
+                  size={iconSize.sm}
+                  color={tint.glyph}
+                />
+              </View>
+            )}
+          </View>
+        </Pressable>
+      </Animated.View>
+    </Animated.View>
+  );
+}
+
+function RoundStat({ label, value }: { label: string; value: string }) {
+  return (
+    <View
+      style={{
+        flex: 1,
+        borderRadius: 14,
+        backgroundColor: fills.inset,
+        paddingHorizontal: 10,
+        paddingVertical: 9,
+        borderTopWidth: 1,
+        borderTopColor: rims.tile,
+      }}
+    >
+      <AppText variant="caption" tone="muted">
+        {label}
+      </AppText>
+      <AppText variant="headline" style={{ fontVariant: ['tabular-nums'] }}>
+        {value}
+      </AppText>
+    </View>
+  );
+}
+
+function ResultRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 10,
+        borderBottomWidth: last ? 0 : 1,
+        borderBottomColor: fills.track,
+      }}
+    >
+      <AppText variant="bodySm" tone="muted" style={{ flex: 1 }}>
+        {label}
+      </AppText>
+      <AppText
+        variant="bodySm"
+        weight="semibold"
+        style={{ marginLeft: 12, fontVariant: ['tabular-nums'] }}
+      >
+        {value}
+      </AppText>
+    </View>
+  );
+}
+
+/**
+ * Quiz — the 60-second arena.
+ *
+ * The round's clock is a ring, the score and streak live on a scoreboard, the
+ * question sits on a lit stage, and the four answers are game pads. The real
+ * round logic is intact: every answer is scheduled through the deck's
+ * scheduler and written to the review log, and the round is submitted once.
+ */
 export default function QuizScreen() {
   const { deckId } = useLocalSearchParams<{ deckId: string }>();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const wide = width >= 900;
 
   const deck = useDeckStore((s) => s.decks.find((d) => d.id === deckId));
   const cards = useDeckStore((s) => s.cardsByDeck[deckId]);
@@ -356,6 +662,9 @@ export default function QuizScreen() {
   const lowTime = round.timeLeftMs <= 10_000;
   const accuracyValue = accuracy(round);
   const frontType = (question?.front.length ?? 0) > 34 ? 'title' : 'display';
+  const timerProgress = round.timeLeftMs / ROUND_MS;
+  const timerLabel = formatClock(round.timeLeftMs);
+  const deckIcon = (deck?.icon ?? 'style') as IconName;
 
   const header = (
     <View
@@ -443,7 +752,7 @@ export default function QuizScreen() {
     );
   }
 
-  if (phase === 'loading') {
+  if (phase === 'loading' || !question) {
     return (
       <Screen edges={['top', 'bottom']} header={header}>
         <QuizSkeleton />
@@ -451,106 +760,338 @@ export default function QuizScreen() {
     );
   }
 
-  return (
-    <Screen edges={['top', 'bottom']} header={header}>
-      {/* Timer rail — 3px, refills on a correct answer, turns warning under 10s. */}
-      <View style={{ height: 3, backgroundColor: fills.track }}>
-        <Animated.View
-          style={{
-            height: '100%',
-            width: timerWidth.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
-            backgroundColor: lowTime ? colors.warning : colors.primary,
-            borderRadius: 2,
-            ...(lowTime ? {} : { boxShadow: `0 0 12px ${alpha(colors.primary, 0.45)}` }),
-          }}
-        />
-      </View>
+  const timerRail = (
+    <View style={{ height: 6, backgroundColor: fills.track, borderRadius: 3, overflow: 'hidden' }}>
+      <Animated.View
+        style={{
+          height: '100%',
+          width: timerWidth.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+          backgroundColor: lowTime ? colors.warning : colors.primary,
+          borderRadius: 3,
+          ...(lowTime ? {} : { boxShadow: `0 0 12px ${alpha(colors.primary, 0.45)}` }),
+        }}
+      />
+    </View>
+  );
 
-      {question ? (
+  const scoreboard = (
+    <View
+      style={[
+        glassFill,
+        {
+          borderRadius: v2.radii.pane,
+          borderTopWidth: 1,
+          borderTopColor: rims.soft,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.outlineVariant,
+        },
+      ]}
+    >
+      <View style={{ padding: v2.spacing.panel }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
+            Round
+          </AppText>
+          {round.combo > 0 && (
+            <Animated.View style={comboReveal.style}>
+              <Pill label={`×${Math.min(round.combo, COMBO_CAP)}`} tone="accent" />
+            </Animated.View>
+          )}
+        </View>
+
+        <View style={{ alignItems: 'center', marginTop: 6 }}>
+          <TimerRing size={156} progress={timerProgress} low={lowTime} label={timerLabel} />
+        </View>
+
+        <View style={{ alignItems: 'center', marginTop: 12 }}>
+          <AppText variant="caption" tone="muted" className="uppercase">
+            Score
+          </AppText>
+          <Animated.View style={scoreReveal.style}>
+            <AppText
+              variant="display"
+              className="text-[2.75rem] leading-[3rem] tracking-[-0.1rem]"
+              style={{ fontVariant: ['tabular-nums'] }}
+            >
+              {round.score.toLocaleString('en-US')}
+            </AppText>
+          </Animated.View>
+        </View>
+
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
+          <RoundStat label="Streak" value={`×${Math.min(round.combo, COMBO_CAP)}`} />
+          <RoundStat label="Correct" value={String(round.correct)} />
+        </View>
+
         <View
-          className="w-full flex-1 self-center px-5 pb-6"
-          style={{ maxWidth: layout.contentMaxWidth }}
+          style={{
+            marginTop: 16,
+            borderTopWidth: 1,
+            borderTopColor: fills.track,
+            paddingTop: 14,
+            gap: 10,
+          }}
         >
-          <View className="mt-4 flex-row items-center justify-between">
-            <View className="flex-row items-center gap-1.5">
-              <MaterialIcons
-                name="timer"
-                size={iconSize.sm}
-                color={lowTime ? colors.warning : colors.outline}
-              />
-              <AppText
-                variant="bodySm"
-                weight="semibold"
-                tone={lowTime ? 'warning' : 'muted'}
-                style={{ fontVariant: ['tabular-nums'] }}
-              >
-                {formatClock(round.timeLeftMs)}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 12,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: alpha(deck.color, 0.16),
+              }}
+            >
+              <MaterialIcons name={deckIcon} size={iconSize.md} color={deck.color} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
+                {deck.name}
+              </AppText>
+              <AppText variant="caption" tone="muted">
+                Question {index + 1} of {order.length}
               </AppText>
             </View>
-            {round.combo > 0 && (
-              <Animated.View style={comboReveal.style}>
-                <Pill label={`×${Math.min(round.combo, COMBO_CAP)}`} tone="accent" />
-              </Animated.View>
-            )}
           </View>
 
-          <View className="flex-1 justify-center py-4">
-            <Animated.View style={questionReveal.style}>
-              <GlassCard tone="accent">
-                <AppText variant="label" weight="semibold" tone="accent" className="uppercase">
-                  Pick the answer
-                </AppText>
-                <AppText
-                  variant={frontType}
-                  weight="bold"
-                  align="center"
-                  numberOfLines={4}
-                  className="mt-3"
-                  style={{ writingDirection: question.direction }}
-                >
-                  {question.front}
-                </AppText>
-              </GlassCard>
-            </Animated.View>
-          </View>
-
-          <View className="gap-2.5">
-            {[0, 2].map((start) => (
-              <View key={start} className="flex-row gap-2.5">
-                {question.options.slice(start, start + 2).map((option, offset) => {
-                  const state: QuizAnswerState =
-                    picked === null
-                      ? 'idle'
-                      : option.correct
-                        ? 'correct'
-                        : picked === option.id
-                          ? 'wrong'
-                          : 'dimmed';
-                  return (
-                    <QuizAnswer
-                      key={option.id}
-                      text={option.text}
-                      state={state}
-                      direction={answerDirections.get(option.id) ?? 'ltr'}
-                      disabled={picked !== null}
-                      onPress={() => answer(option)}
-                      position={start + offset + 1}
-                    />
-                  );
-                })}
-              </View>
-            ))}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <MaterialIcons name="track-changes" size={iconSize.sm} color={colors.outline} />
+            <AppText variant="caption" tone="muted" style={{ flex: 1 }}>
+              {accuracyValue === null
+                ? 'Accuracy appears after the first answer'
+                : `${Math.round(accuracyValue * 100)}% accuracy`}
+            </AppText>
           </View>
         </View>
-      ) : null}
+      </View>
+    </View>
+  );
+
+  const mobileHud = (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        borderRadius: 20,
+        backgroundColor: fills.inset,
+        borderTopWidth: 1,
+        borderTopColor: rims.tile,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+      }}
+    >
+      <TimerRing size={56} progress={timerProgress} low={lowTime} label={timerLabel} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <AppText variant="caption" tone="muted" className="uppercase">
+          Score
+        </AppText>
+        <AppText
+          variant="headline"
+          className="text-[1.5rem] leading-[1.75rem]"
+          style={{ fontVariant: ['tabular-nums'] }}
+        >
+          {round.score.toLocaleString('en-US')}
+        </AppText>
+      </View>
+      <View style={{ alignItems: 'flex-end' }}>
+        <AppText variant="caption" tone="muted" className="uppercase">
+          Streak
+        </AppText>
+        <Pill
+          label={`×${Math.min(round.combo, COMBO_CAP)}`}
+          tone={round.combo > 0 ? 'accent' : 'neutral'}
+        />
+      </View>
+    </View>
+  );
+
+  const stage = (
+    <View
+      style={[
+        glassFill,
+        {
+          flex: 1,
+          borderRadius: v2.radii.pane,
+          borderTopWidth: 1,
+          borderTopColor: rims.soft,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.outlineVariant,
+          overflow: 'hidden',
+          padding: v2.spacing.panel,
+        },
+      ]}
+    >
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: -120,
+          left: '25%',
+          width: '50%',
+          height: 240,
+          borderRadius: 120,
+          backgroundColor: alpha(colors.primary, 0.14),
+        }}
+      />
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View>
+          <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
+            Question {String(index + 1).padStart(2, '0')}
+          </AppText>
+          <AppText variant="caption" tone="muted">
+            Pick the correct translation
+          </AppText>
+        </View>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            borderRadius: 100,
+            backgroundColor: fills.inset,
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+          }}
+        >
+          <MaterialIcons name="sports-esports" size={iconSize.xs} color={colors.primary} />
+          <AppText variant="caption" weight="semibold" tone="accent">
+            Arena
+          </AppText>
+        </View>
+      </View>
+
+      <View style={{ flex: 1, justifyContent: 'center', paddingVertical: 10 }}>
+        <Animated.View style={questionReveal.style}>
+          <AppText
+            variant={frontType}
+            weight="bold"
+            align="center"
+            numberOfLines={4}
+            style={{ writingDirection: question.direction }}
+          >
+            {question.front}
+          </AppText>
+        </Animated.View>
+      </View>
+
+      <View style={{ gap: 10 }}>
+        {[0, 2].map((start) => (
+          <View key={start} style={{ flexDirection: 'row', gap: 10 }}>
+            {question.options.slice(start, start + 2).map((option, offset) => {
+              const state: ArenaAnswerState =
+                picked === null
+                  ? 'idle'
+                  : option.correct
+                    ? 'correct'
+                    : picked === option.id
+                      ? 'wrong'
+                      : 'dimmed';
+              return (
+                <ArenaAnswer
+                  key={option.id}
+                  text={option.text}
+                  state={state}
+                  disabled={picked !== null}
+                  onPress={() => answer(option)}
+                  position={start + offset + 1}
+                  direction={answerDirections.get(option.id) ?? 'ltr'}
+                />
+              );
+            })}
+          </View>
+        ))}
+      </View>
+
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          marginTop: 14,
+          paddingTop: 12,
+          borderTopWidth: 1,
+          borderTopColor: fills.track,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <MaterialIcons
+            name="local-fire-department"
+            size={iconSize.sm}
+            color={round.combo > 0 ? colors.warning : colors.outline}
+          />
+          <AppText variant="caption" tone="muted">
+            Streak{' '}
+            <AppText variant="caption" weight="semibold">{`×${Math.min(round.combo, COMBO_CAP)}`}</AppText>
+          </AppText>
+        </View>
+        <AppText variant="caption" weight="semibold" tone={lowTime ? 'warning' : 'accent'}>
+          {lowTime ? 'Hurry — under 10s' : 'Correct answers buy +3s'}
+        </AppText>
+      </View>
+    </View>
+  );
+
+  return (
+    <Screen edges={['top', 'bottom']} header={header}>
+      {timerRail}
+
+      <View
+        className="w-full flex-1 self-center px-5 pb-6"
+        style={{ maxWidth: v2.layout.contentMaxWidth }}
+      >
+        <View style={{ flex: 1, marginTop: 16 }}>
+          {wide ? (
+            <View style={{ flexDirection: 'row', gap: 20, flex: 1 }}>
+              <View style={{ width: 300, flexShrink: 0 }}>{scoreboard}</View>
+              <View style={{ flex: 1, minWidth: 0 }}>{stage}</View>
+            </View>
+          ) : (
+            <View style={{ flex: 1, gap: 12 }}>
+              {mobileHud}
+              {stage}
+            </View>
+          )}
+        </View>
+      </View>
 
       {phase === 'over' && (
         <Animated.View style={[styles.result, resultReveal.style]}>
           <View className="w-full items-center px-5" style={{ maxWidth: layout.resultMaxWidth }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <View
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: alpha(deck.color, 0.16),
+                }}
+              >
+                <MaterialIcons name={deckIcon} size={iconSize.md} color={deck.color} />
+              </View>
+              <View>
+                <AppText variant="caption" tone="muted" className="uppercase">
+                  Round complete
+                </AppText>
+                <AppText variant="bodySm" weight="semibold">
+                  {deck.name}
+                </AppText>
+              </View>
+            </View>
+
             <AppText variant="label" weight="semibold" tone="accent" className="uppercase">
               {round.cleared ? 'Deck cleared' : "Time's up"}
             </AppText>
-            <AppText variant="display" className="mt-2" style={{ fontVariant: ['tabular-nums'] }}>
+            <AppText
+              variant="display"
+              className="mt-2 text-[4rem] leading-[4.25rem] tracking-[-0.14rem]"
+              style={{ fontVariant: ['tabular-nums'] }}
+            >
               {round.score.toLocaleString('en-US')}
             </AppText>
             <AppText variant="bodySm" tone="muted">
@@ -577,12 +1118,9 @@ export default function QuizScreen() {
               <ResultRow label="Best combo" value={`×${round.bestCombo}`} last />
             </GlassCard>
 
-            <PrimaryButton
-              className="mt-6 w-full"
-              label="Play again"
-              icon="replay"
-              onPress={beginRound}
-            />
+            <View style={{ marginTop: 24, width: '100%' }}>
+              <StartButton label="Play again" onPress={beginRound} />
+            </View>
             <GhostButton
               className="mt-3"
               label="Back to Game"
@@ -592,37 +1130,6 @@ export default function QuizScreen() {
         </Animated.View>
       )}
     </Screen>
-  );
-}
-
-/** Fisher-Yates: one uniform order per round, decided once. */
-function shuffleCards<T>(items: T[]): T[] {
-  const out = [...items];
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-}
-
-/** One result readout; the same ledger rhythm as the settings plates. */
-function ResultRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
-  return (
-    <View
-      className="flex-row items-center justify-between py-2.5"
-    >
-      <AppText variant="bodySm" tone="muted" className="flex-1">
-        {label}
-      </AppText>
-      <AppText
-        variant="bodySm"
-        weight="semibold"
-        className="ml-3"
-        style={{ fontVariant: ['tabular-nums'] }}
-      >
-        {value}
-      </AppText>
-    </View>
   );
 }
 

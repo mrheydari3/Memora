@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Animated } from 'react-native';
+import { View, Animated, Pressable, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
@@ -7,29 +7,34 @@ import { useReviewStore } from '../../store/useReviewStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { getSchedulerForDeck } from '../../data/schedulers';
 import { buildStudyQueue } from '../../data/session';
-import { RatingButtonRow } from '../../components/RatingButtonRow';
 import { FlashcardView } from '../../components/Flashcard';
 import {
   AppText,
   Screen,
   IconButton,
-  PrimaryButton,
   GhostButton,
   EmptyState,
+  TopAppBar,
 } from '../../components';
+import { StartButton, StudyRatings, TodayRail } from '../../components/v2';
 import {
   alpha,
   colors,
   fills,
-  glassFillAppBar,
+  glassFill,
   heights,
   iconSize,
-  layout,
   motion,
+  rims,
+  spacing,
+  stateColors,
 } from '../../theme/tokens';
+import { v2 } from '../../theme/v2';
 import { EASE, REVEAL_OPACITY_FLOOR, timingTo, useReveal } from '../../motion';
 import { speakCard, speak, stopSpeaking } from '../../services/tts';
 import type { Flashcard, FSRSLogSnapshot, Rating, RatingButtonLabel } from '../../data/types';
+
+type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
 /** Format a stability value (in days) for the memory-state chip. */
 function formatStability(days: number): string {
@@ -39,16 +44,26 @@ function formatStability(days: number): string {
   return `${Math.max(1, minutes)}m`;
 }
 
+/** 1811 → "1,811" without depending on Intl. */
+function formatCount(value: number): string {
+  return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 export default function StudyScreen() {
   const { deckId } = useLocalSearchParams<{ deckId: string }>();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const wide = width >= 900;
 
   const deck = useDeckStore((s) => s.decks.find((d) => d.id === deckId));
+  const cardsByDeck = useDeckStore((s) => s.cardsByDeck);
   const updateCard = useDeckStore((s) => s.updateCard);
   const logReview = useReviewStore((s) => s.logReview);
   const removeLastReview = useReviewStore((s) => s.removeLastReview);
   const reviewLog = useReviewStore((s) => s.reviewLog);
   const settings = useSettingsStore((s) => s.settings);
+
+  const deckCards = deck ? (cardsByDeck[deck.id] ?? []) : [];
 
   // Session queue
   const [queue, setQueue] = useState<Flashcard[]>([]);
@@ -269,120 +284,300 @@ export default function StudyScreen() {
     }
   };
 
-  const studyHeader = (right?: React.ReactNode, center?: React.ReactNode) => (
-    <View
-      className="flex-row items-center justify-between px-2"
-      style={[glassFillAppBar, { height: heights.appbar }]}
-    >
-      <IconButton icon="close" onPress={() => router.back()} accessibilityLabel="Close" />
-      {center ?? <View />}
-      {right ?? <View style={{ width: heights.icon }} />}
-    </View>
-  );
-
   if (!deck) {
     return (
-      <Screen>
-        <View className="flex-1 items-center justify-center px-6">
-          <AppText variant="body" tone="muted">
-            Deck not found
-          </AppText>
+      <Screen header={<TopAppBar title="Study" back />}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <EmptyState
+            icon="layers-clear"
+            title="Deck not found"
+            titleVariant="bodyLg"
+            description="Go back to your library and choose a deck."
+          />
         </View>
       </Screen>
     );
   }
 
+  const header = (
+    <TopAppBar
+      leftContent={
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <IconButton
+            icon="close"
+            onPress={() => router.back()}
+            accessibilityLabel="Close session"
+          />
+          <AppText
+            variant="bodyLg"
+            weight="semibold"
+            headingLevel={1}
+            numberOfLines={1}
+            style={{ flexShrink: 1 }}
+          >
+            Study
+          </AppText>
+        </View>
+      }
+      rightContent={
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginEnd: 4 }}>
+          <View
+            style={{
+              borderRadius: 100,
+              backgroundColor: fills.inset,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+            }}
+          >
+            <AppText variant="bodySm" weight="semibold" tone="muted">
+              {Math.min(index + 1, queue.length)} / {queue.length}
+            </AppText>
+          </View>
+          <IconButton
+            icon="undo"
+            onPress={undoLastReview}
+            disabled={!lastUndo}
+            accessibilityLabel="Undo last review"
+          />
+        </View>
+      }
+    />
+  );
+
   if (!currentCard) {
     return (
-      <Screen header={studyHeader()}>
-        <View className="flex-1 items-center justify-center px-8">
+      <Screen header={header}>
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 32,
+          }}
+        >
           <Animated.View style={doneReveal.style}>
-          <EmptyState
-            icon="check"
-            title="All done"
-            titleVariant="headline"
-            description="You have completed every due card in this deck."
-            action={
-              <View>
-                {lastUndo && (
-                  <GhostButton label="Undo last review" className="px-6" onPress={undoLastReview} />
-                )}
-                <GhostButton className="mt-3 px-6" label="Back to deck" onPress={() => router.back()} />
-              </View>
-            }
-          />
+            <EmptyState
+              icon="check"
+              title="All done"
+              titleVariant="headline"
+              description="You have completed every due card in this deck."
+              action={
+                <View>
+                  {lastUndo && (
+                    <GhostButton label="Undo last review" className="px-6" onPress={undoLastReview} />
+                  )}
+                  <GhostButton className="mt-3 px-6" label="Back to deck" onPress={() => router.back()} />
+                </View>
+              }
+            />
           </Animated.View>
         </View>
       </Screen>
     );
   }
 
-  return (
-    <Screen
-      header={studyHeader(
-        <IconButton
-          icon="undo"
-          onPress={undoLastReview}
-          disabled={!lastUndo}
-          accessibilityLabel="Undo last review"
-        />,
-        <View className="rounded-full px-3 py-1" style={{ backgroundColor: fills.inset }}>
-          <AppText variant="bodySm" weight="semibold" tone="muted">
-            {index + 1} / {queue.length}
+  const remaining = Math.max(0, queue.length - index);
+  const newCount = queue.filter((card) => card.fsrs.state === 'New').length;
+  const learningCount = queue.filter(
+    (card) => card.fsrs.state === 'Learning' || card.fsrs.state === 'Relearning'
+  ).length;
+  const reviewCount = queue.length - newCount - learningCount;
+
+  const sidePanel = (
+    <View
+      style={[
+        glassFill,
+        {
+          borderRadius: v2.radii.pane,
+          borderTopWidth: 1,
+          borderTopColor: rims.soft,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.outlineVariant,
+          padding: v2.spacing.panel,
+        },
+      ]}
+    >
+      <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
+        Today’s session
+      </AppText>
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 }}>
+        <View
+          style={{
+            width: heights.tileLg,
+            height: heights.tileLg,
+            borderRadius: v2.radii.card,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: alpha(deck.color, 0.16),
+          }}
+        >
+          <MaterialIcons name={deck.icon as IconName} size={iconSize.lg} color={deck.color} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <AppText variant="title" headingLevel={2} style={v2.type.headline} numberOfLines={2}>
+            {deck.name}
+          </AppText>
+          <AppText variant="caption" tone="muted" className="mt-1">
+            {formatCount(deckCards.length)} cards
           </AppText>
         </View>
-      )}
-    >
-      {/* Progress */}
-      <View style={{ height: 4, backgroundColor: fills.track }}>
-        <Animated.View
-          style={{
-            height: '100%',
-            minWidth: 6,
-            borderRadius: 2,
-            backgroundColor: colors.primary,
-            boxShadow: `0 0 12px ${alpha(colors.primary, 0.55)}`,
-            width: progressValue.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
-          }}
+      </View>
+
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'flex-end',
+          columnGap: 10,
+          marginTop: 20,
+        }}
+      >
+        <AppText variant="display" style={v2.type.display}>
+          {remaining}
+        </AppText>
+        <AppText variant="bodyLg" tone="muted" style={{ paddingBottom: 9 }}>
+          cards left
+        </AppText>
+      </View>
+      <AppText variant="bodySm" tone="muted">
+        in this session
+      </AppText>
+
+      <View style={{ marginTop: 20 }}>
+        <TodayRail
+          segments={[
+            { label: 'New', value: newCount, color: stateColors.New },
+            { label: 'Learning', value: learningCount, color: stateColors.Learning },
+            { label: 'Review', value: reviewCount, color: stateColors.Review },
+          ]}
         />
       </View>
 
-      {/* Card — capped to a readable column on wide screens. The wrapper owns
-          the exit, the flashcard owns the entrance and the turn. */}
-      <View className="w-full flex-1 self-center" style={{ maxWidth: layout.contentMaxWidth }}>
-        <Animated.View
-          style={{
-            flex: 1,
-            opacity: cardExit.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
-            transform: [
-              {
-                translateX: cardExit.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, exitShift.current],
-                }),
-              },
-              { scale: cardExit.interpolate({ inputRange: [0, 1], outputRange: [1, 0.985] }) },
-            ],
-          }}
+      <View
+        style={{
+          marginTop: 20,
+          paddingTop: 12,
+          borderTopWidth: 1,
+          borderTopColor: colors.outlineVariant,
+        }}
+      >
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="End session"
+          style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 }}
         >
-          <FlashcardView
-            card={currentCard}
-            showAnswer={showAnswer}
-            full
-            onSpeak={speakCurrentSide}
-            speakLabel={showAnswer ? 'Read answer aloud' : 'Read card aloud'}
+          <MaterialIcons name="logout" size={iconSize.md} color={colors.primary} />
+          <AppText variant="bodySm" weight="semibold" tone="accent">
+            End session
+          </AppText>
+        </Pressable>
+      </View>
+    </View>
+  );
+
+  const compactContext = (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 8,
+      }}
+    >
+      <View
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 12,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: alpha(deck.color, 0.16),
+        }}
+      >
+        <MaterialIcons name={deck.icon as IconName} size={iconSize.md} color={deck.color} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <AppText variant="bodySm" weight="semibold" headingLevel={2} numberOfLines={1}>
+          {deck.name}
+        </AppText>
+        <AppText variant="caption" tone="muted">
+          {formatCount(deckCards.length)} cards
+        </AppText>
+      </View>
+      <AppText variant="caption" weight="semibold" tone="muted">
+        {remaining} left
+      </AppText>
+    </View>
+  );
+
+  const cardStage = (
+    <View style={{ flex: 1, minWidth: 0 }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 4,
+          marginBottom: 6,
+        }}
+      >
+        <AppText variant="caption" tone="muted">
+          Card {index + 1} of {queue.length}
+        </AppText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: stateColors[currentCard.fsrs.state],
+            }}
           />
-        </Animated.View>
+          <AppText variant="caption" tone="muted">
+            {currentCard.fsrs.state}
+          </AppText>
+        </View>
       </View>
 
-      {/* Memory state — the standard way to confirm FSRS is actually driving
-          the schedule. Hidden for new cards, which have no state yet. */}
+      <Animated.View
+        style={{
+          flex: 1,
+          marginHorizontal: -spacing.screen,
+          opacity: cardExit.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+          transform: [
+            {
+              translateX: cardExit.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, exitShift.current],
+              }),
+            },
+            { scale: cardExit.interpolate({ inputRange: [0, 1], outputRange: [1, 0.985] }) },
+          ],
+        }}
+      >
+        <FlashcardView
+          card={currentCard}
+          showAnswer={showAnswer}
+          full
+          onSpeak={speakCurrentSide}
+          speakLabel={showAnswer ? 'Read answer aloud' : 'Read card aloud'}
+        />
+      </Animated.View>
+
       {showAnswer && memoryState && (
         <Animated.View style={memoryReveal.style}>
-          <View className="w-full self-center px-5 pb-1" style={{ maxWidth: layout.contentMaxWidth }}>
+          <View style={{ alignItems: 'center', paddingTop: 8 }}>
             <View
-              className="flex-row items-center justify-center gap-1.5 self-center rounded-full px-3 py-1"
-              style={{ backgroundColor: fills.inset }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                borderRadius: 100,
+                paddingHorizontal: 12,
+                paddingVertical: 4,
+                backgroundColor: fills.inset,
+              }}
             >
               <MaterialIcons name="memory" size={iconSize.xs} color={colors.outline} />
               <AppText variant="caption" weight="medium" tone="muted">
@@ -393,21 +588,16 @@ export default function StudyScreen() {
         </Animated.View>
       )}
 
-      {/* Footer — fixed height, so revealing the answer never resizes the card */}
       <View
-        className="w-full self-center px-5 pb-8"
         style={{
-          maxWidth: layout.contentMaxWidth,
-          height: heights.studyFooter,
+          minHeight: heights.studyFooter,
           justifyContent: 'center',
+          paddingVertical: 6,
         }}
       >
         {!showAnswer ? (
           <Animated.View
             style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              // The only action on the screen must be legible on its first frame.
               opacity: footerReveal.interpolate({
                 inputRange: [0, 1],
                 outputRange: [REVEAL_OPACITY_FLOOR, 1],
@@ -422,15 +612,55 @@ export default function StudyScreen() {
               ],
             }}
           >
-            <PrimaryButton
-              variant="quiet"
-              className="flex-1"
-              label="Show answer"
-              onPress={() => setShowAnswer(true)}
-            />
+            <StartButton label="Show answer" onPress={() => setShowAnswer(true)} />
           </Animated.View>
         ) : (
-          <RatingButtonRow labels={previews} onRate={handleRate} disabled={advancing} />
+          <StudyRatings
+            labels={previews}
+            onRate={handleRate}
+            disabled={advancing}
+            narrow={width < 360}
+          />
+        )}
+      </View>
+    </View>
+  );
+
+  return (
+    <Screen header={header}>
+      <View style={{ height: 4, backgroundColor: fills.track }}>
+        <Animated.View
+          style={{
+            height: '100%',
+            minWidth: 6,
+            borderRadius: 2,
+            backgroundColor: colors.primary,
+            width: progressValue.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+          }}
+        />
+      </View>
+
+      <View
+        style={{
+          flex: 1,
+          width: '100%',
+          maxWidth: v2.layout.contentMaxWidth,
+          alignSelf: 'center',
+          paddingHorizontal: 20,
+          paddingTop: 16,
+          paddingBottom: 16,
+        }}
+      >
+        {wide ? (
+          <View style={{ flex: 1, flexDirection: 'row', gap: 24 }}>
+            <View style={{ width: 300 }}>{sidePanel}</View>
+            <View style={{ flex: 1, minWidth: 0 }}>{cardStage}</View>
+          </View>
+        ) : (
+          <View style={{ flex: 1 }}>
+            {compactContext}
+            {cardStage}
+          </View>
         )}
       </View>
     </Screen>
