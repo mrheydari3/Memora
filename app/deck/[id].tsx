@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { View, Animated } from 'react-native';
-import type { ViewStyle } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, TextInput, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
 import { MaterialIcons } from '../../components/Icon';
@@ -12,39 +11,35 @@ import {
   alpha,
   colors,
   fills,
+  glassFill,
   heights,
   iconSize,
-  motion,
-  spacing,
+  rims,
   stateColors,
 } from '../../theme/tokens';
-import { useReveal } from '../../motion';
+import { v2 } from '../../theme/v2';
 import {
   AppText,
-  Screen,
-  TopAppBar,
-  GlassCard,
-  SectionHeader,
-  SearchBar,
-  PrimaryButton,
-  CardStack,
-  BottomSheetModal,
-  SheetScrollView,
-  SegmentedProgressBar,
-  SegmentedControl,
-  EmptyState,
-  ListRow,
-  Field,
-  Pill,
   Button,
+  BottomSheetModal,
+  EmptyState,
+  Field,
   HeroSkeleton,
   DeckCardGridSkeleton,
+  ListRow,
+  Pill,
+  PrimaryButton,
+  RevealItem,
+  Screen,
+  SheetScrollView,
+  TopAppBar,
 } from '../../components';
+import { StartButton, TodayRail } from '../../components/v2';
 import type { Flashcard } from '../../data/types';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 type SortMode = 'created' | 'alpha' | 'due';
-type FilterMode = 'all' | 'new' | 'learning' | 'mastered';
+type FilterMode = 'all' | 'new' | 'learning' | 'review';
 
 /** Destructive actions run only after the user confirms them in a sheet. */
 type ConfirmAction =
@@ -58,28 +53,28 @@ const SORT_LABELS: Record<SortMode, string> = {
   due: 'Due',
 };
 
-const FILTER_LABELS: Record<FilterMode, string> = {
-  all: 'All',
-  new: 'New',
-  learning: 'Learning',
-  mastered: 'Mastered',
-};
-
-const FILTER_CYCLE: FilterMode[] = ['all', 'new', 'learning', 'mastered'];
 const SORT_CYCLE: SortMode[] = ['created', 'alpha', 'due'];
+
+const FILTERS: { key: FilterMode; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'new', label: 'New' },
+  { key: 'learning', label: 'Learning' },
+  { key: 'review', label: 'Review' },
+];
+
+const CARD_LIMIT = 8;
 
 /** 1811 → "1,811" without depending on Intl being present on the runtime. */
 function formatCount(value: number): string {
   return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-/** The gap between the controls strip and the top of the gallery. */
-const HEADER_SPACER: ViewStyle = { paddingBottom: 12 };
-const EMPTY_WRAPPER: ViewStyle = { paddingHorizontal: spacing.screen };
-
 export default function DeckDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const wide = width >= 900;
+
   const deck = useDeckStore((s) => s.decks.find((d) => d.id === id));
   const loaded = useDeckStore((s) => s.loaded);
   const deleteCard = useDeckStore((s) => s.deleteCard);
@@ -98,9 +93,8 @@ export default function DeckDetailsScreen() {
   const [sortMode, setSortMode] = useState<SortMode>('created');
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [query, setQuery] = useState('');
-  const [searchOpen, setSearchOpen] = useState(false);
-  /** Index into the filtered cards — the gallery's current page. */
-  const [cardIndex, setCardIndex] = useState(0);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   // Subscribe to the card map and review log so the list and counts stay live
   // after adding, deleting, resetting or reviewing a card.
@@ -126,59 +120,34 @@ export default function DeckDetailsScreen() {
       (filterMode === 'new' && card.fsrs.state === 'New') ||
       (filterMode === 'learning' &&
         (card.fsrs.state === 'Learning' || card.fsrs.state === 'Relearning')) ||
-      (filterMode === 'mastered' && card.fsrs.state === 'Review');
+      (filterMode === 'review' && card.fsrs.state === 'Review');
     return matchesQuery && matchesFilter;
   });
 
-  // A new order, filter or search starts the gallery at its first card.
-  useEffect(() => {
-    setCardIndex(0);
-  }, [sortMode, filterMode, query]);
-
-  const newCards = deckCards.filter((c) => c.fsrs.state === 'New').length;
-  const learningCards = deckCards.filter(
-    (c) => c.fsrs.state === 'Learning' || c.fsrs.state === 'Relearning'
-  ).length;
-  const masteredCards = deckCards.filter((c) => c.fsrs.state === 'Review').length;
-
   // Same calculation as the study session, so "Today's queue" is exactly the
   // number of cards the session will contain (respecting the daily caps).
-  const totalDue = deck ? buildStudyQueue(deck, deckCards, reviewLog).total : 0;
+  const queue = useMemo(
+    () => (deck ? buildStudyQueue(deck, deckCards, reviewLog) : null),
+    [deck, deckCards, reviewLog]
+  );
 
-  // The card menu is addressed by id, which keeps the gallery callback stable.
+  // A new order, filter or search starts the browser at its first cards.
+  useEffect(() => {
+    setExpandedId(null);
+    setShowAll(false);
+  }, [sortMode, filterMode, query]);
+
+  // The card menu is addressed by id, which keeps the row callback stable.
   const cardMenuCard = cardMenuId ? (deckCards.find((c) => c.id === cardMenuId) ?? null) : null;
   const openCardMenu = useCallback((card: Flashcard) => setCardMenuId(card.id), []);
   const closeCardMenu = useCallback(() => setCardMenuId(null), []);
-
-  // The displayed page, clamped when a card is deleted or filtered away.
-  const galleryIndex = visibleCards.length === 0 ? 0 : Math.min(cardIndex, visibleCards.length - 1);
-  const galleryCard = visibleCards[galleryIndex];
-  const showPreviousCard = useCallback(
-    () => setCardIndex(Math.max(0, galleryIndex - 1)),
-    [galleryIndex]
-  );
-  const showNextCard = useCallback(
-    () => setCardIndex(Math.min(visibleCards.length - 1, galleryIndex + 1)),
-    [galleryIndex, visibleCards.length]
-  );
-
-  // Motion: the page settles in on open, and the gallery re-reveals whenever its
-  // order or filter changes — it never snaps from one arrangement to another.
-  const identityReveal = useReveal('identity', { distance: 10 });
-  const heroReveal = useReveal('hero', { delay: 60, distance: 14 });
-  const controlsReveal = useReveal('controls', { delay: 120, distance: 10 });
-  const searchReveal = useReveal(searchOpen, { duration: motion.base, distance: 0 });
-  const galleryReveal = useReveal(`${sortMode}:${filterMode}`, {
-    duration: motion.base,
-    distance: 0,
-  });
 
   // The store hydrates asynchronously: until it has, "Deck not found" would be a
   // lie for a deck that is about to load. Show the page's shape instead.
   if (!deck && !loaded) {
     return (
       <Screen header={<TopAppBar title="Deck" back />}>
-        <View className="flex-1" style={{ paddingHorizontal: spacing.screen, paddingTop: spacing.screen }}>
+        <View className="flex-1" style={{ paddingHorizontal: 20, paddingTop: 20 }}>
           <HeroSkeleton height={150} />
           <View className="mt-6">
             <DeckCardGridSkeleton count={1} />
@@ -202,6 +171,29 @@ export default function DeckDetailsScreen() {
       </Screen>
     );
   }
+
+  const totalDue = queue?.total ?? 0;
+  const newDue = queue?.newCards.length ?? 0;
+  const learningDue =
+    queue?.dueCards.filter(
+      (card) => card.fsrs.state === 'Learning' || card.fsrs.state === 'Relearning'
+    ).length ?? 0;
+  const reviewDue = (queue?.dueCards.length ?? 0) - learningDue;
+
+  const cardsEmpty = deckCards.length === 0;
+  const filtered = query.trim().length > 0 || filterMode !== 'all';
+  const shown = showAll ? visibleCards : visibleCards.slice(0, CARD_LIMIT);
+  const sortLabel = SORT_LABELS[sortMode];
+
+  const clearFilters = () => {
+    setQuery('');
+    setFilterMode('all');
+  };
+
+  const cycleSort = () => {
+    const index = SORT_CYCLE.indexOf(sortMode);
+    setSortMode(SORT_CYCLE[(index + 1) % SORT_CYCLE.length]);
+  };
 
   const openRename = () => {
     setNameDraft(deck.name);
@@ -258,187 +250,357 @@ export default function DeckDetailsScreen() {
     router.replace('/(tabs)/home');
   };
 
-  const cardsEmpty = deckCards.length === 0;
-  const filtered = visibleCards.length !== deckCards.length;
-
-  // Everything above the gallery: identity, queue instrument, card controls.
-  // The page owns the scroll, so the gallery sits in normal flow below this.
-  const listHeader = (
-    <View style={HEADER_SPACER}>
-      {/* Deck identity — the tile, title and meta row of the deck's own card in
-          the library, so the pane you tapped and the page you land on match. */}
-      <View className="px-5">
-        <Animated.View style={identityReveal.style}>
-        <View className="flex-row items-center">
-          <View
-            className="mr-3 items-center justify-center rounded-md"
-            style={{
-              width: heights.tileLg,
-              height: heights.tileLg,
-              backgroundColor: alpha(deck.color, 0.16),
-            }}
-          >
-            <MaterialIcons name={deck.icon as IconName} size={iconSize.lg} color={deck.color} />
-          </View>
-          <AppText variant="title" className="flex-1" numberOfLines={2}>
-            {deck.name}
-          </AppText>
-        </View>
-
-        <View className="mt-2 flex-row items-center gap-1.5">
-          <MaterialIcons name="style" size={iconSize.sm} color={colors.outline} />
-          <AppText variant="bodySm" weight="medium" tone="muted">
-            {formatCount(deckCards.length)} cards
-          </AppText>
-          {deck.archivedAt ? <Pill label="Archived" tone="warning" className="ml-1" /> : null}
-        </View>
-        </Animated.View>
+  const identity = (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+      <View
+        style={{
+          width: heights.tileLg,
+          height: heights.tileLg,
+          borderRadius: v2.radii.card,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: alpha(deck.color, 0.16),
+        }}
+      >
+        <MaterialIcons name={deck.icon as IconName} size={iconSize.lg} color={deck.color} />
       </View>
 
-      {/* Today's session — the same accent instrument as the home hero: one
-          number, the deck's mastery rail and the one action that follows. */}
-      <View className="mt-6 px-5">
-        <Animated.View style={heroReveal.style}>
-        <GlassCard tone="accent">
-          <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
-            Today&apos;s queue
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <AppText variant="title" headingLevel={2} style={v2.type.title} numberOfLines={2}>
+          {deck.name}
+        </AppText>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 8,
+            marginTop: 4,
+          }}
+        >
+          <AppText variant="caption" tone="muted">
+            {formatCount(deckCards.length)} cards ·{' '}
+            {totalDue > 0 ? `${totalDue} due` : 'caught up'}
           </AppText>
-          <AppText variant="display" className="mt-1">
-            {totalDue}
-          </AppText>
-          <AppText variant="bodySm" tone="muted" className="mt-1">
-            {totalDue > 0
-              ? 'cards due in this deck'
-              : 'Nothing due — you are all caught up'}
-          </AppText>
-
-          <SegmentedProgressBar
-            className="mt-4"
-            height={8}
-            gap={3}
-            segments={[
-              { value: newCards, color: stateColors.New },
-              { value: learningCards, color: stateColors.Learning },
-              { value: masteredCards, color: stateColors.Review },
-            ]}
-          />
-
-          {/* Three equal columns, so a 360px phone never squeezes the legend. */}
-          <View className="mt-3 flex-row items-start">
-            <LegendItem color={stateColors.New} value={newCards} label="New" />
-            <LegendItem color={stateColors.Learning} value={learningCards} label="Learning" />
-            <LegendItem color={stateColors.Review} value={masteredCards} label="Mastered" />
-          </View>
-
-          <PrimaryButton
-            className="mt-5"
-            label="Start session"
-            icon={totalDue > 0 ? 'play-arrow' : undefined}
-            disabled={totalDue === 0}
-            onPress={() => pushOnce(router, `/study/${deck.id}`)}
-          />
-        </GlassCard>
-        </Animated.View>
-      </View>
-
-      {/* Cards */}
-      <View className="mt-8 px-5">
-        <Animated.View style={controlsReveal.style}>
-        <SectionHeader
-          label="Cards"
-          hint={
-            filtered
-              ? `${formatCount(visibleCards.length)} of ${formatCount(deckCards.length)}`
-              : undefined
-          }
-        />
-
-        {searchOpen && (
-          <View className="mt-3">
-            <Animated.View style={searchReveal.style}>
-              <SearchBar value={query} onChangeText={setQuery} placeholder="Search cards" />
-            </Animated.View>
-          </View>
-        )}
-
-        {/* Order and filter read as one control, not two unrelated pills. */}
-        <SegmentedControl
-          className="mt-3"
-          appearance="plain"
-          divider
-          segments={[
-            {
-              key: 'sort',
-              label: SORT_LABELS[sortMode],
-              icon: 'sort',
-              trailingIcon: 'unfold-more',
-              onPress: () =>
-                setSortMode(
-                  SORT_CYCLE[(SORT_CYCLE.indexOf(sortMode) + 1) % SORT_CYCLE.length]
-                ),
-            },
-            {
-              key: 'filter',
-              label: FILTER_LABELS[filterMode],
-              icon: 'tune',
-              trailingIcon: 'unfold-more',
-              active: filterMode !== 'all',
-              onPress: () =>
-                setFilterMode(
-                  FILTER_CYCLE[(FILTER_CYCLE.indexOf(filterMode) + 1) % FILTER_CYCLE.length]
-                ),
-            },
-          ]}
-        />
-        </Animated.View>
+          {deck.archivedAt ? <Pill label="Archived" tone="warning" /> : null}
+        </View>
       </View>
     </View>
   );
 
-  const listEmpty = (
-    <Animated.View style={galleryReveal.style}>
-    <View style={EMPTY_WRAPPER}>
-      <GlassCard>
-        <EmptyState
-          icon={cardsEmpty ? 'note-add' : 'search-off'}
-          title={cardsEmpty ? 'No cards yet' : 'Nothing matches'}
-          description={
-            cardsEmpty
-              ? 'Add your first card to start studying this deck.'
-              : 'Try a different search or filter.'
-          }
-          action={
-            cardsEmpty ? (
-              <Button
-                variant="outline"
-                size="md"
-                label="Add cards"
-                icon="add"
-                onPress={() => pushOnce(router, `/deck/${deck.id}/add-card`)}
-              />
-            ) : undefined
-          }
-        />
-      </GlassCard>
+  const hero = (
+    <View
+      testID="deck-hero"
+      style={[
+        glassFill,
+        {
+          borderRadius: v2.radii.pane,
+          borderTopWidth: 1,
+          borderTopColor: rims.soft,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.outlineVariant,
+          overflow: 'hidden',
+        },
+      ]}
+    >
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: alpha(colors.primary, 0.06),
+        }}
+      />
+
+      <View style={{ padding: v2.spacing.panel }}>
+        <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
+          Today’s queue
+        </AppText>
+
+        <View
+          className="flex-row flex-wrap items-end"
+          style={{ columnGap: 12, rowGap: 2, marginTop: 2 }}
+        >
+          <AppText
+            variant="display"
+            style={v2.type.display}
+            accessibilityLabel={`${totalDue} cards due in this deck`}
+          >
+            {totalDue}
+          </AppText>
+          <AppText variant="bodyLg" tone="muted" style={{ paddingBottom: 9 }}>
+            cards due
+          </AppText>
+        </View>
+
+        <AppText variant="body" tone="muted" className="mt-1">
+          {totalDue > 0 ? 'in this deck today' : 'Nothing due — you are all caught up'}
+        </AppText>
+
+        <View style={{ marginTop: 20 }}>
+          <StartButton
+            label={totalDue > 0 ? 'Start session' : 'Nothing due today'}
+            disabled={totalDue === 0}
+            onPress={() => pushOnce(router, `/study/${deck.id}`)}
+          />
+        </View>
+
+        {totalDue > 0 && (
+          <View style={{ marginTop: 20 }}>
+            <TodayRail
+              segments={[
+                { label: 'New', value: newDue, color: stateColors.New },
+                { label: 'Learning', value: learningDue, color: stateColors.Learning },
+                { label: 'Review', value: reviewDue, color: stateColors.Review },
+              ]}
+            />
+          </View>
+        )}
+      </View>
     </View>
-    </Animated.View>
+  );
+
+  const cardsSection = (
+    <View>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
+        <AppText variant="headline" headingLevel={2} style={v2.type.headline}>
+          Cards
+        </AppText>
+        <AppText variant="caption" tone="muted">
+          {filtered
+            ? `${formatCount(visibleCards.length)} of ${formatCount(deckCards.length)}`
+            : `${formatCount(deckCards.length)} cards`}
+        </AppText>
+      </View>
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 }}>
+        <View
+          style={{
+            flex: 1,
+            minHeight: 48,
+            borderRadius: 100,
+            backgroundColor: fills.control,
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 14,
+            gap: 8,
+          }}
+        >
+          <MaterialIcons name="search" size={iconSize.md} color={colors.outline} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search cards"
+            placeholderTextColor={colors.onSurfaceVariant}
+            selectionColor={colors.primary}
+            accessibilityLabel="Search cards"
+            autoCorrect={false}
+            style={{
+              flex: 1,
+              minHeight: 24,
+              color: colors.onSurface,
+              fontSize: 15,
+              paddingVertical: 0,
+            }}
+          />
+        </View>
+
+        <Pressable
+          onPress={cycleSort}
+          accessibilityRole="button"
+          accessibilityLabel={`Sort cards: ${sortLabel}`}
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 100,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: fills.control,
+          }}
+        >
+          <MaterialIcons name="sort" size={iconSize.md} color={colors.onSurface} />
+        </Pressable>
+      </View>
+
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+        {FILTERS.map((entry) => {
+          const active = filterMode === entry.key;
+          return (
+            <Pressable
+              key={entry.key}
+              onPress={() => setFilterMode(entry.key)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              style={{
+                minWidth: 44,
+                minHeight: 44,
+                borderRadius: 100,
+                paddingHorizontal: 14,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: active ? colors.primaryContainer : fills.control,
+              }}
+            >
+              <AppText
+                variant="bodySm"
+                weight="semibold"
+                style={{ color: active ? colors.onPrimaryContainer : colors.onSurfaceVariant }}
+              >
+                {entry.label}
+              </AppText>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <View style={{ marginTop: 14, gap: 8 }}>
+        {visibleCards.length === 0 ? (
+          <EmptyState
+            icon={cardsEmpty ? 'note-add' : 'search-off'}
+            title={cardsEmpty ? 'No cards yet' : 'Nothing matches'}
+            description={
+              cardsEmpty
+                ? 'Add your first card to start studying this deck.'
+                : 'Try a different search or filter.'
+            }
+            action={
+              cardsEmpty ? (
+                <Button
+                  variant="outline"
+                  size="md"
+                  label="Add cards"
+                  icon="add"
+                  onPress={() => pushOnce(router, `/deck/${deck.id}/add-card`)}
+                />
+              ) : (
+                <Button variant="text" size="md" label="Clear filters" onPress={clearFilters} />
+              )
+            }
+          />
+        ) : (
+          shown.map((card) => {
+            const expanded = expandedId === card.id;
+            return (
+              <View
+                key={card.id}
+                style={{
+                  minHeight: 64,
+                  borderRadius: 18,
+                  backgroundColor: fills.inset,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
+                <Pressable
+                  testID="deck-card-row"
+                  onPress={() => setExpandedId(expanded ? null : card.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded }}
+                  aria-expanded={expanded}
+                  accessibilityHint={expanded ? 'Hide the back' : 'Show the back'}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    minHeight: 64,
+                    paddingLeft: 14,
+                    paddingRight: 4,
+                    paddingVertical: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 10,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: stateColors[card.fsrs.state],
+                    }}
+                  />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <AppText
+                      variant="body"
+                      weight="semibold"
+                      numberOfLines={expanded ? undefined : 1}
+                      style={{ writingDirection: card.front.direction }}
+                    >
+                      {card.front.text}
+                    </AppText>
+                    <AppText
+                      variant="caption"
+                      tone="muted"
+                      align="left"
+                      style={{ marginTop: 2, writingDirection: card.back.direction }}
+                      numberOfLines={expanded ? undefined : 1}
+                    >
+                      {card.back.text}
+                    </AppText>
+                  </View>
+                  <AppText variant="caption" tone="muted">
+                    {card.fsrs.state}
+                  </AppText>
+                  <MaterialIcons
+                    name={expanded ? 'expand-less' : 'expand-more'}
+                    size={iconSize.md}
+                    color={colors.outline}
+                  />
+                </Pressable>
+
+                <Pressable
+                  onPress={() => openCardMenu(card)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`More options for ${card.front.text}`}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    marginRight: 4,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <MaterialIcons name="more-vert" size={iconSize.md} color={colors.outline} />
+                </Pressable>
+              </View>
+            );
+          })
+        )}
+      </View>
+
+      {visibleCards.length > CARD_LIMIT && (
+        <Pressable
+          onPress={() => setShowAll((value) => !value)}
+          accessibilityRole="button"
+          style={{ minHeight: 44, justifyContent: 'center', marginTop: 4 }}
+        >
+          <AppText variant="caption" weight="semibold" tone="accent">
+            {showAll ? 'Show fewer' : `Show all ${formatCount(visibleCards.length)} cards`}
+          </AppText>
+        </Pressable>
+      )}
+    </View>
   );
 
   return (
     <Screen
+      scroll
+      gutter
+      contentMaxWidth={v2.layout.contentMaxWidth}
       header={
         <TopAppBar
           title="Deck"
           back
           actions={[
-            {
-              icon: searchOpen ? 'search-off' : 'search',
-              accessibilityLabel: searchOpen ? 'Close search' : 'Search cards',
-              onPress: () => {
-                setSearchOpen((open) => !open);
-                if (searchOpen) setQuery('');
-              },
-            },
             {
               icon: 'add',
               accessibilityLabel: 'Add cards',
@@ -452,26 +614,29 @@ export default function DeckDetailsScreen() {
           ]}
         />
       }
-      scroll
     >
-      {listHeader}
+      <View style={{ marginTop: v2.spacing.section, paddingBottom: 48 }}>
+        <View
+          style={
+            wide
+              ? { flexDirection: 'row', alignItems: 'flex-start', gap: 32 }
+              : undefined
+          }
+        >
+          <View style={wide ? { width: v2.layout.heroMeasure } : undefined}>
+            <RevealItem index={0}>{identity}</RevealItem>
+            <RevealItem index={1}>
+              <View style={{ marginTop: 20 }}>{hero}</View>
+            </RevealItem>
+          </View>
 
-      {galleryCard ? (
-        <Animated.View style={[galleryReveal.style, { paddingHorizontal: spacing.screen }]}>
-          <CardStack
-            card={galleryCard}
-            previous={visibleCards[galleryIndex - 1]}
-            next={visibleCards[galleryIndex + 1]}
-            position={galleryIndex + 1}
-            total={visibleCards.length}
-            onPrevious={showPreviousCard}
-            onNext={showNextCard}
-            onMenu={openCardMenu}
-          />
-        </Animated.View>
-      ) : (
-        listEmpty
-      )}
+          <View
+            style={wide ? { flex: 1, minWidth: 0 } : { marginTop: v2.spacing.section }}
+          >
+            <RevealItem index={2}>{cardsSection}</RevealItem>
+          </View>
+        </View>
+      </View>
 
       {/* Deck options sheet */}
       <BottomSheetModal
@@ -571,7 +736,10 @@ export default function DeckDetailsScreen() {
             const cardId = cardMenuCard?.id;
             closeCardMenu();
             if (cardId)
-              pushOnce(router, { pathname: '/deck/[id]/add-card', params: { id: deck.id, editCardId: cardId } });
+              pushOnce(router, {
+                pathname: '/deck/[id]/add-card',
+                params: { id: deck.id, editCardId: cardId },
+              });
           }}
         />
         <SheetRow
@@ -601,10 +769,10 @@ export default function DeckDetailsScreen() {
         }
         subtitle={
           confirmAction?.kind === 'reset'
-            ? 'Every card returns to new and this deck\u2019s review history is removed. The cards themselves stay.'
+            ? 'Every card returns to new and this deck’s review history is removed. The cards themselves stay.'
             : confirmAction?.kind === 'delete-card'
-              ? `\u201c${confirmAction.front}\u201d will be removed along with its review history.`
-              : `\u201c${deck.name}\u201d and all of its cards will be deleted. This cannot be undone.`
+              ? `“${confirmAction.front}” will be removed along with its review history.`
+              : `“${deck.name}” and all of its cards will be deleted. This cannot be undone.`
         }
       >
         <View className="gap-3">
@@ -627,36 +795,6 @@ export default function DeckDetailsScreen() {
   );
 }
 
-/**
- * The statistics legend at deck scale: a 10px state dot, the count and the
- * state's name, in a column so three of them share the pane at any width.
- */
-function LegendItem({ color, value, label }: { color: string; value: number; label: string }) {
-  return (
-    <View className="flex-1">
-      <View className="flex-row items-center">
-        <View
-          className="h-2.5 w-2.5 rounded-full"
-          style={{ backgroundColor: color, opacity: value > 0 ? 1 : 0.3 }}
-        />
-        <AppText variant="bodySm" weight="semibold" className="ml-2">
-          {formatCount(value)}
-        </AppText>
-      </View>
-      <AppText
-        variant="caption"
-        weight="medium"
-        tone="muted"
-        className="mt-0.5 uppercase"
-        style={{ marginLeft: spacing.legendIndent }}
-      >
-        {label}
-      </AppText>
-    </View>
-  );
-}
-
-/** One row of every sheet on this screen: bare icon, label, 52px minimum. */
 /**
  * One option inside a sheet: a soft tile with its glyph, its label and — for a
  * destructive action — a warmer weight.
