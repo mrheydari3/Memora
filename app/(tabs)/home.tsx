@@ -1,45 +1,71 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
-import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
 import { buildStudyQueue } from '../../data/session';
 import { computeStreak } from '../../data/streak';
 import { folderDeckCount } from '../../data/folders';
+import type { Deck } from '../../data/types';
 import {
   AppText,
+  BottomSheetModal,
+  Chip,
+  DeckShelfSkeleton,
+  EmptyState,
+  Field,
+  GlassCard,
+  HeroSkeleton,
+  IconButton,
+  ListRow,
+  PrimaryButton,
+  RevealItem,
   Screen,
   TopAppBar,
-  GlassCard,
-  SectionHeader,
-  PrimaryButton,
-  EmptyState,
-  RevealItem,
-  HeroSkeleton,
-  DeckShelfSkeleton,
-  ProgressRail,
-  DeckLibrary,
-  BottomSheetModal,
-  Field,
-  ListRow,
-  IconButton,
 } from '../../components';
-import { alpha, colors, heights, iconSize, layout, spacing } from '../../theme/tokens';
+import { MaterialIcons } from '../../components/Icon';
+import { DeckRow, TodayHero } from '../../components/v2';
+import { colors, heights, iconSize } from '../../theme/tokens';
+import { v2 } from '../../theme/v2';
 
+type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
+
+type DeckQueue = {
+  deck: Deck;
+  cardCount: number;
+  total: number;
+  /** Studied share, 0–1. */
+  progress: number;
+  newCount: number;
+  learningCount: number;
+  reviewCount: number;
+};
+
+/**
+ * Home — design v2, "Today first".
+ *
+ * The page answers "what do I study now?" before "what do I own?": the due
+ * number is the h1 on the canvas, one primary action opens the session, and the
+ * day's new/learning/review split sits underneath. The library is a shelf of
+ * deck covers, filtered by the same folders the tree used.
+ *
+ * Every number is real: `buildStudyQueue` is the same helper the study session
+ * uses, so the due count on the button is the number of cards the session will
+ * actually show, daily caps included. The old tree, folder sheet, streak and
+ * add-deck action are all still here.
+ */
 export default function HomeScreen() {
   const router = useRouter();
+
   const decks = useDeckStore((s) => s.decks);
-  // Subscribing to the card map keeps the due counts live after a session or
-  // when cards are added/deleted; reading it via getState() made them stale.
   const cardsByDeck = useDeckStore((s) => s.cardsByDeck);
   const loaded = useDeckStore((s) => s.loaded);
-  const reviewLog = useReviewStore((s) => s.reviewLog);
-  const reviewLoaded = useReviewStore((s) => s.loaded);
   const folders = useDeckStore((s) => s.folders);
   const addFolder = useDeckStore((s) => s.addFolder);
   const deleteFolder = useDeckStore((s) => s.deleteFolder);
+  const reviewLog = useReviewStore((s) => s.reviewLog);
+  const reviewLoaded = useReviewStore((s) => s.loaded);
 
   useEffect(() => {
     if (!loaded) useDeckStore.getState().load();
@@ -53,10 +79,13 @@ export default function HomeScreen() {
   const [folderSheet, setFolderSheet] = useState(false);
   const [folderDraft, setFolderDraft] = useState('');
   const [folderError, setFolderError] = useState<string | null>(null);
+  const [folderFilter, setFolderFilter] = useState<string | null>(null);
+
   const activeDeckIds = useMemo(
     () => new Set(decks.filter((deck) => !deck.archivedAt).map((deck) => deck.id)),
     [decks]
   );
+
   const streak = useMemo(
     () =>
       computeStreak(
@@ -66,14 +95,18 @@ export default function HomeScreen() {
   );
 
   // One queue per active deck, using the same helper as the study session so
-  // the numbers agree with what the session will actually show. Progress is
-  // the share of cards that have been studied at least once.
-  const deckQueues = useMemo(
+  // the numbers agree with what the session will actually show. The new /
+  // learning / review split is the queue's own composition, not an estimate.
+  const deckQueues = useMemo<DeckQueue[]>(
     () =>
       decks
         .filter((deck) => !deck.archivedAt)
         .map((deck) => {
           const cards = cardsByDeck[deck.id] ?? [];
+          const queue = buildStudyQueue(deck, cards, reviewLog);
+          const learningCount = queue.dueCards.filter(
+            (card) => card.fsrs.state === 'Learning' || card.fsrs.state === 'Relearning'
+          ).length;
           const studied = cards.reduce(
             (count, card) => count + (card.fsrs.last_review != null ? 1 : 0),
             0
@@ -81,20 +114,34 @@ export default function HomeScreen() {
           return {
             deck,
             cardCount: cards.length,
-            total: buildStudyQueue(deck, cards, reviewLog).total,
+            total: queue.total,
             progress: cards.length > 0 ? studied / cards.length : 0,
+            newCount: queue.newCards.length,
+            learningCount,
+            reviewCount: queue.dueCards.length - learningCount,
           };
         }),
     [decks, cardsByDeck, reviewLog]
   );
 
-  // What the section header can actually tell you: how many cards are waiting
-  // across the whole library, instead of repeating the deck count of the pane
-  // below it.
   const totalDue = useMemo(
     () => deckQueues.reduce((sum, entry) => sum + entry.total, 0),
     [deckQueues]
   );
+  const newTotal = useMemo(
+    () => deckQueues.reduce((sum, entry) => sum + entry.newCount, 0),
+    [deckQueues]
+  );
+  const learningTotal = useMemo(
+    () => deckQueues.reduce((sum, entry) => sum + entry.learningCount, 0),
+    [deckQueues]
+  );
+  const reviewTotal = useMemo(
+    () => deckQueues.reduce((sum, entry) => sum + entry.reviewCount, 0),
+    [deckQueues]
+  );
+  const dueDecks = deckQueues.filter((entry) => entry.total > 0).length;
+  const minutes = Math.max(1, Math.round(totalDue / 4));
 
   const lastStudiedDeckId = useMemo(() => {
     let latest: { deckId: string; reviewedAt: number } | null = null;
@@ -114,88 +161,158 @@ export default function HomeScreen() {
     lastStudiedEntry ??
     deckQueues[0];
   const resuming = Boolean(lastStudiedEntry && continueEntry?.deck.id === lastStudiedEntry.deck.id);
-  const continueDue = continueEntry?.total ?? 0;
-  const continuePercent = continueEntry ? Math.round(continueEntry.progress * 100) : 0;
-  const continuePercentLabel =
-    continueEntry && continueEntry.progress > 0 && continuePercent === 0
-      ? '<1%'
-      : `${continuePercent}%`;
+
+  // A filter that points at a deleted folder falls back to All decks instead of
+  // hiding the whole shelf.
+  const activeFolder = useMemo(
+    () => (folderFilter && folders.some((folder) => folder.id === folderFilter) ? folderFilter : null),
+    [folderFilter, folders]
+  );
+  const folderNameById = useMemo(
+    () => new Map(folders.map((folder) => [folder.id, folder.name])),
+    [folders]
+  );
+  const visibleDecks = useMemo(
+    () => (activeFolder ? deckQueues.filter((entry) => entry.deck.folderId === activeFolder) : deckQueues),
+    [deckQueues, activeFolder]
+  );
+
+  const header = (
+    <TopAppBar
+      leftContent={
+        <View className="flex-1 flex-row items-center" style={{ gap: 8, paddingStart: 8 }}>
+          <MaterialIcons name="blur-on" size={iconSize.lg} color={colors.primary} />
+          <AppText variant="bodyLg" weight="semibold">
+            Memora
+          </AppText>
+        </View>
+      }
+      rightContent={
+        <View className="flex-row items-center" style={{ gap: 6, marginEnd: 6 }}>
+          <MaterialIcons
+            name="local-fire-department"
+            size={iconSize.sm}
+            color={streak > 0 ? colors.warning : colors.outline}
+          />
+          <AppText variant="bodySm" weight="semibold">
+            {streak}
+          </AppText>
+          <AppText variant="caption" tone="muted" numberOfLines={1}>
+            {streak === 1 ? 'day' : 'days'}
+          </AppText>
+        </View>
+      }
+      actions={[
+        {
+          icon: 'add',
+          accessibilityLabel: 'Add deck',
+          onPress: () => pushOnce(router, '/add-deck'),
+        },
+      ]}
+    />
+  );
+
+  const decksSection = (
+    <View>
+      <View className="flex-row items-center justify-between" style={{ gap: 12 }}>
+        <AppText variant="title" headingLevel={2} style={v2.type.title}>
+          Your decks
+        </AppText>
+        <Pressable
+          onPress={() => setFolderSheet(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Manage folders"
+          style={{
+            minHeight: heights.hit,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+          }}
+        >
+          <MaterialIcons name="folder" size={iconSize.md} color={colors.primary} />
+          <AppText variant="bodySm" weight="semibold" tone="accent">
+            Folders
+          </AppText>
+        </Pressable>
+      </View>
+
+      <AppText variant="caption" tone="muted" className="mt-1">
+        {deckQueues.length} {deckQueues.length === 1 ? 'deck' : 'decks'}
+        {' · '}
+        {totalDue > 0 ? `${totalDue} due` : 'caught up'}
+      </AppText>
+
+      {folders.length > 0 && (
+        <View className="mt-3 flex-row flex-wrap" style={{ gap: 8 }}>
+          <Chip
+            label="All decks"
+            active={activeFolder === null}
+            onPress={() => setFolderFilter(null)}
+          />
+          {folders.map((folder) => (
+            <Chip
+              key={folder.id}
+              label={folder.name}
+              accessibilityLabel={`Folder ${folder.name}`}
+              active={activeFolder === folder.id}
+              onPress={() => setFolderFilter(folder.id)}
+            />
+          ))}
+        </View>
+      )}
+
+      <View style={{ marginTop: v2.spacing.block, gap: v2.spacing.card }}>
+        {visibleDecks.length === 0 ? (
+          <AppText variant="body" tone="muted">
+            {activeFolder
+              ? 'No decks in this folder yet. Move one in from the deck’s options.'
+              : 'No decks yet.'}
+          </AppText>
+        ) : (
+          visibleDecks.map((entry) => (
+            <DeckRow
+              key={entry.deck.id}
+              name={entry.deck.name}
+              icon={entry.deck.icon as IconName}
+              color={entry.deck.color}
+              cardCount={entry.cardCount}
+              due={entry.total}
+              folder={
+                entry.deck.folderId ? folderNameById.get(entry.deck.folderId) : undefined
+              }
+              progress={entry.progress}
+              onPress={() => pushOnce(router, `/deck/${entry.deck.id}`)}
+            />
+          ))
+        )}
+      </View>
+    </View>
+  );
 
   return (
     <Screen
       scroll
       gutter
       tabClearance
-      contentMaxWidth={layout.contentMaxWidth}
-      header={
-        <TopAppBar
-          leftContent={
-            <View className="flex-1 flex-row items-center gap-2" style={{ paddingStart: 4 }}>
-              <View
-                className="items-center justify-center rounded-md"
-                style={{
-                  width: heights.icon,
-                  height: heights.icon,
-                  backgroundColor: colors.accentSoft,
-                }}
-              >
-                <MaterialIcons name="blur-on" size={iconSize.md} color={colors.primary} />
-              </View>
-              <AppText variant="bodyLg" weight="semibold">
-                Memora
-              </AppText>
-            </View>
-          }
-          actions={[
-            {
-              icon: 'add',
-              accessibilityLabel: 'Add deck',
-              onPress: () => pushOnce(router, '/add-deck'),
-            },
-          ]}
-        />
-      }
+      contentMaxWidth={v2.layout.contentMaxWidth}
+      header={header}
     >
-      <RevealItem index={0}>
-        {/* Wraps instead of squeezing: at 200% text size the streak pill moves
-            below the greeting instead of crushing the heading into one letter
-            per line. */}
-        <View className="flex-row flex-wrap items-start justify-between gap-2">
-          <View className="flex-1" style={{ minWidth: 200, paddingEnd: 12 }}>
-            <AppText variant="caption" weight="semibold" tone="muted" className="uppercase">
-              Your library
-            </AppText>
-            <AppText variant="title" className="mt-1" headingLevel={1}>
-              Good to see you.
-            </AppText>
-          </View>
-          <View
-            className="flex-row items-center gap-1.5 rounded-full px-3 py-1.5"
-            style={{ backgroundColor: alpha(colors.warning, 0.12) }}
-          >
-            <MaterialIcons
-              name="local-fire-department"
-              size={iconSize.sm}
-              color={streak > 0 ? colors.warning : colors.outline}
-            />
-            <AppText variant="bodySm" weight="semibold">
-              {streak}
-            </AppText>
-            <AppText variant="caption" weight="medium" tone="muted">
-              {streak === 1 ? 'day' : 'days'}
-            </AppText>
-          </View>
-        </View>
-      </RevealItem>
-
       {!ready ? (
-        <RevealItem index={1}>
-          <View className="mt-6">
-            <HeroSkeleton />
-          </View>
-        </RevealItem>
-      ) : !continueEntry ? (
-        <RevealItem index={1}>
+        <>
+          <RevealItem index={0}>
+            <View style={{ marginTop: v2.spacing.section }}>
+              <HeroSkeleton />
+            </View>
+          </RevealItem>
+          <RevealItem index={1}>
+            <View style={{ marginTop: v2.spacing.section }}>
+              <DeckShelfSkeleton count={2} />
+            </View>
+          </RevealItem>
+        </>
+      ) : deckQueues.length === 0 ? (
+        <RevealItem index={0}>
           <GlassCard className="mt-6">
             <EmptyState
               icon="library-books"
@@ -214,115 +331,31 @@ export default function HomeScreen() {
             />
           </GlassCard>
         </RevealItem>
-      ) : (
-        <RevealItem index={1}>
-          <GlassCard tone="accent" className="mt-6">
-            {/*
-              The title owns the card's full width. Beside a fixed 44px tile it
-              had about 130px at 320px with 200% text, which broke the deck name
-              in the middle of a word; here the tile and the status share the top
-              row and the unclamped title sits below them, so the whole name is
-              readable at every width and text size.
-            */}
-            <View className="flex-row items-center gap-3">
-              <View
-                className="items-center justify-center rounded-md"
-                style={{
-                  width: heights.tileLg,
-                  height: heights.tileLg,
-                  backgroundColor: alpha(continueEntry.deck.color, 0.16),
-                }}
-              >
-                <MaterialIcons
-                  name={continueEntry.deck.icon as React.ComponentProps<typeof MaterialIcons>['name']}
-                  size={iconSize.lg}
-                  color={continueEntry.deck.color}
-                />
-              </View>
-
-              <AppText
-                variant="caption"
-                weight="semibold"
-                tone="accent"
-                className="flex-1 uppercase"
-              >
-                {continueDue === 0 ? 'All caught up' : resuming ? 'Continue' : 'Up next'}
-              </AppText>
+      ) : continueEntry ? (
+        <View>
+          <RevealItem index={0}>
+            <View style={{ maxWidth: v2.layout.heroMeasure }}>
+              <TodayHero
+                due={totalDue}
+                deckCount={dueDecks}
+                minutes={minutes}
+                nextDeck={continueEntry.deck.name}
+                newCount={newTotal}
+                learningCount={learningTotal}
+                reviewCount={reviewTotal}
+                label={totalDue === 0 ? 'Nothing due today' : resuming ? 'Continue' : 'Start session'}
+                disabled={totalDue === 0}
+                onStart={() => pushOnce(router, `/study/${continueEntry.deck.id}`)}
+              />
             </View>
+          </RevealItem>
 
-            <AppText variant="title" className="mt-2" headingLevel={2}>
-              {continueEntry.deck.name}
-            </AppText>
-
-            <AppText variant="bodySm" tone="muted" className="mt-3">
-              {continueDue > 0
-                ? `${continueDue} ${continueDue === 1 ? 'card' : 'cards'} due today`
-                : 'Nothing due — you are all caught up'}
-            </AppText>
-
-            <View className="mt-4">
-              <View className="mb-2 flex-row items-center justify-between">
-                <AppText variant="caption" weight="medium" tone="muted">
-                  {continueEntry.cardCount}{' '}
-                  {continueEntry.cardCount === 1 ? 'card' : 'cards'}
-                </AppText>
-                <AppText variant="caption" weight="semibold" tone="accent">
-                  {continuePercentLabel} studied
-                </AppText>
-              </View>
-              <ProgressRail value={continueEntry.progress} />
-            </View>
-
-            <PrimaryButton
-              className="mt-5"
-              label={
-                continueDue > 0 ? (resuming ? 'Continue' : 'Start session') : 'Nothing due today'
-              }
-              icon={continueDue > 0 ? 'play-arrow' : undefined}
-              disabled={continueDue === 0}
-              onPress={() => pushOnce(router, `/study/${continueEntry.deck.id}`)}
-            />
-          </GlassCard>
-        </RevealItem>
-      )}
-
-      {!ready ? (
-        <RevealItem index={2}>
-          <SectionHeader className="mt-8" label="My decks" />
-          <View className="mt-3">
-            <DeckShelfSkeleton count={2} />
+          <View style={{ marginTop: v2.spacing.section }}>
+            <RevealItem index={1}>{decksSection}</RevealItem>
           </View>
-        </RevealItem>
-      ) : deckQueues.length > 0 ? (
-        <RevealItem index={2}>
-          <SectionHeader
-            className="mt-8"
-            label="My decks"
-            // A bare "1" next to the label read as a step number; the unit makes it
-            // a count at a glance.
-            hint={`${deckQueues.length} ${deckQueues.length === 1 ? 'deck' : 'decks'} · ${
-              totalDue > 0 ? `${totalDue} due` : 'caught up'
-            }`}
-            action={{ label: 'Folders', icon: 'folder', onPress: () => setFolderSheet(true) }}
-          />
-
-          {/* One box, folders as headers, decks nested underneath. */}
-          <View className="mt-3">
-            <DeckLibrary
-              folders={folders}
-              entries={deckQueues.map(({ deck, cardCount, total, progress }) => ({
-                deck,
-                cardCount,
-                due: total,
-                progress,
-              }))}
-              onOpenDeck={(deckId) => pushOnce(router, `/deck/${deckId}`)}
-            />
-          </View>
-        </RevealItem>
+        </View>
       ) : null}
 
-      {/* Folders: create, see how many decks each holds, delete. */}
       <BottomSheetModal
         visible={folderSheet}
         onClose={() => {
