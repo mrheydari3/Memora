@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { View, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../services/navigation';
-import { MaterialIcons } from '../components/Icon';
 import { useDeckStore } from '../store/useDeckStore';
 import { FSRS_DEFAULTS } from '../data/fsrs-params';
+import { ICON_CHOICES } from '../data/appearance';
 import {
-  AppText,
+  AppearancePicker,
+  COLOR_CHOICES,
   Screen,
-  GlassCard,
   PrimaryButton,
   GhostButton,
   BottomSheetModal,
@@ -17,28 +17,7 @@ import {
   ListRow,
   Field,
 } from '../components';
-import { alpha, colors, fills, heights, iconSize } from '../theme/tokens';
-
-const ICON_CHOICES = [
-  'language',
-  'school',
-  'book',
-  'terminal',
-  'gavel',
-  'medical-services',
-  'palette',
-  'mic',
-  'flight',
-  'train',
-] as const;
-
-const COLOR_CHOICES = [
-  colors.primary,
-  colors.warning,
-  colors.error,
-  colors.success,
-  colors.secondary,
-];
+import { heights } from '../theme/tokens';
 
 export default function AddDeckScreen() {
   const router = useRouter();
@@ -81,19 +60,28 @@ export default function AddDeckScreen() {
         title="New deck"
         subtitle="Start from scratch or bring your existing cards with you."
       >
-        <GlassCard className="mt-2" padding="none">
+        <View className="mt-2">
           <ListRow
             title="Add manually"
             subtitle="Create a deck and write cards one by one"
+            icon="edit"
+            tile="sm"
+            density="compact"
+            gutter={0}
+            showChevron={false}
             onPress={() => setFormVisible(true)}
           />
-          <View className="h-2" />
           <ListRow
             title="Bulk import"
             subtitle="Anki, Quizlet or CSV"
+            icon="upload-file"
+            tile="sm"
+            density="compact"
+            gutter={0}
+            showChevron={false}
             onPress={() => pushOnce(router, '/mass-import')}
           />
-        </GlassCard>
+        </View>
 
         <GhostButton className="mt-4" label="Cancel" variant="text" onPress={() => router.back()} />
       </SheetPanel>
@@ -113,63 +101,8 @@ export default function AddDeckScreen() {
             tall
           />
 
-          <AppText variant="label" tone="muted" className="mb-2 mt-5 uppercase">
-            Icon
-          </AppText>
-          <View className="mb-5 flex-row flex-wrap gap-2">
-            {ICON_CHOICES.map((choice) => {
-              const active = icon === choice;
-              return (
-                <Pressable
-                  key={choice}
-                  className="items-center justify-center rounded-md"
-                  style={{
-                    width: heights.tileLg,
-                    height: heights.tileLg,
-                    backgroundColor: active ? colors.accentActive : fills.tile,
-                  }}
-                  onPress={() => setIcon(choice)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: active }}
-                  accessibilityLabel={`Icon ${choice}`}
-                >
-                  <MaterialIcons
-                    name={choice}
-                    size={iconSize.lg}
-                    color={active ? colors.primary : colors.onSurfaceVariant}
-                  />
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <AppText variant="label" tone="muted" className="mb-2 uppercase">
-            Colour
-          </AppText>
-          <View className="mb-6 flex-row gap-3">
-            {COLOR_CHOICES.map((choice) => {
-              const active = color === choice;
-              return (
-                <Pressable
-                  key={choice}
-                  className="items-center justify-center rounded-full"
-                  style={{
-                    width: heights.tileLg,
-                    height: heights.tileLg,
-                    backgroundColor: alpha(choice, active ? 0.28 : 0.12),
-                  }}
-                  onPress={() => setColor(choice)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: active }}
-                  accessibilityLabel={`Colour ${choice}`}
-                >
-                  <View
-                    className="h-6 w-6 rounded-full"
-                    style={{ backgroundColor: choice }}
-                  />
-                </Pressable>
-              );
-            })}
+          <View className="mb-6 mt-5">
+            <AppearancePicker icon={icon} color={color} onIconChange={setIcon} onColorChange={setColor} />
           </View>
 
           <PrimaryButton label="Create deck" onPress={createDeck} disabled={!name.trim()} />

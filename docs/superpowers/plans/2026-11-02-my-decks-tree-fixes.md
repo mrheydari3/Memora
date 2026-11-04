@@ -1,6 +1,6 @@
 # My Decks Tree Review and Fix Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Restore the folder button’s accessible name and make the library trunk continuous with a clean terminal at the final leaf.
 
@@ -9,6 +9,38 @@
 **Tech Stack:** Expo 58, React Native 0.88, TypeScript, Playwright + axe smoke test.
 
 **Spec:** `docs/design-language.md` and the My decks tree design brief in this thread.
+
+## Status — run on 2026-11-04
+
+Both code changes were already committed when this plan was executed:
+
+- `9fa6100 Flatten the canvas and rebuild the My decks tree` — the trunk, its
+  nodes and the `connectAbove`/`terminal` flags.
+- `8418093 Keep the deck name whole at 200% text` — the flexible `Rail` halves
+  that pin a node or branch to the row’s midline at any row height.
+- `a6cf550` / `bb5abb4` then replaced the tree on Home with the v2 deck shelf, so
+  `DeckLibrary` is still exported but no longer mounted.
+
+Result: **Task 1 is verified on the shipped UI** (a folder is a filter chip named
+`Folder <name>`), **Task 2 is superseded** — there is no trunk on screen to
+terminate — and **Task 3 passes** with the numbers recorded below. The plan’s own
+verification script was stale: it looked for a `Folders` button and a collapsible
+tree header, both of which v2 removed, and it matched nine `More options` controls.
+It now drives the shipped UI and reports 18/18.
+
+| Check | Result |
+| --- | --- |
+| `npx tsc --noEmit` | 0 errors |
+| `npm run check:design` | clean (72 files) |
+| `node scripts/smoke-folders.mjs` | 18/18 |
+| axe (WCAG 2.2 AA), sheet / home / after delete | 0 violations |
+| Folder chip height | 44px |
+| Horizontal overflow, 390px and 320px | 0px / 0px |
+
+> **Still stale:** `scripts/verify-mydecks-box.mjs` asserts the tree (`Known`
+> group, trunk branch at the row centre). The component it measures is no longer
+> rendered, so that script fails by design until it is either retargeted at the
+> shelf or retired with `DeckLibrary`.
 
 ## Global Constraints
 
@@ -32,34 +64,31 @@
 
 **Files:**
 - Modify: `components/DeckLibrary.tsx` (`FolderHeader`)
+- Modify: `app/(tabs)/home.tsx` (folder filter chip, after v2)
 
 **Interfaces:**
 - Consumes: `folder.name`
-- Produces: a folder button whose accessible name starts with `Folder ${folder.name}`; `aria-expanded` and the collapse hint stay.
+- Produces: a folder control whose accessible name starts with `Folder ${folder.name}`; `aria-expanded` (tree) or `aria-pressed` (chip) stays.
 
-- [ ] **Step 1: Reproduce the failure**
-
-Run: `node scripts/smoke-folders.mjs`
-
-Expected: FAIL at `folder appears as a header in the My decks box` because the button has no `Folder German A2` name. Current run also times out waiting for that role/name.
-
-- [ ] **Step 2: Add the accessible name**
-
-In `FolderHeader`, add:
-
-```tsx
-accessibilityLabel={`Folder ${folder.name}`}
-```
-
-Keep `accessibilityRole="button"`, `aria-expanded={open}`, and the `accessibilityHint`.
-
-- [ ] **Step 3: Re-run the browser test**
+- [x] **Step 1: Reproduce the failure**
 
 Run: `node scripts/smoke-folders.mjs`
 
-Expected: the folder-header check passes, the height check is at least 44px, collapse/expand passes, axe stays clean, and the 320px overflow check passes.
+Observed on 2026-11-04: the run timed out at `getByRole('button', { name: 'Folders', exact: true })`. Root cause was not the missing folder label — the tree implementation already carried `Folder ${folder.name}` — but Home v2 renaming that action to **Manage folders**.
+
+- [x] **Step 2: Add the accessible name**
+
+`components/DeckLibrary.tsx` renders `accessibilityLabel={`${label}, ${countLabel}`}` with `label = `Folder ${folder.name}``; `app/(tabs)/home.tsx` renders the chip with `accessibilityLabel={`Folder ${folder.name}`}`. Both keep the visible folder name inside the accessible name, and both keep their state attribute (`aria-expanded` / `aria-pressed`).
+
+- [x] **Step 3: Re-run the browser test**
+
+Run: `BASE_URL=http://localhost:8090 node scripts/smoke-folders.mjs`
+
+Result: **18/18**, including `folder appears as a chip named "Folder German A2"`, `chip is not pressed while All decks is active`, `folder chip is pressed once selected`, `folder chip is 44px tall — 44px`, and axe clean on the sheet, on home with a folder chip, and after deleting the folder.
 
 ### Task 2: Make the trunk continuous with a terminal at the final leaf
+
+**Status: superseded.** The code is committed and typechecks, but `bb5abb4 Build Home v2 with full-width deck rows and the pill Start CTA` replaced the tree on Home with a deck shelf, so no trunk is rendered and no leaf can dangle. The steps are kept for the record; tick them only if `DeckLibrary` is mounted again.
 
 **Files:**
 - Modify: `components/DeckLibrary.tsx` (`DeckLibrary`, `FolderHeader`, `RootHeader`, `UnfiledHeader`, `EmptyFolder`, `DeckRow`)
@@ -68,73 +97,44 @@ Expected: the folder-header check passes, the height check is at least 44px, col
 - Consumes: `groups` from `groupDecksByFolder`, `collapsed` state
 - Produces: `connectAbove: boolean` and `terminal: boolean` on header primitives; `terminal: boolean` on `EmptyFolder` and `DeckRow`.
 
-- [ ] **Step 1: Compute the final visible leaf**
+- [x] **Step 1: Compute the final visible leaf**
 
-For each group, derive:
+`DeckLibrary` derives `finalLeaf` (`header` when collapsed, else `deck`, `empty` or `header`) and uses it only for `isLastGroup`.
 
-```tsx
-const isLastGroup = groupIndex === groups.length - 1;
-const finalLeaf = !open
-  ? 'header'
-  : group.decks.length > 0
-    ? 'deck'
-    : folder
-      ? 'empty'
-      : 'header';
-```
+- [x] **Step 2: Connect headers above, and terminate only when required**
 
-Use `finalLeaf` only for the last group; all earlier groups must let their trunk continue to the next sibling.
+Headers receive `connectAbove={groupIndex > 0}` and `terminal={isLastGroup && finalLeaf === 'header'}`; `Rail` draws the upper half only when connected and the lower half only when not terminal.
 
-- [ ] **Step 2: Connect headers above, and terminate only when required**
+- [x] **Step 3: Stop the last leaf at its branch**
 
-Add `connectAbove={groupIndex > 0}` and `terminal={isLastGroup && finalLeaf === 'header'}` to the folder/root/unfiled header.
+`DeckRow` receives `terminal={isLastGroup && finalLeaf === 'deck' && index === group.decks.length - 1}`, which drops the lower trunk half.
 
-In each header:
-- If `connectAbove`, draw a 1px line from `top: 0` to `top: heights.row / 2`.
-- If not `terminal`, draw the existing line from `top: heights.row / 2` to `bottom: 0`.
-- The `TreeNode` remains centered at the junction.
+- [x] **Step 4: Handle a final empty folder**
 
-- [ ] **Step 3: Stop the last leaf at its branch**
-
-Pass `terminal={isLastGroup && finalLeaf === 'deck' && deckIndex === group.decks.length - 1}` to `DeckRow`.
-
-In `DeckRow`, set the vertical line to:
-
-```tsx
-bottom: terminal ? undefined : 0,
-height: terminal ? 34 : undefined,
-```
-
-so only the final leaf stops at the horizontal branch (`top: 34`). All earlier deck rows keep a full-height line.
-
-- [ ] **Step 4: Handle a final empty folder**
-
-Pass `terminal={isLastGroup && finalLeaf === 'empty'}` to `EmptyFolder`. A terminal empty note uses a 10px connector to its branch; a non-terminal one keeps the vertical line through the note to connect the next sibling.
+`EmptyFolder` receives `terminal={isLastGroup && finalLeaf === 'empty'}` and shortens its connector to 22px instead of running to the next group.
 
 - [ ] **Step 5: Verify the tree geometry**
 
-Use the preview DOM check (or a screenshot) and confirm:
-
-- the vertical segments meet between adjacent groups;
-- the final deck line ends at its branch;
-- collapsed final folders have no bottom line;
-- no line extends below the last visible leaf;
-- there is still one shadowed library box and zero nested shadows.
+Not applicable on the shipped app: Home renders the v2 shelf, so there is no trunk to measure. `scripts/verify-mydecks-box.mjs`, which measured it, now fails against the shelf and needs retargeting or retirement.
 
 ### Task 3: Final verification
 
-- [ ] **Step 1: Typecheck and design tokens**
+- [x] **Step 1: Typecheck and design tokens**
 
 Run: `npx tsc --noEmit && npm run check:design`
 
 Expected: `TSC_EXIT=0`, `Design tokens: clean`.
 
-- [ ] **Step 2: Run the folder smoke test**
+Result: `TSC_EXIT=0`, `Design tokens: clean (72 files checked)`.
+
+- [x] **Step 2: Run the folder smoke test**
 
 Run: `node scripts/smoke-folders.mjs`
 
 Expected: all checks pass, including `Folder German A2`, 44px height, collapse/expand, axe, and 320px overflow.
 
-- [ ] **Step 3: Review the rendered tree**
+Result: **18/18**, with the checks updated to the shipped UI (folder chip instead of tree header, `Manage folders` instead of `Folders`, exact match for the deck header’s `More options`). Collapse/expand has no equivalent on the shelf, so filtering replaced it: `filed deck shows under its folder filter` and `All decks clears the filter`.
 
-Confirm: one Library box, no nested shadows, folder nodes aligned at 20px, deck branches at 36px, due count 26px, no console errors, and no dangling trunk.
+- [x] **Step 3: Review the rendered tree**
+
+Not applicable as written (no tree). What the run confirms on the shipped Home: one deck shelf, folder chip at 44px, folder name printed on the filed deck’s row, no console errors, and no horizontal overflow at 390px or 320px.

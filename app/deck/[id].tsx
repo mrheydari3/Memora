@@ -662,7 +662,6 @@ export default function DeckDetailsScreen() {
         />
         <SheetRow icon="upload" label="Export Deck" onPress={handleExport} />
         <SheetRow icon="refresh" label="Reset Progress" onPress={handleReset} />
-        <View className="h-2" />
         <SheetRow icon="delete-outline" label="Delete Deck" onPress={handleDelete} destructive />
       </BottomSheetModal>
 
@@ -826,9 +825,7 @@ function SheetRow({
       iconTone={destructive ? 'destructive' : 'neutral'}
       destructive={destructive}
       showChevron={false}
-      gutter={12}
-      className="mb-1.5 rounded-md"
-      style={{ backgroundColor: fills.inset }}
+      gutter={0}
       onPress={onPress}
       accessibilityLabel={accessibilityLabel ?? label}
     />

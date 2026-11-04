@@ -75,6 +75,47 @@ test('buildQuestion returns four unique options including the correct answer', (
   assert.equal(question.front, 'Haus');
 });
 
+test('reverse mode asks the back and answers with the front', () => {
+  const cards = deck();
+  const question = buildQuestion(cards[0], cards, seeded(6), 'reverse');
+
+  assert.ok(question);
+  assert.equal(question.front, 'house');
+  assert.equal(question.options.find((o) => o.correct)?.text, 'Haus');
+  assert.equal(question.options.length, 4);
+  assert.equal(new Set(question.options.map((o) => o.text)).size, 4);
+});
+
+test('reverse mode takes the prompt direction from the back side', () => {
+  const first = makeCard('a', 'book', 'کتاب', 'ltr');
+  first.back = { text: 'کتاب', direction: 'rtl' };
+  const cards = [
+    first,
+    makeCard('b', 'Baum', 'tree'),
+    makeCard('c', 'Wasser', 'water'),
+    makeCard('d', 'Buch', 'book2'),
+  ];
+  const question = buildQuestion(cards[0], cards, seeded(7), 'reverse');
+  assert.equal(question?.front, 'کتاب');
+  assert.equal(question?.direction, 'rtl');
+});
+
+test('reverse playability counts distinct fronts, not backs', () => {
+  const cards = [
+    makeCard('a', 'eins', 'same'),
+    makeCard('b', 'zwei', 'same'),
+    makeCard('c', 'drei', 'same'),
+    makeCard('d', 'vier', 'same'),
+  ];
+  assert.equal(isDeckPlayable(cards), false);
+  assert.equal(isDeckPlayable(cards, 'reverse'), true);
+
+  const question = buildQuestion(cards[0], cards, seeded(8), 'reverse');
+  assert.ok(question);
+  assert.equal(question.options.filter((o) => o.correct).length, 1);
+  assert.equal(question.options.find((o) => o.correct)?.text, 'eins');
+});
+
 test('buildQuestion keeps the card direction', () => {
   const cards = [
     makeCard('a', 'کتاب', 'book', 'rtl'),

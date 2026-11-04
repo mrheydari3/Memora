@@ -1,8 +1,8 @@
 import { View } from 'react-native';
-import { MaterialIcons } from './Icon';
+import { AnimatedIcon } from './AnimatedIcon';
 import { AppText } from './AppText';
 import { GlassCard } from './GlassCard';
-import { colors, iconSize } from '../theme/tokens';
+import { alpha, colors, fills, heights, iconSize, radii } from '../theme/tokens';
 
 export type LedgerEntry = {
   label: string;
@@ -28,7 +28,7 @@ type SettingsPlateProps = {
   ledger?: LedgerEntry[];
   /** accent is reserved for the settings index; every other screen uses glass. */
   tone?: 'accent' | 'glass';
-  icon?: React.ComponentProps<typeof MaterialIcons>['name'];
+  icon?: React.ComponentProps<typeof import('@expo/vector-icons').MaterialIcons>['name'];
   className?: string;
 };
 
@@ -63,11 +63,22 @@ export function SettingsPlate({
       <View className="flex-row items-center justify-between">
         <View className="flex-1 flex-row items-center gap-2">
           {icon && (
-            <MaterialIcons
-              name={icon}
-              size={iconSize.sm}
-              color={tone === 'accent' ? colors.primary : colors.outline}
-            />
+            <View
+              className="items-center justify-center"
+              style={{
+                width: heights.tile,
+                height: heights.tile,
+                borderRadius: radii.micro,
+                backgroundColor:
+                  tone === 'accent' ? alpha(colors.primary, 0.16) : fills.tile,
+              }}
+            >
+              <AnimatedIcon
+                name={icon}
+                size={iconSize.lg}
+                color={tone === 'accent' ? colors.primary : colors.outline}
+              />
+            </View>
           )}
           <AppText
             variant="label"

@@ -35,7 +35,8 @@ export function RadioOptionCard({
     <Pressable
       onPress={onSelect}
       accessibilityRole="radio"
-      accessibilityState={{ selected }}
+      accessibilityState={{ checked: selected }}
+      aria-checked={selected}
       accessibilityLabel={title}
       className="rounded-xl"
     >

@@ -25,6 +25,12 @@ export const BASE_POINTS = 100;
 
 export type Rng = () => number;
 
+/**
+ * Which side of the card is asked. `forward` shows the front and asks for the
+ * back; `reverse` swaps them, so the learner produces the original word.
+ */
+export type QuizMode = 'forward' | 'reverse';
+
 export type QuizOption = {
   /** Card id the option text came from — stable key for rendering. */
   id: string;
@@ -65,12 +71,15 @@ export function playableCards(cards: Flashcard[]): Flashcard[] {
 }
 
 /**
- * A deck is playable when at least four distinct answers exist: the correct
- * option plus three distractors. Duplicate back texts cannot act as
- * distractors, so they do not count toward the four.
+ * A deck is playable when at least four distinct answers exist on the side
+ * being asked for: the correct option plus three distractors. Duplicate texts
+ * cannot act as distractors, so they do not count toward the four. In reverse
+ * mode the answer side is the front, so a deck whose backs are all unique but
+ * whose fronts repeat is not playable there.
  */
-export function isDeckPlayable(cards: Flashcard[]): boolean {
-  const answers = new Set(playableCards(cards).map((card) => normalise(text(card.back))));
+export function isDeckPlayable(cards: Flashcard[], mode: QuizMode = 'forward'): boolean {
+  const answerSide = (card: Flashcard) => (mode === 'reverse' ? card.front : card.back);
+  const answers = new Set(playableCards(cards).map((card) => normalise(text(answerSide(card)))));
   return answers.size >= OPTION_COUNT;
 }
 
@@ -86,22 +95,30 @@ function shuffle<T>(items: readonly T[], rng: Rng): T[] {
 /**
  * Build one question for `card`, drawing distractors from the same deck.
  * Returns null when the deck cannot supply three distinct wrong answers.
+ *
+ * `mode` swaps the two sides: the prompt is one side and every option comes
+ * from the other, so a reverse round asks for the original word instead of its
+ * meaning.
  */
 export function buildQuestion(
   card: Flashcard,
   cards: Flashcard[],
-  rng: Rng = Math.random
+  rng: Rng = Math.random,
+  mode: QuizMode = 'forward'
 ): QuizQuestion | null {
   if (!isCardPlayable(card)) return null;
 
-  const correctText = text(card.back);
+  const promptSide = mode === 'reverse' ? card.back : card.front;
+  const answerSide = (candidate: Flashcard) =>
+    mode === 'reverse' ? candidate.front : candidate.back;
+  const correctText = text(answerSide(card));
   const correctKey = normalise(correctText);
   const seen = new Set<string>([correctKey]);
   const pool: Flashcard[] = [];
 
   for (const candidate of playableCards(cards)) {
     if (candidate.id === card.id) continue;
-    const key = normalise(text(candidate.back));
+    const key = normalise(text(answerSide(candidate)));
     if (seen.has(key)) continue;
     seen.add(key);
     pool.push(candidate);
@@ -113,15 +130,15 @@ export function buildQuestion(
   const options = shuffle(
     [
       { id: card.id, text: correctText, correct: true },
-      ...distractors.map((d) => ({ id: d.id, text: text(d.back), correct: false })),
+      ...distractors.map((d) => ({ id: d.id, text: text(answerSide(d)), correct: false })),
     ],
     rng
   );
 
   return {
     cardId: card.id,
-    front: text(card.front),
-    direction: card.front.direction === 'rtl' ? 'rtl' : 'ltr',
+    front: text(promptSide),
+    direction: promptSide.direction === 'rtl' ? 'rtl' : 'ltr',
     options,
   };
 }
@@ -130,10 +147,14 @@ export function buildQuestion(
  * Build a whole round up front: every playable card once, in random order.
  * Cards that cannot form a question are skipped, never rendered broken.
  */
-export function buildRound(cards: Flashcard[], rng: Rng = Math.random): QuizQuestion[] {
+export function buildRound(
+  cards: Flashcard[],
+  rng: Rng = Math.random,
+  mode: QuizMode = 'forward'
+): QuizQuestion[] {
   const questions: QuizQuestion[] = [];
   for (const card of shuffle(playableCards(cards), rng)) {
-    const question = buildQuestion(card, cards, rng);
+    const question = buildQuestion(card, cards, rng, mode);
     if (question) questions.push(question);
   }
   return questions;

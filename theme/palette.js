@@ -51,6 +51,8 @@ const colors = {
   onErrorContainer: '#FFD9D9',
   success: '#5FD39A',
   warning: '#F1C75B',
+  /** Informational accent for data and storage states. */
+  info: '#6FD6E5',
   surfaceVariant: '#202A38',
   /**
    * The only line colours left in the system, for the four cases that still

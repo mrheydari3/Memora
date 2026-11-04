@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Animated, Pressable, View, useWindowDimensions } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
@@ -7,27 +7,23 @@ import { useReviewStore } from '../../store/useReviewStore';
 import { useGameStore } from '../../store/useGameStore';
 import { pushOnce } from '../../services/navigation';
 import { buildStudyQueue } from '../../data/session';
-import { isDeckPlayable } from '../../data/quiz';
+import { isDeckPlayable, type QuizMode } from '../../data/quiz';
+import { folderPath } from '../../data/folders';
 import {
   AppText,
   EmptyState,
+  GlassCard,
+  ListRow,
   Pill,
   RevealItem,
   Screen,
+  SectionHeader,
+  SegmentedControl,
   TopAppBar,
 } from '../../components';
 import { StartButton } from '../../components/v2';
-import {
-  alpha,
-  colors,
-  fills,
-  glassFill,
-  heights,
-  iconSize,
-  rims,
-} from '../../theme/tokens';
+import { alpha, colors, fills, heights, iconSize, radii } from '../../theme/tokens';
 import { v2 } from '../../theme/v2';
-import { usePressFeedback } from '../../motion';
 import type { Deck, GameRecord } from '../../data/types';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -41,111 +37,70 @@ type GameDeckRowProps = {
   deck: Deck;
   cards: number;
   due: number;
-  record?: GameRecord;
+  folder?: string;
+  pinned: boolean;
+  bestScore?: number;
   selected: boolean;
   onPress: () => void;
 };
 
 /**
- * One playable deck in the picker. It is a 64px target, carries its best score
- * as context, and acknowledges the press with the same spring as the rating
- * keys — the lobby should feel as tactile as the round itself.
+ * One playable deck in the picker. It uses the app's one row shape, keeps the
+ * deck's own colour on its tile, and shows the two things a player chooses
+ * between: what is waiting (due) and how they did before (best).
+ *
+ * The selected row is a filled inset, not an outlined one, and carries
+ * `aria-pressed` so a screen reader hears the choice.
  */
-function GameDeckRow({ deck, cards, due, record, selected, onPress }: GameDeckRowProps) {
-  const press = usePressFeedback({ scale: 0.985 });
-  const bestLabel = record?.bestScore ? `Best ${formatCount(record.bestScore)}` : 'No best';
+function GameDeckRow({
+  deck,
+  cards,
+  due,
+  folder,
+  pinned,
+  bestScore,
+  selected,
+  onPress,
+}: GameDeckRowProps) {
+  const context = [
+    pinned ? 'Pinned' : null,
+    `${formatCount(cards)} cards`,
+    `${due} due`,
+    folder,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
-    <Animated.View style={press.style}>
-      <Pressable
-        onPress={onPress}
-        onPressIn={press.onPressIn}
-        onPressOut={press.onPressOut}
-        accessibilityRole="button"
-        accessibilityState={{ selected }}
-        aria-pressed={selected}
-        style={{
-          minHeight: 64,
-          borderRadius: 16,
-          backgroundColor: selected ? alpha(colors.primary, 0.1) : fills.inset,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 10,
-          paddingHorizontal: 12,
-          paddingVertical: 10,
-        }}
-      >
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: alpha(deck.color, 0.16),
-          }}
-        >
-          <MaterialIcons name={deck.icon as IconName} size={iconSize.md} color={deck.color} />
-        </View>
-
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
-            {deck.name}
-          </AppText>
-          <AppText variant="caption" tone="muted">
-            {formatCount(cards)} cards · {due} due
-          </AppText>
-        </View>
-
+    <ListRow
+      title={deck.name}
+      titleLines={2}
+      subtitle={context}
+      icon={deck.icon as IconName}
+      iconTone="deck"
+      deckColor={deck.color}
+      density="tall"
+      gutter={8}
+      highlighted={selected}
+      selected={selected}
+      showChevron={false}
+      style={{ borderRadius: radii.control }}
+      onPress={onPress}
+      trailing={
         <View style={{ alignItems: 'flex-end', gap: 4 }}>
-          {record?.bestScore ? (
-            <Pill label={bestLabel} tone={selected ? 'accent' : 'neutral'} />
+          {bestScore ? (
+            <Pill label={`Best ${formatCount(bestScore)}`} tone={selected ? 'accent' : 'neutral'} />
           ) : (
             <AppText variant="caption" tone="muted">
-              {bestLabel}
+              No best
             </AppText>
           )}
           {selected && (
             <MaterialIcons name="check-circle" size={iconSize.sm} color={colors.primary} />
           )}
         </View>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
-function RuleRow({
-  icon,
-  title,
-  detail,
-}: {
-  icon: IconName;
-  title: string;
-  detail: string;
-}) {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <View
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 10,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: alpha(colors.primary, 0.1),
-        }}
-      >
-        <MaterialIcons name={icon} size={iconSize.sm} color={colors.primary} />
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <AppText variant="bodySm" weight="semibold">
-          {title}
-        </AppText>
-        <AppText variant="caption" tone="muted">
-          {detail}
-        </AppText>
-      </View>
-    </View>
+      }
+    />
   );
 }
 
@@ -155,6 +110,9 @@ function RuleRow({
  * One place to start a round: the clock's hero, the playable-deck picker, the
  * records the game already keeps, and the three rules. The round itself lives
  * in /quiz/[deckId]; nothing is written from this screen.
+ *
+ * The picker now reads the library the way Home does: pinned decks first, then
+ * the ones with the most waiting, each row naming the folder it lives in.
  */
 export default function GameScreen() {
   const router = useRouter();
@@ -162,6 +120,7 @@ export default function GameScreen() {
   const wide = width >= 900;
 
   const decks = useDeckStore((s) => s.decks);
+  const folders = useDeckStore((s) => s.folders);
   const cardsByDeck = useDeckStore((s) => s.cardsByDeck);
   const deckLoaded = useDeckStore((s) => s.loaded);
   const reviewLog = useReviewStore((s) => s.reviewLog);
@@ -169,6 +128,7 @@ export default function GameScreen() {
   const records = useGameStore((s) => s.records);
   const gamesLoaded = useGameStore((s) => s.loaded);
   const [quizDeckId, setQuizDeckId] = useState<string | null>(null);
+  const [mode, setMode] = useState<QuizMode>('forward');
 
   useEffect(() => {
     if (!deckLoaded) useDeckStore.getState().load();
@@ -176,21 +136,36 @@ export default function GameScreen() {
     if (!gamesLoaded) useGameStore.getState().load();
   }, [deckLoaded, reviewLoaded, gamesLoaded]);
 
+  const folderLabel = (deck: Deck): string | undefined => {
+    if (!deck.folderId) return undefined;
+    const trail = folderPath(folders, deck.folderId);
+    return trail.length ? trail.map((folder) => folder.name).join(' / ') : undefined;
+  };
+
   const playableDecks = useMemo(
     () =>
       decks
-        .filter((deck) => !deck.archivedAt && isDeckPlayable(cardsByDeck[deck.id] ?? []))
+        .filter((deck) => !deck.archivedAt && isDeckPlayable(cardsByDeck[deck.id] ?? [], mode))
         .map((deck) => {
           const cards = cardsByDeck[deck.id] ?? [];
           return {
             deck,
             cards: cards.length,
             due: buildStudyQueue(deck, cards, reviewLog).total,
+            folder: folderLabel(deck),
+            pinned: deck.pinnedAt != null,
             record: records[deck.id],
           };
         })
-        .sort((a, b) => b.due - a.due || a.deck.name.localeCompare(b.deck.name)),
-    [decks, cardsByDeck, reviewLog, records]
+        .sort(
+          (a, b) =>
+            Number(b.pinned) - Number(a.pinned) ||
+            b.due - a.due ||
+            a.deck.name.localeCompare(b.deck.name)
+        ),
+    // folderLabel reads folders; keep it in the dependency list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [decks, cardsByDeck, reviewLog, records, folders, mode]
   );
 
   useEffect(() => {
@@ -221,7 +196,7 @@ export default function GameScreen() {
 
   const play = () => {
     if (!quizDeckId) return;
-    pushOnce(router, `/quiz/${quizDeckId}`);
+    pushOnce(router, mode === 'reverse' ? `/quiz/${quizDeckId}?mode=reverse` : `/quiz/${quizDeckId}`);
   };
 
   const header = (
@@ -230,7 +205,7 @@ export default function GameScreen() {
       actions={[
         {
           icon: 'add',
-          accessibilityLabel: 'Add Deck',
+          accessibilityLabel: 'Add deck',
           onPress: () => pushOnce(router, '/add-deck'),
         },
         {
@@ -252,278 +227,244 @@ export default function GameScreen() {
         header={header}
       >
         <View style={{ marginTop: v2.spacing.section }}>
-          <EmptyState
-            icon="sports-esports"
-            title="Not enough cards"
-            titleVariant="headline"
-            description="The quiz needs four cards with distinct answers. Add a few more cards to a deck to unlock the arena."
-            action={
-              <StartButton
-                label="Add a deck"
-                onPress={() => pushOnce(router, '/add-deck')}
-              />
-            }
-          />
+          <GlassCard>
+            <EmptyState
+              icon="sports-esports"
+              title="Not enough cards"
+              titleVariant="headline"
+              description={
+                mode === 'reverse'
+                  ? 'Reverse needs four cards with distinct words to choose from. Add a few more cards to a deck to unlock the arena.'
+                  : 'The quiz needs four cards with distinct meanings to choose from. Add a few more cards to a deck to unlock the arena.'
+              }
+              action={
+                <StartButton label="Add a deck" onPress={() => pushOnce(router, '/add-deck')} />
+              }
+            />
+          </GlassCard>
         </View>
       </Screen>
     );
   }
 
   const hero = (
-    <View
-      style={[
-        glassFill,
-        {
-          borderRadius: v2.radii.pane,
-          borderTopWidth: 1,
-          borderTopColor: rims.soft,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.outlineVariant,
-          overflow: 'hidden',
-        },
-      ]}
-    >
-      <View style={{ padding: v2.spacing.panel }}>
+    <GlassCard tone="accent">
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 16,
+        }}
+      >
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
+            Quiz · 60 seconds
+          </AppText>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', columnGap: 10, marginTop: 2 }}>
+            <AppText
+              variant="display"
+              headingLevel={1}
+              style={v2.type.display}
+              accessibilityLabel="60 seconds"
+            >
+              60
+            </AppText>
+            <AppText variant="bodyLg" tone="muted" style={{ paddingBottom: 9 }}>
+              seconds
+            </AppText>
+          </View>
+          <AppText variant="headline" style={{ marginTop: 2 }}>
+            Beat the clock.
+          </AppText>
+          <AppText variant="bodySm" tone="muted" style={{ marginTop: 6 }}>
+            Four choices per card. Right answers buy time; a streak multiplies the score.
+          </AppText>
+        </View>
+
         <View
           style={{
-            flexDirection: 'row',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            gap: 16,
+            width: heights.tileLg,
+            height: heights.tileLg,
+            borderRadius: radii.control,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.accentFaint,
           }}
         >
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
-              Quiz · 60 seconds
-            </AppText>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'flex-end',
-                columnGap: 10,
-                marginTop: 2,
-              }}
-            >
-              <AppText
-                variant="display"
-                className="text-[3.5rem] leading-[3.625rem] tracking-[-0.125rem]"
-              >
-                60
-              </AppText>
-              <AppText variant="bodyLg" tone="muted" style={{ paddingBottom: 9 }}>
-                seconds
-              </AppText>
-            </View>
-            <AppText variant="headline" style={{ marginTop: 2 }}>
-              Beat the clock.
-            </AppText>
-            <AppText variant="bodySm" tone="muted" style={{ marginTop: 6 }}>
-              Four choices per card. Right answers buy time; a streak multiplies the score.
-            </AppText>
-          </View>
-
-          <View
-            style={{
-              width: heights.tileLg,
-              height: heights.tileLg,
-              borderRadius: v2.radii.card,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: alpha(colors.primary, 0.12),
-            }}
-          >
-            <MaterialIcons name="sports-esports" size={iconSize.lg} color={colors.primary} />
-          </View>
-        </View>
-
-        {selected && (
-          <View
-            style={{
-              marginTop: 18,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 10,
-              borderRadius: 16,
-              backgroundColor: fills.inset,
-              padding: 10,
-            }}
-          >
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 12,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: alpha(selected.deck.color, 0.16),
-              }}
-            >
-              <MaterialIcons
-                name={selected.deck.icon as IconName}
-                size={iconSize.md}
-                color={selected.deck.color}
-              />
-            </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
-                {selected.deck.name}
-              </AppText>
-              <AppText variant="caption" tone="muted">
-                {selected.due} due today · {formatCount(selected.cards)} cards
-              </AppText>
-            </View>
-            {selectedRecord?.bestScore ? (
-              <Pill label={`Best ${formatCount(selectedRecord.bestScore)}`} tone="accent" />
-            ) : (
-              <AppText variant="caption" tone="muted">
-                No best yet
-              </AppText>
-            )}
-          </View>
-        )}
-
-        <View style={{ marginTop: 16 }}>
-          <StartButton label="Play 60 seconds" disabled={!selected} onPress={play} />
+          <MaterialIcons name="sports-esports" size={iconSize.lg} color={colors.primary} />
         </View>
       </View>
-    </View>
+
+      {selected && (
+        <View
+          style={{
+            marginTop: 18,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            borderRadius: radii.control,
+            backgroundColor: fills.inset,
+            padding: 10,
+          }}
+        >
+          <View
+            style={{
+              width: heights.tile,
+              height: heights.tile,
+              borderRadius: radii.micro,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: alpha(selected.deck.color, 0.16),
+            }}
+          >
+            <MaterialIcons
+              name={selected.deck.icon as IconName}
+              size={iconSize.md}
+              color={selected.deck.color}
+            />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <AppText variant="bodySm" weight="semibold" numberOfLines={2}>
+              {selected.deck.name}
+            </AppText>
+            <AppText variant="caption" tone="muted" numberOfLines={2}>
+              {selected.due} due today · {formatCount(selected.cards)} cards
+              {selected.folder ? ` · ${selected.folder}` : ''}
+            </AppText>
+          </View>
+          {selectedRecord?.bestScore ? (
+            <Pill label={`Best ${formatCount(selectedRecord.bestScore)}`} tone="accent" />
+          ) : (
+            <AppText variant="caption" tone="muted">
+              No best yet
+            </AppText>
+          )}
+        </View>
+      )}
+
+      <View style={{ marginTop: 16 }}>
+        <SegmentedControl
+          segments={[
+            {
+              key: 'forward',
+              label: 'Word → Meaning',
+              active: mode === 'forward',
+              onPress: () => setMode('forward'),
+            },
+            {
+              key: 'reverse',
+              label: 'Meaning → Word',
+              active: mode === 'reverse',
+              onPress: () => setMode('reverse'),
+            },
+          ]}
+        />
+        <AppText variant="caption" tone="muted" style={{ marginTop: 8 }}>
+          {mode === 'forward'
+            ? 'See the word, pick the meaning.'
+            : 'See the meaning, pick the original word.'}
+        </AppText>
+      </View>
+
+      <View style={{ marginTop: 16 }}>
+        <StartButton label="Play 60 seconds" disabled={!selected} onPress={play} />
+      </View>
+    </GlassCard>
   );
 
   const deckPicker = (
-    <View
-      style={[
-        glassFill,
-        {
-          borderRadius: v2.radii.pane,
-          borderTopWidth: 1,
-          borderTopColor: rims.soft,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.outlineVariant,
-        },
-      ]}
-    >
-      <View style={{ padding: v2.spacing.panel }}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-          }}
-        >
-          <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
-            Choose a deck
-          </AppText>
-          <AppText variant="caption" tone="muted">
-            {playableDecks.length} playable
-          </AppText>
-        </View>
-
-        <View style={{ marginTop: 12, gap: 8 }}>
+    <View>
+      <SectionHeader label="Choose a deck" hint={`${playableDecks.length} playable`} />
+      <GlassCard padding="sm" style={{ marginTop: v2.spacing.block }}>
+        <View style={{ gap: 2 }}>
           {playableDecks.map((entry) => (
             <GameDeckRow
               key={entry.deck.id}
               deck={entry.deck}
               cards={entry.cards}
               due={entry.due}
-              record={entry.record}
+              folder={entry.folder}
+              pinned={entry.pinned}
+              bestScore={entry.record?.bestScore}
               selected={entry.deck.id === quizDeckId}
               onPress={() => setQuizDeckId(entry.deck.id)}
             />
           ))}
         </View>
-      </View>
+      </GlassCard>
     </View>
   );
 
   const recordsPane = (
-    <View
-      style={[
-        glassFill,
-        {
-          borderRadius: v2.radii.pane,
-          borderTopWidth: 1,
-          borderTopColor: rims.soft,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.outlineVariant,
-        },
-      ]}
-    >
-      <View style={{ padding: v2.spacing.panel }}>
-        <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
-          Your records
-        </AppText>
-
+    <View>
+      <SectionHeader label="Your records" />
+      <GlassCard padding="sm" style={{ marginTop: v2.spacing.block }}>
         {recordRows.length > 0 ? (
-          <View style={{ marginTop: 12, gap: 10 }}>
+          <View style={{ gap: 2 }}>
             {recordRows.map(({ record, deck }) => (
-              <View
+              <ListRow
                 key={deck.id}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
-              >
-                <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: deck.color,
-                  }}
-                />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
-                    {deck.name}
+                title={deck.name}
+                subtitle={`${record.plays} ${record.plays === 1 ? 'round' : 'rounds'} · ×${
+                  record.bestCombo
+                } best combo`}
+                icon="sports-esports"
+                iconTone="deck"
+                deckColor={deck.color}
+                density="compact"
+                gutter={8}
+                showChevron={false}
+                trailing={
+                  <AppText
+                    variant="bodySm"
+                    weight="semibold"
+                    style={{ fontVariant: ['tabular-nums'] }}
+                  >
+                    {formatCount(record.bestScore)}
                   </AppText>
-                  <AppText variant="caption" tone="muted">
-                    {record.plays} {record.plays === 1 ? 'round' : 'rounds'} · ×
-                    {record.bestCombo} best combo
-                  </AppText>
-                </View>
-                <AppText
-                  variant="bodySm"
-                  weight="semibold"
-                  style={{ fontVariant: ['tabular-nums'] }}
-                >
-                  {formatCount(record.bestScore)}
-                </AppText>
-              </View>
+                }
+              />
             ))}
           </View>
         ) : (
-          <AppText variant="bodySm" tone="muted" style={{ marginTop: 8 }}>
+          <AppText variant="bodySm" tone="muted" style={{ padding: 8 }}>
             No rounds yet. Your best score will land here.
           </AppText>
         )}
-      </View>
+      </GlassCard>
     </View>
   );
 
   const howToPlay = (
-    <View
-      style={[
-        glassFill,
-        {
-          borderRadius: v2.radii.pane,
-          borderTopWidth: 1,
-          borderTopColor: rims.soft,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.outlineVariant,
-        },
-      ]}
-    >
-      <View style={{ padding: v2.spacing.panel }}>
-        <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
-          How to play
-        </AppText>
-        <View style={{ marginTop: 10, gap: 10 }}>
-          <RuleRow icon="quiz" title="Pick the answer" detail="Four choices per card" />
-          <RuleRow icon="bolt" title="Right buys time" detail="+3 seconds, and the combo climbs" />
-          <RuleRow
-            icon="local-fire-department"
-            title="Streak multiplies"
-            detail="Up to ×5 per answer"
-          />
-        </View>
-      </View>
+    <View>
+      <SectionHeader label="How to play" />
+      <GlassCard padding="sm" style={{ marginTop: v2.spacing.block }}>
+        <ListRow
+          title="Pick the answer"
+          subtitle="Four choices per card"
+          icon="quiz"
+          density="compact"
+          gutter={8}
+          showChevron={false}
+        />
+        <ListRow
+          title="Right buys time"
+          subtitle="+3 seconds, and the combo climbs"
+          icon="bolt"
+          density="compact"
+          gutter={8}
+          showChevron={false}
+        />
+        <ListRow
+          title="Streak multiplies"
+          subtitle="Up to ×5 per answer"
+          icon="local-fire-department"
+          density="compact"
+          gutter={8}
+          showChevron={false}
+        />
+      </GlassCard>
     </View>
   );
 
@@ -537,27 +478,23 @@ export default function GameScreen() {
     >
       <View style={{ marginTop: v2.spacing.section, paddingBottom: 48 }}>
         {wide ? (
-          <>
-            <RevealItem index={0}>{hero}</RevealItem>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 20, marginTop: 20 }}>
-              <View style={{ flex: 1.35, minWidth: 0 }}>
-                <RevealItem index={1}>{deckPicker}</RevealItem>
-              </View>
-              <View style={{ flex: 1, minWidth: 0, gap: 20 }}>
-                <RevealItem index={2}>{recordsPane}</RevealItem>
-                <RevealItem index={3}>{howToPlay}</RevealItem>
-              </View>
-            </View>
-          </>
-        ) : (
-          <>
-            <RevealItem index={0}>{hero}</RevealItem>
-            <View style={{ marginTop: 20, gap: 20 }}>
-              <RevealItem index={1}>{deckPicker}</RevealItem>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 20 }}>
+            <View style={{ flex: 1, minWidth: 0, gap: v2.spacing.section }}>
+              <RevealItem index={0}>{hero}</RevealItem>
               <RevealItem index={2}>{recordsPane}</RevealItem>
               <RevealItem index={3}>{howToPlay}</RevealItem>
             </View>
-          </>
+            <View style={{ flex: 1.05, minWidth: 0 }}>
+              <RevealItem index={1}>{deckPicker}</RevealItem>
+            </View>
+          </View>
+        ) : (
+          <View style={{ gap: v2.spacing.section }}>
+            <RevealItem index={0}>{hero}</RevealItem>
+            <RevealItem index={1}>{deckPicker}</RevealItem>
+            <RevealItem index={2}>{recordsPane}</RevealItem>
+            <RevealItem index={3}>{howToPlay}</RevealItem>
+          </View>
         )}
       </View>
     </Screen>

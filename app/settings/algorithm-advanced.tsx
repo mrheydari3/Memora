@@ -14,7 +14,6 @@ import {
   Screen,
   TopAppBar,
   GlassCard,
-  SectionHeader,
   LearningStepRow,
   SettingsPlate,
   SettingsSection,
@@ -29,6 +28,8 @@ import {
 import { colors, iconSize } from '../../theme/tokens';
 
 const DEFAULT_SM2_STEPS = ['12 hours', '1 day', '2 days', '3 days'];
+
+const pluralSteps = (count: number) => `${count} ${count === 1 ? 'step' : 'steps'}`;
 
 type StepList = 'fsrs' | 'relearn' | 'sm2';
 
@@ -78,7 +79,7 @@ export default function AlgorithmAdvancedScreen() {
     preset === 'general'
       ? [
           { label: 'Scheduler', value: 'SM-2' },
-          { label: 'Learning steps', value: `${deck?.learningSteps.length ?? steps.length} steps` },
+          { label: 'Learning steps', value: pluralSteps(deck?.learningSteps.length ?? steps.length) },
           {
             label: 'Starting multiplier',
             value: `× ${deck?.masteredIntervalMultiplier ?? multiplier}`,
@@ -88,10 +89,10 @@ export default function AlgorithmAdvancedScreen() {
         ? [
             {
               label: 'Learning steps',
-              value: `${savedParams.fsrsLearningSteps.length} steps`,
+              value: pluralSteps(savedParams.fsrsLearningSteps.length),
               accent: true,
             },
-            { label: 'Relearning steps', value: `${savedParams.fsrsRelearningSteps.length} steps` },
+            { label: 'Relearning steps', value: pluralSteps(savedParams.fsrsRelearningSteps.length) },
             { label: 'Short-term', value: savedParams.enableShortTerm ? 'On' : 'Off' },
           ]
         : [{ label: 'Scheduler', value: 'Fast repetition' }];
@@ -248,8 +249,7 @@ export default function AlgorithmAdvancedScreen() {
 
       {preset === 'fsrs' && (
         <>
-          <SectionHeader className="mt-7" label="Learning phase" rule />
-          <GlassCard className="mt-3" padding="none">
+          <SettingsSection label="Learning phase" index={1}>
             <View className="px-4 pt-4">
               <AppText variant="bodySm" tone="muted">
                 New cards pass through short steps before FSRS takes over long-term scheduling.
@@ -277,10 +277,9 @@ export default function AlgorithmAdvancedScreen() {
               )}
             </View>
             <AddStepButton onPress={() => addStep('fsrs')} label="Add learning step" />
-          </GlassCard>
+          </SettingsSection>
 
-          <SectionHeader className="mt-7" label="Relearning phase" rule />
-          <GlassCard className="mt-3" padding="none">
+          <SettingsSection label="Relearning phase" index={2}>
             <View className="px-4 pt-4">
               <AppText variant="bodySm" tone="muted">
                 Steps a review card goes through after you press Again.
@@ -307,9 +306,9 @@ export default function AlgorithmAdvancedScreen() {
               )}
             </View>
             <AddStepButton onPress={() => addStep('relearn')} label="Add relearning step" />
-          </GlassCard>
+          </SettingsSection>
 
-          <SettingsSection label="Scheduling behaviour" index={1}>
+          <SettingsSection label="Scheduling behaviour" index={3}>
             <SettingsRow
               icon="short-text"
               title="Short-term scheduling"
@@ -337,8 +336,7 @@ export default function AlgorithmAdvancedScreen() {
 
       {preset === 'general' && (
         <>
-          <SectionHeader className="mt-7" label="Learning phase" rule />
-          <GlassCard className="mt-3" padding="none">
+          <SettingsSection label="Learning phase" index={1}>
             <View className="px-4 pt-4">
               <AppText variant="bodySm" tone="muted">
                 New cards go through a short learning phase with gradually increasing intervals
@@ -358,7 +356,7 @@ export default function AlgorithmAdvancedScreen() {
               ))}
             </View>
             <AddStepButton onPress={() => addStep('sm2')} label="Add step" />
-          </GlassCard>
+          </SettingsSection>
 
           <SettingsSection label="Mastered phase" index={2}>
             <View className="px-4 pt-4">

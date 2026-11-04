@@ -1,5 +1,6 @@
 import { Animated, View, Pressable } from 'react-native';
 import { MaterialIcons } from './Icon';
+import { AnimatedIcon } from './AnimatedIcon';
 import { AppText } from './AppText';
 import { alpha, colors, fills, heights, iconSize, veil } from '../theme/tokens';
 import type { ViewStyle } from 'react-native';
@@ -15,13 +16,25 @@ type ListRowProps = {
   tile?: 'sm' | 'lg' | 'none';
   /** compact = 52 (sheets), default = 58 (lists), tall = 66 (deck rows). */
   density?: 'compact' | 'default' | 'tall';
-  iconTone?: 'neutral' | 'accent' | 'deck' | 'destructive';
+  iconTone?: 'neutral' | 'accent' | 'deck' | 'destructive' | 'success' | 'warning' | 'info';
+  /** Run the icon's one-shot pop on mount and whenever `iconPulseKey` changes. */
+  animatedIcon?: boolean;
+  /** Replays the icon pop when this changes, e.g. a toggle's value. */
+  iconPulseKey?: string | number | boolean;
   /** Deck colour, required when iconTone is "deck". */
   deckColor?: string;
   /** Explicit glyph colour, overrides iconTone's colour. */
   iconColor?: string;
   /** Row title weight. Lists use semibold; settings groups stay medium. */
   titleWeight?: 'medium' | 'semibold';
+  /** Title truncation lines. Two lines lets long deck names breathe. */
+  titleLines?: number;
+  /**
+   * Selected state for a single-choice row (the Game deck picker). Exposed as
+   * `aria-pressed`; react-native-web does not build aria-selected from
+   * accessibilityState on a button. Pair it with `highlighted` for the fill.
+   */
+  selected?: boolean;
   /** Horizontal inset of the row content. */
   gutter?: number;
   /** Quiet right-aligned value, followed by the chevron on pressable rows. */
@@ -67,6 +80,12 @@ function tileBackground(
       return alpha(deckColor ?? colors.primary, 0.16);
     case 'destructive':
       return alpha(colors.error, 0.14);
+    case 'success':
+      return alpha(colors.success, 0.14);
+    case 'warning':
+      return alpha(colors.warning, 0.14);
+    case 'info':
+      return alpha(colors.info, 0.14);
     default:
       return fills.tile;
   }
@@ -80,6 +99,12 @@ function glyphColor(tone: NonNullable<ListRowProps['iconTone']>, deckColor?: str
       return deckColor ?? colors.primary;
     case 'destructive':
       return colors.error;
+    case 'success':
+      return colors.success;
+    case 'warning':
+      return colors.warning;
+    case 'info':
+      return colors.info;
     default:
       return colors.onSurfaceVariant;
   }
@@ -99,9 +124,13 @@ export function ListRow({
   tile = 'sm',
   density = 'default',
   iconTone = 'neutral',
+  animatedIcon = false,
+  iconPulseKey,
   deckColor,
   iconColor,
   titleWeight = 'medium',
+  titleLines = 1,
+  selected,
   gutter = 16,
   value,
   valueAlign = 'center',
@@ -143,11 +172,40 @@ export function ListRow({
               backgroundColor: tileBackground(iconTone, deckColor),
             }}
           >
-            <MaterialIcons
-              name={icon}
-              size={iconSize.lg}
-              color={iconColor ?? glyphColor(iconTone, deckColor)}
-            />
+            {animatedIcon ? (
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  transform: [
+                    {
+                      scale: press.value.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1, 0.88],
+                      }),
+                    },
+                    {
+                      rotate: press.value.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '-6deg'],
+                      }),
+                    },
+                  ],
+                }}
+              >
+                <AnimatedIcon
+                  name={icon}
+                  size={iconSize.lg}
+                  color={iconColor ?? glyphColor(iconTone, deckColor)}
+                  pulseKey={iconPulseKey}
+                />
+              </Animated.View>
+            ) : (
+              <MaterialIcons
+                name={icon}
+                size={iconSize.lg}
+                color={iconColor ?? glyphColor(iconTone, deckColor)}
+              />
+            )}
           </View>
         ))}
 
@@ -157,7 +215,7 @@ export function ListRow({
             variant="body"
             weight={titleWeight}
             tone={destructive ? 'danger' : 'default'}
-            numberOfLines={1}
+            numberOfLines={titleLines}
             className="flex-1"
           >
             {title}
@@ -247,6 +305,7 @@ export function ListRow({
         onPressOut={press.onPressOut}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
+        aria-pressed={selected}
       >
         <Animated.View
           pointerEvents="none"

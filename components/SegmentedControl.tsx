@@ -58,6 +58,7 @@ function SegmentPress({
         onPressOut={press.onPressOut}
         accessibilityRole="button"
         accessibilityState={{ selected }}
+        aria-pressed={selected}
         accessibilityLabel={accessibilityLabel}
       >
         {children}

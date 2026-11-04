@@ -20,6 +20,10 @@ type SettingsRowProps = {
   disabled?: boolean;
   /** Explicit glyph colour, for status rows (installed, stored locally). */
   iconColor?: string;
+  /** Chapter tint for the icon tile: Study accent, Game warning, Progress success, Data info. */
+  iconTone?: 'neutral' | 'accent' | 'success' | 'warning' | 'info' | 'destructive';
+  /** Replays the icon pop when this changes, e.g. a toggle's value. */
+  iconPulseKey?: string | number | boolean;
 };
 
 /**
@@ -40,6 +44,8 @@ export function SettingsRow({
   trailing,
   disabled = false,
   iconColor,
+  iconTone,
+  iconPulseKey,
 }: SettingsRowProps) {
   return (
     <ListRow
@@ -51,8 +57,10 @@ export function SettingsRow({
       tile="sm"
       density="default"
       titleWeight="medium"
-      iconTone={destructive ? 'destructive' : 'neutral'}
+      iconTone={destructive ? 'destructive' : (iconTone ?? 'neutral')}
       iconColor={iconColor}
+      animatedIcon
+      iconPulseKey={iconPulseKey}
       trailing={trailing}
       divider={!isLast}
       onPress={onPress}

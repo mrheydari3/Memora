@@ -49,6 +49,7 @@ type Palette = {
     | 'onErrorContainer'
     | 'success'
     | 'warning'
+    | 'info'
     | 'surfaceVariant'
     | 'hairlineStrong'
     | 'hairlineGhost'

@@ -28,6 +28,7 @@ import {
   isDeckPlayable,
   playableCards,
   tick,
+  type QuizMode,
   type QuizOption,
   type QuizQuestion,
   type RoundState,
@@ -58,7 +59,6 @@ import {
 } from '../../theme/tokens';
 import { v2 } from '../../theme/v2';
 import {
-  EASE,
   USE_NATIVE_DRIVER,
   prefersReducedMotion,
   timingTo,
@@ -69,6 +69,8 @@ import {
 const TICK_MS = 100;
 const CORRECT_REVEAL_MS = 320;
 const WRONG_REVEAL_MS = 700;
+/** How long the red pad stays still before it starts leaving. */
+const WRONG_HOLD_MS = 320;
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -131,14 +133,21 @@ function TimerRing({
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>
+      {/*
+        Size and leading are inline on purpose. Setting them as `text-[…]`
+        utilities lost to the variant's own font-size, so the 56px ring drew
+        34px digits inside a 20px line box and cut them in half; matching values
+        in one place keeps the two branches honest.
+      */}
       <AppText
         variant="display"
-        className={
-          size > 100
-            ? 'text-[2rem] leading-[2.25rem] tracking-[-0.07rem]'
-            : 'text-[1rem] leading-[1.25rem] tracking-[-0.02rem]'
-        }
-        style={{ fontVariant: ['tabular-nums'], color: low ? colors.warning : undefined }}
+        style={{
+          fontVariant: ['tabular-nums'],
+          color: low ? colors.warning : undefined,
+          fontSize: size > 100 ? 32 : 17,
+          lineHeight: size > 100 ? 36 : 22,
+          letterSpacing: size > 100 ? -1.1 : -0.3,
+        }}
       >
         {label}
       </AppText>
@@ -158,7 +167,7 @@ const ARENA_TINT: Record<
   { fill: string; glyph: string }
 > = {
   correct: { fill: alpha(colors.success, 0.16), glyph: colors.success },
-  wrong: { fill: alpha(colors.error, 0.16), glyph: colors.error },
+  wrong: { fill: alpha(colors.error, 0.26), glyph: colors.error },
 };
 
 type ArenaAnswerProps = {
@@ -168,16 +177,27 @@ type ArenaAnswerProps = {
   onPress: () => void;
   position: number;
   direction: 'ltr' | 'rtl';
+  /** Wrong answers leave the grid instead of vanishing with the next card. */
+  exiting?: boolean;
 };
 
 /**
- * One answer pad. It carries the slot numeral twice — a small keycap for the
- * eye and a huge watermark for the game surface — while the accessible name
- * stays the answer itself. The pad dips and settles exactly like a rating key.
+ * One answer pad. A huge, quiet watermark numeral gives the game surface its
+ * rhythm; the small keycap was removed so the answer itself is the only thing
+ * competing for the eye. The pad dips and settles exactly like a rating key.
  */
-function ArenaAnswer({ text, state, disabled, onPress, position, direction }: ArenaAnswerProps) {
+function ArenaAnswer({
+  text,
+  state,
+  disabled,
+  onPress,
+  position,
+  direction,
+  exiting = false,
+}: ArenaAnswerProps) {
   const press = usePressFeedback({ scale: 0.975 });
   const pop = useRef(new Animated.Value(0)).current;
+  const exit = useRef(new Animated.Value(0)).current;
   const tint = state === 'correct' || state === 'wrong' ? ARENA_TINT[state] : null;
   const dimmed = state === 'dimmed';
 
@@ -201,14 +221,33 @@ function ArenaAnswer({ text, state, disabled, onPress, position, direction }: Ar
     ]).start();
   }, [state, pop]);
 
+  // The red pad holds still just long enough to be read, then leaves the grid.
+  // `timingTo` keeps the reduce-motion path (it jumps to the end) in one place.
+  useEffect(() => {
+    if (!exiting) {
+      exit.setValue(0);
+      return;
+    }
+    void timingTo(exit, 1, { duration: motion.fast });
+  }, [exiting, exit]);
+
+  const exitStyle = {
+    opacity: exit.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+    transform: [
+      { translateY: exit.interpolate({ inputRange: [0, 1], outputRange: [0, 14] }) },
+      { scale: exit.interpolate({ inputRange: [0, 1], outputRange: [1, 0.94] }) },
+    ],
+  };
+
   return (
-    <Animated.View style={[{ flex: 1 }, press.style]}>
-      <Animated.View
-        style={{
-          flex: 1,
-          transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [1, 1.018] }) }],
-        }}
-      >
+    <Animated.View style={[{ flex: 1 }, exitStyle]}>
+      <Animated.View style={[{ flex: 1 }, press.style]}>
+        <Animated.View
+          style={{
+            flex: 1,
+            transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [1, 1.018] }) }],
+          }}
+        >
         <Pressable
           onPress={onPress}
           onPressIn={disabled ? undefined : press.onPressIn}
@@ -239,33 +278,18 @@ function ArenaAnswer({ text, state, disabled, onPress, position, direction }: Ar
           >
             <AppText
               variant="display"
-              className="text-[6rem] leading-[6rem] tracking-[-0.15rem]"
-              style={{ color: colors.onSurface }}
+              style={{
+                color: colors.onSurface,
+                fontSize: 96,
+                lineHeight: 96,
+                letterSpacing: -2.4,
+              }}
             >
               {position}
             </AppText>
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View
-              aria-hidden
-              accessible={false}
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 9,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: tint ? alpha(tint.glyph, 0.14) : fills.inset,
-                borderTopWidth: 1,
-                borderTopColor: rims.tile,
-              }}
-            >
-              <AppText variant="caption" weight="semibold" tone={tint ? 'default' : 'muted'}>
-                {position}
-              </AppText>
-            </View>
-
             <AppText
               variant="body"
               weight="semibold"
@@ -300,7 +324,8 @@ function ArenaAnswer({ text, state, disabled, onPress, position, direction }: Ar
               </View>
             )}
           </View>
-        </Pressable>
+          </Pressable>
+        </Animated.View>
       </Animated.View>
     </Animated.View>
   );
@@ -364,10 +389,11 @@ function ResultRow({ label, value, last = false }: { label: string; value: strin
  * scheduler and written to the review log, and the round is submitted once.
  */
 export default function QuizScreen() {
-  const { deckId } = useLocalSearchParams<{ deckId: string }>();
+  const { deckId, mode: modeParam } = useLocalSearchParams<{ deckId: string; mode?: string }>();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const wide = width >= 900;
+  const mode: QuizMode = modeParam === 'reverse' ? 'reverse' : 'forward';
 
   const deck = useDeckStore((s) => s.decks.find((d) => d.id === deckId));
   const cards = useDeckStore((s) => s.cardsByDeck[deckId]);
@@ -385,6 +411,7 @@ export default function QuizScreen() {
   const [index, setIndex] = useState(0);
   const [round, setRound] = useState<RoundState>(createRound);
   const [picked, setPicked] = useState<string | null>(null);
+  const [exitingWrongId, setExitingWrongId] = useState<string | null>(null);
   const [newBest, setNewBest] = useState(false);
 
   const roundRef = useRef(round);
@@ -392,9 +419,9 @@ export default function QuizScreen() {
   const lockedRef = useRef(false);
   const shownAtRef = useRef(Date.now());
   const advanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTickRef = useRef(Date.now());
   const mountedRef = useRef(true);
-  const timerWidth = useRef(new Animated.Value(1)).current;
 
   const correctSound = useAudioPlayer(require('../../assets/sfx/correct.wav'));
   const wrongSound = useAudioPlayer(require('../../assets/sfx/wrong.wav'));
@@ -404,9 +431,12 @@ export default function QuizScreen() {
   const answerDirections = useMemo(
     () =>
       new Map<string, 'ltr' | 'rtl'>(
-        (cards ?? []).map((card): [string, 'ltr' | 'rtl'] => [card.id, card.back.direction])
+        (cards ?? []).map((card): [string, 'ltr' | 'rtl'] => [
+          card.id,
+          mode === 'reverse' ? card.front.direction : card.back.direction,
+        ])
       ),
-    [cards]
+    [cards, mode]
   );
 
   const commitRound = useCallback((next: RoundState) => {
@@ -461,15 +491,22 @@ export default function QuizScreen() {
   const beginRound = useCallback(() => {
     if (!deck) return;
     const deckCards = useDeckStore.getState().getCards(deck.id);
-    if (!isDeckPlayable(deckCards)) return;
+    if (!isDeckPlayable(deckCards, mode)) return;
     const nextOrder = shuffleCards(playableCards(deckCards));
-    const firstQuestion = nextOrder[0] ? buildQuestion(nextOrder[0], deckCards) : null;
+    const firstQuestion = nextOrder[0]
+      ? buildQuestion(nextOrder[0], deckCards, Math.random, mode)
+      : null;
     if (!firstQuestion) return;
 
     if (advanceRef.current) {
       clearTimeout(advanceRef.current);
       advanceRef.current = null;
     }
+    if (exitTimerRef.current) {
+      clearTimeout(exitTimerRef.current);
+      exitTimerRef.current = null;
+    }
+    setExitingWrongId(null);
     setOrder(nextOrder);
     setQuestion(firstQuestion);
     setIndex(0);
@@ -480,11 +517,11 @@ export default function QuizScreen() {
     shownAtRef.current = Date.now();
     commitRound(createRound());
     setPhase('playing');
-  }, [commitRound, deck]);
+  }, [commitRound, deck, mode]);
 
   // Decks and cards load asynchronously; start as soon as the deck is playable.
   useEffect(() => {
-    if (phase !== 'loading' || !deck || !cards || !isDeckPlayable(cards)) return;
+    if (phase !== 'loading' || !deck || !cards || !isDeckPlayable(cards, mode)) return;
     beginRound();
   }, [phase, deck, cards, beginRound]);
 
@@ -538,14 +575,6 @@ export default function QuizScreen() {
   }, [phase]);
 
   useEffect(() => {
-    timingTo(timerWidth, round.timeLeftMs / ROUND_MS, {
-      duration: TICK_MS,
-      easing: EASE.standard,
-      nativeDriver: false,
-    });
-  }, [round.timeLeftMs, timerWidth]);
-
-  useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
@@ -555,6 +584,7 @@ export default function QuizScreen() {
   useEffect(
     () => () => {
       if (advanceRef.current) clearTimeout(advanceRef.current);
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
     },
     []
   );
@@ -612,6 +642,15 @@ export default function QuizScreen() {
         return;
       }
 
+      if (!option.correct) {
+        // Hold the red long enough to read, then let the pad leave the grid
+        // while the next question is already on its way in.
+        exitTimerRef.current = setTimeout(() => {
+          exitTimerRef.current = null;
+          setExitingWrongId(option.id);
+        }, WRONG_HOLD_MS);
+      }
+
       const answeredIndex = index;
       advanceRef.current = setTimeout(
         () => {
@@ -620,7 +659,12 @@ export default function QuizScreen() {
           const nextCard = order[answeredIndex + 1];
           const nextQuestion =
             nextCard && deck
-              ? buildQuestion(nextCard, useDeckStore.getState().getCards(deck.id))
+              ? buildQuestion(
+                  nextCard,
+                  useDeckStore.getState().getCards(deck.id),
+                  Math.random,
+                  mode
+                )
               : null;
           if (!nextCard || !nextQuestion) {
             endRoundRef.current(roundRef.current, true);
@@ -629,6 +673,7 @@ export default function QuizScreen() {
           setIndex(answeredIndex + 1);
           setQuestion(nextQuestion);
           setPicked(null);
+          setExitingWrongId(null);
           lockedRef.current = false;
           shownAtRef.current = Date.now();
         },
@@ -648,6 +693,7 @@ export default function QuizScreen() {
       wrongSound,
       persistAnswer,
       endRound,
+      mode,
     ]
   );
 
@@ -665,6 +711,11 @@ export default function QuizScreen() {
   const timerProgress = round.timeLeftMs / ROUND_MS;
   const timerLabel = formatClock(round.timeLeftMs);
   const deckIcon = (deck?.icon ?? 'style') as IconName;
+
+  // Two columns at 320px leave roughly 50px for an answer, so a long Persian or
+  // German translation is cut after three lines. Below 380px the pads stack
+  // instead, and every option keeps its whole sentence.
+  const answerColumns = width < 380 ? 1 : 2;
 
   const header = (
     <View
@@ -730,7 +781,7 @@ export default function QuizScreen() {
     );
   }
 
-  if (!cards || !isDeckPlayable(cards)) {
+  if (!cards || !isDeckPlayable(cards, mode)) {
     return (
       <Screen edges={['top', 'bottom']} header={header}>
         <View className="flex-1 items-center justify-center px-8">
@@ -738,7 +789,11 @@ export default function QuizScreen() {
             icon="quiz"
             title="Not enough cards"
             titleVariant="headline"
-            description="The quiz needs at least four cards with both sides filled in. Add a few more to this deck first."
+            description={
+              mode === 'reverse'
+                ? 'Reverse needs at least four cards with both sides filled in and four distinct words to choose from.'
+                : 'The quiz needs at least four cards with both sides filled in and four distinct meanings to choose from.'
+            }
             action={
               <GhostButton
                 label="Back to deck"
@@ -759,20 +814,6 @@ export default function QuizScreen() {
       </Screen>
     );
   }
-
-  const timerRail = (
-    <View style={{ height: 6, backgroundColor: fills.track, borderRadius: 3, overflow: 'hidden' }}>
-      <Animated.View
-        style={{
-          height: '100%',
-          width: timerWidth.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
-          backgroundColor: lowTime ? colors.warning : colors.primary,
-          borderRadius: 3,
-          ...(lowTime ? {} : { boxShadow: `0 0 12px ${alpha(colors.primary, 0.45)}` }),
-        }}
-      />
-    </View>
-  );
 
   const scoreboard = (
     <View
@@ -810,8 +851,12 @@ export default function QuizScreen() {
           <Animated.View style={scoreReveal.style}>
             <AppText
               variant="display"
-              className="text-[2.75rem] leading-[3rem] tracking-[-0.1rem]"
-              style={{ fontVariant: ['tabular-nums'] }}
+              style={{
+                fontVariant: ['tabular-nums'],
+                fontSize: 44,
+                lineHeight: 48,
+                letterSpacing: -1.6,
+              }}
             >
               {round.score.toLocaleString('en-US')}
             </AppText>
@@ -889,8 +934,7 @@ export default function QuizScreen() {
         </AppText>
         <AppText
           variant="headline"
-          className="text-[1.5rem] leading-[1.75rem]"
-          style={{ fontVariant: ['tabular-nums'] }}
+          style={{ fontVariant: ['tabular-nums'], fontSize: 24, lineHeight: 28 }}
         >
           {round.score.toLocaleString('en-US')}
         </AppText>
@@ -923,26 +967,13 @@ export default function QuizScreen() {
         },
       ]}
     >
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          top: -120,
-          left: '25%',
-          width: '50%',
-          height: 240,
-          borderRadius: 120,
-          backgroundColor: alpha(colors.primary, 0.14),
-        }}
-      />
-
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View>
           <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
             Question {String(index + 1).padStart(2, '0')}
           </AppText>
           <AppText variant="caption" tone="muted">
-            Pick the correct translation
+            {mode === 'reverse' ? 'Pick the matching word' : 'Pick the correct translation'}
           </AppText>
         </View>
         <View
@@ -978,9 +1009,12 @@ export default function QuizScreen() {
       </View>
 
       <View style={{ gap: 10 }}>
-        {[0, 2].map((start) => (
-          <View key={start} style={{ flexDirection: 'row', gap: 10 }}>
-            {question.options.slice(start, start + 2).map((option, offset) => {
+        {Array.from(
+          { length: Math.ceil(question.options.length / answerColumns) },
+          (_, row) => question.options.slice(row * answerColumns, (row + 1) * answerColumns)
+        ).map((rowOptions, row) => (
+          <View key={row} style={{ flexDirection: 'row', gap: 10 }}>
+            {rowOptions.map((option, offset) => {
               const state: ArenaAnswerState =
                 picked === null
                   ? 'idle'
@@ -995,8 +1029,9 @@ export default function QuizScreen() {
                   text={option.text}
                   state={state}
                   disabled={picked !== null}
+                  exiting={option.id === exitingWrongId}
                   onPress={() => answer(option)}
-                  position={start + offset + 1}
+                  position={row * answerColumns + offset + 1}
                   direction={answerDirections.get(option.id) ?? 'ltr'}
                 />
               );
@@ -1037,8 +1072,6 @@ export default function QuizScreen() {
 
   return (
     <Screen edges={['top', 'bottom']} header={header}>
-      {timerRail}
-
       <View
         className="w-full flex-1 self-center px-5 pb-6"
         style={{ maxWidth: v2.layout.contentMaxWidth }}
@@ -1089,8 +1122,13 @@ export default function QuizScreen() {
             </AppText>
             <AppText
               variant="display"
-              className="mt-2 text-[4rem] leading-[4.25rem] tracking-[-0.14rem]"
-              style={{ fontVariant: ['tabular-nums'] }}
+              className="mt-2"
+              style={{
+                fontVariant: ['tabular-nums'],
+                fontSize: 64,
+                lineHeight: 68,
+                letterSpacing: -2.24,
+              }}
             >
               {round.score.toLocaleString('en-US')}
             </AppText>

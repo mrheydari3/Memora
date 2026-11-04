@@ -32,6 +32,7 @@ export { SettingsRow, SettingsCard, SettingsSection } from './SettingsRow';
 export { SettingsPlate } from './SettingsPlate';
 export type { LedgerEntry } from './SettingsPlate';
 export { SettingsNote } from './SettingsNote';
+export { AnimatedIcon } from './AnimatedIcon';
 export { DeckCard } from './DeckCard';
 export { DeckLibrary } from './DeckLibrary';
 export type { DeckLibraryEntry } from './DeckLibrary';
