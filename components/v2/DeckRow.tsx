@@ -2,7 +2,7 @@ import { Animated, Pressable, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { GlassCard } from '../GlassCard';
-import { alpha, colors, heights, iconSize, radii } from '../../theme/tokens';
+import { alpha, fills, heights, iconSize, radii, stateColors } from '../../theme/tokens';
 import { usePressFeedback } from '../../motion';
 import { v2 } from '../../theme/v2';
 
@@ -23,12 +23,17 @@ type DeckRowProps = {
 };
 
 /**
- * DeckRow — one deck, landscape, across the full content width.
+ * DeckRow — one deck in the library, built for a collection that grows.
  *
- * The shelf's narrow covers became rows so every deck is visible without a
- * sideways scroll: colour and glyph identify it, the name and studied share read
- * left to right, and the due count stays the loud number on the right. Rows
- * stack, so the rest of the library simply follows underneath.
+ * The row answers the three questions a long-lived library raises, in reading
+ * order: *which* deck (name, glyph, colour), *what is in it and where* (folder,
+ * card count, studied share as a rail), and *what it wants now* (the due count,
+ * which stays the loud number on the right).
+ *
+ * The rail is decoration for assistive tech — the caption beside it carries the
+ * same number — and it only claims mastery colour once something has actually
+ * been studied. Nothing is outlined: the glass pane, the tile fill and the rail
+ * track do the separating.
  */
 export function DeckRow({
   name,
@@ -44,7 +49,10 @@ export function DeckRow({
   const clamped = Math.max(0, Math.min(1, progress));
   const percent = Math.round(clamped * 100);
   const percentLabel = percent === 0 && clamped > 0 ? '<1%' : `${percent}%`;
+  const started = clamped > 0;
   const cardLabel = cardCount === 1 ? 'card' : 'cards';
+  const count = cardCount.toLocaleString('en-US');
+  const context = folder ? `${folder} · ${count} ${cardLabel}` : `${count} ${cardLabel}`;
 
   return (
     <Animated.View style={[press.style, { width: '100%' }]}>
@@ -54,24 +62,22 @@ export function DeckRow({
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
         accessibilityRole="button"
-        // Named by its content, like the shelf card: name, count, studied share
-        // and due line are already the whole label.
+        // Named by its content, like the shelf card: name, context, studied
+        // share and due line are already the whole label.
         accessibilityHint="Open deck"
         style={{ width: '100%' }}
       >
-        <GlassCard
-          padding="sm"
-          style={{ width: '100%', borderRadius: v2.radii.card, minHeight: 96 }}
-        >
+        <GlassCard padding="sm" style={{ width: '100%', borderRadius: v2.radii.card }}>
           <View className="flex-row items-center" style={{ gap: 12 }}>
             <View
               style={{
-                width: heights.icon,
-                height: heights.icon,
+                width: heights.tileLg,
+                height: heights.tileLg,
                 borderRadius: radii.micro,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: alpha(color, 0.18),
+                flexShrink: 0,
               }}
             >
               <MaterialIcons name={icon} size={iconSize.lg} color={color} />
@@ -81,22 +87,53 @@ export function DeckRow({
               <AppText variant="bodyLg" weight="semibold" numberOfLines={2}>
                 {name}
               </AppText>
-              <AppText variant="caption" tone="muted" className="mt-1" numberOfLines={1}>
-                {cardCount} {cardLabel} · {percentLabel} studied
-                {folder ? ` · ${folder}` : ''}
+
+              <AppText variant="caption" tone="muted" className="mt-1" numberOfLines={2}>
+                {context}
               </AppText>
+
+              {/*
+                Capped: a rail that spans a 960px column would push its caption
+                under the due block, where it reads as part of that number.
+              */}
+              <View
+                className="flex-row items-center"
+                style={{ gap: 8, marginTop: 7, maxWidth: 280 }}
+              >
+                <View
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  style={{
+                    flex: 1,
+                    height: 4,
+                    borderRadius: radii.pill,
+                    backgroundColor: fills.track,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View
+                    style={{
+                      width: `${percent}%`,
+                      height: '100%',
+                      backgroundColor: started ? stateColors.Review : 'transparent',
+                    }}
+                  />
+                </View>
+                <AppText variant="caption" tone={started ? 'muted' : 'tertiary'}>
+                  {started ? `${percentLabel} studied` : 'Not started'}
+                </AppText>
+              </View>
             </View>
 
-            <View style={{ minWidth: 52, alignItems: 'flex-end' }}>
+            <View style={{ minWidth: 48, alignItems: 'flex-end', flexShrink: 0 }}>
               <AppText variant="title" tone={due > 0 ? 'default' : 'muted'} style={v2.type.stat}>
                 {due}
               </AppText>
               <AppText variant="caption" weight="semibold" tone={due > 0 ? 'accent' : 'muted'}>
-                {due > 0 ? 'due today' : 'caught up'}
+                {due > 0 ? 'due' : 'clear'}
               </AppText>
             </View>
 
-            <MaterialIcons name="chevron-right" size={iconSize.md} color={colors.outline} />
           </View>
         </GlassCard>
       </Pressable>

@@ -11,7 +11,6 @@ import type { Deck } from '../../data/types';
 import {
   AppText,
   BottomSheetModal,
-  Chip,
   DeckShelfSkeleton,
   EmptyState,
   Field,
@@ -22,10 +21,11 @@ import {
   PrimaryButton,
   RevealItem,
   Screen,
+  SectionHeader,
   TopAppBar,
 } from '../../components';
 import { MaterialIcons } from '../../components/Icon';
-import { DeckRow, TodayHero } from '../../components/v2';
+import { DeckRoots, DeckRow, FolderRow, TodayHero } from '../../components/v2';
 import { colors, heights, iconSize } from '../../theme/tokens';
 import { v2 } from '../../theme/v2';
 
@@ -79,7 +79,7 @@ export default function HomeScreen() {
   const [folderSheet, setFolderSheet] = useState(false);
   const [folderDraft, setFolderDraft] = useState('');
   const [folderError, setFolderError] = useState<string | null>(null);
-  const [folderFilter, setFolderFilter] = useState<string | null>(null);
+  const [openFolderId, setOpenFolderId] = useState<string | null>(null);
 
   const activeDeckIds = useMemo(
     () => new Set(decks.filter((deck) => !deck.archivedAt).map((deck) => deck.id)),
@@ -162,19 +162,48 @@ export default function HomeScreen() {
     deckQueues[0];
   const resuming = Boolean(lastStudiedEntry && continueEntry?.deck.id === lastStudiedEntry.deck.id);
 
-  // A filter that points at a deleted folder falls back to All decks instead of
-  // hiding the whole shelf.
-  const activeFolder = useMemo(
-    () => (folderFilter && folders.some((folder) => folder.id === folderFilter) ? folderFilter : null),
-    [folderFilter, folders]
+  // A folder deleted from the sheet falls back to the root shelf instead of
+  // hiding every deck.
+  const openFolder = useMemo(
+    () => (openFolderId ? folders.find((folder) => folder.id === openFolderId) ?? null : null),
+    [openFolderId, folders]
+  );
+
+  // Folder rows carry what the folder itself is worth knowing: how many decks
+  // it holds and how many cards those decks want today.
+  const folderSummaries = useMemo(
+    () =>
+      folders.map((folder) => {
+        const entries = deckQueues.filter((entry) => entry.deck.folderId === folder.id);
+        return {
+          id: folder.id,
+          name: folder.name,
+          decks: entries.length,
+          due: entries.reduce((sum, entry) => sum + entry.total, 0),
+        };
+      }),
+    [folders, deckQueues]
   );
   const folderNameById = useMemo(
     () => new Map(folders.map((folder) => [folder.id, folder.name])),
     [folders]
   );
-  const visibleDecks = useMemo(
-    () => (activeFolder ? deckQueues.filter((entry) => entry.deck.folderId === activeFolder) : deckQueues),
-    [deckQueues, activeFolder]
+  // Work first: a library that grows past a screen is only usable if the decks
+  // that want attention sit on top, and the rest read alphabetically.
+  const visibleDecks = useMemo(() => {
+    const list = openFolder
+      ? deckQueues.filter((entry) => entry.deck.folderId === openFolder.id)
+      : deckQueues;
+    return [...list].sort((a, b) => b.total - a.total || a.deck.name.localeCompare(b.deck.name));
+  }, [deckQueues, openFolder]);
+
+  const visibleCards = useMemo(
+    () => visibleDecks.reduce((sum, entry) => sum + entry.cardCount, 0),
+    [visibleDecks]
+  );
+  const visibleDue = useMemo(
+    () => visibleDecks.reduce((sum, entry) => sum + entry.total, 0),
+    [visibleDecks]
   );
 
   const header = (
@@ -212,79 +241,131 @@ export default function HomeScreen() {
     />
   );
 
+  // Folders and decks share one shelf, folders first: the containers read as
+  // the way into a smaller list, and the decks below are the whole library.
+  const shelfRows = [
+    ...(openFolder
+      ? []
+      : folderSummaries.map((folder) => ({
+          key: `folder-${folder.id}`,
+          node: (
+            <FolderRow
+              name={folder.name}
+              decks={folder.decks}
+              due={folder.due}
+              onPress={() => setOpenFolderId(folder.id)}
+            />
+          ),
+        }))),
+    ...visibleDecks.map((entry) => ({
+      key: entry.deck.id,
+      node: (
+        <DeckRow
+          name={entry.deck.name}
+          icon={entry.deck.icon as IconName}
+          color={entry.deck.color}
+          cardCount={entry.cardCount}
+          due={entry.total}
+          // Inside the folder the name is already the heading, so the row
+          // drops the repeated context line.
+          folder={
+            !openFolder && entry.deck.folderId
+              ? folderNameById.get(entry.deck.folderId)
+              : undefined
+          }
+          progress={entry.progress}
+          onPress={() => pushOnce(router, `/deck/${entry.deck.id}`)}
+        />
+      ),
+    })),
+  ];
+
+  const deckCountLabel = `${visibleDecks.length} ${
+    visibleDecks.length === 1 ? 'deck' : 'decks'
+  }`;
+  const cardCountLabel = `${visibleCards.toLocaleString('en-US')} ${
+    visibleCards === 1 ? 'card' : 'cards'
+  }`;
+  const dueLabel = visibleDue > 0 ? `${visibleDue} due` : 'all caught up';
+  const folderCountLabel = `${folders.length} ${
+    folders.length === 1 ? 'folder' : 'folders'
+  }`;
+  const shelfCaption = [
+    openFolder ? null : folderCountLabel,
+    deckCountLabel,
+    cardCountLabel,
+    dueLabel,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   const decksSection = (
     <View>
-      <View className="flex-row items-center justify-between" style={{ gap: 12 }}>
-        <AppText variant="title" headingLevel={2} style={v2.type.title}>
-          Your decks
-        </AppText>
+      {openFolder && (
         <Pressable
-          onPress={() => setFolderSheet(true)}
+          onPress={() => setOpenFolderId(null)}
           accessibilityRole="button"
-          accessibilityLabel="Manage folders"
+          accessibilityLabel="All decks"
           style={{
             minHeight: heights.hit,
             flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'center',
             gap: 6,
+            marginBottom: 2,
           }}
         >
-          <MaterialIcons name="folder" size={iconSize.md} color={colors.primary} />
+          <MaterialIcons name="arrow-back" size={iconSize.md} color={colors.primary} />
           <AppText variant="bodySm" weight="semibold" tone="accent">
-            Folders
+            All decks
           </AppText>
         </Pressable>
+      )}
+
+      <View className="flex-row items-center justify-between" style={{ gap: 12 }}>
+        <AppText
+          variant="title"
+          headingLevel={2}
+          style={[v2.type.title, { flexShrink: 1 }]}
+          numberOfLines={1}
+        >
+          {openFolder ? openFolder.name : 'Your decks'}
+        </AppText>
+        {!openFolder && (
+          <Pressable
+            onPress={() => setFolderSheet(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Manage folders"
+            style={{
+              minHeight: heights.hit,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+          >
+            <MaterialIcons name="folder" size={iconSize.md} color={colors.primary} />
+            <AppText variant="bodySm" weight="semibold" tone="accent">
+              Folders
+            </AppText>
+          </Pressable>
+        )}
       </View>
 
       <AppText variant="caption" tone="muted" className="mt-1">
-        {deckQueues.length} {deckQueues.length === 1 ? 'deck' : 'decks'}
-        {' · '}
-        {totalDue > 0 ? `${totalDue} due` : 'caught up'}
+        {shelfCaption}
       </AppText>
 
-      {folders.length > 0 && (
-        <View className="mt-3 flex-row flex-wrap" style={{ gap: 8 }}>
-          <Chip
-            label="All decks"
-            active={activeFolder === null}
-            onPress={() => setFolderFilter(null)}
-          />
-          {folders.map((folder) => (
-            <Chip
-              key={folder.id}
-              label={folder.name}
-              accessibilityLabel={`Folder ${folder.name}`}
-              active={activeFolder === folder.id}
-              onPress={() => setFolderFilter(folder.id)}
-            />
-          ))}
-        </View>
-      )}
-
-      <View style={{ marginTop: v2.spacing.block, gap: v2.spacing.card }}>
-        {visibleDecks.length === 0 ? (
+      <View style={{ marginTop: v2.spacing.block }}>
+        {shelfRows.length === 0 ? (
           <AppText variant="body" tone="muted">
-            {activeFolder
-              ? 'No decks in this folder yet. Move one in from the deck’s options.'
+            {openFolder
+              ? 'This folder is empty. Move a deck in from the deck’s options.'
               : 'No decks yet.'}
           </AppText>
         ) : (
-          visibleDecks.map((entry) => (
-            <DeckRow
-              key={entry.deck.id}
-              name={entry.deck.name}
-              icon={entry.deck.icon as IconName}
-              color={entry.deck.color}
-              cardCount={entry.cardCount}
-              due={entry.total}
-              folder={
-                entry.deck.folderId ? folderNameById.get(entry.deck.folderId) : undefined
-              }
-              progress={entry.progress}
-              onPress={() => pushOnce(router, `/deck/${entry.deck.id}`)}
-            />
-          ))
+          // A new view measures its own rows: the branch positions and the
+          // root tail belong to this list, not to the one before it.
+          <DeckRoots key={openFolder?.id ?? 'root'} rows={shelfRows} />
         )}
       </View>
     </View>
@@ -402,10 +483,12 @@ export default function HomeScreen() {
         </View>
 
         {folders.length > 0 && (
-          <View className="mt-5">
-            <AppText variant="label" tone="muted" className="uppercase">
-              Your folders
-            </AppText>
+          <View className="mt-6">
+            <SectionHeader
+              label="Your folders"
+              hint={`${folders.length}`}
+              className="px-0"
+            />
             <View className="mt-2">
               {folders.map((folder) => {
                 const count = folderDeckCount(decks, folder.id);
@@ -417,6 +500,7 @@ export default function HomeScreen() {
                     icon="folder"
                     tile="sm"
                     density="compact"
+                    gutter={0}
                     showChevron={false}
                     trailing={
                       <IconButton

@@ -4,5 +4,7 @@ export { TodayHero } from './TodayHero';
 export { TodayRail } from './TodayRail';
 export type { TodayRailSegment } from './TodayRail';
 export { DeckRow } from './DeckRow';
+export { DeckRoots } from './DeckRoots';
+export { FolderRow } from './FolderRow';
 export { StartButton } from './StartButton';
 export { StudyRatings } from './StudyRatings';
