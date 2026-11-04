@@ -84,7 +84,7 @@ export function SheetPanel({
         <View className="flex-row items-start">
           <View className="flex-1 pr-2">
             {title && (
-              <AppText variant="headline" weight="semibold" numberOfLines={1}>
+              <AppText variant="headline" weight="semibold" numberOfLines={1} headingLevel={1}>
                 {title}
               </AppText>
             )}

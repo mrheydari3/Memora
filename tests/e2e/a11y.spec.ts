@@ -24,7 +24,9 @@ const ROUTES = [
   { label: 'tts', path: '/settings/tts' },
   { label: 'offline', path: '/settings/offline' },
   { label: 'import', path: '/mass-import' },
+  { label: 'add-deck', path: '/add-deck' },
   { label: 'profile', path: '/profile' },
+  { label: 'statistics', path: '/statistics' },
 ];
 
 const settle = async (page: import('@playwright/test').Page) => {

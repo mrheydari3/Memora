@@ -1,65 +1,15 @@
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
-import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 import { AppText } from '../AppText';
 import { usePressFeedback, useReveal } from '../../motion';
 import { alpha, colors, heights, motion, radii } from '../../theme/tokens';
 import type { Rating, RatingButtonLabel } from '../../data/types';
 
-type PlaystationShape = 'triangle' | 'square' | 'circle' | 'cross';
-
-const RATING_META: Record<Rating, { name: string; tint: string; symbol: PlaystationShape }> = {
-  1: { name: 'Again', tint: colors.error, symbol: 'triangle' },
-  2: { name: 'Hard', tint: colors.warning, symbol: 'square' },
-  3: { name: 'Good', tint: colors.success, symbol: 'circle' },
-  4: { name: 'Easy', tint: colors.primary, symbol: 'cross' },
+const RATING_META: Record<Rating, { name: string; tint: string }> = {
+  1: { name: 'Again', tint: colors.error },
+  2: { name: 'Hard', tint: colors.warning },
+  3: { name: 'Good', tint: colors.success },
+  4: { name: 'Easy', tint: colors.primary },
 };
-
-/** A large, decorative face-button outline, used as the rating tile's watermark. */
-function PlaystationGlyph({
-  shape,
-  size,
-  color,
-}: {
-  shape: PlaystationShape;
-  size: number;
-  color: string;
-}) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-      {shape === 'triangle' && (
-        <Path d="M50 16 88 84H12Z" stroke={color} strokeWidth={6} strokeLinejoin="round" />
-      )}
-      {shape === 'square' && (
-        <Rect x="16" y="16" width="68" height="68" rx="2" stroke={color} strokeWidth={6} />
-      )}
-      {shape === 'circle' && (
-        <Circle cx="50" cy="50" r="36" stroke={color} strokeWidth={6} />
-      )}
-      {shape === 'cross' && (
-        <>
-          <Line
-            x1="22"
-            y1="22"
-            x2="78"
-            y2="78"
-            stroke={color}
-            strokeWidth={6}
-            strokeLinecap="round"
-          />
-          <Line
-            x1="78"
-            y1="22"
-            x2="22"
-            y2="78"
-            stroke={color}
-            strokeWidth={6}
-            strokeLinecap="round"
-          />
-        </>
-      )}
-    </Svg>
-  );
-}
 
 type RatingTileProps = {
   rating: Rating;
@@ -71,8 +21,9 @@ type RatingTileProps = {
 };
 
 /**
- * One rating key. The visible interval and rating name are the accessible name;
- * the large face-button outline is decorative and sits behind them.
+ * One rating key. The interval and rating name are the only content: a glyph
+ * behind the text crossed both of them at phone width, so the tile carries a
+ * tinted fill instead of a watermark.
  */
 function RatingTile({ rating, label, index, narrow, disabled, onRate }: RatingTileProps) {
   const meta = RATING_META[rating];
@@ -100,10 +51,6 @@ function RatingTile({ rating, label, index, narrow, disabled, onRate }: RatingTi
             },
           ]}
         >
-          <View pointerEvents="none" style={styles.watermark}>
-            <PlaystationGlyph shape={meta.symbol} size={72} color={meta.tint} />
-          </View>
-
           {hasLabel && (
             <AppText
               variant="caption"
@@ -183,11 +130,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
     paddingVertical: 6,
-  },
-  watermark: {
-    position: 'absolute',
-    right: -8,
-    bottom: -16,
-    opacity: 0.18,
   },
 });

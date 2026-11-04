@@ -84,6 +84,26 @@ function log(
   };
 }
 
+test('fast repetition keeps every card available and ignores daily caps', () => {
+  const deck = makeDeck({ algorithmPreset: 'fast', newCardsPerDay: 1, maxCardsPerDay: 1 });
+  const cards = [
+    makeCard('due', 'Review', NOW - DAY, 100),
+    makeCard('new', 'New', NOW, 200),
+    makeCard('future', 'Review', NOW + DAY, 300),
+  ];
+  // Both budgets are already spent today.
+  const reviewLog = [log('new', 'New', true), log('due', 'Review')];
+
+  const queue = buildStudyQueue(deck, cards, reviewLog, NOW);
+  assert.deepEqual(
+    queue.newCards.map((c) => c.id),
+    ['due', 'new', 'future'],
+    'a fast session is the whole deck, in creation order'
+  );
+  assert.equal(queue.dueCards.length, 0);
+  assert.equal(queue.total, 3);
+});
+
 test('cards due earlier come first', () => {
   const deck = makeDeck();
   const cards = [

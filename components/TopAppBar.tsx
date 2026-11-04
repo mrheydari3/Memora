@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { AppText } from './AppText';
 import { IconButton } from './IconButton';
 import { glassFillAppBar, heights, iconSize } from '../theme/tokens';
+import { v2 } from '../theme/v2';
 
 type IconName = React.ComponentProps<typeof import('@expo/vector-icons').MaterialIcons>['name'];
 
@@ -40,9 +41,15 @@ export function TopAppBar({
 
   return (
     <View
-      className="flex-row items-center"
+      className="flex-row items-center justify-center"
       style={[glassFillAppBar, { height: heights.appbar, paddingStart: 8, paddingEnd: 12 }]}
     >
+      {/* The bar is full-bleed, but its controls sit on the same column as the
+          page content instead of the viewport edge (the 1280px audit). */}
+      <View
+        className="flex-1 flex-row items-center"
+        style={{ width: '100%', maxWidth: v2.layout.contentMaxWidth }}
+      >
       {leftContent ? (
         leftContent
       ) : (
@@ -84,6 +91,7 @@ export function TopAppBar({
             disabled={action.disabled}
           />
         ))}
+      </View>
       </View>
     </View>
   );

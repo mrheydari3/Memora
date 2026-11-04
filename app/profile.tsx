@@ -29,13 +29,14 @@ type Achievement = {
 };
 
 /**
- * The badges the app can actually verify from the library and the review log.
- * Earned is derived, never fixed: a streak badge must not be lit while the
- * streak is zero, or this screen contradicts Statistics.
+ * The badges the app can actually verify from the review log. Card-count
+ * badges once lit "First Card" and "100 Cards" for an imported library with
+ * zero reviews, while the same screen said "Never studied" and 0 XP. Both now
+ * key off reviews, so the rack agrees with XP, the streak and Statistics.
  */
-function buildAchievements(totalCards: number, streak: number): Achievement[] {
+function buildAchievements(reviewCount: number, streak: number): Achievement[] {
   return [
-    { id: '1', name: 'First Card', icon: 'style', color: colors.success, earned: totalCards >= 1 },
+    { id: '1', name: 'First Review', icon: 'style', color: colors.success, earned: reviewCount >= 1 },
     {
       id: '2',
       name: '7-Day Streak',
@@ -45,10 +46,10 @@ function buildAchievements(totalCards: number, streak: number): Achievement[] {
     },
     {
       id: '3',
-      name: '100 Cards',
+      name: '100 Reviews',
       icon: 'emoji-events',
       color: colors.warning,
-      earned: totalCards >= 100,
+      earned: reviewCount >= 100,
     },
     // Nothing in the log records time of day or answer speed yet, so these two
     // stay locked rather than claiming an achievement nobody tracked.
@@ -74,14 +75,6 @@ export default function ProfileScreen() {
     useReviewStore.getState().load();
   }, []);
 
-  const totalCards = useMemo(
-    () =>
-      decks
-        .filter((deck) => !deck.archivedAt)
-        .reduce((sum, deck) => sum + (cardsByDeck[deck.id] ?? []).length, 0),
-    [decks, cardsByDeck]
-  );
-
   // XP is what the log can prove: ten points per review. Archived decks are
   // excluded so the profile agrees with the rest of the app's totals.
   const activeDeckIds = useMemo(
@@ -98,7 +91,7 @@ export default function ProfileScreen() {
   const xpProgress = xpIntoLevel / XP_PER_LEVEL;
 
   const streak = useMemo(() => computeStreak(activeLog.map((e) => e.reviewedAt)), [activeLog]);
-  const achievements = buildAchievements(totalCards, streak);
+  const achievements = buildAchievements(activeLog.length, streak);
 
   const lastStudiedLabel = (deckId: string) => {
     const logs = getLogsForDeck(deckId);

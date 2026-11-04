@@ -1,4 +1,4 @@
-import { Animated, View, Pressable } from 'react-native';
+import { Animated, View, Pressable, useWindowDimensions } from 'react-native';
 import { MaterialIcons } from './Icon';
 import { AnimatedIcon } from './AnimatedIcon';
 import { AppText } from './AppText';
@@ -148,10 +148,14 @@ export function ListRow({
   // Every pressable row answers a touch the same way: a spring dip and a faint
   // veil, both on the native driver (the old `active:` class only worked on web).
   const press = usePressFeedback({ scale: 0.985 });
+  const { width } = useWindowDimensions();
 
   // A settings row with a value reads as title + value on one line, so a
-  // two-line subtitle never squeezes the value into a narrow column.
+  // two-line subtitle never squeezes the value into a narrow column. Below
+  // 380px that line has no room left: the value moves under the title instead
+  // of clipping both (the 320px audit found titles at 2px and values cut off).
   const inlineValue = !trailing && valueAlign === 'title' && value !== undefined;
+  const stackedValue = inlineValue && width < 380;
   const showTrailingValue = !inlineValue && (value || (onPress && !disabled && showChevron));
 
   const content = (
@@ -220,7 +224,7 @@ export function ListRow({
           >
             {title}
           </AppText>
-          {inlineValue && (
+          {inlineValue && !stackedValue && (
             <View className="ml-3 flex-row items-center gap-1" style={{ maxWidth: '55%' }}>
               <AppText
                 variant="bodySm"
@@ -245,6 +249,26 @@ export function ListRow({
           <AppText variant="bodySm" tone="muted" className="mt-0.5" numberOfLines={2}>
             {subtitle}
           </AppText>
+        )}
+        {stackedValue && (
+          <View className="mt-1 flex-row items-center gap-1">
+            <AppText
+              variant="bodySm"
+              weight="medium"
+              tone="muted"
+              numberOfLines={1}
+              style={{ flexShrink: 1, fontVariant: ['tabular-nums'] }}
+            >
+              {value}
+            </AppText>
+            {onPress && !disabled && showChevron && (
+              <MaterialIcons
+                name={destructive ? 'delete-outline' : 'chevron-right'}
+                size={iconSize.md}
+                color={destructive ? colors.error : colors.outline}
+              />
+            )}
+          </View>
         )}
       </View>
 

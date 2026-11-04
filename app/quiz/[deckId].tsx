@@ -270,30 +270,12 @@ function ArenaAnswer({
             justifyContent: 'center',
           }}
         >
-          <View
-            aria-hidden
-            accessible={false}
-            pointerEvents="none"
-            style={{ position: 'absolute', right: -10, bottom: -38, opacity: 0.07 }}
-          >
-            <AppText
-              variant="display"
-              style={{
-                color: colors.onSurface,
-                fontSize: 96,
-                lineHeight: 96,
-                letterSpacing: -2.4,
-              }}
-            >
-              {position}
-            </AppText>
-          </View>
-
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <AppText
               variant="body"
               weight="semibold"
-              numberOfLines={3}
+              numberOfLines={4}
+              language={direction === 'rtl' ? 'fa' : undefined}
               style={{
                 flex: 1,
                 writingDirection: direction,
@@ -697,6 +679,31 @@ export default function QuizScreen() {
     ]
   );
 
+  // Web shortcut: the four answer pads are also keys 1–4. The pads stay the
+  // primary control; this only mirrors their action and ignores form fields.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || phase !== 'playing' || !question) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) {
+        return;
+      }
+      const optionIndex = Number(event.key) - 1;
+      if (!Number.isInteger(optionIndex) || optionIndex < 0 || optionIndex >= question.options.length) {
+        return;
+      }
+      event.preventDefault();
+      const option = question.options[optionIndex];
+      if (option) answer(option);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [phase, question, answer]);
+
   const questionReveal = useReveal(question?.cardId ?? 'none', {
     duration: motion.base,
     distance: 10,
@@ -724,27 +731,14 @@ export default function QuizScreen() {
     >
       <IconButton icon="close" onPress={() => router.back()} accessibilityLabel="Close quiz" />
       <View className="flex-1 items-center px-2">
-        <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
+        <AppText variant="bodySm" weight="semibold" numberOfLines={1} headingLevel={1}>
           {deck?.name ?? 'Quiz'}
         </AppText>
         <AppText variant="caption" weight="medium" tone="muted">
           {phase === 'playing' && question ? `${index + 1} / ${order.length}` : '60s quiz'}
         </AppText>
       </View>
-      <View className="items-end pr-2" style={{ minWidth: heights.icon }}>
-        <View className="flex-row items-center gap-1">
-          <MaterialIcons
-            name="bolt"
-            size={iconSize.xs}
-            color={round.score > 0 ? colors.primary : colors.outline}
-          />
-          <Animated.View style={scoreReveal.style}>
-            <AppText variant="bodyLg" weight="semibold" style={{ fontVariant: ['tabular-nums'] }}>
-              {round.score.toLocaleString('en-US')}
-            </AppText>
-          </Animated.View>
-        </View>
-      </View>
+      <View style={{ width: heights.icon, height: heights.icon }} />
     </View>
   );
 
@@ -976,25 +970,9 @@ export default function QuizScreen() {
             {mode === 'reverse' ? 'Pick the matching word' : 'Pick the correct translation'}
           </AppText>
         </View>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            borderRadius: 100,
-            backgroundColor: fills.inset,
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-          }}
-        >
-          <MaterialIcons name="sports-esports" size={iconSize.xs} color={colors.primary} />
-          <AppText variant="caption" weight="semibold" tone="accent">
-            Arena
-          </AppText>
-        </View>
       </View>
 
-      <View style={{ flex: 1, justifyContent: 'center', paddingVertical: 10 }}>
+      <View style={{ justifyContent: 'center', paddingVertical: 24 }}>
         <Animated.View style={questionReveal.style}>
           <AppText
             variant={frontType}
@@ -1052,20 +1030,21 @@ export default function QuizScreen() {
           borderTopColor: fills.track,
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <MaterialIcons
-            name="local-fire-department"
-            size={iconSize.sm}
-            color={round.combo > 0 ? colors.warning : colors.outline}
-          />
-          <AppText variant="caption" tone="muted">
-            Streak{' '}
-            <AppText variant="caption" weight="semibold">{`×${Math.min(round.combo, COMBO_CAP)}`}</AppText>
+        <View style={{ flex: 1 }}>
+          <AppText
+            variant="caption"
+            weight="semibold"
+            tone={lowTime ? 'warning' : 'accent'}
+            align="right"
+          >
+            {lowTime ? 'Hurry — under 10s' : 'Correct answers buy +3s'}
           </AppText>
+          {Platform.OS === 'web' && (
+            <AppText variant="caption" tone="tertiary" align="right" className="mt-1">
+              Press 1–4 to answer
+            </AppText>
+          )}
         </View>
-        <AppText variant="caption" weight="semibold" tone={lowTime ? 'warning' : 'accent'}>
-          {lowTime ? 'Hurry — under 10s' : 'Correct answers buy +3s'}
-        </AppText>
       </View>
     </View>
   );

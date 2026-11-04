@@ -20,7 +20,7 @@ import {
 import { v2 } from '../../theme/v2';
 import type { Deck } from '../../data/types';
 
-const APP_VERSION = Constants.expoConfig?.version ?? '1.1.0';
+const APP_VERSION = Constants.expoConfig?.version ?? '1.2.0';
 const XP_PER_REVIEW = 10;
 const XP_PER_LEVEL = 1000;
 
@@ -193,13 +193,6 @@ export default function SettingsScreen() {
           subtitle="Study without a connection"
           value={settings.offlineCacheEnabled ? 'On' : 'Off'}
           onPress={() => pushOnce(router, '/settings/offline')}
-        />
-        <SettingsRow
-          icon="download"
-          iconTone="info"
-          title="Import cards"
-          subtitle="Anki, Quizlet, CSV"
-          onPress={() => pushOnce(router, '/mass-import')}
         />
         <SettingsRow
           icon="upload"

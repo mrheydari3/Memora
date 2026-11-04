@@ -16,15 +16,19 @@ import { ensureWebFonts } from '../services/webFonts';
 import { noteActivePath } from '../services/navigation';
 import { colors, motion } from '../theme/tokens';
 import { AppSplash } from '../components/AppSplash';
-
-/** The longest the splash may wait for hydration before handing over anyway. */
-const SPLASH_TIMEOUT_MS = 1200;
+import { AppText, PrimaryButton } from '../components';
 
 const styles = StyleSheet.create({
   // `overflow: hidden` clips the tab capsule's negative insets: at 320px they
   // pushed the document 3px wide (a horizontal scrollbar on a page that has
   // nothing to scroll). Nothing here is content.
   shell: { flex: 1, overflow: 'hidden' },
+  loadError: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
 });
 
 export default function RootLayout() {
@@ -46,6 +50,10 @@ export default function RootLayout() {
   const reviewLoaded = useReviewStore((s) => s.loaded);
   const settingsLoaded = useSettingsStore((s) => s.loaded);
   const gameLoaded = useGameStore((s) => s.loaded);
+  const deckError = useDeckStore((s) => s.loadError);
+  const reviewError = useReviewStore((s) => s.loadError);
+  const settingsError = useSettingsStore((s) => s.loadError);
+  const gameError = useGameStore((s) => s.loadError);
 
   // Initialize stores and PWA install listener on boot
   useEffect(() => {
@@ -62,19 +70,26 @@ export default function RootLayout() {
     }
   }, []);
 
-  // A slow disk must never trap the splash: after the cap the app renders with
-  // whatever hydrated, instead of holding a promise the user cannot see.
-  const [timedOut, setTimedOut] = useState(false);
-  useEffect(() => {
-    const id = setTimeout(() => setTimedOut(true), SPLASH_TIMEOUT_MS);
-    return () => clearTimeout(id);
-  }, []);
-
   const fontsReady = fontsLoaded || !!fontError;
   const storesReady = deckLoaded && reviewLoaded && settingsLoaded && gameLoaded;
-  const ready = (fontsReady || timedOut) && (storesReady || timedOut);
+  // The app may only mount once every store has hydrated. A timeout must never
+  // hand over an empty store: the first write would replace real data.
+  const ready = fontsReady && storesReady;
 
   const [splashDone, setSplashDone] = useState(false);
+
+  const loadFailed = Boolean(deckError || reviewError || settingsError || gameError);
+  useEffect(() => {
+    if (loadFailed) setSplashDone(true);
+  }, [loadFailed]);
+
+  const retryLoad = () => {
+    setSplashDone(false);
+    if (deckError) void useDeckStore.getState().load();
+    if (reviewError) void useReviewStore.getState().load();
+    if (settingsError) void useSettingsStore.getState().load();
+    if (gameError) void useGameStore.getState().load();
+  };
 
   return (
     <>
@@ -100,12 +115,39 @@ export default function RootLayout() {
               gestureEnabled: true,
             }}
           >
-            {/* Add Deck presents as a bottom sheet per the spec (6.4) */}
-            <Stack.Screen name="add-deck" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+            {/* Add Deck presents as a bottom sheet per the spec (6.4). The
+                route itself is transparent so its own scrim can dim the
+                canvas behind it. */}
+            <Stack.Screen
+              name="add-deck"
+              options={{
+                // `transparentModal` keeps the previous screen mounted and
+                // visible behind the route; `modal` unmounts it and leaves the
+                // scrim over black, which is not a sheet over the app.
+                presentation: 'transparentModal',
+                animation: 'slide_from_bottom',
+                contentStyle: { backgroundColor: 'transparent' },
+              }}
+            />
           </Stack>
         )}
+        {loadFailed && (
+          <View style={styles.loadError}>
+            <AppText variant="title" headingLevel={1} align="center">
+              Couldn’t open your library
+            </AppText>
+            <AppText variant="body" tone="muted" align="center" className="mt-2">
+              Your saved decks are still on this device. Nothing was overwritten.
+            </AppText>
+            <View style={{ marginTop: 20, width: 200 }}>
+              <PrimaryButton label="Try again" icon="refresh" onPress={retryLoad} />
+            </View>
+          </View>
+        )}
       </View>
-      {!splashDone && <AppSplash ready={ready} onDone={() => setSplashDone(true)} />}
+      {!splashDone && !loadFailed && (
+        <AppSplash ready={ready} onDone={() => setSplashDone(true)} />
+      )}
     </>
   );
 }

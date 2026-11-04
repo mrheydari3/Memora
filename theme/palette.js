@@ -208,7 +208,9 @@ const typography = {
   body: { fontSize: 15, lineHeight: 22, letterSpacing: 0 },
   bodySm: { fontSize: 13, lineHeight: 20, letterSpacing: 0 },
   label: { fontSize: 12, lineHeight: 16, letterSpacing: 0.6 },
-  caption: { fontSize: 11, lineHeight: 15, letterSpacing: 0.4 },
+  // 12px is the floor for any text that carries meaning. The old 11px caption
+  // was below the legibility floor on every screen that used it for meta.
+  caption: { fontSize: 12, lineHeight: 17, letterSpacing: 0.3 },
 };
 
 const weights = {

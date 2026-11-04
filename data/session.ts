@@ -35,6 +35,13 @@ export function buildStudyQueue(
   reviewLog: ReviewLogEntry[],
   now: number = Date.now()
 ): StudyQueue {
+  // Fast Repetition has no dates and no daily caps. Every card in the deck is
+  // part of a session, which is what "Every card stays available" promises.
+  if (deck.algorithmPreset === 'fast') {
+    const ordered = [...cards].sort((a, b) => a.createdAt - b.createdAt);
+    return { newCards: ordered, dueCards: [], total: ordered.length };
+  }
+
   const startOfToday = startOfDay(now);
 
   // Caps are per deck: a session in deck A must not spend deck B's budget,

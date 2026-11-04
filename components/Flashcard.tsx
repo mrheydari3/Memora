@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import type { ReactNode, RefObject } from 'react';
 import {
   View,
-  Text,
   Pressable,
   Platform,
   Animated,
@@ -317,8 +316,10 @@ export function FlashcardView({
           >
             <FaceScroll scrollRef={frontScroll}>
               <View style={[styles.copy, { alignItems: readingAlignment(frontLong, frontAlign) }]}>
-                <Text
-                  className="font-inter-bold text-on-surface"
+                <AppText
+                  variant="display"
+                  weight="bold"
+                  language={card.front.direction === 'rtl' ? 'fa' : undefined}
                   style={[
                     styles.frontText,
                     WEB_BREAK,
@@ -326,11 +327,12 @@ export function FlashcardView({
                     {
                       textAlign: frontAlign,
                       writingDirection: card.front.direction === 'rtl' ? 'rtl' : 'ltr',
+                      ...(card.front.direction === 'rtl' ? { letterSpacing: 0 } : {}),
                     },
                   ]}
                 >
                   {card.front.text}
-                </Text>
+                </AppText>
               </View>
             </FaceScroll>
           </Animated.View>
@@ -360,8 +362,23 @@ export function FlashcardView({
                     { alignItems: readingAlignment(backLong, backAlign) },
                   ]}
                 >
+                  {/* The answer face keeps the prompt in view: a learner who
+                      flipped early can still see what was asked without
+                      flipping back and losing their place. */}
+                  <AppText
+                    variant="caption"
+                    tone="muted"
+                    language={card.front.direction === 'rtl' ? 'fa' : undefined}
+                    numberOfLines={2}
+                    className="mb-2 w-full"
+                    style={{ textAlign: backAlign }}
+                  >
+                    {card.front.text}
+                  </AppText>
+
                   <AppText
                     variant={backVariant}
+                    language={card.back.direction === 'rtl' ? 'fa' : undefined}
                     style={[
                       styles.backText,
                       WEB_BREAK,
@@ -370,6 +387,7 @@ export function FlashcardView({
                         writingDirection: card.back.direction === 'rtl' ? 'rtl' : 'ltr',
                         // A big answer needs a looser leading than the scale's headline step.
                         lineHeight: FACE_LINE[backVariant],
+                        ...(card.back.direction === 'rtl' ? { letterSpacing: 0 } : {}),
                       },
                     ]}
                   >

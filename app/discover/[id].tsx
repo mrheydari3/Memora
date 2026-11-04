@@ -17,7 +17,7 @@ import {
   Skeleton,
   SkeletonText,
 } from '../../components';
-import { colors, heights, iconSize, radii, spacing } from '../../theme/tokens';
+import { colors, iconSize, radii, spacing } from '../../theme/tokens';
 
 export default function DiscoverDeckPreviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -93,7 +93,7 @@ export default function DiscoverDeckPreviewScreen() {
             title="Deck not found"
             titleVariant="headline"
             description={error ?? 'This deck is no longer in Discover.'}
-            action={<GhostButton label="Back to Discover" className="px-6" onPress={() => router.back()} />}
+            action={<GhostButton label="Back" className="px-6" onPress={() => router.back()} />}
           />
         </View>
       ) : (
@@ -107,12 +107,6 @@ export default function DiscoverDeckPreviewScreen() {
                   number rather than the catalogue's advertised deck size. */}
               <AppText variant="bodySm" weight="medium" tone="muted">
                 {deck.sampleCards.length} preview cards
-              </AppText>
-            </View>
-            <View className="flex-row items-center gap-1.5">
-              <MaterialIcons name="star" size={iconSize.sm} color={colors.warning} />
-              <AppText variant="bodySm" weight="medium" tone="muted">
-                {deck.rating.toFixed(1)}
               </AppText>
             </View>
           </View>
@@ -163,50 +157,6 @@ export default function DiscoverDeckPreviewScreen() {
               </RevealItem>
             ))}
           </View>
-
-          {deck.reviews.length > 0 && (
-            <>
-              <SectionHeader className="mt-8" label="Community reviews" />
-              <View className="mt-3 gap-3">
-                {deck.reviews.map((review, i) => (
-                  <RevealItem key={i} index={i}>
-                  <GlassCard padding="sm">
-                    <View className="flex-row items-center gap-2.5">
-                      <View
-                        className="items-center justify-center rounded-full"
-                        style={{
-                          width: heights.iconSm,
-                          height: heights.iconSm,
-                          backgroundColor: colors.hairlineGhost,
-                        }}
-                      >
-                        <AppText variant="bodySm" weight="semibold" tone="muted">
-                          {review.author.slice(0, 1)}
-                        </AppText>
-                      </View>
-                      <AppText variant="bodySm" weight="semibold" className="flex-1">
-                        {review.author}
-                      </AppText>
-                      <View className="flex-row">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <MaterialIcons
-                            key={star}
-                            name="star"
-                            size={iconSize.xs}
-                            color={star <= review.rating ? colors.warning : colors.outlineSoft}
-                          />
-                        ))}
-                      </View>
-                    </View>
-                    <AppText variant="bodySm" tone="muted" className="mt-2.5">
-                      {review.text}
-                    </AppText>
-                  </GlassCard>
-                  </RevealItem>
-                ))}
-              </View>
-            </>
-          )}
         </>
       )}
     </Screen>

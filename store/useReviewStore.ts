@@ -6,6 +6,8 @@ type ReviewStore = {
   // State
   reviewLog: ReviewLogEntry[];
   loaded: boolean;
+  /** Set when the first read fails, so a retry can replace the empty state. */
+  loadError: string | null;
 
   // Actions
   load: () => Promise<void>;
@@ -23,13 +25,15 @@ type ReviewStore = {
 export const useReviewStore = create<ReviewStore>((set, get) => ({
   reviewLog: [],
   loaded: false,
+  loadError: null,
 
   load: async () => {
+    set({ loadError: null });
     try {
       const log = await repo.loadReviewLog();
       set({ reviewLog: log, loaded: true });
     } catch {
-      set({ reviewLog: [], loaded: true });
+      set({ loadError: 'Your review history could not be read.' });
     }
   },
 

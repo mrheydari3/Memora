@@ -83,7 +83,7 @@ export default function TTSSettingsScreen() {
   };
 
   const ledger = [
-    { label: 'Route', value: `${langName(front)} → ${langName(back)}` },
+    { label: 'Route', value: `${shortCode(front)} → ${shortCode(back)}` },
     { label: 'Mode', value: settings.ttsAutoPlay ? 'Automatic' : 'On tap' },
     { label: 'Reads', value: settings.ttsReadWholeCard ? 'Whole card' : 'Front only' },
   ];

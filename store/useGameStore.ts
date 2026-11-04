@@ -6,6 +6,8 @@ type GameStore = {
   /** Records keyed by deck id. */
   records: Record<string, GameRecord>;
   loaded: boolean;
+  /** Set when the first read fails; the app offers a retry instead of empty records. */
+  loadError: string | null;
 
   load: () => Promise<void>;
   getRecord: (deckId: string) => GameRecord | undefined;
@@ -20,13 +22,15 @@ type GameStore = {
 export const useGameStore = create<GameStore>((set, get) => ({
   records: {},
   loaded: false,
+  loadError: null,
 
   load: async () => {
+    set({ loadError: null });
     try {
       const records = await repo.loadGameRecords();
       set({ records, loaded: true });
     } catch {
-      set({ records: {}, loaded: true });
+      set({ loadError: 'Your game records could not be read.' });
     }
   },
 

@@ -110,6 +110,7 @@ export function DeckRow({
                     variant="bodyLg"
                     weight="semibold"
                     numberOfLines={2}
+                    className="break-words"
                     style={{ flexShrink: 1 }}
                   >
                     {name}

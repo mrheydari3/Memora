@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Animated, Pressable, useWindowDimensions } from 'react-native';
+import { View, Animated, Pressable, Platform, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
@@ -49,6 +49,13 @@ function formatCount(value: number): string {
   return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
+/** 75_000 → "in 1m 15s"; 8_000 → "in 8s". */
+function formatWait(ms: number): string {
+  const seconds = Math.max(0, Math.ceil(ms / 1000));
+  if (seconds < 60) return `in ${seconds}s`;
+  return `in ${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, '0')}s`;
+}
+
 export default function StudyScreen() {
   const { deckId } = useLocalSearchParams<{ deckId: string }>();
   const router = useRouter();
@@ -73,10 +80,14 @@ export default function StudyScreen() {
   // using time-since-session-start inflated the statistics by counting the
   // whole session again on every answer.
   const [cardShownAt, setCardShownAt] = useState(() => Date.now());
-  // The last review, kept so it can be undone exactly.
-  const [lastUndo, setLastUndo] = useState<{ preCard: Flashcard; log: FSRSLogSnapshot } | null>(
-    null
-  );
+  // The last review, kept so it can be undone exactly. The queue snapshot is
+  // what makes undo safe once a learning step has been re-queued.
+  const [lastUndo, setLastUndo] = useState<{
+    preCard: Flashcard;
+    log: FSRSLogSnapshot;
+    queue: Flashcard[];
+    index: number;
+  } | null>(null);
 
   // Session chrome motion: the progress bar eases between fractions and the
   // question-side controls settle in as each card arrives. The card itself
@@ -86,14 +97,45 @@ export default function StudyScreen() {
   const cardExit = useRef(new Animated.Value(0)).current;
   const exitShift = useRef(16);
   const [advancing, setAdvancing] = useState(false);
+  // Learning steps become due while the session is still open. `clock` keeps
+  // the countdown honest; `studyNowId` lets the learner skip the wait once.
+  const [clock, setClock] = useState(() => Date.now());
+  const [studyNowId, setStudyNowId] = useState<string | null>(null);
 
   const currentCard = queue[index];
+
+  const dueAtMs = currentCard ? new Date(currentCard.fsrs.due).getTime() : 0;
+  const waitingMs =
+    currentCard &&
+    studyNowId !== currentCard.id &&
+    (currentCard.fsrs.state === 'Learning' || currentCard.fsrs.state === 'Relearning')
+      ? Math.max(0, dueAtMs - clock)
+      : 0;
+  const waiting = waitingMs > 0;
 
   // Reset the exit once the next card is mounted, so the outgoing card never
   // flashes back for a frame between the two.
   useEffect(() => {
     cardExit.setValue(0);
   }, [currentCard?.id, cardExit]);
+
+  // A learning card that is not due yet shows a countdown, not a card.
+  useEffect(() => {
+    if (!waiting) return;
+    const id = setInterval(() => setClock(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [waiting]);
+
+  useEffect(() => {
+    setClock(Date.now());
+    setStudyNowId(null);
+  }, [currentCard?.id]);
+
+  // Review time starts when the card is actually visible, not while it waited.
+  useEffect(() => {
+    if (!currentCard || waiting) return;
+    setCardShownAt(Date.now());
+  }, [currentCard?.id, waiting]);
 
   // The memory chip, the completion panel and the footer each settle in once.
   const memoryReveal = useReveal(showAnswer, { duration: motion.base, distance: 6 });
@@ -145,7 +187,7 @@ export default function StudyScreen() {
 
   // TTS: auto-play per settings when a new card appears
   useEffect(() => {
-    if (!currentCard) return;
+    if (!currentCard || waiting) return;
     void speakCard(currentCard.front.text, currentCard.back.text, {
       ttsEnabled: settings.ttsEnabled,
       ttsReadWholeCard: settings.ttsReadWholeCard,
@@ -154,7 +196,7 @@ export default function StudyScreen() {
       ttsBackVoiceLang: settings.ttsBackVoiceLang,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentCard?.id]);
+  }, [currentCard?.id, waiting]);
 
   // TTS: read the back aloud on reveal (when not already reading whole card)
   useEffect(() => {
@@ -221,35 +263,24 @@ export default function StudyScreen() {
         fsrs: log,
       });
 
-      setLastUndo(log ? { preCard: currentCard, log } : null);
+      // Re-queue a card only when the session still owes it something:
+      //  - FSRS cards in Learning/Relearning must see their next step today;
+      //  - Fast Repetition repeats Again/Hard, while Good/Easy finish the pass,
+      //    so the session can actually reach "All done".
+      const refreshed =
+        useDeckStore.getState().getCards(deck.id).find((card) => card.id === currentCard.id) ??
+        currentCard;
+      const inLearning =
+        refreshed.fsrs.state === 'Learning' || refreshed.fsrs.state === 'Relearning';
+      const requeue = deck.algorithmPreset === 'fast' ? rating <= 2 : inLearning;
 
-      // Fast Repetition: no advancement — re-queue the card by rating.
-      // Again = re-insert near front, Easy = push near back.
-      if (deck.algorithmPreset === 'fast') {
-        const next = [...queue];
-        next.splice(index, 1);
-        if (rating === 1) {
-          next.splice(index, 0, currentCard);
-        } else if (rating === 2) {
-          next.splice(Math.min(next.length, index + Math.ceil((next.length - index) / 3)), 0, currentCard);
-        } else if (rating === 3) {
-          next.splice(Math.min(next.length, index + Math.ceil((2 * (next.length - index)) / 3)), 0, currentCard);
-        } else {
-          next.push(currentCard);
-        }
-        setQueue(next);
-        setShowAnswer(false);
-        setCardShownAt(Date.now());
-        succeeded = true;
-        cardExit.setValue(0);
-        return;
-      }
+      setLastUndo(log ? { preCard: currentCard, log, queue, index } : null);
 
-      // Advance. At the end of the queue this leaves `currentCard` undefined and
-      // renders the completion screen instead of navigating away, so the last
-      // review stays undoable.
+      if (requeue) setQueue([...queue, refreshed]);
       setIndex(index + 1);
       setShowAnswer(false);
+      setStudyNowId(null);
+      setClock(Date.now());
       setCardShownAt(Date.now());
       succeeded = true;
     } catch (e) {
@@ -262,9 +293,38 @@ export default function StudyScreen() {
     }
   };
 
+  // Web shortcuts mirror the two controls: Space/Enter reveals, 1–4 rates.
+  // They never fire while typing, so a form elsewhere on the page keeps its keys.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) {
+        return;
+      }
+      if (!currentCard || waiting) return;
+
+      if (!showAnswer && (event.key === ' ' || event.key === 'Enter' || event.key === 'Spacebar')) {
+        event.preventDefault();
+        setShowAnswer(true);
+        return;
+      }
+      if (showAnswer && ['1', '2', '3', '4'].includes(event.key)) {
+        event.preventDefault();
+        void handleRate(Number(event.key) as Rating);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [currentCard, waiting, showAnswer, handleRate]);
+
   const undoLastReview = async () => {
     if (!lastUndo) return;
-    const { preCard } = lastUndo;
+    const { preCard, queue: previousQueue, index: previousIndex } = lastUndo;
 
     try {
       await updateCard(preCard.id, { fsrs: preCard.fsrs });
@@ -276,8 +336,11 @@ export default function StudyScreen() {
       }
 
       setLastUndo(null);
-      setIndex(Math.max(0, index - 1));
+      setQueue(previousQueue);
+      setIndex(previousIndex);
       setShowAnswer(true);
+      setStudyNowId(preCard.id);
+      setClock(Date.now());
       setCardShownAt(Date.now());
     } catch (e) {
       console.error('Failed to undo review:', e);
@@ -505,9 +568,6 @@ export default function StudyScreen() {
           {formatCount(deckCards.length)} cards
         </AppText>
       </View>
-      <AppText variant="caption" weight="semibold" tone="muted">
-        {remaining} left
-      </AppText>
     </View>
   );
 
@@ -517,14 +577,11 @@ export default function StudyScreen() {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justifyContent: 'flex-end',
           paddingHorizontal: 4,
           marginBottom: 6,
         }}
       >
-        <AppText variant="caption" tone="muted">
-          Card {index + 1} of {queue.length}
-        </AppText>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <View
             style={{
@@ -540,6 +597,35 @@ export default function StudyScreen() {
         </View>
       </View>
 
+      {waiting && (
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 24,
+          }}
+        >
+          <MaterialIcons name="schedule" size={iconSize.xl} color={colors.primary} />
+          <AppText variant="headline" headingLevel={2} align="center" className="mt-3">
+            Next review {formatWait(waitingMs)}
+          </AppText>
+          <AppText variant="bodySm" tone="muted" align="center" className="mt-2">
+            This card is in its learning steps. Wait for the interval, or study it now.
+          </AppText>
+          <View style={{ marginTop: 20, width: '100%', maxWidth: 260 }}>
+            <StartButton
+              label="Study now"
+              onPress={() => {
+                setStudyNowId(currentCard.id);
+                setClock(Date.now());
+              }}
+            />
+          </View>
+        </View>
+      )}
+
+      {!waiting && (
       <Animated.View
         style={{
           flex: 1,
@@ -564,6 +650,7 @@ export default function StudyScreen() {
           speakLabel={showAnswer ? 'Read answer aloud' : 'Read card aloud'}
         />
       </Animated.View>
+      )}
 
       {showAnswer && memoryState && (
         <Animated.View style={memoryReveal.style}>
@@ -588,6 +675,7 @@ export default function StudyScreen() {
         </Animated.View>
       )}
 
+      {!waiting && (
       <View
         style={{
           minHeight: heights.studyFooter,
@@ -613,16 +701,29 @@ export default function StudyScreen() {
             }}
           >
             <StartButton label="Show answer" onPress={() => setShowAnswer(true)} />
+            {Platform.OS === 'web' && (
+              <AppText variant="caption" tone="tertiary" align="center" className="mt-2">
+                Space or Enter to reveal
+              </AppText>
+            )}
           </Animated.View>
         ) : (
-          <StudyRatings
-            labels={previews}
-            onRate={handleRate}
-            disabled={advancing}
-            narrow={width < 360}
-          />
+          <View>
+            <StudyRatings
+              labels={previews}
+              onRate={handleRate}
+              disabled={advancing}
+              narrow={width < 360}
+            />
+            {Platform.OS === 'web' && (
+              <AppText variant="caption" tone="tertiary" align="center" className="mt-2">
+                Press 1–4 to rate
+              </AppText>
+            )}
+          </View>
         )}
       </View>
+      )}
     </View>
   );
 

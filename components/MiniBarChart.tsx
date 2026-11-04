@@ -12,6 +12,8 @@ type MiniBarChartProps = {
   /** Max value for scaling. If not provided, computed from data. */
   maxValue?: number;
   showValues?: boolean;
+  /** Replaces the bars when every value is zero, so an empty chart says so. */
+  emptyLabel?: string;
 };
 
 /** The bar never collapses to a line: 4% keeps the baseline readable. */
@@ -26,8 +28,15 @@ const FLOOR = 0.04;
  * baseline never moves and no layout is animated. Runs once, on the native
  * driver, and renders finished under reduce-motion.
  */
-export function MiniBarChart({ data, height = 56, maxValue, showValues = false }: MiniBarChartProps) {
+export function MiniBarChart({
+  data,
+  height = 56,
+  maxValue,
+  showValues = false,
+  emptyLabel,
+}: MiniBarChartProps) {
   const max = maxValue ?? Math.max(...data.map((d) => d.value), 1);
+  const isEmpty = data.length === 0 || data.every((d) => d.value === 0);
   const grow = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -44,6 +53,16 @@ export function MiniBarChart({ data, height = 56, maxValue, showValues = false }
       useNativeDriver: USE_NATIVE_DRIVER,
     }).start();
   }, [grow]);
+
+  if (isEmpty && emptyLabel) {
+    return (
+      <View className="items-center justify-center" style={{ height }}>
+        <AppText variant="caption" tone="muted" align="center">
+          {emptyLabel}
+        </AppText>
+      </View>
+    );
+  }
 
   return (
     <View>

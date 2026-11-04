@@ -22,6 +22,8 @@ type DeckStore = {
   folders: DeckFolder[];
   cardsByDeck: Record<string, Flashcard[]>;
   loaded: boolean;
+  /** Set when the first read fails. The app gates on this instead of showing an empty library. */
+  loadError: string | null;
 
   // Actions
   load: () => Promise<void>;
@@ -64,8 +66,10 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
   folders: [],
   cardsByDeck: {},
   loaded: false,
+  loadError: null,
 
   load: async () => {
+    set({ loadError: null });
     try {
       let decks = await repo.loadDecks();
       const folders = await repo.loadFolders();
@@ -134,9 +138,10 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       set({ decks, folders, cardsByDeck: allCards, loaded: true });
     } catch (e) {
       console.error('Failed to load decks:', e);
-      // Never install the seed in memory after a read failure: the next card
-      // mutation would persist it over the real library.
-      set({ decks: [], folders: [], cardsByDeck: {}, loaded: true });
+      // Never install an empty library after a read failure: the next mutation
+      // would persist it over the real one. Leave `loaded` false and let the
+      // root layout show a retry screen; no screen can mount a write path.
+      set({ loadError: 'Your saved library could not be read.' });
     }
   },
 

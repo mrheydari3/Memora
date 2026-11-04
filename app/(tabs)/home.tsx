@@ -543,7 +543,6 @@ export default function HomeScreen() {
       ) : continueEntry ? (
         <View>
           <RevealItem index={0}>
-            <View style={{ maxWidth: v2.layout.heroMeasure }}>
               <TodayHero
                 due={totalDue}
                 deckCount={dueDecks}
@@ -556,7 +555,6 @@ export default function HomeScreen() {
                 disabled={totalDue === 0}
                 onStart={() => pushOnce(router, `/study/${continueEntry.deck.id}`)}
               />
-            </View>
           </RevealItem>
 
           <View style={{ marginTop: v2.spacing.section }}>

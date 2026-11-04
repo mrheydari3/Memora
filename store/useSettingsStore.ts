@@ -7,7 +7,9 @@ const defaultSettings: Settings = {
   ttsReadWholeCard: false,
   ttsAutoPlay: true,
   ttsFrontVoiceLang: 'de-DE',
-  ttsBackVoiceLang: 'en-US',
+  // The shipped deck answers in Persian; a new install should read the back
+  // side in the language it is actually written in.
+  ttsBackVoiceLang: 'fa-IR',
   offlineCacheEnabled: false,
   pwaInstalled: false,
   soundEnabled: true,
@@ -17,6 +19,8 @@ const defaultSettings: Settings = {
 type SettingsStore = {
   settings: Settings;
   loaded: boolean;
+  /** Set when the first read fails; the app offers a retry instead of defaults. */
+  loadError: string | null;
 
   load: () => Promise<void>;
   update: (partial: Partial<Settings>) => Promise<void>;
@@ -25,8 +29,10 @@ type SettingsStore = {
 export const useSettingsStore = create<SettingsStore>((set, get) => ({
   settings: defaultSettings,
   loaded: false,
+  loadError: null,
 
   load: async () => {
+    set({ loadError: null });
     try {
       const saved = await repo.loadSettings();
       // Merge rather than replace: settings saved by an earlier build lack the
@@ -36,7 +42,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         loaded: true,
       });
     } catch {
-      set({ loaded: true });
+      set({ loadError: 'Your settings could not be read.' });
     }
   },
 

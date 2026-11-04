@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 import { MaterialIcons } from '../components/Icon';
 import { useDeckStore } from '../store/useDeckStore';
 import { useReviewStore } from '../store/useReviewStore';
@@ -18,14 +18,32 @@ import {
 import { colors, iconSize, stateColors } from '../theme/tokens';
 
 // Indexed by Date.getDay() (Sunday first), so a label always belongs to the
-// actual weekday of its bar rather than to a fixed Mon-first position.
-const WEEKDAY_INITIALS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+// actual weekday of its bar rather than to a fixed Mon-first position. Two
+// letters, because one repeats: T/T and S/S name no weekday on their own.
+const WEEKDAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
-function weekdayInitial(dayStart: number): string {
-  return WEEKDAY_INITIALS[new Date(dayStart).getDay()];
+const formatCount = (value: number) => value.toLocaleString('en-US');
+
+/** One clock for both time cards: 30 minutes is "30m", never "0.5h". */
+function formatDuration(ms: number): string {
+  if (ms <= 0) return '0m';
+  if (ms < 60_000) return '<1m';
+  const minutes = Math.round(ms / 60_000);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = ms / 3_600_000;
+  return hours < 10 ? `${hours.toFixed(1)}h` : `${Math.round(hours)}h`;
+}
+
+function weekdayLabel(dayStart: number): string {
+  return WEEKDAY_LABELS[new Date(dayStart).getDay()];
 }
 
 export default function StatisticsScreen() {
+  const { width } = useWindowDimensions();
+  // The donut and its legend share 240px inside a 320px card. Shrinking the
+  // ring keeps a gap between a one-word label and its percentage; at the
+  // default size "Mastered" and "0%" ran together.
+  const narrow = width < 360;
   const decks = useDeckStore((s) => s.decks);
   const cardsByDeck = useDeckStore((s) => s.cardsByDeck);
   const loaded = useDeckStore((s) => s.loaded);
@@ -88,7 +106,7 @@ export default function StatisticsScreen() {
     }
     return counts.map((value, i) => {
       const day = addLocalDays(today0, i - 6);
-      return { value, label: weekdayInitial(day), highlight: day === today0 };
+      return { value, label: weekdayLabel(day), highlight: day === today0 };
     });
   }, [activeLog]);
 
@@ -106,7 +124,7 @@ export default function StatisticsScreen() {
       const idx = indexByDay.get(startOfLocalDay(due));
       if (idx !== undefined) counts[idx] += 1;
     }
-    return counts.map((value, i) => ({ value, label: weekdayInitial(addLocalDays(today0, i)) }));
+    return counts.map((value, i) => ({ value, label: weekdayLabel(addLocalDays(today0, i)) }));
   }, [allCards, now]);
 
   // Time studied: sum of elapsedMs per entry (per-card time)
@@ -146,19 +164,29 @@ export default function StatisticsScreen() {
           Consecutive days with at least one review
         </AppText>
         <View className="mt-5">
-          <MiniBarChart data={weekData} height={64} showValues />
+          <MiniBarChart
+            data={weekData}
+            height={64}
+            showValues
+            emptyLabel="No reviews in the last 7 days."
+          />
         </View>
       </GlassCard>
       </RevealItem>
 
       {/* Knowledge */}
       <RevealItem index={1}>
-      <SectionHeader className="mt-7" label="Knowledge level" hint={`${total} cards`} />
+      <SectionHeader
+        className="mt-7"
+        label="Knowledge level"
+        hint={`${formatCount(total)} cards`}
+      />
       <GlassCard className="mt-3">
         <View className="flex-row items-center">
           <DonutChart
+            size={narrow ? 112 : undefined}
             strokeWidth={10}
-            centerLabel={String(total)}
+            centerLabel={formatCount(total)}
             centerSubtitle="cards"
             segments={knowledge.map((row) => ({
               value: row.value,
@@ -166,7 +194,7 @@ export default function StatisticsScreen() {
               label: row.label,
             }))}
           />
-          <View className="ml-5 flex-1 gap-3.5">
+          <View className="flex-1 gap-3.5" style={{ marginLeft: narrow ? 12 : 20 }}>
             {knowledge.map((row) => (
               <View key={row.label} className="flex-row items-center">
                 <View
@@ -176,7 +204,7 @@ export default function StatisticsScreen() {
                 <AppText variant="bodySm" weight="medium" tone="muted" className="ml-2 flex-1">
                   {row.label}
                 </AppText>
-                <AppText variant="bodySm" weight="semibold">
+                <AppText variant="bodySm" weight="semibold" style={{ marginStart: 8 }}>
                   {pct(row.value)}%
                 </AppText>
               </View>
@@ -192,7 +220,7 @@ export default function StatisticsScreen() {
         <GlassCard className="flex-1" padding="sm">
           <MaterialIcons name="schedule" size={iconSize.md} color={colors.outline} />
           <AppText variant="title" className="mt-2">
-            {Math.round(msToday / 60000)}m
+            {formatDuration(msToday)}
           </AppText>
           <AppText variant="caption" tone="muted" className="uppercase">
             Today
@@ -201,7 +229,7 @@ export default function StatisticsScreen() {
         <GlassCard className="flex-1" padding="sm">
           <MaterialIcons name="update" size={iconSize.md} color={colors.outline} />
           <AppText variant="title" className="mt-2">
-            {(msTotal / 3600000).toFixed(1)}h
+            {formatDuration(msTotal)}
           </AppText>
           <AppText variant="caption" tone="muted" className="uppercase">
             All time
@@ -214,7 +242,12 @@ export default function StatisticsScreen() {
       <RevealItem index={3}>
       <SectionHeader className="mt-7" label="Upcoming" hint="next 7 days" />
       <GlassCard className="mt-3">
-        <MiniBarChart data={upcomingData} height={64} showValues />
+        <MiniBarChart
+          data={upcomingData}
+          height={64}
+          showValues
+          emptyLabel="Nothing due in the next 7 days."
+        />
       </GlassCard>
       </RevealItem>
       </>

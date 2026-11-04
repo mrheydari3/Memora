@@ -120,7 +120,13 @@ export function SettingsPlate({
               key={entry.label}
               className="flex-row items-baseline justify-between py-2.5"
             >
-              <AppText variant="bodySm" tone="muted" className="flex-1" numberOfLines={1}>
+              <AppText
+                variant="bodySm"
+                tone="muted"
+                className="flex-1"
+                style={{ minWidth: 84 }}
+                numberOfLines={1}
+              >
                 {entry.label}
               </AppText>
               <AppText
@@ -128,7 +134,7 @@ export function SettingsPlate({
                 weight="semibold"
                 tone={entry.accent ? 'accent' : 'default'}
                 className="ml-3"
-                style={{ fontVariant: ['tabular-nums'] }}
+                style={{ flexShrink: 1, maxWidth: '62%', fontVariant: ['tabular-nums'] }}
                 numberOfLines={1}
               >
                 {entry.value}
