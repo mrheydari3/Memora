@@ -11,6 +11,7 @@ export { TopAppBar } from './TopAppBar';
 export { LiquidTabBar } from './LiquidTabBar';
 
 // Controls
+export { AppearancePicker, COLOR_CHOICES } from './AppearancePicker';
 export { Button } from './Button';
 export type { ButtonProps, ButtonSize, ButtonVariant } from './Button';
 export { PrimaryButton } from './PrimaryButton';

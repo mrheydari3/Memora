@@ -2,8 +2,11 @@ import { create } from 'zustand';
 import type { Deck, DeckFolder, Flashcard } from '../data/types';
 import * as repo from '../data/repository';
 import {
+  canNestFolder,
   createFolder,
+  detachChildFolders,
   detachDecksFromFolder,
+  moveSibling,
   removeFolder,
   renameFolder,
   type FolderError,
@@ -22,10 +25,24 @@ type DeckStore = {
 
   // Actions
   load: () => Promise<void>;
-  addFolder: (name: string) => Promise<{ ok: true; folder: DeckFolder } | { ok: false; error: FolderError }>;
+  addFolder: (
+    name: string,
+    options?: { icon?: string; color?: string; parentId?: string | null }
+  ) => Promise<{ ok: true; folder: DeckFolder } | { ok: false; error: FolderError }>;
+  /** Renames, repaints or re-parents a folder in one write. */
+  updateFolder: (
+    id: string,
+    patch: { name?: string; icon?: string; color?: string; parentId?: string | null }
+  ) => Promise<{ ok: true } | { ok: false; error: FolderError }>;
+  toggleFolderPinned: (id: string) => Promise<void>;
+  /** Moves a folder one step among the folders that share its parent. */
+  moveFolder: (id: string, delta: number) => Promise<void>;
   renameFolder: (id: string, name: string) => Promise<{ ok: boolean; error?: FolderError }>;
   deleteFolder: (id: string) => Promise<void>;
   setDeckFolder: (deckId: string, folderId: string | null) => Promise<void>;
+  toggleDeckPinned: (id: string) => Promise<void>;
+  /** Moves a deck one step among the decks in its folder. */
+  moveDeck: (id: string, delta: number) => Promise<void>;
   addDeck: (deck: Deck) => Promise<void>;
   /** Add a deck and all of its cards in one write (Discover import). */
   addDeckWithCards: (deck: Deck, cards: Flashcard[]) => Promise<void>;
@@ -123,12 +140,64 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     }
   },
 
-  addFolder: async (name) => {
-    const result = createFolder(get().folders, name);
+  addFolder: async (name, options) => {
+    const result = createFolder(get().folders, name, options ?? {});
     if (!result.ok) return { ok: false, error: result.error };
     await repo.saveFolders(result.folders);
     set({ folders: result.folders });
     return { ok: true, folder: result.folder };
+  },
+
+  updateFolder: async (id, patch) => {
+    let folders = get().folders;
+    if (!folders.some((folder) => folder.id === id)) return { ok: false, error: 'empty' };
+
+    if (patch.name !== undefined) {
+      const renamed = renameFolder(folders, id, patch.name);
+      if (!renamed.ok) return { ok: false, error: renamed.error };
+      folders = renamed.folders;
+    }
+    // A folder may never move into itself or into one of its own children.
+    if (patch.parentId !== undefined && !canNestFolder(folders, id, patch.parentId)) {
+      return { ok: false, error: 'cycle' };
+    }
+
+    folders = folders.map((folder) =>
+      folder.id === id
+        ? {
+            ...folder,
+            ...(patch.icon !== undefined ? { icon: patch.icon } : {}),
+            ...(patch.color !== undefined ? { color: patch.color } : {}),
+            ...(patch.parentId !== undefined ? { parentId: patch.parentId } : {}),
+          }
+        : folder
+    );
+    await repo.saveFolders(folders);
+    set({ folders });
+    return { ok: true };
+  },
+
+  toggleFolderPinned: async (id) => {
+    const folders = get().folders.map((folder) =>
+      folder.id === id ? { ...folder, pinnedAt: folder.pinnedAt ? null : Date.now() } : folder
+    );
+    await repo.saveFolders(folders);
+    set({ folders });
+  },
+
+  moveFolder: async (id, delta) => {
+    const folder = get().folders.find((entry) => entry.id === id);
+    if (!folder) return;
+    const parentId = folder.parentId ?? null;
+    const folders = moveSibling(
+      get().folders,
+      id,
+      (entry) => (entry.parentId ?? null) === parentId,
+      delta
+    );
+    if (folders === get().folders) return;
+    await repo.saveFolders(folders);
+    set({ folders });
   },
 
   renameFolder: async (id, name) => {
@@ -140,12 +209,38 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
   },
 
   deleteFolder: async (id) => {
-    const folders = removeFolder(get().folders, id);
-    // Decks are only unfiled, never deleted: a folder owns nothing.
-    const decks = detachDecksFromFolder(get().decks, id);
+    const removed = get().folders.find((folder) => folder.id === id);
+    const parentId = removed?.parentId ?? null;
+    // Nothing is deleted with a folder: child folders and decks move up one
+    // level, so a nested tree stays reachable after its branch is removed.
+    const folders = detachChildFolders(removeFolder(get().folders, id), id, parentId);
+    const decks = detachDecksFromFolder(get().decks, id, parentId);
     await repo.saveFolders(folders);
     if (decks !== get().decks) await repo.saveDecks(decks);
     set({ folders, decks });
+  },
+
+  toggleDeckPinned: async (id) => {
+    const decks = get().decks.map((deck) =>
+      deck.id === id ? { ...deck, pinnedAt: deck.pinnedAt ? null : Date.now() } : deck
+    );
+    await repo.saveDecks(decks);
+    set({ decks });
+  },
+
+  moveDeck: async (id, delta) => {
+    const deck = get().decks.find((entry) => entry.id === id);
+    if (!deck) return;
+    const folderId = deck.folderId ?? null;
+    const decks = moveSibling(
+      get().decks,
+      id,
+      (entry) => (entry.folderId ?? null) === folderId,
+      delta
+    );
+    if (decks === get().decks) return;
+    await repo.saveDecks(decks);
+    set({ decks });
   },
 
   setDeckFolder: async (deckId, folderId) => {

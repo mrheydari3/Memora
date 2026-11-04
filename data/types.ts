@@ -60,6 +60,14 @@ export type DeckFolder = {
   id: string;
   name: string;
   createdAt: number;
+  /** Material icon the folder wears; absent on folders saved before this existed. */
+  icon?: string;
+  /** Folder tint, from the same palette as a deck's colour. */
+  color?: string;
+  /** Parent folder; absent/null on the top level. */
+  parentId?: string | null;
+  /** Epoch ms when pinned; null/absent means normal order. */
+  pinnedAt?: number | null;
 };
 
 export type Deck = {
@@ -91,6 +99,8 @@ export type Deck = {
   saved?: boolean; // bookmark state on Library cards
   /** Optional browsing folder. Absent on decks saved before folders existed. */
   folderId?: string | null;
+  /** Epoch ms when pinned; null/absent means normal order. */
+  pinnedAt?: number | null;
 };
 
 // ---- Review Log -------------------------------------------------------------

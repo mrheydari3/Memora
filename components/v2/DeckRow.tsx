@@ -2,7 +2,16 @@ import { Animated, Pressable, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { GlassCard } from '../GlassCard';
-import { alpha, fills, heights, iconSize, radii, stateColors } from '../../theme/tokens';
+import { IconButton } from '../IconButton';
+import {
+  alpha,
+  colors,
+  fills,
+  heights,
+  iconSize,
+  radii,
+  stateColors,
+} from '../../theme/tokens';
 import { usePressFeedback } from '../../motion';
 import { v2 } from '../../theme/v2';
 
@@ -19,6 +28,10 @@ type DeckRowProps = {
   folder?: string;
   /** Studied share, 0–1. */
   progress: number;
+  /** Pinned decks keep the pin glyph beside their name. */
+  pinned?: boolean;
+  /** Opens the row's own action sheet (pin, move) without leaving the shelf. */
+  onOptions?: () => void;
   onPress?: () => void;
 };
 
@@ -34,6 +47,11 @@ type DeckRowProps = {
  * same number — and it only claims mastery colour once something has actually
  * been studied. Nothing is outlined: the glass pane, the tile fill and the rail
  * track do the separating.
+ *
+ * The options control is a sibling of the row button, never a button inside it:
+ * a focusable control nested in another button is ambiguous to a screen reader
+ * (and axe's `nested-interactive`). The sibling is also why a menu press never
+ * opens the deck by accident.
  */
 export function DeckRow({
   name,
@@ -43,6 +61,8 @@ export function DeckRow({
   due,
   folder,
   progress,
+  pinned = false,
+  onOptions,
   onPress,
 }: DeckRowProps) {
   const press = usePressFeedback({ scale: 0.99 });
@@ -56,87 +76,107 @@ export function DeckRow({
 
   return (
     <Animated.View style={[press.style, { width: '100%' }]}>
-      <Pressable
-        testID="deck-row"
-        onPress={onPress}
-        onPressIn={press.onPressIn}
-        onPressOut={press.onPressOut}
-        accessibilityRole="button"
-        // Named by its content, like the shelf card: name, context, studied
-        // share and due line are already the whole label.
-        accessibilityHint="Open deck"
-        style={{ width: '100%' }}
-      >
-        <GlassCard padding="sm" style={{ width: '100%', borderRadius: v2.radii.card }}>
-          <View className="flex-row items-center" style={{ gap: 12 }}>
-            <View
-              style={{
-                width: heights.tileLg,
-                height: heights.tileLg,
-                borderRadius: radii.micro,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: alpha(color, 0.18),
-                flexShrink: 0,
-              }}
-            >
-              <MaterialIcons name={icon} size={iconSize.lg} color={color} />
-            </View>
-
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <AppText variant="bodyLg" weight="semibold" numberOfLines={2}>
-                {name}
-              </AppText>
-
-              <AppText variant="caption" tone="muted" className="mt-1" numberOfLines={2}>
-                {context}
-              </AppText>
-
-              {/*
-                Capped: a rail that spans a 960px column would push its caption
-                under the due block, where it reads as part of that number.
-              */}
+      <GlassCard padding="sm" style={{ width: '100%', borderRadius: v2.radii.card }}>
+        <View className="flex-row items-center" style={{ gap: 6 }}>
+          <Pressable
+            testID="deck-row"
+            onPress={onPress}
+            onPressIn={press.onPressIn}
+            onPressOut={press.onPressOut}
+            accessibilityRole="button"
+            // Named by its content, like the shelf card: name, context, studied
+            // share and due line are already the whole label.
+            accessibilityHint="Open deck"
+            style={{ flex: 1, minWidth: 0 }}
+          >
+            <View className="flex-row items-center" style={{ gap: 12 }}>
               <View
-                className="flex-row items-center"
-                style={{ gap: 8, marginTop: 7, maxWidth: 280 }}
+                style={{
+                  width: heights.tileLg,
+                  height: heights.tileLg,
+                  borderRadius: radii.micro,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: alpha(color, 0.18),
+                  flexShrink: 0,
+                }}
               >
+                <MaterialIcons name={icon} size={iconSize.lg} color={color} />
+              </View>
+
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <View className="flex-row items-center" style={{ gap: 6 }}>
+                  <AppText
+                    variant="bodyLg"
+                    weight="semibold"
+                    numberOfLines={2}
+                    style={{ flexShrink: 1 }}
+                  >
+                    {name}
+                  </AppText>
+                  {pinned && (
+                    <MaterialIcons name="push-pin" size={iconSize.sm} color={colors.primary} />
+                  )}
+                </View>
+
+                <AppText variant="caption" tone="muted" className="mt-1" numberOfLines={2}>
+                  {context}
+                </AppText>
+
+                {/*
+                  Capped: a rail that spans a 960px column would push its caption
+                  under the due block, where it reads as part of that number.
+                */}
                 <View
-                  accessibilityElementsHidden
-                  importantForAccessibility="no-hide-descendants"
-                  style={{
-                    flex: 1,
-                    height: 4,
-                    borderRadius: radii.pill,
-                    backgroundColor: fills.track,
-                    overflow: 'hidden',
-                  }}
+                  className="flex-row items-center"
+                  style={{ gap: 8, marginTop: 7, maxWidth: 280 }}
                 >
                   <View
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
                     style={{
-                      width: `${percent}%`,
-                      height: '100%',
-                      backgroundColor: started ? stateColors.Review : 'transparent',
+                      flex: 1,
+                      height: 4,
+                      borderRadius: radii.pill,
+                      backgroundColor: fills.track,
+                      overflow: 'hidden',
                     }}
-                  />
+                  >
+                    <View
+                      style={{
+                        width: `${percent}%`,
+                        height: '100%',
+                        backgroundColor: started ? stateColors.Review : 'transparent',
+                      }}
+                    />
+                  </View>
+                  <AppText variant="caption" tone={started ? 'muted' : 'tertiary'}>
+                    {started ? `${percentLabel} studied` : 'Not started'}
+                  </AppText>
                 </View>
-                <AppText variant="caption" tone={started ? 'muted' : 'tertiary'}>
-                  {started ? `${percentLabel} studied` : 'Not started'}
+              </View>
+
+              <View style={{ minWidth: 48, alignItems: 'flex-end', flexShrink: 0 }}>
+                <AppText variant="title" tone={due > 0 ? 'default' : 'muted'} style={v2.type.stat}>
+                  {due}
+                </AppText>
+                <AppText variant="caption" weight="semibold" tone={due > 0 ? 'accent' : 'muted'}>
+                  {due > 0 ? 'due' : 'clear'}
                 </AppText>
               </View>
             </View>
+          </Pressable>
 
-            <View style={{ minWidth: 48, alignItems: 'flex-end', flexShrink: 0 }}>
-              <AppText variant="title" tone={due > 0 ? 'default' : 'muted'} style={v2.type.stat}>
-                {due}
-              </AppText>
-              <AppText variant="caption" weight="semibold" tone={due > 0 ? 'accent' : 'muted'}>
-                {due > 0 ? 'due' : 'clear'}
-              </AppText>
-            </View>
-
-          </View>
-        </GlassCard>
-      </Pressable>
+          {onOptions && (
+            <IconButton
+              icon="more-vert"
+              size="sm"
+              accessibilityLabel={`Options for deck ${name}`}
+              onPress={onOptions}
+            />
+          )}
+        </View>
+      </GlassCard>
     </Animated.View>
   );
 }
