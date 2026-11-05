@@ -383,6 +383,8 @@ export default function QuizScreen() {
   const [picked, setPicked] = useState<string | null>(null);
   const [exitingWrongId, setExitingWrongId] = useState<string | null>(null);
   const [newBest, setNewBest] = useState(false);
+  /** The round's result in words, for the polite live region below. */
+  const [announcement, setAnnouncement] = useState('');
 
   const roundRef = useRef(round);
   const submittedRef = useRef(false);
@@ -503,6 +505,9 @@ export default function QuizScreen() {
       commitRound(final);
       setPhase('over');
       setPicked(null);
+      setAnnouncement(
+        `${cleared ? 'Deck cleared' : "Time's up"}. ${final.score} points, ${final.correct} correct.`
+      );
       playSfx(endSound);
       haptic('end');
       if (deck) {
@@ -604,6 +609,18 @@ export default function QuizScreen() {
         playSfx(wrongSound);
         haptic('error');
       }
+
+      // The pad answers with colour and sound; a screen reader gets the same
+      // result as one sentence through the live region rendered below.
+      setAnnouncement(
+        option.correct
+          ? `Correct. Score ${next.score}${
+              next.combo >= 2 ? `, combo ${Math.min(next.combo, COMBO_CAP)}` : ''
+            }.`
+          : `Wrong. The answer was ${
+              question.options.find((entry) => entry.correct)?.text ?? 'shown above'
+            }. Score ${next.score}.`
+      );
 
       void persistAnswer(question.cardId, option.correct, at);
 
@@ -1050,6 +1067,21 @@ export default function QuizScreen() {
 
   return (
     <Screen edges={['top', 'bottom']} header={header}>
+      {/*
+        One polite channel for the round: whether the pad was right, the score
+        and the combo, in a sentence. The scoreboard stays visual so nothing is
+        announced twice, and the region is mounted for the whole round so the
+        next message replaces the last one instead of arriving on mount.
+      */}
+      <View
+        role="status"
+        aria-live="polite"
+        aria-atomic
+        style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }}
+      >
+        <AppText variant="bodySm">{announcement}</AppText>
+      </View>
+
       <View
         className="w-full flex-1 self-center px-5 pb-6"
         style={{ maxWidth: v2.layout.contentMaxWidth }}
