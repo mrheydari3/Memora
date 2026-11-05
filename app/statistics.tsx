@@ -153,7 +153,13 @@ export default function StatisticsScreen() {
       <RevealItem index={0}>
       <GlassCard tone="accent">
         <View className="flex-row items-center justify-between">
-          <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
+          <AppText
+            variant="caption"
+            weight="semibold"
+            tone="accent"
+            className="uppercase"
+            headingLevel={2}
+          >
             Learning streak
           </AppText>
           <MaterialIcons name="local-fire-department" size={iconSize.lg} color={colors.warning} />

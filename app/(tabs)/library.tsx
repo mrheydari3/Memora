@@ -264,7 +264,6 @@ export default function GameScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', columnGap: 10, marginTop: 2 }}>
             <AppText
               variant="display"
-              headingLevel={1}
               style={v2.type.display}
               accessibilityLabel="60 seconds"
             >
