@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-05T14:22:23.091Z",
+ "generatedAt": "2026-11-05T14:42:09.331Z",
  "results": [
   {
    "name": "home-folders",
@@ -27,7 +27,7 @@
      "bottom": 224
     }
    },
-   "headerGap": 811,
+   "headerGap": null,
    "rows": [
     {
      "label": "Create folder",
@@ -45,7 +45,8 @@
     }
    ],
    "gaps": [],
-   "lastRowToEdge": -265,
+   "lastRowToEdge": null,
+   "scrolledRows": 1,
    "scrollers": [
     {
      "box": {
@@ -57,10 +58,13 @@
      },
      "scrollHeight": 797,
      "clientHeight": 500,
-     "clippedRows": []
+     "clippedRows": [],
+     "hiddenRows": [
+      "Create folder (reachable by scroll)"
+     ]
     }
    ],
-   "deadSpace": -297,
+   "deadSpace": null,
    "axe": []
   },
   {
@@ -139,6 +143,7 @@
     0
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -279,6 +284,7 @@
     0
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -328,6 +334,7 @@
    ],
    "gaps": [],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -362,6 +369,7 @@
    "rows": [],
    "gaps": [],
    "lastRowToEdge": null,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": null,
    "axe": []
@@ -427,6 +435,7 @@
     12
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -507,6 +516,7 @@
     68
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -632,6 +642,7 @@
     16
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -712,6 +723,7 @@
     20
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -792,6 +804,7 @@
     20
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -799,7 +812,52 @@
   {
    "name": "advanced-edit",
    "width": 431,
-   "error": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Edit step' }).first()\u001b[22m\n"
+   "found": true,
+   "panel": {
+    "x": 0,
+    "y": 444,
+    "w": 431,
+    "h": 237,
+    "bottom": 681,
+    "radius": 28,
+    "pad": "24/20/32/20",
+    "bg": "rgb(9, 13, 19)",
+    "minHeight": "0px",
+    "maxHeight": "none"
+   },
+   "heading": {
+    "text": "Edit interval",
+    "box": {
+     "x": 20,
+     "y": 468,
+     "w": 339,
+     "h": 27,
+     "bottom": 495
+    }
+   },
+   "headerGap": 102,
+   "rows": [
+    {
+     "label": "Save step",
+     "box": {
+      "x": 20,
+      "y": 597,
+      "w": 391,
+      "h": 52,
+      "bottom": 649
+     },
+     "bg": "rgb(47, 134, 224)",
+     "radius": 14,
+     "pad": "12/20/12/20",
+     "fontSize": 16
+    }
+   ],
+   "gaps": [],
+   "lastRowToEdge": 32,
+   "scrolledRows": 0,
+   "scrollers": [],
+   "deadSpace": 0,
+   "axe": []
   },
   {
    "name": "tts-language",
@@ -922,6 +980,7 @@
     0
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -987,6 +1046,7 @@
     16
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -1017,7 +1077,7 @@
      "bottom": 253
     }
    },
-   "headerGap": 877,
+   "headerGap": null,
    "rows": [
     {
      "label": "Create deck",
@@ -1035,7 +1095,8 @@
     }
    ],
    "gaps": [],
-   "lastRowToEdge": -360,
+   "lastRowToEdge": null,
+   "scrolledRows": 1,
    "scrollers": [
     {
      "box": {
@@ -1047,10 +1108,13 @@
      },
      "scrollHeight": 892,
      "clientHeight": 500,
-     "clippedRows": []
+     "clippedRows": [],
+     "hiddenRows": [
+      "Create deck (reachable by scroll)"
+     ]
     }
    ],
-   "deadSpace": -392,
+   "deadSpace": null,
    "axe": []
   },
   {
@@ -1079,7 +1143,7 @@
      "bottom": 102
     }
    },
-   "headerGap": 967,
+   "headerGap": null,
    "rows": [
     {
      "label": "Create folder",
@@ -1097,7 +1161,8 @@
     }
    ],
    "gaps": [],
-   "lastRowToEdge": -421,
+   "lastRowToEdge": null,
+   "scrolledRows": 1,
    "scrollers": [
     {
      "box": {
@@ -1109,10 +1174,13 @@
      },
      "scrollHeight": 953,
      "clientHeight": 500,
-     "clippedRows": []
+     "clippedRows": [],
+     "hiddenRows": [
+      "Create folder (reachable by scroll)"
+     ]
     }
    ],
-   "deadSpace": -453,
+   "deadSpace": null,
    "axe": []
   },
   {
@@ -1191,6 +1259,7 @@
     0
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -1331,6 +1400,7 @@
     0
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -1380,6 +1450,7 @@
    ],
    "gaps": [],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -1414,6 +1485,7 @@
    "rows": [],
    "gaps": [],
    "lastRowToEdge": null,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": null,
    "axe": []
@@ -1479,6 +1551,7 @@
     12
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -1559,6 +1632,7 @@
     68
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -1684,6 +1758,7 @@
     16
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -1764,6 +1839,7 @@
     20
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -1844,6 +1920,7 @@
     20
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -1851,7 +1928,52 @@
   {
    "name": "advanced-edit",
    "width": 320,
-   "error": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Edit step' }).first()\u001b[22m\n"
+   "found": true,
+   "panel": {
+    "x": 0,
+    "y": 378,
+    "w": 320,
+    "h": 257,
+    "bottom": 635,
+    "radius": 28,
+    "pad": "24/20/32/20",
+    "bg": "rgb(9, 13, 19)",
+    "minHeight": "0px",
+    "maxHeight": "none"
+   },
+   "heading": {
+    "text": "Edit interval",
+    "box": {
+     "x": 20,
+     "y": 402,
+     "w": 228,
+     "h": 27,
+     "bottom": 429
+    }
+   },
+   "headerGap": 122,
+   "rows": [
+    {
+     "label": "Save step",
+     "box": {
+      "x": 20,
+      "y": 551,
+      "w": 280,
+      "h": 52,
+      "bottom": 603
+     },
+     "bg": "rgb(47, 134, 224)",
+     "radius": 14,
+     "pad": "12/20/12/20",
+     "fontSize": 16
+    }
+   ],
+   "gaps": [],
+   "lastRowToEdge": 32,
+   "scrolledRows": 0,
+   "scrollers": [],
+   "deadSpace": 0,
+   "axe": []
   },
   {
    "name": "tts-language",
@@ -1974,6 +2096,7 @@
     0
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -2039,6 +2162,7 @@
     16
    ],
    "lastRowToEdge": 32,
+   "scrolledRows": 0,
    "scrollers": [],
    "deadSpace": 0,
    "axe": []
@@ -2069,7 +2193,7 @@
      "bottom": 131
     }
    },
-   "headerGap": 1033,
+   "headerGap": null,
    "rows": [
     {
      "label": "Create deck",
@@ -2087,7 +2211,8 @@
     }
    ],
    "gaps": [],
-   "lastRowToEdge": -516,
+   "lastRowToEdge": null,
+   "scrolledRows": 1,
    "scrollers": [
     {
      "box": {
@@ -2099,10 +2224,13 @@
      },
      "scrollHeight": 1048,
      "clientHeight": 500,
-     "clippedRows": []
+     "clippedRows": [],
+     "hiddenRows": [
+      "Create deck (reachable by scroll)"
+     ]
     }
    ],
-   "deadSpace": -548,
+   "deadSpace": null,
    "axe": []
   }
  ]

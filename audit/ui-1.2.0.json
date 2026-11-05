@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-05T14:20:59.536Z",
+ "generatedAt": "2026-11-05T14:50:18.964Z",
  "base": "http://localhost:8081",
  "results": [
   {
@@ -13,7 +13,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 8,
+   "interactiveCount": 9,
    "smallTargets": [],
    "surfaces": [
     {
@@ -263,7 +263,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 9,
+   "interactiveCount": 10,
    "smallTargets": [],
    "surfaces": [
     {
@@ -640,7 +640,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 11,
+   "interactiveCount": 12,
    "smallTargets": [],
    "surfaces": [
     {
@@ -1064,16 +1064,8 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 27,
-   "smallTargets": [
-    {
-     "el": "input.css-textinput-11aywtz.r-placeholderTextColor-6taxm2",
-     "w": 170,
-     "h": 24,
-     "text": "Search cards",
-     "parent": "div.css-view-g5y9jx"
-    }
-   ],
+   "interactiveCount": 28,
+   "smallTargets": [],
    "surfaces": [
     {
      "el": "div.css-view-g5y9jx",
@@ -1190,7 +1182,7 @@
      "pad": "0/0/0/0",
      "w": 280,
      "h": 65,
-     "text": "neigen (zu)تمایل داشتن (به)، خ"
+     "text": "der Malerنقاش (ساختمان، هنری)N"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -1199,7 +1191,7 @@
      "pad": "0/0/0/0",
      "w": 280,
      "h": 65,
-     "text": "der NervعصبNew"
+     "text": "das ManagementمدیریتNew"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -1208,7 +1200,7 @@
      "pad": "0/0/0/0",
      "w": 280,
      "h": 65,
-     "text": "nervigرو اعصاب، آزار دهندهNew"
+     "text": "der Mangelکمبود، نقصNew"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -1217,7 +1209,7 @@
      "pad": "0/0/0/0",
      "w": 280,
      "h": 65,
-     "text": "die Nervositätعصبانیت، اضطرابN"
+     "text": "die Mauerدیوار (بلند، خارجی)Ne"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -1226,7 +1218,7 @@
      "pad": "0/0/0/0",
      "w": 280,
      "h": 65,
-     "text": "niemalsهرگز، هیچ وقتNew"
+     "text": "der MechanikerمکانیکNew"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -1235,7 +1227,7 @@
      "pad": "0/0/0/0",
      "w": 280,
      "h": 65,
-     "text": "das Niemandslandسرزمین هیچکس، "
+     "text": "meckernغر زدن، نق زدنNew"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -1244,7 +1236,7 @@
      "pad": "0/0/0/0",
      "w": 280,
      "h": 65,
-     "text": "noch malیک بار دیگرNew"
+     "text": "mehrer-چندین، چندNew"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -1253,7 +1245,7 @@
      "pad": "0/0/0/0",
      "w": 280,
      "h": 65,
-     "text": "noch nichtهنوز نهNew"
+     "text": "meinetwegenاز نظر من، به خاطر "
     }
    ],
    "gaps": [
@@ -1500,23 +1492,8 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 8,
-   "smallTargets": [
-    {
-     "el": "input.css-textinput-11aywtz.r-placeholderTextColor-6taxm2.ml-3",
-     "w": 220,
-     "h": 22,
-     "text": "Example",
-     "parent": "div.css-view-g5y9jx.flex-row.items-center"
-    },
-    {
-     "el": "input.css-textinput-11aywtz.r-placeholderTextColor-6taxm2.ml-3",
-     "w": 220,
-     "h": 22,
-     "text": "Synonyms",
-     "parent": "div.css-view-g5y9jx.flex-row.items-center"
-    }
-   ],
+   "interactiveCount": 9,
+   "smallTargets": [],
    "surfaces": [
     {
      "el": "div.css-view-g5y9jx",
@@ -1614,7 +1591,7 @@
      "bg": "rgb(20, 26, 36)",
      "pad": "0/0/0/0",
      "w": 280,
-     "h": 92,
+     "h": 136,
      "text": ""
     },
     {
@@ -1814,7 +1791,7 @@
      "pad": "24/24/24/24",
      "w": 280,
      "h": 397,
-     "text": "QuestionAnswerdie Ansichtdie "
+     "text": "QuestionAnswerabstimmenabstim"
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -1832,7 +1809,7 @@
      "pad": "13/16/13/16",
      "w": 232,
      "h": 70,
-     "text": "Meiner Ansicht nach ist das ei"
+     "text": "Wir müssen über den Vorschlag "
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -1941,7 +1918,7 @@
     {
      "key": "34/40 w400 ls-1",
      "count": 1,
-     "sample": "die Ansicht",
+     "sample": "abstimmen",
      "color": "rgb(220, 226, 235)",
      "families": [
       "Inter_700Bold"
@@ -1950,7 +1927,7 @@
     {
      "key": "26/36 w400 ls0",
      "count": 1,
-     "sample": "نظر, عقیده, منظره",
+     "sample": "رای دادن, هماهنگ کردن",
      "color": "rgb(220, 226, 235)",
      "families": [
       "Inter_700Bold"
@@ -1959,7 +1936,7 @@
     {
      "key": "15/22 w400 ls0",
      "count": 2,
-     "sample": "Meiner Ansicht nach ist das eine gute Idee.",
+     "sample": "Wir müssen über den Vorschlag abstimmen.",
      "color": "rgb(162, 172, 188)",
      "families": [
       "Inter_400Regular",
@@ -2036,7 +2013,7 @@
      "pad": "12/14/12/14",
      "w": 240,
      "h": 70,
-     "text": "گفتگو، مکالمه"
+     "text": "آمپول، سرنگ"
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -2045,7 +2022,7 @@
      "pad": "12/14/12/14",
      "w": 240,
      "h": 70,
-     "text": "جواب رد، عدم پذیرش"
+     "text": "پرستار سالمندان"
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -2054,7 +2031,7 @@
      "pad": "12/14/12/14",
      "w": 240,
      "h": 70,
-     "text": "در وسط"
+     "text": "گاز گرفتن"
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -2063,7 +2040,7 @@
      "pad": "12/14/12/14",
      "w": 240,
      "h": 70,
-     "text": "صاف، کم عمق، سطحی - Beispiel: "
+     "text": "هیجان انگیز"
     }
    ],
    "gaps": [
@@ -2165,7 +2142,7 @@
     {
      "key": "34/40 w400 ls-1",
      "count": 1,
-     "sample": "das Gespräch",
+     "sample": "aufregend",
      "color": "rgb(220, 226, 235)",
      "families": [
       "Inter_700Bold"
@@ -2174,7 +2151,7 @@
     {
      "key": "15/22 w400 ls0",
      "count": 4,
-     "sample": "گفتگو، مکالمه",
+     "sample": "آمپول، سرنگ",
      "color": "rgb(220, 226, 235)",
      "families": [
       "Inter_600SemiBold"
@@ -2204,7 +2181,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 1,
+   "interactiveCount": 2,
    "smallTargets": [],
    "surfaces": [
     {
@@ -2413,15 +2390,7 @@
     "scrollHeight": 700,
     "bodyScroll": 700
    },
-   "axe": [
-    {
-     "id": "scrollable-region-focusable",
-     "impact": "serious",
-     "nodes": 1,
-     "target": ".r-WebkitOverflowScrolling-150rngu",
-     "help": "Scrollable region must have keyboard access"
-    }
-   ],
+   "axe": [],
    "consoleErrors": []
   },
   {
@@ -2490,7 +2459,7 @@
      "text": "Speed Demon"
     }
    ],
-   "interactiveCount": 3,
+   "interactiveCount": 4,
    "smallTargets": [],
    "surfaces": [
     {
@@ -2591,15 +2560,6 @@
      "w": 44,
      "h": 44,
      "text": ""
-    },
-    {
-     "el": "div.__expo_fast_refresh.__expo_fast_refresh_show",
-     "radius": 8,
-     "bg": "rgb(27, 29, 30)",
-     "pad": "8/8/8/8",
-     "w": 42,
-     "h": 42,
-     "text": ""
     }
    ],
    "gaps": [
@@ -2874,7 +2834,7 @@
      "text": ""
     }
    ],
-   "interactiveCount": 2,
+   "interactiveCount": 3,
    "smallTargets": [],
    "surfaces": [
     {
@@ -3415,7 +3375,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 11,
+   "interactiveCount": 12,
    "smallTargets": [],
    "surfaces": [
     {
@@ -3939,7 +3899,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 2,
+   "interactiveCount": 3,
    "smallTargets": [],
    "surfaces": [
     {
@@ -4233,7 +4193,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 7,
+   "interactiveCount": 8,
    "smallTargets": [],
    "surfaces": [
     {
@@ -4598,7 +4558,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 2,
+   "interactiveCount": 3,
    "smallTargets": [],
    "surfaces": [
     {
@@ -4924,7 +4884,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 8,
+   "interactiveCount": 9,
    "smallTargets": [],
    "surfaces": [
     {
@@ -5169,7 +5129,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 9,
+   "interactiveCount": 10,
    "smallTargets": [],
    "surfaces": [
     {
@@ -5546,7 +5506,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 11,
+   "interactiveCount": 12,
    "smallTargets": [],
    "surfaces": [
     {
@@ -5955,16 +5915,8 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 27,
-   "smallTargets": [
-    {
-     "el": "input.css-textinput-11aywtz.r-placeholderTextColor-6taxm2",
-     "w": 240,
-     "h": 24,
-     "text": "Search cards",
-     "parent": "div.css-view-g5y9jx"
-    }
-   ],
+   "interactiveCount": 28,
+   "smallTargets": [],
    "surfaces": [
     {
      "el": "div.css-view-g5y9jx",
@@ -6081,7 +6033,7 @@
      "pad": "0/0/0/0",
      "w": 350,
      "h": 65,
-     "text": "kühlخنکNew"
+     "text": "transportierenحمل کردن، انتقال"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -6090,7 +6042,7 @@
      "pad": "0/0/0/0",
      "w": 350,
      "h": 65,
-     "text": "die KulturفرهنگNew"
+     "text": "der Traumرویا، خوابNew"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -6099,7 +6051,7 @@
      "pad": "0/0/0/0",
      "w": 350,
      "h": 65,
-     "text": "der Künstler _ / die Künstleri"
+     "text": "das Treffenملاقات، دیدارNew"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -6108,7 +6060,7 @@
      "pad": "0/0/0/0",
      "w": 350,
      "h": 65,
-     "text": "das Kunstwerkاثر هنریNew"
+     "text": "der Treffpunktمحل قرارNew"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -6117,7 +6069,7 @@
      "pad": "0/0/0/0",
      "w": 350,
      "h": 65,
-     "text": "der Kursraumکلاس درسNew"
+     "text": "trockenخشکNew"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -6126,7 +6078,7 @@
      "pad": "0/0/0/0",
      "w": 350,
      "h": 65,
-     "text": "die Küsteساحل (دریا)New"
+     "text": "trotzdemبا این حال، علیرغم آنN"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -6135,7 +6087,7 @@
      "pad": "0/0/0/0",
      "w": 350,
      "h": 65,
-     "text": "ladenبارگیری کردن، شارژ کردن، "
+     "text": "der Überfallسرقت، حمله ناگهانی"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -6144,7 +6096,7 @@
      "pad": "0/0/0/0",
      "w": 350,
      "h": 65,
-     "text": "die Lageموقعیت، وضعیتNew"
+     "text": "über-holenسبقت گرفتن (فعل جداش"
     }
    ],
    "gaps": [
@@ -6381,23 +6333,8 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 8,
-   "smallTargets": [
-    {
-     "el": "input.css-textinput-11aywtz.r-placeholderTextColor-6taxm2.ml-3",
-     "w": 290,
-     "h": 22,
-     "text": "Example",
-     "parent": "div.css-view-g5y9jx.flex-row.items-center"
-    },
-    {
-     "el": "input.css-textinput-11aywtz.r-placeholderTextColor-6taxm2.ml-3",
-     "w": 290,
-     "h": 22,
-     "text": "Synonyms",
-     "parent": "div.css-view-g5y9jx.flex-row.items-center"
-    }
-   ],
+   "interactiveCount": 9,
+   "smallTargets": [],
    "surfaces": [
     {
      "el": "div.css-view-g5y9jx",
@@ -6495,7 +6432,7 @@
      "bg": "rgb(20, 26, 36)",
      "pad": "0/0/0/0",
      "w": 350,
-     "h": 92,
+     "h": 136,
      "text": ""
     },
     {
@@ -6695,7 +6632,7 @@
      "pad": "24/24/24/24",
      "w": 350,
      "h": 519,
-     "text": "QuestionAnsweranzeigenanzeige"
+     "text": "QuestionAnswerabsolutabsolutک"
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -6712,8 +6649,8 @@
      "bg": "rgba(255, 255, 255, 0.04)",
      "pad": "13/16/13/16",
      "w": 302,
-     "h": 70,
-     "text": "Er wurde wegen Diebstahls ange"
+     "h": 48,
+     "text": "Das ist absolut richtig."
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -6822,7 +6759,7 @@
     {
      "key": "42/48 w400 ls-1.2",
      "count": 1,
-     "sample": "anzeigen",
+     "sample": "absolut",
      "color": "rgb(220, 226, 235)",
      "families": [
       "Inter_700Bold"
@@ -6831,7 +6768,7 @@
     {
      "key": "26/36 w400 ls0",
      "count": 1,
-     "sample": "نشان دادن, آگهی دادن, گزارش دادن (به پلیس)",
+     "sample": "کاملا, مطلق",
      "color": "rgb(220, 226, 235)",
      "families": [
       "Inter_700Bold"
@@ -6840,7 +6777,7 @@
     {
      "key": "15/22 w400 ls0",
      "count": 2,
-     "sample": "Er wurde wegen Diebstahls angezeigt.",
+     "sample": "Das ist absolut richtig.",
      "color": "rgb(162, 172, 188)",
      "families": [
       "Inter_400Regular",
@@ -6917,7 +6854,7 @@
      "pad": "12/14/12/14",
      "w": 150,
      "h": 70,
-     "text": "پوست"
+     "text": "تا حد امکان، ترجیحا"
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -6926,7 +6863,7 @@
      "pad": "12/14/12/14",
      "w": 150,
      "h": 70,
-     "text": "مرتب کردن, سامان دادن"
+     "text": "جسمی, بدنی"
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -6935,7 +6872,7 @@
      "pad": "12/14/12/14",
      "w": 150,
      "h": 70,
-     "text": "بارانی"
+     "text": "حقوق، دستمزد (ماهانه)"
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -6944,7 +6881,7 @@
      "pad": "12/14/12/14",
      "w": 150,
      "h": 70,
-     "text": "تصور, برداشت"
+     "text": "متضاد، عکس"
     }
    ],
    "gaps": [
@@ -7036,7 +6973,7 @@
     {
      "key": "34/40 w400 ls-1",
      "count": 1,
-     "sample": "ordnen",
+     "sample": "das Gehalt",
      "color": "rgb(220, 226, 235)",
      "families": [
       "Inter_700Bold"
@@ -7045,7 +6982,7 @@
     {
      "key": "15/22 w400 ls0",
      "count": 4,
-     "sample": "پوست",
+     "sample": "تا حد امکان، ترجیحا",
      "color": "rgb(220, 226, 235)",
      "families": [
       "Inter_600SemiBold"
@@ -7075,7 +7012,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 1,
+   "interactiveCount": 2,
    "smallTargets": [],
    "surfaces": [
     {
@@ -7335,7 +7272,7 @@
      "text": "Speed Demon"
     }
    ],
-   "interactiveCount": 3,
+   "interactiveCount": 4,
    "smallTargets": [],
    "surfaces": [
     {
@@ -7710,7 +7647,7 @@
      "text": ""
     }
    ],
-   "interactiveCount": 2,
+   "interactiveCount": 3,
    "smallTargets": [],
    "surfaces": [
     {
@@ -8241,7 +8178,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 11,
+   "interactiveCount": 12,
    "smallTargets": [],
    "surfaces": [
     {
@@ -8740,7 +8677,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 2,
+   "interactiveCount": 3,
    "smallTargets": [],
    "surfaces": [
     {
@@ -9034,7 +8971,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 7,
+   "interactiveCount": 8,
    "smallTargets": [],
    "surfaces": [
     {
@@ -9384,7 +9321,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 2,
+   "interactiveCount": 3,
    "smallTargets": [],
    "surfaces": [
     {
@@ -9710,7 +9647,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 8,
+   "interactiveCount": 9,
    "smallTargets": [],
    "surfaces": [
     {
@@ -9955,7 +9892,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 9,
+   "interactiveCount": 10,
    "smallTargets": [],
    "surfaces": [
     {
@@ -10332,7 +10269,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 11,
+   "interactiveCount": 12,
    "smallTargets": [],
    "surfaces": [
     {
@@ -10741,16 +10678,8 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 27,
-   "smallTargets": [
-    {
-     "el": "input.css-textinput-11aywtz.r-placeholderTextColor-6taxm2",
-     "w": 281,
-     "h": 24,
-     "text": "Search cards",
-     "parent": "div.css-view-g5y9jx"
-    }
-   ],
+   "interactiveCount": 28,
+   "smallTargets": [],
    "surfaces": [
     {
      "el": "div.css-view-g5y9jx",
@@ -10867,7 +10796,7 @@
      "pad": "0/0/0/0",
      "w": 391,
      "h": 65,
-     "text": "der PuddingپودینگNew"
+     "text": "die Spurرد، اثر، خط (جاده)New"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -10876,7 +10805,7 @@
      "pad": "0/0/0/0",
      "w": 391,
      "h": 65,
-     "text": "der Punktنقطه، امتیاز، نکته، م"
+     "text": "das Stadion (Pl. Stadien)استاد"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -10885,7 +10814,7 @@
      "pad": "0/0/0/0",
      "w": 391,
      "h": 65,
-     "text": "die Qualعذاب، رنجNew"
+     "text": "das Stadtzentrum _zentrenمرکز "
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -10894,7 +10823,7 @@
      "pad": "0/0/0/0",
      "w": 391,
      "h": 65,
-     "text": "die QualitätکیفیتNew"
+     "text": "ständigدائما، مرتباNew"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -10903,7 +10832,7 @@
      "pad": "0/0/0/0",
      "w": 391,
      "h": 65,
-     "text": "der Quatschمزخرف، حرف بیهودهNe"
+     "text": "der Starkregenباران شدیدNew"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -10912,7 +10841,7 @@
      "pad": "0/0/0/0",
      "w": 391,
      "h": 65,
-     "text": "das Quizمسابقه اطلاعات عمومیNe"
+     "text": "der Startشروع، آغاز، استارتNew"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -10921,7 +10850,7 @@
      "pad": "0/0/0/0",
      "w": 391,
      "h": 65,
-     "text": "das Radچرخ، دوچرخه (کوتاه شده "
+     "text": "startenشروع کردن، راه اندازی ک"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -10930,7 +10859,7 @@
      "pad": "0/0/0/0",
      "w": 391,
      "h": 65,
-     "text": "der Radfahrerدوچرخه سوارNew"
+     "text": "die StatistikآمارNew"
     }
    ],
    "gaps": [
@@ -11167,23 +11096,8 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 8,
-   "smallTargets": [
-    {
-     "el": "input.css-textinput-11aywtz.r-placeholderTextColor-6taxm2.ml-3",
-     "w": 331,
-     "h": 22,
-     "text": "Example",
-     "parent": "div.css-view-g5y9jx.flex-row.items-center"
-    },
-    {
-     "el": "input.css-textinput-11aywtz.r-placeholderTextColor-6taxm2.ml-3",
-     "w": 331,
-     "h": 22,
-     "text": "Synonyms",
-     "parent": "div.css-view-g5y9jx.flex-row.items-center"
-    }
-   ],
+   "interactiveCount": 9,
+   "smallTargets": [],
    "surfaces": [
     {
      "el": "div.css-view-g5y9jx",
@@ -11281,7 +11195,7 @@
      "bg": "rgb(20, 26, 36)",
      "pad": "0/0/0/0",
      "w": 391,
-     "h": 92,
+     "h": 136,
      "text": ""
     },
     {
@@ -11481,7 +11395,7 @@
      "pad": "24/24/24/24",
      "w": 391,
      "h": 519,
-     "text": "QuestionAnswerdie Anzahldie A"
+     "text": "QuestionAnswervorschreibenvor"
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -11499,7 +11413,7 @@
      "pad": "13/16/13/16",
      "w": 343,
      "h": 48,
-     "text": "Die Anzahl der Teilnehmer war "
+     "text": "Der Staat darf keine Religion "
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -11608,7 +11522,7 @@
     {
      "key": "42/48 w400 ls-1.2",
      "count": 1,
-     "sample": "die Anzahl",
+     "sample": "vorschreiben",
      "color": "rgb(220, 226, 235)",
      "families": [
       "Inter_700Bold"
@@ -11617,7 +11531,7 @@
     {
      "key": "26/36 w400 ls0",
      "count": 1,
-     "sample": "تعداد, شمار",
+     "sample": "تعیین کردن، دستور دادن، قانون گذاشتن",
      "color": "rgb(220, 226, 235)",
      "families": [
       "Inter_700Bold"
@@ -11626,7 +11540,7 @@
     {
      "key": "15/22 w400 ls0",
      "count": 2,
-     "sample": "Die Anzahl der Teilnehmer war hoch.",
+     "sample": "Der Staat darf keine Religion vorschreiben.",
      "color": "rgb(162, 172, 188)",
      "families": [
       "Inter_400Regular",
@@ -11703,7 +11617,7 @@
      "pad": "12/14/12/14",
      "w": 171,
      "h": 70,
-     "text": "پیشگیری"
+     "text": "رمز عبور, گذرواژه"
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -11712,7 +11626,7 @@
      "pad": "12/14/12/14",
      "w": 171,
      "h": 70,
-     "text": "سنتی"
+     "text": "تاریخی"
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -11721,7 +11635,7 @@
      "pad": "12/14/12/14",
      "w": 171,
      "h": 70,
-     "text": "دوره سلامت"
+     "text": "مرتب کردن, سامان دادن"
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -11730,7 +11644,7 @@
      "pad": "12/14/12/14",
      "w": 171,
      "h": 70,
-     "text": "اصلا، به هیچ وجه، پخته"
+     "text": "دوربین عکاسی"
     }
    ],
    "gaps": [
@@ -11822,7 +11736,7 @@
     {
      "key": "34/40 w400 ls-1",
      "count": 1,
-     "sample": "gar",
+     "sample": "historisch",
      "color": "rgb(220, 226, 235)",
      "families": [
       "Inter_700Bold"
@@ -11831,7 +11745,7 @@
     {
      "key": "15/22 w400 ls0",
      "count": 4,
-     "sample": "پیشگیری",
+     "sample": "رمز عبور, گذرواژه",
      "color": "rgb(220, 226, 235)",
      "families": [
       "Inter_600SemiBold"
@@ -11861,7 +11775,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 1,
+   "interactiveCount": 2,
    "smallTargets": [],
    "surfaces": [
     {
@@ -12084,7 +11998,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 3,
+   "interactiveCount": 4,
    "smallTargets": [],
    "surfaces": [
     {
@@ -12185,15 +12099,6 @@
      "w": 44,
      "h": 44,
      "text": ""
-    },
-    {
-     "el": "div.__expo_fast_refresh.__expo_fast_refresh_show",
-     "radius": 8,
-     "bg": "rgb(27, 29, 30)",
-     "pad": "8/8/8/8",
-     "w": 42,
-     "h": 42,
-     "text": ""
     }
    ],
    "gaps": [
@@ -12468,7 +12373,7 @@
      "text": ""
     }
    ],
-   "interactiveCount": 2,
+   "interactiveCount": 3,
    "smallTargets": [],
    "surfaces": [
     {
@@ -12999,7 +12904,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 11,
+   "interactiveCount": 12,
    "smallTargets": [],
    "surfaces": [
     {
@@ -13498,7 +13403,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 2,
+   "interactiveCount": 3,
    "smallTargets": [],
    "surfaces": [
     {
@@ -13792,7 +13697,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 7,
+   "interactiveCount": 8,
    "smallTargets": [],
    "surfaces": [
     {
@@ -14142,7 +14047,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 2,
+   "interactiveCount": 3,
    "smallTargets": [],
    "surfaces": [
     {
@@ -14369,15 +14274,6 @@
      "w": 383,
      "h": 52,
      "text": "Back to Game"
-    },
-    {
-     "el": "div.__expo_fast_refresh.__expo_fast_refresh_show",
-     "radius": 8,
-     "bg": "rgb(27, 29, 30)",
-     "pad": "8/8/8/8",
-     "w": 42,
-     "h": 42,
-     "text": ""
     }
    ],
    "gaps": [
@@ -14477,7 +14373,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 8,
+   "interactiveCount": 9,
    "smallTargets": [],
    "surfaces": [
     {
@@ -14722,7 +14618,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 9,
+   "interactiveCount": 10,
    "smallTargets": [],
    "surfaces": [
     {
@@ -15099,7 +14995,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 11,
+   "interactiveCount": 12,
    "smallTargets": [],
    "surfaces": [
     {
@@ -15508,16 +15404,8 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 27,
-   "smallTargets": [
-    {
-     "el": "input.css-textinput-11aywtz.r-placeholderTextColor-6taxm2",
-     "w": 618,
-     "h": 24,
-     "text": "Search cards",
-     "parent": "div.css-view-g5y9jx"
-    }
-   ],
+   "interactiveCount": 28,
+   "smallTargets": [],
    "surfaces": [
     {
      "el": "div.css-view-g5y9jx",
@@ -15634,7 +15522,7 @@
      "pad": "0/0/0/0",
      "w": 728,
      "h": 65,
-     "text": "verpackenبسته‌بندی کردنNew"
+     "text": "das Festivalجشنواره، فستیوالNe"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -15643,7 +15531,7 @@
      "pad": "0/0/0/0",
      "w": 728,
      "h": 65,
-     "text": "die Verpackungبسته‌بندیNew"
+     "text": "das FeuerzeugفندکNew"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -15652,7 +15540,7 @@
      "pad": "0/0/0/0",
      "w": 728,
      "h": 65,
-     "text": "verschickenفرستادن (نامه، بسته"
+     "text": "der Flohmarktبازار دست دوم فرو"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -15661,7 +15549,7 @@
      "pad": "0/0/0/0",
      "w": 728,
      "h": 65,
-     "text": "verschiebenجابجا کردن، به تعوی"
+     "text": "der FlughafenفرودگاهNew"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -15670,7 +15558,7 @@
      "pad": "0/0/0/0",
      "w": 728,
      "h": 65,
-     "text": "versendenفرستادن، ارسال کردن ("
+     "text": "der FlussرودخانهNew"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -15679,7 +15567,7 @@
      "pad": "0/0/0/0",
      "w": 728,
      "h": 65,
-     "text": "versprechenقول دادنNew"
+     "text": "die FotografieعکاسیNew"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -15688,7 +15576,7 @@
      "pad": "0/0/0/0",
      "w": 728,
      "h": 65,
-     "text": "versteigernبه حراج گذاشتنNew"
+     "text": "die Freizeitgestaltungنحوه گذر"
     },
     {
      "el": "div.css-view-g5y9jx",
@@ -15697,7 +15585,7 @@
      "pad": "0/0/0/0",
      "w": 728,
      "h": 65,
-     "text": "der VogelپرندهNew"
+     "text": "das Fremdwortواژه بیگانه، لغت "
     }
    ],
    "gaps": [
@@ -15934,23 +15822,8 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 8,
-   "smallTargets": [
-    {
-     "el": "input.css-textinput-11aywtz.r-placeholderTextColor-6taxm2.ml-3",
-     "w": 668,
-     "h": 22,
-     "text": "Example",
-     "parent": "div.css-view-g5y9jx.flex-row.items-center"
-    },
-    {
-     "el": "input.css-textinput-11aywtz.r-placeholderTextColor-6taxm2.ml-3",
-     "w": 668,
-     "h": 22,
-     "text": "Synonyms",
-     "parent": "div.css-view-g5y9jx.flex-row.items-center"
-    }
-   ],
+   "interactiveCount": 9,
+   "smallTargets": [],
    "surfaces": [
     {
      "el": "div.css-view-g5y9jx",
@@ -16048,7 +15921,7 @@
      "bg": "rgb(20, 26, 36)",
      "pad": "0/0/0/0",
      "w": 728,
-     "h": 92,
+     "h": 136,
      "text": ""
     },
     {
@@ -16470,7 +16343,7 @@
      "pad": "12/14/12/14",
      "w": 339,
      "h": 70,
-     "text": "نماد, سمبل"
+     "text": "اضافه وزن"
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -16479,7 +16352,7 @@
      "pad": "12/14/12/14",
      "w": 339,
      "h": 70,
-     "text": "ضمنا، در کنار آن"
+     "text": "دسته گل رز"
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -16488,7 +16361,7 @@
      "pad": "12/14/12/14",
      "w": 339,
      "h": 70,
-     "text": "همدیگر، یکدیگر"
+     "text": "قبلی, گذشته"
     },
     {
      "el": "button[role=button].css-view-g5y9jx.r-cursor-1loqt21.r-touchAction-1otgn73",
@@ -16497,7 +16370,7 @@
      "pad": "12/14/12/14",
      "w": 339,
      "h": 70,
-     "text": "انتخاب کردن، رای دادن، شماره گ"
+     "text": "مرکز فروش بلیط لاتاری"
     }
    ],
    "gaps": [
@@ -16589,7 +16462,7 @@
     {
      "key": "34/40 w400 ls-1",
      "count": 1,
-     "sample": "wählen",
+     "sample": "das Übergewicht",
      "color": "rgb(220, 226, 235)",
      "families": [
       "Inter_700Bold"
@@ -16598,7 +16471,7 @@
     {
      "key": "15/22 w400 ls0",
      "count": 4,
-     "sample": "نماد, سمبل",
+     "sample": "اضافه وزن",
      "color": "rgb(220, 226, 235)",
      "families": [
       "Inter_600SemiBold"
@@ -16628,7 +16501,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 1,
+   "interactiveCount": 2,
    "smallTargets": [],
    "surfaces": [
     {
@@ -16851,7 +16724,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 3,
+   "interactiveCount": 4,
    "smallTargets": [],
    "surfaces": [
     {
@@ -17226,7 +17099,7 @@
      "text": ""
     }
    ],
-   "interactiveCount": 2,
+   "interactiveCount": 3,
    "smallTargets": [],
    "surfaces": [
     {
@@ -17747,7 +17620,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 11,
+   "interactiveCount": 12,
    "smallTargets": [],
    "surfaces": [
     {
@@ -18246,7 +18119,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 2,
+   "interactiveCount": 3,
    "smallTargets": [],
    "surfaces": [
     {
@@ -18540,7 +18413,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 7,
+   "interactiveCount": 8,
    "smallTargets": [],
    "surfaces": [
     {
@@ -18890,7 +18763,7 @@
    },
    "docOverflow": 0,
    "overflowing": [],
-   "interactiveCount": 2,
+   "interactiveCount": 3,
    "smallTargets": [],
    "surfaces": [
     {

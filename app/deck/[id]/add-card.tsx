@@ -15,7 +15,7 @@ import {
   IconButton,
   Pill,
 } from '../../../components';
-import { colors, iconSize } from '../../../theme/tokens';
+import { colors, iconSize, heights } from '../../../theme/tokens';
 import type { Flashcard } from '../../../data/types';
 
 export default function AddCardScreen() {
@@ -163,6 +163,8 @@ export default function AddCardScreen() {
               value={example}
               onChangeText={setExample}
               accessibilityLabel="Example"
+              // 44px touch target on the input itself, not just its row.
+              style={{ minHeight: heights.field }}
             />
           </View>
           <View className="flex-row items-center px-4 py-3">
@@ -174,6 +176,7 @@ export default function AddCardScreen() {
               value={synonyms}
               onChangeText={setSynonyms}
               accessibilityLabel="Synonyms"
+              style={{ minHeight: heights.field }}
             />
           </View>
         </GlassCard>

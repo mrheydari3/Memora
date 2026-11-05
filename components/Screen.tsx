@@ -89,6 +89,11 @@ export function Screen({
         {scroll ? (
           <ScrollView
             className={`flex-1 ${contentClassName}`}
+            // `focusable`: the screen's own scroll region must be reachable and
+            // scrollable from the keyboard, otherwise content that overflows a
+            // short viewport (e.g. Statistics at 320×700) is touch-only
+            // (axe: "scrollable-region-focusable").
+            focusable
             contentContainerStyle={{
               paddingTop: spacing.screen,
               paddingBottom: tabClearance ? spacing.tabClearance : spacing.screenBottom,

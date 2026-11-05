@@ -407,7 +407,8 @@ export default function DeckDetailsScreen() {
             autoCorrect={false}
             style={{
               flex: 1,
-              minHeight: 24,
+              // 44px touch target on the input itself, not just the pill around it.
+              minHeight: heights.field,
               color: colors.onSurface,
               fontSize: 15,
               paddingVertical: 0,

@@ -27,7 +27,9 @@ const SHEETS = [
   { name: 'algorithm-interval', path: '/settings/algorithm', steps: ['Maximum interval'] },
   { name: 'algorithm-new', path: '/settings/algorithm', steps: ['New cards per day'] },
   { name: 'algorithm-max', path: '/settings/algorithm', steps: ['Maximum cards per day'] },
-  { name: 'advanced-edit', path: '/settings/algorithm-advanced', steps: ['Edit step'] },
+  // The advanced screen is per deck: without a deckId it reports "Deck not
+  // found" and none of its step rows exist.
+  { name: 'advanced-edit', path: '/settings/algorithm-advanced?deckId=deck-german-a2b1', steps: ['Edit step'] },
   { name: 'tts-language', path: '/settings/tts', steps: ['Front language'] },
   { name: 'add-deck-route', path: '/add-deck', steps: [] },
   { name: 'add-deck-form', path: '/add-deck', steps: ['Add manually'] },
@@ -75,11 +77,6 @@ const measureSheet = () => {
   // a menu row is anything tall enough to be a tap target.
   const rows = buttons.filter((b) => b.box.h >= 32);
 
-  const gaps = [];
-  for (let i = 1; i < rows.length; i++) {
-    gaps.push(rows[i].box.y - (rows[i - 1].box.y + rows[i - 1].box.h));
-  }
-
   const scrollers = [...panel.querySelectorAll('*')]
     .filter((el) => {
       const cs = getComputedStyle(el);
@@ -87,21 +84,42 @@ const measureSheet = () => {
     })
     .map((el) => {
       const eb = box(el);
-      const clipped = rows.filter((r) => r.box.y < eb.bottom - 2 && r.box.y + r.box.h > eb.bottom + 2);
-      return { box: eb, scrollHeight: el.scrollHeight, clientHeight: el.clientHeight, clippedRows: clipped.map((c) => c.label) };
+      const crossing = rows.filter((r) => r.box.y < eb.bottom - 2 && r.box.y + r.box.h > eb.bottom + 2);
+      const hidden = rows.filter((r) => r.box.y >= eb.bottom - 2);
+      return {
+        box: eb,
+        scrollHeight: el.scrollHeight,
+        clientHeight: el.clientHeight,
+        clippedRows: crossing.map((c) => c.label + ' (scrolls)'),
+        hiddenRows: hidden.map((c) => c.label + ' (reachable by scroll)'),
+      };
     });
 
-  const last = rows[rows.length - 1];
+  // Layout metrics are measured at the resting scroll offset: a row below a
+  // scroll region's clip is reachable by scrolling, not overflowing the panel,
+  // so it must not count as content outside the sheet.
+  const band = scrollers.length ? scrollers[0].box : null;
+  const visible = band
+    ? rows.filter((r) => r.box.y < band.bottom - 2 && r.box.y + r.box.h > band.top + 2)
+    : rows;
+
+  const gaps = [];
+  for (let i = 1; i < visible.length; i++) {
+    gaps.push(visible[i].box.y - (visible[i - 1].box.y + visible[i - 1].box.h));
+  }
+
+  const last = visible[visible.length - 1];
   const lastRowToEdge = last ? pb.bottom - (last.box.y + last.box.h) : null;
 
   return {
     found: true,
     panel: { ...pb, radius: px(s.borderTopLeftRadius), pad: [s.paddingTop, s.paddingRight, s.paddingBottom, s.paddingLeft].map(px).join('/'), bg: s.backgroundColor, minHeight: s.minHeight, maxHeight: s.maxHeight },
     heading: headingBox ? { text: heading.textContent.trim().slice(0, 40), box: headingBox } : null,
-    headerGap: headingBox && rows[0] ? rows[0].box.y - headingBox.bottom : null,
+    headerGap: headingBox && visible[0] ? visible[0].box.y - headingBox.bottom : null,
     rows,
     gaps,
     lastRowToEdge,
+    scrolledRows: band ? rows.length - visible.length : 0,
     scrollers,
     deadSpace: last && pb.h > 200 ? pb.bottom - px(s.paddingBottom) - (last.box.y + last.box.h) : null,
   };
@@ -158,7 +176,7 @@ for (const vp of WIDTHS) {
       }
       await page.screenshot({ path: `${OUT}/sheet-${vp.w}-${sheet.name}.png` });
       console.log(
-        `${vp.w} ${sheet.name.padEnd(20)} panel:${m.panel ? String(m.panel.h).padStart(3) : '---'} rows:${String(m.rows?.length ?? 0).padStart(2)} gaps:${(m.gaps ?? []).join(',')} last:${m.lastRowToEdge ?? '-'} axe:${(rec.axe ?? []).length}`
+        `${vp.w} ${sheet.name.padEnd(20)} panel:${m.panel ? String(m.panel.h).padStart(3) : '---'} rows:${String(m.rows?.length ?? 0).padStart(2)} scrolled:${String(m.scrolledRows ?? 0).padStart(2)} gaps:${(m.gaps ?? []).join(',')} last:${m.lastRowToEdge ?? '-'} axe:${(rec.axe ?? []).length}`
       );
     } catch (e) {
       rec.error = String(e).slice(0, 160);
