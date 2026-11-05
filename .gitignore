@@ -21,11 +21,11 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 
-# test output (Playwright, audit harness)
+# test output (Playwright, audit harness) — runs write here, never committed
 test-results/
 playwright-report/
-screenshots/audit/
-screenshots/cross-browser/
+screenshots/
+/audit/
 
 # debug
 npm-debug.*

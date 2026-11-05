@@ -15,8 +15,7 @@ kind of object, and nothing showed which decks lived in which folder.
 | R5 | low | `app/(tabs)/home.tsx` | the section was called “Decks” while the sheet was called “Folders” | two names for one concept | both read **My decks** / **Folders** |
 
 Measured after the rebuild: home at 390 and 1280 px renders the tree inside a
-single pane (screenshots `screenshots/after/library-tree-390.png` and
-`-1280.png`), folder headers are **58px** tall, the accessibility tree reads
+single pane, folder headers are **58px** tall, the accessibility tree reads
 `button "Folder German A2" [expanded]` → `group "Decks in German A2"` → deck,
 and the folder sheet still creates, counts and deletes folders.
 
@@ -264,7 +263,6 @@ Unused tokens were deleted after the sweep: `colors.hairline`,
 - `npx tsc --noEmit` → 0 errors.
 - `npm test` → 32 passing, 0 failing.
 - Re-counted border references: 160 → 18 (all in the allowed table).
-- Screenshots in `screenshots/after/`.
 
 ### Assumptions
 
