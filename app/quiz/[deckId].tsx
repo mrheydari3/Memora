@@ -556,6 +556,34 @@ export default function QuizScreen() {
     };
   }, []);
 
+  // The result is a dialog over a finished round: focus moves into it so the
+  // tab order starts at the score, and Escape takes the same exit as the
+  // "Back to Game" control underneath it.
+  const resultRef = useRef<React.ComponentRef<typeof View> | null>(null);
+  useEffect(() => {
+    if (phase !== 'over' || Platform.OS !== 'web') return;
+    (resultRef.current as unknown as { focus?: () => void } | null)?.focus?.();
+    const doc = (
+      globalThis as {
+        document?: {
+          addEventListener?: (
+            type: 'keydown',
+            listener: (event: { key?: string }) => void
+          ) => void;
+          removeEventListener?: (
+            type: 'keydown',
+            listener: (event: { key?: string }) => void
+          ) => void;
+        };
+      }
+    ).document;
+    const onKeyDown = (event: { key?: string }) => {
+      if (event.key === 'Escape') router.replace('/(tabs)/library');
+    };
+    doc?.addEventListener?.('keydown', onKeyDown);
+    return () => doc?.removeEventListener?.('keydown', onKeyDown);
+  }, [phase, router]);
+
   useEffect(
     () => () => {
       if (advanceRef.current) clearTimeout(advanceRef.current);
@@ -1102,8 +1130,18 @@ export default function QuizScreen() {
       </View>
 
       {phase === 'over' && (
-        <Animated.View style={[styles.result, resultReveal.style]}>
-          <View className="w-full items-center px-5" style={{ maxWidth: layout.resultMaxWidth }}>
+        <Animated.View
+          role="dialog"
+          aria-modal
+          aria-label={`Round result: ${round.score} points`}
+          style={[styles.result, resultReveal.style]}
+        >
+          <View
+            ref={resultRef}
+            tabIndex={-1}
+            className="w-full items-center px-5"
+            style={{ maxWidth: layout.resultMaxWidth }}
+          >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
               <View
                 style={{

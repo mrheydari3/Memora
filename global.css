@@ -99,6 +99,21 @@ body {
   }
 }
 
+/*
+ * Long ledgers without a second scroll container.
+ *
+ * A deck can hold thousands of cards and the screen renders them as one list, so
+ * every row used to cost layout and paint even when it was thousands of pixels
+ * away. `content-visibility: auto` lets the browser skip both for the rows that
+ * are off screen while keeping them in the document — find-in-page and keyboard
+ * focus still reach them — and the intrinsic size keeps the scroll height honest
+ * so the scrollbar does not jump while scrolling.
+ */
+.defer-render {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 64px;
+}
+
 /* A single global fallback for CSS-driven motion. The JS motion helpers already
    honour the preference themselves; this catches anything that animates through
    a stylesheet instead of the native driver. */

@@ -454,6 +454,9 @@ export default function DeckDetailsScreen() {
               onPress={() => setFilterMode(entry.key)}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
+              // react-native-web does not turn `selected` into aria-selected on
+              // a button, so the active filter was silent to screen readers.
+              aria-pressed={active}
               style={{
                 minWidth: 44,
                 minHeight: 44,
@@ -506,6 +509,9 @@ export default function DeckDetailsScreen() {
             return (
               <View
                 key={card.id}
+                // A deck can hold thousands of rows; this class lets the
+                // browser skip layout and paint for the ones off screen.
+                className="defer-render"
                 style={{
                   minHeight: 64,
                   borderRadius: 18,
