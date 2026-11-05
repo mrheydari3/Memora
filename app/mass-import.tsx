@@ -555,7 +555,7 @@ export default function MassImportScreen() {
               flexWrap: 'wrap',
             }}
           >
-            <AppText variant="headline" headingLevel={3} style={{ flexShrink: 1 }}>
+            <AppText variant="headline" headingLevel={2} style={{ flexShrink: 1 }}>
               Bring your cards over.
             </AppText>
             <AppText

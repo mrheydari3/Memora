@@ -1004,7 +1004,13 @@ export default function QuizScreen() {
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View>
-          <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
+          <AppText
+            variant="caption"
+            weight="semibold"
+            tone="accent"
+            className="uppercase"
+            headingLevel={2}
+          >
             Question {String(index + 1).padStart(2, '0')}
           </AppText>
           <AppText variant="caption" tone="muted">
