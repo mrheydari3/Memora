@@ -226,7 +226,7 @@ export default function GameScreen() {
         contentMaxWidth={v2.layout.contentMaxWidth}
         header={header}
       >
-        <View style={{ marginTop: v2.spacing.section }}>
+        <View>
           <GlassCard>
             <EmptyState
               icon="sports-esports"
@@ -476,17 +476,27 @@ export default function GameScreen() {
       contentMaxWidth={v2.layout.contentMaxWidth}
       header={header}
     >
-      <View style={{ marginTop: v2.spacing.section, paddingBottom: 48 }}>
+      {/* The screen shell already opens the page with spacing.screen; an extra
+          section gap here pushed the game tab's first pane 32px lower than every
+          other screen's. */}
+      <View style={{ paddingBottom: 48 }}>
         {wide ? (
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 20 }}>
-            <View style={{ flex: 1, minWidth: 0, gap: v2.spacing.section }}>
-              <RevealItem index={0}>{hero}</RevealItem>
-              <RevealItem index={2}>{recordsPane}</RevealItem>
-              <RevealItem index={3}>{howToPlay}</RevealItem>
+          // Wide: the hero is the one primary action, so it spans the page as a
+          // banner. Under it the picker and the records are both short panes and
+          // pair up naturally, and the rules close the page full width. Pairing
+          // the tall hero with the picker is what left a whole column ending a
+          // third of the way down the page.
+          <View style={{ gap: v2.spacing.section }}>
+            <RevealItem index={0}>{hero}</RevealItem>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 20 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <RevealItem index={1}>{deckPicker}</RevealItem>
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <RevealItem index={2}>{recordsPane}</RevealItem>
+              </View>
             </View>
-            <View style={{ flex: 1.05, minWidth: 0 }}>
-              <RevealItem index={1}>{deckPicker}</RevealItem>
-            </View>
+            <RevealItem index={3}>{howToPlay}</RevealItem>
           </View>
         ) : (
           <View style={{ gap: v2.spacing.section }}>

@@ -35,8 +35,12 @@ export const v2 = {
   },
 
   radii: {
-    /** Panes step up from v1's 24. */
-    pane: 28,
+    /**
+     * Panes use the same 24 as `radii.pane` in v1; the 28 step belongs to the
+     * bottom sheet, not to a screen panel. Today's pane, the deck queue and the
+     * quiz board all read 28 here before, which made two radii for one role.
+     */
+    pane: 24,
     /** Deck row. */
     card: 22,
   },

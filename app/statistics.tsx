@@ -16,6 +16,7 @@ import {
   StatisticsSkeleton,
 } from '../components';
 import { colors, iconSize, stateColors } from '../theme/tokens';
+import { v2 } from '../theme/v2';
 
 // Indexed by Date.getDay() (Sunday first), so a label always belongs to the
 // actual weekday of its bar rather than to a fixed Mon-first position. Two
@@ -143,7 +144,7 @@ export default function StatisticsScreen() {
   ];
 
   return (
-    <Screen scroll gutter header={<TopAppBar title="Statistics" back />}>
+    <Screen scroll gutter contentMaxWidth={v2.layout.contentMaxWidth} header={<TopAppBar title="Statistics" back />}>
       {!loaded ? (
         <StatisticsSkeleton />
       ) : (

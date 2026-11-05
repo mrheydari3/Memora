@@ -19,6 +19,7 @@ import {
   SettingsGroupSkeleton,
 } from '../components';
 import { colors, fills, heights, iconSize } from '../theme/tokens';
+import { v2 } from '../theme/v2';
 
 type Achievement = {
   id: string;
@@ -107,7 +108,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <Screen scroll gutter header={<TopAppBar title="Profile" back />}>
+    <Screen scroll gutter contentMaxWidth={v2.layout.contentMaxWidth} header={<TopAppBar title="Profile" back />}>
       {!loaded ? (
         <>
           <HeroSkeleton height={190} />

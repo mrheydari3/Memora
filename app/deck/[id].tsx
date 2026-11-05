@@ -315,50 +315,62 @@ export default function DeckDetailsScreen() {
         }}
       />
 
-      <View style={{ padding: v2.spacing.panel }}>
-        <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
-          Today’s queue
-        </AppText>
+      {/* Wide: the queue reads across the page — the count on the left, the
+          action and the mastery rail on the right — so the band uses the width
+          instead of sitting as a 400px island. Mobile keeps the vertical stack. */}
+      <View
+        style={{
+          padding: v2.spacing.panel,
+          ...(wide ? { flexDirection: 'row', alignItems: 'center', columnGap: 32 } : {}),
+        }}
+      >
+        <View style={wide ? { flex: 1, minWidth: 0 } : undefined}>
+          <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
+            Today’s queue
+          </AppText>
 
-        <View
-          className="flex-row flex-wrap items-end"
-          style={{ columnGap: 12, rowGap: 2, marginTop: 2 }}
-        >
-          <AppText
-            variant="display"
-            style={v2.type.display}
-            accessibilityLabel={`${totalDue} cards due in this deck`}
+          <View
+            className="flex-row flex-wrap items-end"
+            style={{ columnGap: 12, rowGap: 2, marginTop: 2 }}
           >
-            {totalDue}
-          </AppText>
-          <AppText variant="bodyLg" tone="muted" style={{ paddingBottom: 9 }}>
-            cards due
+            <AppText
+              variant="display"
+              style={v2.type.display}
+              accessibilityLabel={`${totalDue} cards due in this deck`}
+            >
+              {totalDue}
+            </AppText>
+            <AppText variant="bodyLg" tone="muted" style={{ paddingBottom: 9 }}>
+              cards due
+            </AppText>
+          </View>
+
+          <AppText variant="body" tone="muted" className="mt-1">
+            {totalDue > 0 ? 'in this deck today' : 'Nothing due — you are all caught up'}
           </AppText>
         </View>
 
-        <AppText variant="body" tone="muted" className="mt-1">
-          {totalDue > 0 ? 'in this deck today' : 'Nothing due — you are all caught up'}
-        </AppText>
-
-        <View style={{ marginTop: 20 }}>
-          <StartButton
-            label={totalDue > 0 ? 'Start session' : 'Nothing due today'}
-            disabled={totalDue === 0}
-            onPress={() => pushOnce(router, `/study/${deck.id}`)}
-          />
-        </View>
-
-        {totalDue > 0 && (
-          <View style={{ marginTop: 20 }}>
-            <TodayRail
-              segments={[
-                { label: 'New', value: newDue, color: stateColors.New },
-                { label: 'Learning', value: learningDue, color: stateColors.Learning },
-                { label: 'Review', value: reviewDue, color: stateColors.Review },
-              ]}
+        <View style={wide ? { width: 300, flexShrink: 0 } : undefined}>
+          <View style={{ marginTop: wide ? 0 : 20 }}>
+            <StartButton
+              label={totalDue > 0 ? 'Start session' : 'Nothing due today'}
+              disabled={totalDue === 0}
+              onPress={() => pushOnce(router, `/study/${deck.id}`)}
             />
           </View>
-        )}
+
+          {totalDue > 0 && (
+            <View style={{ marginTop: 20 }}>
+              <TodayRail
+                segments={[
+                  { label: 'New', value: newDue, color: stateColors.New },
+                  { label: 'Learning', value: learningDue, color: stateColors.Learning },
+                  { label: 'Review', value: reviewDue, color: stateColors.Review },
+                ]}
+              />
+            </View>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -616,27 +628,21 @@ export default function DeckDetailsScreen() {
         />
       }
     >
-      <View style={{ marginTop: v2.spacing.section, paddingBottom: 48 }}>
-        <View
-          style={
-            wide
-              ? { flexDirection: 'row', alignItems: 'flex-start', gap: 32 }
-              : undefined
-          }
-        >
-          <View style={wide ? { width: v2.layout.heroMeasure } : undefined}>
-            <RevealItem index={0}>{identity}</RevealItem>
-            <RevealItem index={1}>
-              <View style={{ marginTop: 20 }}>{hero}</View>
-            </RevealItem>
+      {/* The shell's paddingTop already opens the page; a second section gap
+          here left the deck screen starting lower than every other route. */}
+      <View style={{ paddingBottom: 48, ...(wide ? { gap: v2.spacing.section } : {}) }}>
+        {/* Wide: the queue band spans the page, so no column can end a third of
+            the way down beside the long card ledger; the ledger then owns the
+            full column. Mobile keeps identity → queue → cards, unchanged. */}
+        <RevealItem index={0}>{identity}</RevealItem>
+        <RevealItem index={1}>
+          <View style={wide ? undefined : { marginTop: 20 }}>{hero}</View>
+        </RevealItem>
+        <RevealItem index={2}>
+          <View style={wide ? undefined : { marginTop: v2.spacing.section }}>
+            {cardsSection}
           </View>
-
-          <View
-            style={wide ? { flex: 1, minWidth: 0 } : { marginTop: v2.spacing.section }}
-          >
-            <RevealItem index={2}>{cardsSection}</RevealItem>
-          </View>
-        </View>
+        </RevealItem>
       </View>
 
       {/* Deck options sheet */}

@@ -59,8 +59,7 @@ import {
 } from '../../theme/tokens';
 import { v2 } from '../../theme/v2';
 import {
-  USE_NATIVE_DRIVER,
-  prefersReducedMotion,
+  springToAsync,
   timingTo,
   usePressFeedback,
   useReveal,
@@ -203,22 +202,11 @@ function ArenaAnswer({
 
   useEffect(() => {
     if (state !== 'correct' && state !== 'wrong') return;
-    if (prefersReducedMotion()) return;
     pop.setValue(0);
-    Animated.sequence([
-      Animated.spring(pop, {
-        toValue: 1,
-        speed: 40,
-        bounciness: 0,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }),
-      Animated.spring(pop, {
-        toValue: 0,
-        speed: 20,
-        bounciness: 0,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }),
-    ]).start();
+    // The pad pops and settles through the motion layer, which owns the driver
+    // and the reduce-motion path: with the preference on, both steps land on
+    // their end value at once and the pad stays still.
+    void springToAsync(pop, 1).then(() => springToAsync(pop, 0));
   }, [state, pop]);
 
   // The red pad holds still just long enough to be read, then leaves the grid.
@@ -814,6 +802,10 @@ export default function QuizScreen() {
       style={[
         glassFill,
         {
+          // The row stretches both panels to the arena height; the board has to
+          // opt into that height for its own middle band to be distributed.
+          flex: 1,
+          minHeight: 0,
           borderRadius: v2.radii.pane,
           borderTopWidth: 1,
           borderTopColor: rims.soft,
@@ -822,7 +814,7 @@ export default function QuizScreen() {
         },
       ]}
     >
-      <View style={{ padding: v2.spacing.panel }}>
+      <View style={{ padding: v2.spacing.panel, flex: 1, minHeight: 0 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
             Round
@@ -834,27 +826,31 @@ export default function QuizScreen() {
           )}
         </View>
 
-        <View style={{ alignItems: 'center', marginTop: 6 }}>
-          <TimerRing size={156} progress={timerProgress} low={lowTime} label={timerLabel} />
-        </View>
+        {/* Both panels fill the arena, so the clock and score take the middle
+            of the column instead of ending the board two thirds down it. */}
+        <View style={{ flex: 1, justifyContent: 'center', minHeight: 0 }}>
+          <View style={{ alignItems: 'center', marginTop: 6 }}>
+            <TimerRing size={156} progress={timerProgress} low={lowTime} label={timerLabel} />
+          </View>
 
-        <View style={{ alignItems: 'center', marginTop: 12 }}>
-          <AppText variant="caption" tone="muted" className="uppercase">
-            Score
-          </AppText>
-          <Animated.View style={scoreReveal.style}>
-            <AppText
-              variant="display"
-              style={{
-                fontVariant: ['tabular-nums'],
-                fontSize: 44,
-                lineHeight: 48,
-                letterSpacing: -1.6,
-              }}
-            >
-              {round.score.toLocaleString('en-US')}
+          <View style={{ alignItems: 'center', marginTop: 12 }}>
+            <AppText variant="caption" tone="muted" className="uppercase">
+              Score
             </AppText>
-          </Animated.View>
+            <Animated.View style={scoreReveal.style}>
+              <AppText
+                variant="display"
+                style={{
+                  fontVariant: ['tabular-nums'],
+                  fontSize: 44,
+                  lineHeight: 48,
+                  letterSpacing: -1.6,
+                }}
+              >
+                {round.score.toLocaleString('en-US')}
+              </AppText>
+            </Animated.View>
+          </View>
         </View>
 
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
@@ -972,7 +968,10 @@ export default function QuizScreen() {
         </View>
       </View>
 
-      <View style={{ justifyContent: 'center', paddingVertical: 24 }}>
+      {/* The stage owns the leftover height, so the question sits in the middle
+          of it and the pads stay on the bottom edge. Without this flex the
+          panel kept a dead strip under the footer on a tall desktop window. */}
+      <View style={{ flex: 1, justifyContent: 'center', paddingVertical: 24 }}>
         <Animated.View style={questionReveal.style}>
           <AppText
             variant={frontType}
