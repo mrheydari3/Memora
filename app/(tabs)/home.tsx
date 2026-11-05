@@ -68,9 +68,10 @@ type FolderSheetMode = 'list' | 'edit' | 'location';
 /**
  * Home — design v2, "Today first".
  *
- * The page answers "what do I study now?" before "what do I own?": the due
- * number is the h1 on the canvas, one primary action opens the session, and the
- * day's new/learning/review split sits underneath. The library is one rule and
+ * The page answers "what do I study now?" before "what do I own?": the day
+ * label ("Today") is the h1 and the due number is the canvas's one display-sized
+ * element, one primary action opens the session, and the day's new/learning/
+ * review split sits underneath. The library is one rule and
  * a list of rows, browsed level by level: the top level holds root folders and
  * unfiled decks, and every folder opens into its own subfolders and decks.
  *

@@ -26,6 +26,7 @@ test-results/
 playwright-report/
 screenshots/
 /audit/
+/artifacts/
 
 # logs (dev-server redirects, harness runs)
 *.log

@@ -31,8 +31,8 @@ type TodayHeroProps = {
  *
  * The pane is the app's ink fill with a 6% accent wash and a lit rim at its top
  * and bottom edges, so it reads as glass over the canvas without becoming the
- * saturated blue card v1 used. Inside it the due count is the page's h1 and the
- * only display-sized element; the action sits directly under the number, the
+ * saturated blue card v1 used. Inside it the day label is the page's h1 and the
+ * due count is the only display-sized element; the action sits under the number,
  * next deck is one quiet caption, and the day's split closes the pane.
  */
 export function TodayHero({
@@ -81,7 +81,13 @@ export function TodayHero({
       />
 
       <View testID="today-panel-body" style={{ padding: v2.spacing.panel }}>
-        <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
+        <AppText
+          variant="caption"
+          weight="semibold"
+          tone="accent"
+          className="uppercase"
+          headingLevel={1}
+        >
           Today · {date}
         </AppText>
 
@@ -91,7 +97,6 @@ export function TodayHero({
         >
           <AppText
             variant="display"
-            headingLevel={1}
             style={v2.type.display}
             accessibilityLabel={`${due} cards due today`}
           >
