@@ -523,7 +523,7 @@ export default function HomeScreen() {
         </>
       ) : deckQueues.length === 0 ? (
         <RevealItem index={0}>
-          <GlassCard className="mt-6">
+          <GlassCard>
             <EmptyState
               icon="library-books"
               title="No decks yet"

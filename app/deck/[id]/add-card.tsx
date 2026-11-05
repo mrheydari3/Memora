@@ -16,6 +16,7 @@ import {
   Pill,
 } from '../../../components';
 import { colors, iconSize, heights } from '../../../theme/tokens';
+import { v2 } from '../../../theme/v2';
 import type { Flashcard } from '../../../data/types';
 
 export default function AddCardScreen() {
@@ -99,6 +100,7 @@ export default function AddCardScreen() {
     <Screen
       scroll
       gutter
+      contentMaxWidth={v2.layout.contentMaxWidth}
       header={
         <TopAppBar
           title={editCardId ? 'Edit card' : 'Add cards'}

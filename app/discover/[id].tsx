@@ -17,7 +17,8 @@ import {
   Skeleton,
   SkeletonText,
 } from '../../components';
-import { colors, iconSize, radii, spacing } from '../../theme/tokens';
+import { colors, iconSize, radii } from '../../theme/tokens';
+import { v2 } from '../../theme/v2';
 
 export default function DiscoverDeckPreviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -65,13 +66,14 @@ export default function DiscoverDeckPreviewScreen() {
 
   return (
     <Screen
-      scroll={!loading && !!deck}
-      gutter={!loading && !!deck}
+      scroll
+      gutter
+      contentMaxWidth={v2.layout.contentMaxWidth}
       header={<TopAppBar title="Discover" back />}
     >
       {/* The deck name is the page title below; the bar stays contextual. */}
       {loading ? (
-        <View style={{ paddingHorizontal: spacing.screen, paddingTop: spacing.screen }}>
+        <View>
           <Skeleton height={26} width="64%" radius={9} />
           <View className="mt-4 flex-row" style={{ gap: 16 }}>
             <Skeleton width={96} height={11} radius={5} />
@@ -87,7 +89,7 @@ export default function DiscoverDeckPreviewScreen() {
           </View>
         </View>
       ) : !deck ? (
-        <View className="flex-1 items-center justify-center px-6">
+        <View className="mt-10">
           <EmptyState
             icon="search-off"
             title="Deck not found"
@@ -130,7 +132,7 @@ export default function DiscoverDeckPreviewScreen() {
           </RevealItem>
 
           <RevealItem index={1}>
-          <SectionHeader className="mt-8" label="Sample cards" hint={`${deck.sampleCards.length}`} />
+          <SectionHeader className="mt-7" label="Sample cards" hint={`${deck.sampleCards.length}`} />
           </RevealItem>
           <View className="mt-3 flex-row flex-wrap gap-3">
             {deck.sampleCards.map((card, i) => (

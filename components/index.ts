@@ -5,6 +5,7 @@ export type { AppTextProps, TextTone, TextVariant, TextWeight } from './AppText'
 // Layout and surfaces
 export { Screen } from './Screen';
 export { GlassCard } from './GlassCard';
+export { HeroPane } from './HeroPane';
 export { SectionHeader } from './SectionHeader';
 export { ListRow } from './ListRow';
 export { TopAppBar } from './TopAppBar';

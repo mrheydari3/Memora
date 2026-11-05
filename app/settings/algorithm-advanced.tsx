@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Pressable } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import {
@@ -21,11 +21,14 @@ import {
   ToggleSwitch,
   BottomSheetModal,
   PrimaryButton,
+  EmptyState,
   Field,
+  GhostButton,
   Pill,
   IconButton,
 } from '../../components';
 import { colors, iconSize } from '../../theme/tokens';
+import { v2 } from '../../theme/v2';
 
 const DEFAULT_SM2_STEPS = ['12 hours', '1 day', '2 days', '3 days'];
 
@@ -35,6 +38,7 @@ type StepList = 'fsrs' | 'relearn' | 'sm2';
 
 export default function AlgorithmAdvancedScreen() {
   const { deckId } = useLocalSearchParams<{ deckId?: string | string[] }>();
+  const router = useRouter();
   const decks = useDeckStore((s) => s.decks);
   const loaded = useDeckStore((s) => s.loaded);
   const updateDeck = useDeckStore((s) => s.updateDeck);
@@ -200,8 +204,13 @@ export default function AlgorithmAdvancedScreen() {
   // deleted while this screen was open. Say so instead of editing another deck.
   if (!deck && !loaded) {
     return (
-      <Screen header={<TopAppBar title="Advanced" back />}>
-        <GlassCard className="mt-4">
+      <Screen
+        scroll
+        gutter
+        contentMaxWidth={v2.layout.contentMaxWidth}
+        header={<TopAppBar title="Advanced" back />}
+      >
+        <GlassCard tone="inset">
           <AppText variant="bodySm" tone="muted">
             Loading deck…
           </AppText>
@@ -212,21 +221,32 @@ export default function AlgorithmAdvancedScreen() {
 
   if (!deck) {
     return (
-      <Screen header={<TopAppBar title="Advanced" back />}>
-        <GlassCard className="mt-4">
-          <AppText variant="body" weight="medium">
-            Deck not found
-          </AppText>
-          <AppText variant="bodySm" tone="muted" className="mt-1">
-            This deck may have been deleted. Go back and pick a deck that still exists.
-          </AppText>
+      <Screen
+        scroll
+        gutter
+        contentMaxWidth={v2.layout.contentMaxWidth}
+        header={<TopAppBar title="Advanced" back />}
+      >
+        <GlassCard>
+          <EmptyState
+            icon="layers-clear"
+            title="Deck not found"
+            titleVariant="bodyLg"
+            description="It may have been deleted. Go back and pick a deck that still exists."
+            action={<GhostButton label="Go back" onPress={() => router.back()} />}
+          />
         </GlassCard>
       </Screen>
     );
   }
 
   return (
-    <Screen scroll gutter header={<TopAppBar title="Advanced" back />}>
+    <Screen
+      scroll
+      gutter
+      contentMaxWidth={v2.layout.contentMaxWidth}
+      header={<TopAppBar title="Advanced" back />}
+    >
       <SettingsPlate
         icon="tune"
         eyebrow="Advanced"

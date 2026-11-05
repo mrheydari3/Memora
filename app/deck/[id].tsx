@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, TextInput, View, useWindowDimensions } from 'react-native';
+import { Pressable, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
 import { MaterialIcons } from '../../components/Icon';
@@ -11,26 +11,29 @@ import {
   alpha,
   colors,
   fills,
-  glassFill,
   heights,
   iconSize,
-  rims,
+  radii,
   stateColors,
 } from '../../theme/tokens';
 import { v2 } from '../../theme/v2';
 import {
   AppText,
   Button,
+  Chip,
   BottomSheetModal,
   EmptyState,
   Field,
+  HeroPane,
   HeroSkeleton,
   DeckCardGridSkeleton,
+  IconButton,
   ListRow,
   Pill,
   PrimaryButton,
   RevealItem,
   Screen,
+  SearchBar,
   SheetScrollView,
   TopAppBar,
 } from '../../components';
@@ -289,90 +292,34 @@ export default function DeckDetailsScreen() {
   );
 
   const hero = (
-    <View
+    <HeroPane
+      stage
+      wide={wide}
       testID="deck-hero"
-      style={[
-        glassFill,
-        {
-          borderRadius: v2.radii.pane,
-          borderTopWidth: 1,
-          borderTopColor: rims.soft,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.outlineVariant,
-          overflow: 'hidden',
-        },
-      ]}
-    >
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: alpha(colors.primary, 0.06),
-        }}
-      />
-
-      {/* Wide: the queue reads across the page — the count on the left, the
-          action and the mastery rail on the right — so the band uses the width
-          instead of sitting as a 400px island. Mobile keeps the vertical stack. */}
-      <View
-        style={{
-          padding: v2.spacing.panel,
-          ...(wide ? { flexDirection: 'row', alignItems: 'center', columnGap: 32 } : {}),
-        }}
-      >
-        <View style={wide ? { flex: 1, minWidth: 0 } : undefined}>
-          <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
-            Today’s queue
-          </AppText>
-
-          <View
-            className="flex-row flex-wrap items-end"
-            style={{ columnGap: 12, rowGap: 2, marginTop: 2 }}
-          >
-            <AppText
-              variant="display"
-              style={v2.type.display}
-              accessibilityLabel={`${totalDue} cards due in this deck`}
-            >
-              {totalDue}
-            </AppText>
-            <AppText variant="bodyLg" tone="muted" style={{ paddingBottom: 9 }}>
-              cards due
-            </AppText>
-          </View>
-
-          <AppText variant="body" tone="muted" className="mt-1">
-            {totalDue > 0 ? 'in this deck today' : 'Nothing due — you are all caught up'}
-          </AppText>
-        </View>
-
-        <View style={wide ? { width: 300, flexShrink: 0 } : undefined}>
-          <View style={{ marginTop: wide ? 0 : 20 }}>
-            <StartButton
-              label={totalDue > 0 ? 'Start session' : 'Nothing due today'}
-              disabled={totalDue === 0}
-              onPress={() => pushOnce(router, `/study/${deck.id}`)}
-            />
-          </View>
-
-          {totalDue > 0 && (
-            <View style={{ marginTop: 20 }}>
-              <TodayRail
-                segments={[
-                  { label: 'New', value: newDue, color: stateColors.New },
-                  { label: 'Learning', value: learningDue, color: stateColors.Learning },
-                  { label: 'Review', value: reviewDue, color: stateColors.Review },
-                ]}
-              />
-            </View>
-          )}
-        </View>
-      </View>
-    </View>
+      eyebrow="Today’s queue"
+      value={totalDue}
+      unit="cards due"
+      valueLabel={`${totalDue} cards due in this deck`}
+      context={totalDue > 0 ? 'in this deck today' : 'Nothing due — you are all caught up'}
+      action={
+        <StartButton
+          label={totalDue > 0 ? 'Start session' : 'Nothing due today'}
+          disabled={totalDue === 0}
+          onPress={() => pushOnce(router, `/study/${deck.id}`)}
+        />
+      }
+      rail={
+        totalDue > 0 ? (
+          <TodayRail
+            segments={[
+              { label: 'New', value: newDue, color: stateColors.New },
+              { label: 'Learning', value: learningDue, color: stateColors.Learning },
+              { label: 'Review', value: reviewDue, color: stateColors.Review },
+            ]}
+          />
+        ) : undefined
+      }
+    />
   );
 
   const cardsSection = (
@@ -396,87 +343,30 @@ export default function DeckDetailsScreen() {
       </View>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 }}>
-        <View
-          style={{
-            flex: 1,
-            minHeight: 48,
-            borderRadius: 100,
-            backgroundColor: fills.control,
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingHorizontal: 14,
-            gap: 8,
-          }}
-        >
-          <MaterialIcons name="search" size={iconSize.md} color={colors.outline} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search cards"
-            placeholderTextColor={colors.onSurfaceVariant}
-            selectionColor={colors.primary}
-            accessibilityLabel="Search cards"
-            autoCorrect={false}
-            style={{
-              flex: 1,
-              // 44px touch target on the input itself, not just the pill around it.
-              minHeight: heights.field,
-              color: colors.onSurface,
-              fontSize: 15,
-              paddingVertical: 0,
-            }}
-          />
+        {/* The app's one search field. The deck browser used to build its own
+            48px pill with a raw 15px input, so its height, radius and clear
+            affordance drifted from every other search in the app. */}
+        <View style={{ flex: 1 }}>
+          <SearchBar value={query} onChangeText={setQuery} placeholder="Search cards" />
         </View>
 
-        <Pressable
-          onPress={cycleSort}
-          accessibilityRole="button"
+        <IconButton
+          icon="sort"
           accessibilityLabel={`Sort cards: ${sortLabel}`}
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 100,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: fills.control,
-          }}
-        >
-          <MaterialIcons name="sort" size={iconSize.md} color={colors.onSurface} />
-        </Pressable>
+          onPress={cycleSort}
+        />
       </View>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-        {FILTERS.map((entry) => {
-          const active = filterMode === entry.key;
-          return (
-            <Pressable
-              key={entry.key}
-              onPress={() => setFilterMode(entry.key)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              // react-native-web does not turn `selected` into aria-selected on
-              // a button, so the active filter was silent to screen readers.
-              aria-pressed={active}
-              style={{
-                minWidth: 44,
-                minHeight: 44,
-                borderRadius: 100,
-                paddingHorizontal: 14,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: active ? colors.primaryContainer : fills.control,
-              }}
-            >
-              <AppText
-                variant="bodySm"
-                weight="semibold"
-                style={{ color: active ? colors.onPrimaryContainer : colors.onSurfaceVariant }}
-              >
-                {entry.label}
-              </AppText>
-            </Pressable>
-          );
-        })}
+        {FILTERS.map((entry) => (
+          <Chip
+            key={entry.key}
+            label={entry.label}
+            active={filterMode === entry.key}
+            onPress={() => setFilterMode(entry.key)}
+            accessibilityLabel={`Filter cards: ${entry.label}`}
+          />
+        ))}
       </View>
 
       <View style={{ marginTop: 14, gap: 8 }}>
@@ -514,7 +404,7 @@ export default function DeckDetailsScreen() {
                 className="defer-render"
                 style={{
                   minHeight: 64,
-                  borderRadius: 18,
+                  borderRadius: radii.control,
                   backgroundColor: fills.inset,
                   flexDirection: 'row',
                   alignItems: 'center',

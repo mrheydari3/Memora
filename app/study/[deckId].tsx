@@ -25,6 +25,7 @@ import {
   heights,
   iconSize,
   motion,
+  radii,
   rims,
   spacing,
   stateColors,
@@ -386,7 +387,7 @@ export default function StudyScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginEnd: 4 }}>
           <View
             style={{
-              borderRadius: 100,
+              borderRadius: radii.pill,
               backgroundColor: fills.inset,
               paddingHorizontal: 12,
               paddingVertical: 8,
@@ -552,7 +553,7 @@ export default function StudyScreen() {
         style={{
           width: 40,
           height: 40,
-          borderRadius: 12,
+          borderRadius: radii.control,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: alpha(deck.color, 0.16),
@@ -660,7 +661,7 @@ export default function StudyScreen() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 6,
-                borderRadius: 100,
+                borderRadius: radii.pill,
                 paddingHorizontal: 12,
                 paddingVertical: 4,
                 backgroundColor: fills.inset,

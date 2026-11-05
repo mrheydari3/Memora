@@ -55,6 +55,7 @@ import {
   iconSize,
   layout,
   motion,
+  radii,
   rims,
 } from '../../theme/tokens';
 import { v2 } from '../../theme/v2';
@@ -280,7 +281,7 @@ function ArenaAnswer({
                 style={{
                   width: 26,
                   height: 26,
-                  borderRadius: 13,
+                  borderRadius: radii.pill,
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: alpha(tint.glyph, 0.16),
@@ -306,7 +307,7 @@ function RoundStat({ label, value }: { label: string; value: string }) {
     <View
       style={{
         flex: 1,
-        borderRadius: 14,
+        borderRadius: radii.control,
         backgroundColor: fills.inset,
         paddingHorizontal: 10,
         paddingVertical: 9,
@@ -885,12 +886,7 @@ export default function QuizScreen() {
             <Animated.View style={scoreReveal.style}>
               <AppText
                 variant="display"
-                style={{
-                  fontVariant: ['tabular-nums'],
-                  fontSize: 44,
-                  lineHeight: 48,
-                  letterSpacing: -1.6,
-                }}
+                style={[v2.type.score, { fontVariant: ['tabular-nums'] }]}
               >
                 {round.score.toLocaleString('en-US')}
               </AppText>
@@ -917,7 +913,7 @@ export default function QuizScreen() {
               style={{
                 width: 38,
                 height: 38,
-                borderRadius: 12,
+                borderRadius: radii.micro,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: alpha(deck.color, 0.16),
@@ -954,7 +950,7 @@ export default function QuizScreen() {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
-        borderRadius: 20,
+        borderRadius: v2.radii.card,
         backgroundColor: fills.inset,
         borderTopWidth: 1,
         borderTopColor: rims.tile,
@@ -969,7 +965,7 @@ export default function QuizScreen() {
         </AppText>
         <AppText
           variant="headline"
-          style={{ fontVariant: ['tabular-nums'], fontSize: 24, lineHeight: 28 }}
+          style={[v2.type.headline, { fontVariant: ['tabular-nums'] }]}
         >
           {round.score.toLocaleString('en-US')}
         </AppText>
@@ -1153,7 +1149,7 @@ export default function QuizScreen() {
                 style={{
                   width: 38,
                   height: 38,
-                  borderRadius: 12,
+                  borderRadius: radii.micro,
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: alpha(deck.color, 0.16),
@@ -1177,12 +1173,7 @@ export default function QuizScreen() {
             <AppText
               variant="display"
               className="mt-2"
-              style={{
-                fontVariant: ['tabular-nums'],
-                fontSize: 64,
-                lineHeight: 68,
-                letterSpacing: -2.24,
-              }}
+              style={[v2.type.result, { fontVariant: ['tabular-nums'] }]}
             >
               {round.score.toLocaleString('en-US')}
             </AppText>

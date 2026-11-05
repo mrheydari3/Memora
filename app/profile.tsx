@@ -11,8 +11,10 @@ import {
   Screen,
   TopAppBar,
   GlassCard,
+  HeroPane,
   SectionHeader,
   AchievementBadge,
+  EmptyState,
   ListRow,
   RevealItem,
   HeroSkeleton,
@@ -119,49 +121,55 @@ export default function ProfileScreen() {
       ) : (
       <>
       <RevealItem index={0}>
-      {/* Identity */}
-      <GlassCard tone="accent">
-        <View className="flex-row items-center">
+      {/* Identity. The pane is the shared hero anatomy: the avatar leads the
+          eyebrow row, the level is the page's display figure, and the XP rail
+          closes it. */}
+      <HeroPane
+        tone="accent"
+        eyebrow="User"
+        leading={
           <View
             className="items-center justify-center rounded-full"
             style={{
-              width: heights.avatarLg,
-              height: heights.avatarLg,
+              width: heights.avatar,
+              height: heights.avatar,
               backgroundColor: colors.accentFaint,
             }}
           >
-            <MaterialIcons name="person" size={iconSize.display} color={colors.primary} />
+            <MaterialIcons name="person" size={iconSize.md} color={colors.primary} />
           </View>
-          <View className="ml-4 flex-1">
-            <AppText variant="headline" headingLevel={2}>
-              User
-            </AppText>
-            <View className="mt-1 flex-row items-center gap-1.5">
-              <MaterialIcons name="arrow-upward" size={iconSize.xs} color={colors.success} />
-              <AppText variant="bodySm" weight="medium" tone="muted">
-                Level {level}
+        }
+        trailing={
+          <AppText variant="caption" tone="muted">
+            {streak > 0 ? `${streak}-day streak` : 'No streak yet'}
+          </AppText>
+        }
+        value={level}
+        unit="level"
+        valueLabel={`Level ${level}`}
+        context={`${xpIntoLevel} of ${XP_PER_LEVEL} XP into this level`}
+        rail={
+          <View>
+            <View
+              className="h-2 overflow-hidden rounded-full"
+              style={{ backgroundColor: fills.track }}
+            >
+              <View
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${xpProgress * 100}%` }}
+              />
+            </View>
+            <View className="mt-2 flex-row justify-between">
+              <AppText variant="caption" weight="medium" tone="muted" className="uppercase">
+                Experience
+              </AppText>
+              <AppText variant="caption" weight="medium" tone="muted">
+                {xpIntoLevel} / {XP_PER_LEVEL} XP
               </AppText>
             </View>
           </View>
-        </View>
-
-        <View className="mt-5">
-          <View className="h-2 overflow-hidden rounded-full" style={{ backgroundColor: fills.track }}>
-            <View
-              className="h-full rounded-full bg-primary"
-              style={{ width: `${xpProgress * 100}%` }}
-            />
-          </View>
-          <View className="mt-2 flex-row justify-between">
-            <AppText variant="caption" weight="medium" tone="muted" className="uppercase">
-              Experience
-            </AppText>
-            <AppText variant="caption" weight="medium" tone="muted">
-              {xpIntoLevel} / {XP_PER_LEVEL} XP
-            </AppText>
-          </View>
-        </View>
-      </GlassCard>
+        }
+      />
 
       </RevealItem>
 
@@ -203,10 +211,12 @@ export default function ProfileScreen() {
       <SectionHeader className="mt-7" label="My decks" />
       <GlassCard className="mt-3" padding="none">
         {decks.length === 0 && (
-          <View className="px-4 py-5">
-            <AppText variant="bodySm" tone="muted">
-              No decks yet.
-            </AppText>
+          <View className="px-4 py-6">
+            <EmptyState
+              icon="library-books"
+              title="No decks yet"
+              description="Create a deck from Home to start building a memory."
+            />
           </View>
         )}
         {decks.slice(0, 5).map((deck, i) => (

@@ -9,6 +9,7 @@ import {
   Screen,
   TopAppBar,
   GlassCard,
+  HeroPane,
   SectionHeader,
   DonutChart,
   MiniBarChart,
@@ -151,34 +152,26 @@ export default function StatisticsScreen() {
       <>
       {/* Streak */}
       <RevealItem index={0}>
-      <GlassCard tone="accent">
-        <View className="flex-row items-center justify-between">
-          <AppText
-            variant="caption"
-            weight="semibold"
-            tone="accent"
-            className="uppercase"
-            headingLevel={2}
-          >
-            Learning streak
-          </AppText>
+      <HeroPane
+        tone="accent"
+        eyebrow="Learning streak"
+        trailing={
           <MaterialIcons name="local-fire-department" size={iconSize.lg} color={colors.warning} />
-        </View>
-        <AppText variant="display" className="mt-1">
-          {streak} {streak === 1 ? 'day' : 'days'}
-        </AppText>
-        <AppText variant="bodySm" tone="muted" className="mt-1">
-          Consecutive days with at least one review
-        </AppText>
-        <View className="mt-5">
+        }
+        value={streak}
+        unit={streak === 1 ? 'day' : 'days'}
+        valueLabel={`${streak} ${streak === 1 ? 'day' : 'days'}`}
+        context="Consecutive days with at least one review"
+        contextVariant="bodySm"
+        rail={
           <MiniBarChart
             data={weekData}
             height={64}
             showValues
             emptyLabel="No reviews in the last 7 days."
           />
-        </View>
-      </GlassCard>
+        }
+      />
       </RevealItem>
 
       {/* Knowledge */}

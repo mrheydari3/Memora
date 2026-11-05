@@ -21,15 +21,23 @@ export const v2 = {
     title: { fontSize: 30, lineHeight: 36, letterSpacing: -0.7 },
     headline: { fontSize: 22, lineHeight: 28, letterSpacing: -0.3 },
     stat: { fontSize: 28, lineHeight: 34, letterSpacing: -0.6 },
+    /** The quiz's live score: the clock and the tally share one column. */
+    score: { fontSize: 44, lineHeight: 48, letterSpacing: -1.6 },
+    /** The round result — the largest figure in the app. */
+    result: { fontSize: 64, lineHeight: 68, letterSpacing: -2.24 },
   },
 
   spacing: {
     /** Inner padding of the today pane; v1 used 20 for its hero card. */
     panel: 20,
-    /** Between major regions; v1 used 28. */
-    section: 32,
-    /** Between a heading and the content it introduces. */
-    block: 16,
+    /**
+     * Between major regions. One value for the whole app: it used to be 32 here
+     * while the settings chapters, Statistics, Profile and Discover used 28, so
+     * the same gap read differently depending on the screen.
+     */
+    section: 28,
+    /** Between a heading and the content it introduces — the same 12 as `mt-3`. */
+    block: 12,
     /** Deck-to-deck gap. */
     card: 12,
   },
