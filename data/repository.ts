@@ -127,3 +127,22 @@ export async function isInitialized(): Promise<boolean> {
 export async function markInitialized(): Promise<void> {
   await AsyncStorage.setItem(KEYS.initialized, '1');
 }
+
+// ---- Developer tools --------------------------------------------------------
+
+/**
+ * Remove every key this repository owns. Only the developer data screen calls
+ * this: normal app flows always write a replacement before anything is lost, so
+ * a wipe that only clears is exactly what "delete everything" means here.
+ */
+export async function clearAll(): Promise<void> {
+  await AsyncStorage.multiRemove([
+    KEYS.decks,
+    KEYS.folders,
+    KEYS.allCards,
+    KEYS.reviewLog,
+    KEYS.settings,
+    KEYS.gameRecords,
+    KEYS.initialized,
+  ]);
+}

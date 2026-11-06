@@ -204,6 +204,20 @@ export default function SettingsScreen() {
         />
       </SettingsSection>
 
+      {/* Development builds only: this row must not exist in a shipped app. */}
+      {__DEV__ && (
+        <SettingsSection label="Developer" index={5}>
+          <SettingsRow
+            icon="science"
+            iconTone="warning"
+            title="Test data"
+            subtitle="Load, reset or wipe the library on this device"
+            onPress={() => pushOnce(router, '/dev')}
+            isLast
+          />
+        </SettingsSection>
+      )}
+
       <SettingsNote icon="lock-outline">
         Memora {APP_VERSION} · Exports are plain JSON. Keep a copy somewhere safe.
       </SettingsNote>
