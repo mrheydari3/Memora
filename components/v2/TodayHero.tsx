@@ -11,7 +11,7 @@ type TodayHeroProps = {
   deckCount: number;
   /** Rough session length, in minutes. */
   minutes: number;
-  /** The queue's new / learning / review split. */
+  /** The next deck's own new / learning / review split. */
   newCount: number;
   learningCount: number;
   reviewCount: number;

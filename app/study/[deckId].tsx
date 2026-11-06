@@ -76,6 +76,12 @@ export default function StudyScreen() {
   // Session queue
   const [queue, setQueue] = useState<Flashcard[]>([]);
   const [index, setIndex] = useState(0);
+  /**
+   * The session's opening size. Re-queued learning cards grow `queue`, so it
+   * cannot be the progress denominator: the bar and the "x / y" counter both
+   * jumped backwards (26 → 27) the moment a card came back for another step.
+   */
+  const [sessionTotal, setSessionTotal] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   // When the current card was first shown. Review time is recorded per card;
   // using time-since-session-start inflated the statistics by counting the
@@ -161,6 +167,7 @@ export default function StudyScreen() {
       }
     }
     setQueue(next);
+    setSessionTotal(next.length);
   }, [deck]);
 
   // Compute interval previews for the current card. `now` is pinned to when the
@@ -210,8 +217,10 @@ export default function StudyScreen() {
   // Leaving the session must not leave a card talking in the background.
   useEffect(() => () => void stopSpeaking(), []);
 
+  // Denominator is fixed at the session's opening size, and work that re-enters
+  // the queue parks the bar at 100% instead of stretching it.
   const progressTarget =
-    queue.length > 0 ? (index + (showAnswer ? 0.5 : 0)) / queue.length : 0;
+    sessionTotal > 0 ? Math.min(1, (index + (showAnswer ? 0.5 : 0)) / sessionTotal) : 0;
 
   useEffect(() => {
     // Width is a layout property, so it cannot run on the native driver.
@@ -394,7 +403,7 @@ export default function StudyScreen() {
             }}
           >
             <AppText variant="bodySm" weight="semibold" tone="muted">
-              {Math.min(index + 1, queue.length)} / {queue.length}
+              {Math.min(index + 1, sessionTotal)} / {sessionTotal}
             </AppText>
           </View>
           <IconButton

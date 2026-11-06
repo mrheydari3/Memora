@@ -170,18 +170,6 @@ export default function HomeScreen() {
     () => deckQueues.reduce((sum, entry) => sum + entry.total, 0),
     [deckQueues]
   );
-  const newTotal = useMemo(
-    () => deckQueues.reduce((sum, entry) => sum + entry.newCount, 0),
-    [deckQueues]
-  );
-  const learningTotal = useMemo(
-    () => deckQueues.reduce((sum, entry) => sum + entry.learningCount, 0),
-    [deckQueues]
-  );
-  const reviewTotal = useMemo(
-    () => deckQueues.reduce((sum, entry) => sum + entry.reviewCount, 0),
-    [deckQueues]
-  );
   const dueDecks = deckQueues.filter((entry) => entry.total > 0).length;
   const minutes = Math.max(1, Math.round(totalDue / 4));
 
@@ -359,6 +347,11 @@ export default function HomeScreen() {
         </View>
       }
       actions={[
+        {
+          icon: 'explore',
+          accessibilityLabel: 'Discover',
+          onPress: () => pushOnce(router, '/discover'),
+        },
         {
           icon: 'add',
           accessibilityLabel: 'Add deck',
@@ -549,9 +542,12 @@ export default function HomeScreen() {
                 deckCount={dueDecks}
                 minutes={minutes}
                 nextDeck={continueEntry.deck.name}
-                newCount={newTotal}
-                learningCount={learningTotal}
-                reviewCount={reviewTotal}
+                // The rail describes the deck the button opens, not the whole
+                // library: the due count above it is the library total, so
+                // library-wide segments here read as if one deck held them all.
+                newCount={continueEntry.newCount}
+                learningCount={continueEntry.learningCount}
+                reviewCount={continueEntry.reviewCount}
                 label={totalDue === 0 ? 'Nothing due today' : resuming ? 'Continue' : 'Start session'}
                 disabled={totalDue === 0}
                 onStart={() => pushOnce(router, `/study/${continueEntry.deck.id}`)}
