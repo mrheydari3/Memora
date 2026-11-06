@@ -17,22 +17,21 @@ import {
   SettingsNote,
   TopAppBar,
 } from '../../../components';
-import { colors, fills, heights, iconSize, radii } from '../../../theme/tokens';
+import { colors, heights, iconSize, layout, radii, typography } from '../../../theme/tokens';
 import { v2 } from '../../../theme/v2';
 import type { Flashcard } from '../../../data/types';
 
 type Side = 'front' | 'back';
 
 /**
- * Add cards — one card, both faces.
+ * Add cards — you write on the card itself.
  *
- * The page is a single pane whose top half is the front and whose bottom half is
- * the back, separated by a fill step rather than a rule, so both sides are
- * visible while you write and neither can be forgotten. Each face names itself
- * and counts its own characters on one line; the swap control sits with the
- * front, since it moves that side's text. Type direction follows the script, so
- * a Persian face is written right-to-left. The optional fields stay folded away
- * and the save decision lives in the fixed footer.
+ * The page is one flashcard, laid out the way it will be studied: the prompt as a
+ * centred poster, a short accent rule, and the answer beneath it. Both sides are
+ * typed directly on that face — there are no field labels, boxes or counters —
+ * so the composer cannot read as a form. The chrome is the study card's own (a
+ * dot, the side you are writing, the swap control), the optional fields stay
+ * folded away and the save decision lives in the fixed footer.
  */
 export default function AddCardScreen() {
   const { id, editCardId } = useLocalSearchParams<{ id: string; editCardId?: string }>();
@@ -71,7 +70,7 @@ export default function AddCardScreen() {
   const detailsCount = [example.trim(), synonyms.trim()].filter(Boolean).length;
   const isEditing = Boolean(editCardId);
 
-  /** Swap the two sides; the caret does not move because both faces are on screen. */
+  /** Swap the two sides; the caret stays where it was because both are on the card. */
   const swapSides = () => {
     setFront(back);
     setBack(front);
@@ -132,81 +131,6 @@ export default function AddCardScreen() {
     }
   };
 
-  /** A face's own name line: the marker, the side, what it holds, its count. */
-  const faceLine = (side: Side, hint: string) => {
-    const text = side === 'front' ? front : back;
-    const filled = Boolean(text.trim());
-    const active = writing === side;
-
-    return (
-      <View className="flex-row items-center gap-2 px-4 pt-3">
-        <View
-          style={{
-            width: 5,
-            height: 5,
-            borderRadius: 3,
-            backgroundColor: filled ? colors.primary : colors.outline,
-          }}
-        />
-        <AppText
-          variant="caption"
-          weight="semibold"
-          tone={active || filled ? 'accent' : 'muted'}
-          className="uppercase"
-        >
-          {side === 'front' ? 'Front' : 'Back'}
-        </AppText>
-        <AppText variant="caption" tone="tertiary" numberOfLines={1} className="flex-1">
-          {hint}
-        </AppText>
-        <AppText variant="caption" tone="tertiary" style={{ fontVariant: ['tabular-nums'] }}>
-          {text.trim().length}
-        </AppText>
-        {side === 'front' && (
-          <IconButton
-            icon="swap-vert"
-            size="sm"
-            accessibilityLabel="Swap front and back"
-            onPress={swapSides}
-          />
-        )}
-      </View>
-    );
-  };
-
-  /** One face's writing area. Both are always mounted, so both are always ready. */
-  const faceField = (side: Side, placeholder: string, lines: number) => {
-    const text = side === 'front' ? front : back;
-    const direction = textDirection(text);
-
-    return (
-      <TextInput
-        className="px-4 pb-2 pt-1 text-headline font-inter-medium text-on-surface"
-        // The browser's own focus rectangle would sit inside the rounded pane as
-        // a stray box; the ring is drawn once around the whole card instead, so
-        // focus is still visible while writing in either face.
-        style={{
-          minHeight: heights.field * lines,
-          outlineWidth: 0,
-          writingDirection: direction,
-          textAlign: direction === 'rtl' ? 'right' : 'left',
-        }}
-        value={text}
-        onChangeText={(next) => {
-          (side === 'front' ? setFront : setBack)(next);
-          setReceipt(null);
-        }}
-        placeholder={placeholder}
-        placeholderTextColor={colors.outline}
-        multiline
-        textAlignVertical="top"
-        onFocus={() => setWriting(side)}
-        onBlur={() => setWriting((current) => (current === side ? null : current))}
-        accessibilityLabel={side === 'front' ? 'Front — the prompt' : 'Back — the answer'}
-      />
-    );
-  };
-
   return (
     <Screen
       scroll
@@ -248,8 +172,8 @@ export default function AddCardScreen() {
         <Pill label={isEditing ? 'Editing' : `Card ${deckCardCount + 1}`} />
       </View>
 
-      {/* The card itself: front above, back below, split by a fill step. */}
-      <GlassCard padding="none">
+      {/* The card, composed the way it will be studied. */}
+      <GlassCard padding="none" style={{ minHeight: layout.cardMinHeight }}>
         <View
           pointerEvents="none"
           style={{
@@ -265,29 +189,100 @@ export default function AddCardScreen() {
           }}
         />
 
-        <View>
-          {faceLine('front', 'The prompt')}
-          {faceField('front', 'A word, a phrase, a question', 2.5)}
+        <View className="flex-row items-center justify-between pb-1 pl-5 pr-2 pt-3">
+          <View className="flex-row items-center gap-2">
+            <View
+              style={{
+                width: 5,
+                height: 5,
+                borderRadius: 3,
+                backgroundColor: colors.primary,
+              }}
+            />
+            <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
+              {writing === 'back' ? 'Writing the back' : writing ? 'Writing the front' : 'New card'}
+            </AppText>
+          </View>
+          <IconButton
+            icon="swap-vert"
+            size="sm"
+            accessibilityLabel="Swap front and back"
+            onPress={swapSides}
+          />
         </View>
 
-        <View style={{ backgroundColor: fills.inset }}>
-          {faceLine('back', 'The answer')}
-          {faceField('back', 'What you want to remember', 3)}
-        </View>
+        <View className="flex-1 justify-center px-6 pb-8 pt-2">
+          <TextInput
+            className="w-full text-center font-inter-bold text-on-surface"
+            // The browser's own outline would cut a rectangle across the card;
+            // the ring above marks focus instead, so the card stays one surface.
+            style={{
+              ...typography.title,
+              minHeight: typography.title.lineHeight * 2,
+              outlineWidth: 0,
+              paddingVertical: 0,
+              textAlign: 'center',
+              writingDirection: textDirection(front),
+            }}
+            value={front}
+            onChangeText={(next) => {
+              setFront(next);
+              setReceipt(null);
+            }}
+            placeholder="Word or question"
+            placeholderTextColor={colors.outlineSoft}
+            multiline
+            textAlignVertical="center"
+            onFocus={() => setWriting('front')}
+            onBlur={() => setWriting((current) => (current === 'front' ? null : current))}
+            accessibilityLabel="Front — the prompt"
+          />
 
-        {/* The card's own status: what is still missing, or that it is done. */}
-        <View
-          className="flex-row items-center gap-1.5 px-4 pb-3 pt-1"
-          accessibilityLiveRegion="polite"
-        >
-          {canSave && (
-            <MaterialIcons name="check-circle" size={iconSize.xs} color={colors.success} />
-          )}
-          <AppText variant="caption" tone={canSave ? 'success' : 'tertiary'} numberOfLines={1}>
-            {canSave ? 'Both sides are ready' : `The ${missing} side is empty`}
-          </AppText>
+          <View
+            style={{
+              alignSelf: 'center',
+              width: 36,
+              height: 1,
+              borderRadius: 1,
+              marginTop: 14,
+              marginBottom: 14,
+              backgroundColor: colors.accentLine,
+            }}
+          />
+
+          <TextInput
+            className="w-full text-center font-inter-medium text-on-surface-variant"
+            style={{
+              ...typography.headline,
+              minHeight: typography.headline.lineHeight * 2,
+              outlineWidth: 0,
+              paddingVertical: 0,
+              textAlign: 'center',
+              writingDirection: textDirection(back),
+            }}
+            value={back}
+            onChangeText={(next) => {
+              setBack(next);
+              setReceipt(null);
+            }}
+            placeholder="Answer"
+            placeholderTextColor={colors.outlineSoft}
+            multiline
+            textAlignVertical="center"
+            onFocus={() => setWriting('back')}
+            onBlur={() => setWriting((current) => (current === 'back' ? null : current))}
+            accessibilityLabel="Back — the answer"
+          />
         </View>
       </GlassCard>
+
+      {/* Only what the card still needs — no counters, no field furniture. */}
+      <View className="mt-3 flex-row items-center gap-1.5 px-1" accessibilityLiveRegion="polite">
+        {canSave && <MaterialIcons name="check-circle" size={iconSize.xs} color={colors.success} />}
+        <AppText variant="bodySm" tone={canSave ? 'success' : 'muted'} numberOfLines={1}>
+          {canSave ? 'Both sides are ready' : `Still empty: the ${missing} side`}
+        </AppText>
+      </View>
 
       {/* Optional fields stay folded away: they are not part of most cards. */}
       <GlassCard padding="none" className="mt-6">
@@ -340,7 +335,7 @@ export default function AddCardScreen() {
         )}
       </GlassCard>
 
-      {/* The receipt of a save-and-continue: the faces clear, so something has
+      {/* The receipt of a save-and-continue: the card clears, so something has
           to say the card actually landed. */}
       {receipt && (
         <View className="mt-4" accessibilityLiveRegion="polite">
