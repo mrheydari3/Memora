@@ -228,7 +228,15 @@ export default function AddCardScreen() {
               }}
             />
             <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
-              {writing === 'back' ? 'Writing the back' : writing ? 'Writing the front' : 'New card'}
+              {/* The chrome names what is happening: the side being written, or
+                  the fact that this is an existing card rather than a new one. */}
+              {writing === 'back'
+                ? 'Writing the back'
+                : writing === 'front'
+                  ? 'Writing the front'
+                  : isEditing
+                    ? 'Card'
+                    : 'New card'}
             </AppText>
           </View>
           <IconButton
