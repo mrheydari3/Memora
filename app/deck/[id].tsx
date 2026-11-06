@@ -474,8 +474,27 @@ export default function DeckDetailsScreen() {
                   backgroundColor: fills.inset,
                   flexDirection: 'row',
                   alignItems: 'center',
+                  // The card's wash is its own layer, so the row has to clip it.
+                  overflow: 'hidden',
                 }}
               >
+                {/* A tinted card reads in its own colour in the ledger too, so a
+                    deck can be scanned without opening a card. A layer rather
+                    than a mixed fill: React Native cannot stack two background
+                    colours on one view. */}
+                {card.color ? (
+                  <View
+                    pointerEvents="none"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: alpha(card.color, 0.12),
+                    }}
+                  />
+                ) : null}
                 <Pressable
                   testID="deck-card-row"
                   onPress={() => setExpandedId(expanded ? null : card.id)}
