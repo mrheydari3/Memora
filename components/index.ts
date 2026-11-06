@@ -46,7 +46,6 @@ export { SegmentedProgressBar } from './SegmentedProgressBar';
 export { RatingButtonRow } from './RatingButtonRow';
 export { RadioOptionCard } from './RadioOptionCard';
 export { LearningStepRow } from './LearningStepRow';
-export { CardTextField } from './CardTextField';
 export { AchievementBadge } from './AchievementBadge';
 export { QuizAnswer } from './QuizAnswer';
 export type { QuizAnswerState } from './QuizAnswer';
