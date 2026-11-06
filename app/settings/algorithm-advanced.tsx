@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { goBackOr } from '../../services/navigation';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import {
@@ -208,7 +209,9 @@ export default function AlgorithmAdvancedScreen() {
         scroll
         gutter
         contentMaxWidth={v2.layout.contentMaxWidth}
-        header={<TopAppBar title="Advanced" back />}
+        header={
+          <TopAppBar title="Advanced" back backFallback="/settings/algorithm" />
+        }
       >
         <GlassCard tone="inset">
           <AppText variant="bodySm" tone="muted">
@@ -225,7 +228,9 @@ export default function AlgorithmAdvancedScreen() {
         scroll
         gutter
         contentMaxWidth={v2.layout.contentMaxWidth}
-        header={<TopAppBar title="Advanced" back />}
+        header={
+          <TopAppBar title="Advanced" back backFallback="/settings/algorithm" />
+        }
       >
         <GlassCard>
           <EmptyState
@@ -233,7 +238,12 @@ export default function AlgorithmAdvancedScreen() {
             title="Deck not found"
             titleVariant="bodyLg"
             description="It may have been deleted. Go back and pick a deck that still exists."
-            action={<GhostButton label="Go back" onPress={() => router.back()} />}
+            action={
+              <GhostButton
+                label="Go back"
+                onPress={() => goBackOr(router, '/settings/algorithm')}
+              />
+            }
           />
         </GlassCard>
       </Screen>
@@ -245,7 +255,7 @@ export default function AlgorithmAdvancedScreen() {
       scroll
       gutter
       contentMaxWidth={v2.layout.contentMaxWidth}
-      header={<TopAppBar title="Advanced" back />}
+      header={<TopAppBar title="Advanced" back backFallback="/settings/algorithm" />}
     >
       <SettingsPlate
         icon="tune"
@@ -289,6 +299,7 @@ export default function AlgorithmAdvancedScreen() {
                     key={`${step}-${i}`}
                     index={i}
                     step={step}
+                    label={`FSRS learning step ${i + 1}`}
                     isFirst={false}
                     onEdit={() => openStepEditor('fsrs', i, step)}
                     onRemove={() => removeStep('fsrs', i)}
@@ -318,6 +329,7 @@ export default function AlgorithmAdvancedScreen() {
                     key={`${step}-${i}`}
                     index={i}
                     step={step}
+                    label={`FSRS relearning step ${i + 1}`}
                     isFirst={false}
                     onEdit={() => openStepEditor('relearn', i, step)}
                     onRemove={() => removeStep('relearn', i)}
@@ -369,6 +381,7 @@ export default function AlgorithmAdvancedScreen() {
                   key={`${step}-${i}`}
                   index={i}
                   step={step}
+                  label={`SM-2 learning step ${i + 1}`}
                   isFirst={i === 0}
                   onEdit={() => openStepEditor('sm2', i, step)}
                   onRemove={() => removeStep('sm2', i)}

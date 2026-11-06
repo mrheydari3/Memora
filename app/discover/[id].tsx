@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialIcons } from '../../components/Icon';
 import { fetchFeaturedDecks, importDeck, type FeaturedDeck } from '../../services/discovery';
+import { goBackOr } from '../../services/navigation';
 import { textDirection } from '../../data/text';
 import {
   AppText,
@@ -69,7 +70,7 @@ export default function DiscoverDeckPreviewScreen() {
       scroll
       gutter
       contentMaxWidth={v2.layout.contentMaxWidth}
-      header={<TopAppBar title="Discover" back />}
+      header={<TopAppBar title="Discover" back backFallback="/discover" />}
     >
       {/* The deck name is the page title below; the bar stays contextual. */}
       {loading ? (
@@ -95,7 +96,13 @@ export default function DiscoverDeckPreviewScreen() {
             title="Deck not found"
             titleVariant="headline"
             description={error ?? 'This deck is no longer in Discover.'}
-            action={<GhostButton label="Back" className="px-6" onPress={() => router.back()} />}
+            action={
+              <GhostButton
+                label="Back"
+                className="px-6"
+                onPress={() => goBackOr(router, '/discover')}
+              />
+            }
           />
         </View>
       ) : (

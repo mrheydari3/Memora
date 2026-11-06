@@ -3,10 +3,12 @@ import { Pressable, View, TextInput } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { MaterialIcons } from '../../../components/Icon';
 import { useDeckStore } from '../../../store/useDeckStore';
+import { goBackOr } from '../../../services/navigation';
 import { defaultFSRSState } from '../../../data/seed';
 import { textDirection } from '../../../data/text';
 import {
   AppText,
+  BottomSheetModal,
   Button,
   CARD_COLOR_CHOICES,
   GlassCard,
@@ -36,6 +38,9 @@ type Side = 'front' | 'back';
 
 /** The swatch row: the shared card palette, led by the plain glass face. */
 const SWATCHES = [{ value: '', label: 'No colour' }, ...CARD_COLOR_CHOICES];
+
+const FRONT_MIN_HEIGHT = typography.title.lineHeight * 2;
+const BACK_MIN_HEIGHT = typography.headline.lineHeight * 2;
 
 /**
  * Add cards — you write on the card itself.
@@ -68,6 +73,9 @@ export default function AddCardScreen() {
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [hydrated, setHydrated] = useState(false);
   const [receipt, setReceipt] = useState<string | null>(null);
+  const [frontHeight, setFrontHeight] = useState<number | null>(null);
+  const [backHeight, setBackHeight] = useState<number | null>(null);
+  const [discardVisible, setDiscardVisible] = useState(false);
 
   // The store loads asynchronously, so on a deep link or reload the card being
   // edited can arrive after the first render. Fill the fields when it does;
@@ -88,6 +96,16 @@ export default function AddCardScreen() {
   const isEditing = Boolean(editCardId);
   const accent = color || colors.primary;
 
+  // Compare against the saved card, not against an empty form. For a new card
+  // the same expression uses empty strings, so selecting a tint alone still
+  // protects the draft.
+  const isDirty =
+    front !== (existingCard?.front.text ?? '') ||
+    back !== (existingCard?.back.text ?? '') ||
+    example !== (existingCard?.example ?? '') ||
+    synonyms !== (existingCard?.synonyms ?? '') ||
+    color !== (existingCard?.color ?? '');
+
   /** Swap the two sides; the caret stays where it was because both are on the card. */
   const swapSides = () => {
     setFront(back);
@@ -95,15 +113,19 @@ export default function AddCardScreen() {
     setReceipt(null);
   };
 
-  // A card opened from a link or a reload has no screen behind it, and a bare
-  // router.back() then leaves the composer sitting there with an unhandled
-  // GO_BACK error. Land on the deck instead, which is where back would go.
+  // A card opened from a link or a reload has no screen behind it. Land on the
+  // deck instead, which is where back would go.
   const leaveComposer = () => {
-    if (router.canGoBack()) {
-      router.back();
+    const fallback = (id ? `/deck/${id}` : '/(tabs)/home') as Href;
+    goBackOr(router, fallback);
+  };
+
+  const handleBack = () => {
+    if (!isDirty) {
+      leaveComposer();
       return;
     }
-    router.replace(`/deck/${id}` as Href);
+    setDiscardVisible(true);
   };
 
   const saveCard = async (andContinue: boolean) => {
@@ -145,6 +167,8 @@ export default function AddCardScreen() {
       setSynonyms('');
       setDetailsOpen(true);
       setWriting(null);
+      setFrontHeight(null);
+      setBackHeight(null);
       setReceipt(`Card saved. ${deckCardCount + 1} cards in this deck.`);
     } else {
       leaveComposer();
@@ -156,7 +180,13 @@ export default function AddCardScreen() {
       scroll
       gutter
       contentMaxWidth={v2.layout.contentMaxWidth}
-      header={<TopAppBar title={isEditing ? 'Edit card' : 'Add a card'} back />}
+      header={
+        <TopAppBar
+          title={isEditing ? 'Edit card' : 'Add a card'}
+          back
+          onBack={handleBack}
+        />
+      }
       footer={
         <View className="gap-1 px-5 pb-6">
           <PrimaryButton
@@ -254,11 +284,17 @@ export default function AddCardScreen() {
             // the ring above marks focus instead, so the card stays one surface.
             style={{
               ...typography.title,
-              minHeight: typography.title.lineHeight * 2,
+              minHeight: FRONT_MIN_HEIGHT,
+              height: frontHeight ?? undefined,
               outlineWidth: 0,
               paddingVertical: 0,
               textAlign: 'center',
               writingDirection: textDirection(front),
+            }}
+            scrollEnabled={false}
+            onContentSizeChange={(event) => {
+              const next = Math.ceil(event.nativeEvent.contentSize.height);
+              setFrontHeight((current) => (current === next ? current : next));
             }}
             value={front}
             onChangeText={(next) => {
@@ -290,11 +326,17 @@ export default function AddCardScreen() {
             className="w-full text-center font-inter-medium text-on-surface-variant"
             style={{
               ...typography.headline,
-              minHeight: typography.headline.lineHeight * 2,
+              minHeight: BACK_MIN_HEIGHT,
+              height: backHeight ?? undefined,
               outlineWidth: 0,
               paddingVertical: 0,
               textAlign: 'center',
               writingDirection: textDirection(back),
+            }}
+            scrollEnabled={false}
+            onContentSizeChange={(event) => {
+              const next = Math.ceil(event.nativeEvent.contentSize.height);
+              setBackHeight((current) => (current === next ? current : next));
             }}
             value={back}
             onChangeText={(next) => {
@@ -390,7 +432,7 @@ export default function AddCardScreen() {
           }
           onPress={() => setDetailsOpen((open) => !open)}
           accessibilityLabel={
-            detailsOpen ? 'Hide example and synonyms' : 'Add an example and synonyms'
+            detailsOpen ? 'Hide example and synonyms' : 'Show example and synonyms'
           }
         />
 
@@ -439,6 +481,26 @@ export default function AddCardScreen() {
           ? 'Changes keep the card’s review history, so its schedule is not reset.'
           : 'A new card joins today’s new-card queue and is due the day you add it.'}
       </SettingsNote>
+
+      <BottomSheetModal
+        visible={discardVisible}
+        onClose={() => setDiscardVisible(false)}
+        title="Discard changes?"
+        subtitle="This card has not been saved."
+      >
+        <View className="gap-3">
+          <PrimaryButton label="Keep editing" onPress={() => setDiscardVisible(false)} />
+          <Button
+            variant="text"
+            destructive
+            label="Discard changes"
+            onPress={() => {
+              setDiscardVisible(false);
+              leaveComposer();
+            }}
+          />
+        </View>
+      </BottomSheetModal>
     </Screen>
   );
 }

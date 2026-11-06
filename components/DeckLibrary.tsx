@@ -9,6 +9,7 @@ import type { Deck, DeckFolder } from '../data/types';
 import { alpha, colors, fills, heights, iconSize, radii, spacing, veil } from '../theme/tokens';
 import { usePressFeedback } from '../motion';
 import { useRtl } from '../services/direction';
+import { HintPressable } from './HintPressable';
 
 export type DeckLibraryEntry = {
   deck: Deck;
@@ -283,14 +284,14 @@ function TreeHeader({
 
   return (
     <Animated.View style={press.style}>
-      <Pressable
+      <HintPressable
+        hint={open ? 'Hide decks' : 'Show decks'}
         onPress={onToggle}
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
         accessibilityRole="button"
         accessibilityLabel={`${label}, ${countLabel}`}
         aria-expanded={open}
-        accessibilityHint={open ? 'Collapse' : 'Expand'}
         style={{
           position: 'relative',
           minHeight: heights.row,
@@ -314,7 +315,7 @@ function TreeHeader({
           color={colors.outline}
           style={{ marginLeft: 6 }}
         />
-      </Pressable>
+      </HintPressable>
     </Animated.View>
   );
 }
@@ -395,7 +396,8 @@ function DeckRow({
 
   return (
     <Animated.View style={press.style}>
-      <Pressable
+      <HintPressable
+        hint="Open deck"
         onPress={onPress}
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
@@ -403,7 +405,6 @@ function DeckRow({
         // The visible row is four separate numbers; naming it after them keeps
         // the label and the content in the same words (WCAG 2.5.3).
         accessibilityLabel={`${deck.name}, ${cardCount} ${cardLabel}, ${percentLabel} studied, ${due} due`}
-        accessibilityHint="Open deck"
       >
         <View
           style={{
@@ -468,7 +469,7 @@ function DeckRow({
             </AppText>
           </View>
         </View>
-      </Pressable>
+      </HintPressable>
     </Animated.View>
   );
 }

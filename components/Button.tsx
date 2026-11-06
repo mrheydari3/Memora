@@ -68,28 +68,30 @@ export function Button({
     : variant === 'secondary'
       ? { backgroundColor: fills.control }
       : isOutline
-        ? { backgroundColor: colors.accentSoft }
+        ? { backgroundColor: disabled ? fills.control : colors.accentSoft }
         : undefined;
 
-  const labelTone = filled
-    ? disabled
-      ? 'muted'
-      : 'onAccent'
-    : destructive
-      ? 'danger'
-      : isText || isOutline
-        ? 'accent'
-        : 'default';
+  // Disabled is a state, not a variant: even a text button must lose its
+  // accent treatment or it still reads as an available action.
+  const labelTone = disabled
+    ? 'muted'
+    : filled
+      ? 'onAccent'
+      : destructive
+        ? 'danger'
+        : isText || isOutline
+          ? 'accent'
+          : 'default';
 
-  const glyph = filled
-    ? disabled
-      ? colors.outline
-      : colors.onPrimaryContainer
-    : destructive
-      ? colors.error
-      : isText || isOutline
-        ? colors.primary
-        : colors.onSurface;
+  const glyph = disabled
+    ? colors.outline
+    : filled
+      ? colors.onPrimaryContainer
+      : destructive
+        ? colors.error
+        : isText || isOutline
+          ? colors.primary
+          : colors.onSurface;
 
   const depth: ViewStyle | undefined = disabled
     ? undefined
@@ -120,7 +122,8 @@ export function Button({
           disabled={disabled || loading}
           accessibilityRole="button"
           accessibilityLabel={accessibilityLabel ?? label}
-          accessibilityState={{ disabled }}
+          accessibilityState={{ disabled: disabled || loading }}
+          aria-disabled={disabled || loading}
         >
           {!disabled && (
             <Animated.View

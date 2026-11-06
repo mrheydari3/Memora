@@ -13,6 +13,7 @@ import { MaterialIcons } from './Icon';
 import type { Flashcard } from '../data/types';
 import { AppText } from './AppText';
 import { IconButton } from './IconButton';
+import { HintPressable } from './HintPressable';
 import { EASE, springTo, springToAsync, timingTo, useReducedMotion } from '../motion';
 import { selectionHaptic } from '../services/haptics';
 import {
@@ -326,14 +327,14 @@ export function CardStack({
             >
               {/* The flip target and the menu are siblings: a pressable inside a
                   pressable is invalid HTML on web, and the menu must not flip. */}
-              <Pressable
+              <HintPressable
+                hint="Tap for the card details"
                 className="flex-1"
                 onPress={toggleFlip}
                 accessibilityRole="button"
                 // Named by its content (word, translation, example). The old
                 // label repeated front+back but still omitted the visible
                 // example and state text, so axe flagged the mismatch.
-                accessibilityHint="Tap for the card details"
               >
                 <View style={styles.faceBody}>
                   <View style={styles.topRow}>
@@ -379,7 +380,7 @@ export function CardStack({
                     </View>
                   </View>
                 </View>
-              </Pressable>
+              </HintPressable>
 
               <View style={[styles.menuSlot, { pointerEvents: 'box-none' }]}>
                 <IconButton
@@ -408,11 +409,11 @@ export function CardStack({
                 the example, and a label of "Details for …" contradicted all of
                 it (axe label-content-name-mismatch). The hint is enough.
               */}
-              <Pressable
+              <HintPressable
+                hint="Tap to return to the word"
                 className="flex-1"
                 onPress={toggleFlip}
                 accessibilityRole="button"
-                accessibilityHint="Tap to return to the word"
               >
                 <View style={styles.faceBody}>
                   <View style={styles.topRow}>
@@ -460,7 +461,7 @@ export function CardStack({
                     <MetaCell label="Reviews" value={String(card.fsrs.reps)} />
                   </View>
                 </View>
-              </Pressable>
+              </HintPressable>
 
               <View style={[styles.menuSlot, { pointerEvents: 'box-none' }]}>
                 <IconButton

@@ -415,7 +415,7 @@ export default function HomeScreen() {
         <Pressable
           onPress={() => setOpenFolderId(parentFolder?.id ?? null)}
           accessibilityRole="button"
-          accessibilityLabel={parentFolder?.name ?? 'All decks'}
+          accessibilityLabel={`Back to ${parentFolder?.name ?? 'All decks'}`}
           style={{
             minHeight: heights.hit,
             flexDirection: 'row',

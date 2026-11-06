@@ -3,6 +3,7 @@ import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDeckStore } from '../store/useDeckStore';
+import { goBackOr } from '../services/navigation';
 import { FSRS_DEFAULTS } from '../data/fsrs-params';
 import { ICON_CHOICES } from '../data/appearance';
 import {
@@ -80,7 +81,7 @@ export default function AddDeckScreen() {
     const onKeyDown = (event: WebKeyEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        router.back();
+        goBackOr(router, '/(tabs)/library');
         return;
       }
       if (event.key !== 'Tab') return;
@@ -140,7 +141,7 @@ export default function AddDeckScreen() {
           It is not a control: the sheet header owns the accessible close. */}
       <Pressable
         style={StyleSheet.absoluteFill}
-        onPress={() => router.back()}
+        onPress={() => goBackOr(router, '/(tabs)/library')}
         accessible={false}
         focusable={false}
         importantForAccessibility="no"
@@ -158,7 +159,7 @@ export default function AddDeckScreen() {
         <SheetPanel
           title="New deck"
           subtitle="Start from scratch and write cards one by one."
-          onClose={() => router.back()}
+          onClose={() => goBackOr(router, '/(tabs)/library')}
           style={{ paddingBottom: Math.max(32, insets.bottom + 16) }}
         >
           <View className="mt-2">
@@ -178,7 +179,7 @@ export default function AddDeckScreen() {
             className="mt-4"
             label="Cancel"
             variant="text"
-            onPress={() => router.back()}
+            onPress={() => goBackOr(router, '/(tabs)/library')}
           />
         </SheetPanel>
       </View>

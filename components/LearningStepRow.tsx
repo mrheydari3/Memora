@@ -6,6 +6,8 @@ import { colors, fills, heights, iconSize } from '../theme/tokens';
 type LearningStepRowProps = {
   index: number; // 0-indexed
   step: string;
+  /** Distinguishes repeated rows across the FSRS/SM-2 sections. */
+  label?: string;
   isFirst: boolean;
   onEdit: () => void;
   onRemove: () => void;
@@ -17,7 +19,16 @@ type LearningStepRowProps = {
  * least one step) and callers that allow "no steps" pass isFirst={false}.
  * Steps are separated by height, not by a rule under each one.
  */
-export function LearningStepRow({ index, step, isFirst, onEdit, onRemove }: LearningStepRowProps) {
+export function LearningStepRow({
+  index,
+  step,
+  label,
+  isFirst,
+  onEdit,
+  onRemove,
+}: LearningStepRowProps) {
+  const target = label ?? `step ${index + 1}`;
+
   return (
     <View
       className="flex-row items-center px-4"
@@ -39,7 +50,7 @@ export function LearningStepRow({ index, step, isFirst, onEdit, onRemove }: Lear
         size="sm"
         glyphSize={iconSize.sm}
         onPress={onEdit}
-        accessibilityLabel="Edit step"
+        accessibilityLabel={`Edit ${target}`}
       />
       {!isFirst && (
         <IconButton
@@ -48,7 +59,7 @@ export function LearningStepRow({ index, step, isFirst, onEdit, onRemove }: Lear
           glyphSize={iconSize.sm}
           tone="danger"
           onPress={onRemove}
-          accessibilityLabel="Remove step"
+          accessibilityLabel={`Remove ${target}`}
           className="ml-1"
         />
       )}

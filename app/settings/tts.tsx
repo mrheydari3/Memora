@@ -93,7 +93,7 @@ export default function TTSSettingsScreen() {
       scroll
       gutter
       contentMaxWidth={v2.layout.contentMaxWidth}
-      header={<TopAppBar title="Speech" back />}
+      header={<TopAppBar title="Speech" back backFallback="/settings" />}
     >
       <RevealItem index={0}>
         <SettingsPlate

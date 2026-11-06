@@ -134,11 +134,27 @@ type BottomSheetModalProps = {
 };
 
 /** Web globals, declared narrowly so nothing else in the app needs DOM types. */
+type WebElement = {
+  focus: () => void;
+  contains: (node: WebElement | null) => boolean;
+  querySelectorAll: (selector: string) => ArrayLike<WebElement>;
+};
+
+type WebKeyEvent = {
+  key?: string;
+  shiftKey?: boolean;
+  preventDefault: () => void;
+};
+
 type WebDocument = {
-  addEventListener: (type: 'keydown', listener: (event: { key?: string }) => void) => void;
-  removeEventListener: (type: 'keydown', listener: (event: { key?: string }) => void) => void;
+  activeElement: WebElement | null;
+  addEventListener: (type: 'keydown', listener: (event: WebKeyEvent) => void) => void;
+  removeEventListener: (type: 'keydown', listener: (event: WebKeyEvent) => void) => void;
   body: { style: { overflow: string } };
 };
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"]:not([aria-disabled="true"]), [role="radio"]:not([aria-disabled="true"]), [role="switch"]:not([aria-disabled="true"]), [role="checkbox"]:not([aria-disabled="true"]), [role="tab"]:not([aria-disabled="true"]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * BottomSheetModal — the standard sheet: a dimmed canvas behind, an opaque panel
@@ -172,6 +188,73 @@ export function BottomSheetModal({
 
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const panelRef = useRef<React.ComponentRef<typeof View>>(null);
+  const returnFocusRef = useRef<WebElement | null>(null);
+  const wasMountedRef = useRef(false);
+
+  /**
+   * A sheet is a dialog, not a floating card: focus starts inside it, Tab cycles
+   * through its controls, and the trigger regains focus when it closes. Without
+   * this the browser leaves focus on the page behind the scrim, so a keyboard
+   * user tabs through content they cannot see.
+   */
+  useEffect(() => {
+    if (!visible || !mounted || Platform.OS !== 'web') return;
+    const doc = (globalThis as { document?: WebDocument }).document;
+    const panel = panelRef.current as unknown as WebElement | null;
+    if (!doc || !panel) return;
+
+    returnFocusRef.current = doc.activeElement;
+
+    const focusable = () => Array.from(panel.querySelectorAll(FOCUSABLE));
+    const first = () => focusable()[0] ?? panel;
+    first().focus();
+
+    const onKeyDown = (event: WebKeyEvent) => {
+      if (event.key !== 'Tab') return;
+
+      const items = focusable();
+      const active = doc.activeElement;
+      if (items.length === 0) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
+
+      const firstItem = items[0];
+      const lastItem = items[items.length - 1];
+      if (!active || !panel.contains(active) || active === panel) {
+        event.preventDefault();
+        firstItem.focus();
+      } else if (event.shiftKey && active === firstItem) {
+        event.preventDefault();
+        lastItem.focus();
+      } else if (!event.shiftKey && active === lastItem) {
+        event.preventDefault();
+        firstItem.focus();
+      }
+    };
+
+    doc.addEventListener('keydown', onKeyDown);
+    return () => doc.removeEventListener('keydown', onKeyDown);
+  }, [visible, mounted]);
+
+  /**
+   * Wait for the exit animation to unmount the modal before returning focus.
+   * The browser has already removed the sheet's controls by then; focusing the
+   * trigger earlier lets the modal's own teardown drop focus back to the body.
+   */
+  useEffect(() => {
+    if (mounted) {
+      wasMountedRef.current = true;
+      return;
+    }
+    if (!wasMountedRef.current) return;
+    wasMountedRef.current = false;
+    const target = returnFocusRef.current;
+    returnFocusRef.current = null;
+    target?.focus?.();
+  }, [mounted]);
 
   /**
    * Escape closes on the web, and the canvas behind an open sheet must not
@@ -182,7 +265,7 @@ export function BottomSheetModal({
     const doc = (globalThis as { document?: WebDocument }).document;
     if (!doc) return;
 
-    const onKeyDown = (event: { key?: string }) => {
+    const onKeyDown = (event: WebKeyEvent) => {
       if (event.key === 'Escape') onCloseRef.current();
     };
 
@@ -204,7 +287,14 @@ export function BottomSheetModal({
   const panelOpacity = value.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 1, 1] });
 
   return (
-    <Modal visible transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
+    <Modal
+      visible
+      transparent
+      animationType="none"
+      onRequestClose={onClose}
+      statusBarTranslucent
+      accessibilityLabel={title ?? 'Options'}
+    >
       <View style={{ flex: 1 }}>
         {/*
           The scrim: a flat ink wash, faded in with the panel. It stays in the
@@ -238,9 +328,11 @@ export function BottomSheetModal({
             },
           ]}
         >
-          <SheetPanel title={title} subtitle={subtitle} onClose={onClose}>
-            {children}
-          </SheetPanel>
+          <View ref={panelRef} tabIndex={-1}>
+            <SheetPanel title={title} subtitle={subtitle} onClose={onClose}>
+              {children}
+            </SheetPanel>
+          </View>
         </Animated.View>
       </View>
     </Modal>

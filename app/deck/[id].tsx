@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { pushOnce } from '../../services/navigation';
+import { goBackOr, pushOnce } from '../../services/navigation';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
@@ -17,6 +17,7 @@ import {
   stateColors,
 } from '../../theme/tokens';
 import { v2 } from '../../theme/v2';
+import { HintPressable } from '../../components/HintPressable';
 import {
   AppText,
   Button,
@@ -57,7 +58,11 @@ const SORT_LABELS: Record<SortMode, string> = {
   due: 'Due',
 };
 
-const SORT_CYCLE: SortMode[] = ['created', 'alpha', 'due'];
+const SORT_OPTIONS: { mode: SortMode; title: string }[] = [
+  { mode: 'created', title: 'Newest first' },
+  { mode: 'alpha', title: 'A to Z' },
+  { mode: 'due', title: 'Due first' },
+];
 
 const FILTERS: { key: FilterMode; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -95,6 +100,7 @@ export default function DeckDetailsScreen() {
   const [cardMenuId, setCardMenuId] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('created');
+  const [sortVisible, setSortVisible] = useState(false);
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [colorFilter, setColorFilter] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -179,7 +185,7 @@ export default function DeckDetailsScreen() {
   // lie for a deck that is about to load. Show the page's shape instead.
   if (!deck && !loaded) {
     return (
-      <Screen header={<TopAppBar title="Deck" back />}>
+      <Screen header={<TopAppBar title="Deck" back backFallback="/(tabs)/home" />}>
         <View className="flex-1" style={{ paddingHorizontal: 20, paddingTop: 20 }}>
           <HeroSkeleton height={150} />
           <View className="mt-6">
@@ -192,7 +198,7 @@ export default function DeckDetailsScreen() {
 
   if (!deck) {
     return (
-      <Screen header={<TopAppBar title="Deck" back />}>
+      <Screen header={<TopAppBar title="Deck" back backFallback="/(tabs)/home" />}>
         <View className="flex-1 items-center justify-center px-8">
           <EmptyState
             icon="layers-clear"
@@ -224,11 +230,6 @@ export default function DeckDetailsScreen() {
     setColorFilter(null);
   };
 
-  const cycleSort = () => {
-    const index = SORT_CYCLE.indexOf(sortMode);
-    setSortMode(SORT_CYCLE[(index + 1) % SORT_CYCLE.length]);
-  };
-
   const openRename = () => {
     setNameDraft(deck.name);
     setOptionsVisible(false);
@@ -243,7 +244,7 @@ export default function DeckDetailsScreen() {
   const handleArchive = async () => {
     setOptionsVisible(false);
     await updateDeck(deck.id, { archivedAt: deck.archivedAt ? null : Date.now() });
-    router.back();
+    goBackOr(router, '/(tabs)/library');
   };
 
   const handleExport = async () => {
@@ -378,13 +379,20 @@ export default function DeckDetailsScreen() {
             48px pill with a raw 15px input, so its height, radius and clear
             affordance drifted from every other search in the app. */}
         <View style={{ flex: 1 }}>
-          <SearchBar value={query} onChangeText={setQuery} placeholder="Search cards" />
+          <SearchBar
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search cards"
+            accessibilityLabel="Search cards"
+          />
         </View>
 
-        <IconButton
-          icon="sort"
-          accessibilityLabel={`Sort cards: ${sortLabel}`}
-          onPress={cycleSort}
+        <Chip
+          label={`Sort: ${sortLabel}`}
+          active
+          menu
+          onPress={() => setSortVisible(true)}
+          accessibilityLabel={`Sort: ${sortLabel}. Open sort options.`}
         />
       </View>
 
@@ -495,13 +503,13 @@ export default function DeckDetailsScreen() {
                     }}
                   />
                 ) : null}
-                <Pressable
+                <HintPressable
+                  hint={expanded ? 'Hide the full card' : 'Show the full card'}
                   testID="deck-card-row"
                   onPress={() => setExpandedId(expanded ? null : card.id)}
                   accessibilityRole="button"
                   accessibilityState={{ expanded }}
                   aria-expanded={expanded}
-                  accessibilityHint={expanded ? 'Hide the back' : 'Show the back'}
                   style={{
                     flex: 1,
                     minWidth: 0,
@@ -549,7 +557,7 @@ export default function DeckDetailsScreen() {
                     size={iconSize.md}
                     color={colors.outline}
                   />
-                </Pressable>
+                </HintPressable>
 
                 <Pressable
                   onPress={() => openCardMenu(card)}
@@ -597,6 +605,7 @@ export default function DeckDetailsScreen() {
           // quiz route; a generic "Deck" heading named nothing.
           titleHeadingLevel={null}
           back
+          backFallback="/(tabs)/home"
           actions={[
             {
               icon: 'add',
@@ -654,6 +663,37 @@ export default function DeckDetailsScreen() {
         <SheetRow icon="upload" label="Export Deck" onPress={handleExport} />
         <SheetRow icon="refresh" label="Reset Progress" onPress={handleReset} />
         <SheetRow icon="delete-outline" label="Delete Deck" onPress={handleDelete} destructive />
+      </BottomSheetModal>
+
+      {/* Sort sheet */}
+      <BottomSheetModal
+        visible={sortVisible}
+        onClose={() => setSortVisible(false)}
+        title="Sort cards"
+        subtitle="Choose how the card list is ordered."
+      >
+        {SORT_OPTIONS.map((option) => (
+          <ListRow
+            key={option.mode}
+            title={option.title}
+            tile="none"
+            density="compact"
+            gutter={0}
+            showChevron={false}
+            selected={sortMode === option.mode}
+            highlighted={sortMode === option.mode}
+            trailing={
+              sortMode === option.mode ? (
+                <MaterialIcons name="check" size={iconSize.lg} color={colors.primary} />
+              ) : undefined
+            }
+            onPress={() => {
+              setSortMode(option.mode);
+              setSortVisible(false);
+            }}
+            accessibilityLabel={`Sort by ${option.title}`}
+          />
+        ))}
       </BottomSheetModal>
 
       {/* Rename sheet */}

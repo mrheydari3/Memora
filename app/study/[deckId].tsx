@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Animated, Pressable, Platform, useWindowDimensions } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { goBackOr } from '../../services/navigation';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
@@ -62,6 +63,7 @@ function formatWait(ms: number): string {
 export default function StudyScreen() {
   const { deckId } = useLocalSearchParams<{ deckId: string }>();
   const router = useRouter();
+  const deckFallback = `/deck/${deckId}` as Href;
   const { width } = useWindowDimensions();
   const wide = width >= 900;
 
@@ -404,7 +406,7 @@ export default function StudyScreen() {
 
   if (!deck) {
     return (
-      <Screen header={<TopAppBar title="Study" back />}>
+      <Screen header={<TopAppBar title="Study" back backFallback={deckFallback} />}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
           <EmptyState
             icon="layers-clear"
@@ -423,7 +425,7 @@ export default function StudyScreen() {
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <IconButton
             icon="close"
-            onPress={() => router.back()}
+            onPress={() => goBackOr(router, deckFallback)}
             accessibilityLabel="Close session"
           />
           <AppText
@@ -484,7 +486,11 @@ export default function StudyScreen() {
                   {lastUndo && (
                     <GhostButton label="Undo last review" className="px-6" onPress={undoLastReview} />
                   )}
-                  <GhostButton className="mt-3 px-6" label="Back to deck" onPress={() => router.back()} />
+                  <GhostButton
+                    className="mt-3 px-6"
+                    label="Back to deck"
+                    onPress={() => goBackOr(router, deckFallback)}
+                  />
                 </View>
               }
             />
@@ -608,7 +614,7 @@ export default function StudyScreen() {
         }}
       >
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => goBackOr(router, deckFallback)}
           accessibilityRole="button"
           accessibilityLabel="End session"
           style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 }}

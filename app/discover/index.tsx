@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '../../components/Icon';
 import { fetchFeaturedDecks, type FeaturedDeck } from '../../services/discovery';
-import { pushOnce } from '../../services/navigation';
+import { goBackOr, pushOnce } from '../../services/navigation';
 import {
   AppText,
   Screen,
@@ -62,7 +62,7 @@ export default function DiscoverScreen() {
       scroll
       gutter
       contentMaxWidth={v2.layout.contentMaxWidth}
-      header={<TopAppBar title="Discover" back />}
+      header={<TopAppBar title="Discover" back backFallback="/(tabs)/home" />}
     >
       {loading ? (
         <GlassCard padding="sm">
@@ -77,7 +77,13 @@ export default function DiscoverScreen() {
             title="Nothing to discover"
             titleVariant="headline"
             description={error ?? 'The starter library is empty right now.'}
-            action={<GhostButton label="Back" className="px-6" onPress={() => router.back()} />}
+            action={
+              <GhostButton
+                label="Back"
+                className="px-6"
+                onPress={() => goBackOr(router, '/(tabs)/home')}
+              />
+            }
           />
         </View>
       ) : (

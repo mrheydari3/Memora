@@ -9,6 +9,8 @@ type SearchBarProps = {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
+  /** Contextual name for the input, e.g. "Search icons". */
+  accessibilityLabel?: string;
 };
 
 /**
@@ -24,7 +26,12 @@ type SearchBarProps = {
  * one control with no visible focus at all. The animated accent border is an
  * enhancement on top of the 2px `:focus-visible` ring in global.css.
  */
-export function SearchBar({ value, onChangeText, placeholder = 'Search…' }: SearchBarProps) {
+export function SearchBar({
+  value,
+  onChangeText,
+  placeholder = 'Search…',
+  accessibilityLabel = 'Search',
+}: SearchBarProps) {
   const [focused, setFocused] = useState(false);
   const focus = useRef(new Animated.Value(0)).current;
 
@@ -60,7 +67,7 @@ export function SearchBar({ value, onChangeText, placeholder = 'Search…' }: Se
         onBlur={() => setFocused(false)}
         placeholder={placeholder}
         placeholderTextColor={colors.outline}
-        accessibilityLabel="Search"
+        accessibilityLabel={accessibilityLabel}
       />
       {value.length > 0 && (
         <IconButton

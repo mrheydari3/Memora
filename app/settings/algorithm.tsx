@@ -102,6 +102,7 @@ export default function AlgorithmSettingsScreen() {
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [draft, setDraft] = useState<Tuning | null>(null);
+  const [retentionDraft, setRetentionDraft] = useState<number | null>(null);
 
   // Decks load asynchronously; keep a valid selection as the library changes.
   useEffect(() => {
@@ -118,6 +119,7 @@ export default function AlgorithmSettingsScreen() {
   // A different deck starts a fresh readout, never the previous deck's draft.
   useEffect(() => {
     setDraft(null);
+    setRetentionDraft(null);
   }, [deckId]);
 
   const view: Tuning = draft ?? {
@@ -152,6 +154,36 @@ export default function AlgorithmSettingsScreen() {
     void updateDeck(deck.id, patch);
   };
 
+  /**
+   * Retention is a sheet-local value until the sheet closes. A 1% step must not
+   * serialize the whole deck on every press; one update on close is enough, and
+   * closing without a change writes nothing. Closing via Done, the scrim, the
+   * close control or Escape all take the same path, so a change is never lost.
+   */
+  const openRetention = () => {
+    setRetentionDraft(view.retention);
+    setSheet('retention');
+  };
+
+  const closeRetention = () => {
+    const next = retentionDraft;
+    setRetentionDraft(null);
+    setSheet(null);
+    if (next === null || next === view.retention) return;
+
+    setDraft({ ...view, retention: next });
+    if (deck) void updateDeck(deck.id, { requestRetention: next });
+  };
+
+  const adjustRetention = (delta: number) => {
+    const current = retentionDraft ?? view.retention;
+    const next = Math.min(
+      RETENTION_MAX,
+      Math.max(RETENTION_MIN, Math.round((current + delta) * 100) / 100)
+    );
+    setRetentionDraft(next);
+  };
+
   /** Copy this pass to every deck in the library. */
   const applyToAll = async () => {
     const shared: Parameters<typeof updateDeck>[1] = {
@@ -179,6 +211,8 @@ export default function AlgorithmSettingsScreen() {
   const preset = view.preset;
   const presetMeta = PRESETS.find((p) => p.id === preset) ?? PRESETS[0];
   const retention = Math.round(view.retention * 100);
+  const retentionDraftValue = retentionDraft ?? view.retention;
+  const retentionDraftPercent = Math.round(retentionDraftValue * 100);
   const learningSteps = params.fsrsLearningSteps;
 
   const ledger: { label: string; value: string }[] =
@@ -212,7 +246,7 @@ export default function AlgorithmSettingsScreen() {
       scroll
       gutter
       contentMaxWidth={v2.layout.contentMaxWidth}
-      header={<TopAppBar title="Algorithm" back />}
+      header={<TopAppBar title="Algorithm" back backFallback="/settings" />}
     >
       <RevealItem index={0}>
         <SettingsPlate
@@ -263,7 +297,7 @@ export default function AlgorithmSettingsScreen() {
             title="Desired retention"
             subtitle="Higher means more reviews, stronger recall"
             value={`${retention}%`}
-            onPress={() => setSheet('retention')}
+            onPress={openRetention}
           />
           <SettingsRow
             icon="timeline"
@@ -426,7 +460,7 @@ export default function AlgorithmSettingsScreen() {
 
       <BottomSheetModal
         visible={sheet === 'retention'}
-        onClose={() => setSheet(null)}
+        onClose={closeRetention}
         title="Desired retention"
         subtitle="The recall probability FSRS aims for on each review."
       >
@@ -434,34 +468,20 @@ export default function AlgorithmSettingsScreen() {
           className="mb-3"
           value={
             <AppText variant="display" weight="bold">
-              {retention}%
+              {retentionDraftPercent}%
             </AppText>
           }
           decrementLabel="Decrease retention"
           incrementLabel="Increase retention"
-          onDecrease={() =>
-            tune({
-              retention: Math.max(
-                RETENTION_MIN,
-                Math.round((view.retention - RETENTION_STEP) * 100) / 100
-              ),
-            })
-          }
-          onIncrease={() =>
-            tune({
-              retention: Math.min(
-                RETENTION_MAX,
-                Math.round((view.retention + RETENTION_STEP) * 100) / 100
-              ),
-            })
-          }
+          onDecrease={() => adjustRetention(-RETENTION_STEP)}
+          onIncrease={() => adjustRetention(RETENTION_STEP)}
         />
         <AppText variant="bodySm" tone="muted" className="mb-4">
-          {view.retention >= RETENTION_HEAVY
+          {retentionDraftValue >= RETENTION_HEAVY
             ? 'Above 95% the review load grows quickly for very little extra recall.'
             : '90% is the Anki default. Lower means fewer reviews, slightly weaker recall.'}
         </AppText>
-        <PrimaryButton label="Done" onPress={() => setSheet(null)} />
+        <PrimaryButton label="Done" onPress={closeRetention} />
       </BottomSheetModal>
 
       <BottomSheetModal
@@ -507,8 +527,8 @@ export default function AlgorithmSettingsScreen() {
               {sheet === 'max' ? view.maxPerDay : view.newPerDay}
             </AppText>
           }
-          decrementLabel="Decrease"
-          incrementLabel="Increase"
+          decrementLabel={`Decrease ${sheet === 'max' ? 'maximum' : 'new'} cards per day`}
+          incrementLabel={`Increase ${sheet === 'max' ? 'maximum' : 'new'} cards per day`}
           onDecrease={() =>
             tune(
               sheet === 'max'
