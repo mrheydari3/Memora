@@ -177,7 +177,7 @@ theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌
 
 **کنترل:** `Button` (`primary` / `primaryQuiet` / `secondary` / `outline` / `text`، به‌همراه پرچم `destructive` و اندازه‌های `md`/`lg`) · `PrimaryButton` · `GhostButton` · `IconButton` · `ToggleSwitch` · `SearchBar` · `Chip` (`filter`/`select`) · `SegmentedControl` · `Stepper` · `Field` · `Pill` (`neutral`/`accent`/`warning`)
 
-**محتوا:** `DeckCard` · `DeckListItem` · `SettingsPlate` · `SettingsSection` + `SettingsCard` + `SettingsRow` · `SettingsNote` · `StatPill` · `FlashcardView` · `SegmentedProgressBar` · `RatingButtonRow` · `RadioOptionCard` · `LearningStepRow` · `RichTextField` · `AchievementBadge` · `DonutChart` · `MiniBarChart` · `EmptyState`
+**محتوا:** `DeckCard` · `DeckListItem` · `SettingsPlate` · `SettingsSection` + `SettingsCard` + `SettingsRow` · `SettingsNote` · `StatPill` · `FlashcardView` · `SegmentedProgressBar` · `RatingButtonRow` · `RadioOptionCard` · `LearningStepRow` · `CardTextField` · `AchievementBadge` · `DonutChart` · `MiniBarChart` · `EmptyState`
 
 ### قوانین کامپوننت
 
