@@ -1,15 +1,20 @@
 /**
  * Web-only font repair.
  *
- * expo-font registers `Inter_500Medium` and `Inter_600SemiBold` from a dev asset
- * URL that Chromium answers with a network error. A font face in the error state
- * renders its text with zero height, so every `ListRow` title (settings, deck
- * menus, sheets) disappeared while the 400/700 weights looked fine.
+ * expo-font registers these families from a dev asset URL that Chromium
+ * sometimes answers with a network error (the request returns 200 but never
+ * finishes). A font face in the error state renders its text with zero height:
+ *
+ *  - `Inter_500Medium` / `Inter_600SemiBold`: every `ListRow` title (settings,
+ *    deck menus, sheets) disappeared while the 400/700 weights looked fine.
+ *  - `material`: the icon font. Every `MaterialIcons` glyph collapsed to zero
+ *    width, so a route opened by URL (not by tapping through from Home) showed
+ *    blank icon buttons, empty deck tiles and an empty speaker control.
  *
  * The font files themselves are healthy — re-registering the same family names
- * from a static URL loads them and the text comes back at its normal height.
- * Native is untouched: on iOS/Android `useFonts` keeps loading the packaged
- * assets, so only the web path needs this.
+ * from a static URL loads them and the glyphs come back. Native is untouched:
+ * on iOS/Android `useFonts` keeps loading the packaged assets, so only the web
+ * path needs this.
  */
 import { Platform } from 'react-native';
 
@@ -17,6 +22,16 @@ import { Platform } from 'react-native';
 const FACES = [
   { family: 'Inter_500Medium', url: '/fonts/Inter_500Medium.ttf' },
   { family: 'Inter_600SemiBold', url: '/fonts/Inter_600SemiBold.ttf' },
+  // The same file @expo/vector-icons ships, served statically instead of
+  // through the dev asset endpoint that fails. The family name must stay
+  // `material` — that is what components/Icon.tsx puts on every glyph.
+  { family: 'material', url: '/fonts/MaterialIcons.ttf' },
+  // Arabic-script coverage for the Persian card backs, quiz answers and deck
+  // subtitles. Inter has no Arabic glyphs, and without this the copy depends
+  // on an OS font that may not exist (the audit machine has none, so the quiz
+  // showed four answers of empty boxes). Registered here rather than through a
+  // CSS @font-face so it follows the same proven path as the other faces.
+  { family: 'Vazirmatn', url: '/fonts/Vazirmatn-Regular.ttf' },
 ] as const;
 
 type LoadableFontFace = { load: () => Promise<unknown> };

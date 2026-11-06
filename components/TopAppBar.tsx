@@ -9,6 +9,12 @@ type IconName = React.ComponentProps<typeof import('@expo/vector-icons').Materia
 
 type TopAppBarProps = {
   title?: string;
+  /**
+   * Which heading level the bar title takes. Defaults to 1. Pass `null` when
+   * the screen's subject is named below the bar (the deck page): otherwise the
+   * word "Deck" is the page's h1 and the deck's own name is anonymous text.
+   */
+  titleHeadingLevel?: 1 | 2 | 3 | null;
   /** Shows the back arrow top-left. */
   back?: boolean;
   /** Right-side icon buttons. */
@@ -31,6 +37,7 @@ type TopAppBarProps = {
  */
 export function TopAppBar({
   title,
+  titleHeadingLevel = 1,
   back = false,
   actions = [],
   leftContent,
@@ -71,7 +78,7 @@ export function TopAppBar({
               className="flex-1"
               style={{ marginStart: 8 }}
               numberOfLines={1}
-              headingLevel={1}
+              headingLevel={titleHeadingLevel ?? undefined}
             >
               {title}
             </AppText>

@@ -269,7 +269,7 @@ export default function DeckDetailsScreen() {
       </View>
 
       <View style={{ flex: 1, minWidth: 0 }}>
-        <AppText variant="title" headingLevel={2} style={v2.type.title} numberOfLines={2}>
+        <AppText variant="title" headingLevel={1} style={v2.type.title} numberOfLines={2}>
           {deck.name}
         </AppText>
         <View
@@ -508,6 +508,9 @@ export default function DeckDetailsScreen() {
       header={
         <TopAppBar
           title="Deck"
+          // The deck's name is this page's h1 (below the bar), matching the
+          // quiz route; a generic "Deck" heading named nothing.
+          titleHeadingLevel={null}
           back
           actions={[
             {

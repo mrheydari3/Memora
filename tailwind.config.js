@@ -64,12 +64,16 @@ module.exports = {
       // literal. `hit` is what WCAG 2.5.8 and a thumb both ask for.
       minHeight: { hit: `${p.heights.hit}px` },
       minWidth: { hit: `${p.heights.hit}px` },
+      // 'Vazirmatn' closes the Arabic-script gap in Inter. It sits after every
+      // Inter family in the stack and is registered by services/webFonts.ts, so
+      // Latin text still renders in Inter and Persian/Arabic copy falls through
+      // to the bundled face instead of whatever (or nothing) the OS provides.
       fontFamily: {
-        sans: ['Inter_400Regular'],
-        'inter-regular': ['Inter_400Regular'],
-        'inter-medium': ['Inter_500Medium'],
-        'inter-semibold': ['Inter_600SemiBold'],
-        'inter-bold': ['Inter_700Bold'],
+        sans: ['Inter_400Regular', 'Vazirmatn'],
+        'inter-regular': ['Inter_400Regular', 'Vazirmatn'],
+        'inter-medium': ['Inter_500Medium', 'Vazirmatn'],
+        'inter-semibold': ['Inter_600SemiBold', 'Vazirmatn'],
+        'inter-bold': ['Inter_700Bold', 'Vazirmatn'],
       },
     },
   },
