@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
 import { MaterialIcons } from '../../components/Icon';
@@ -148,6 +148,27 @@ export default function DeckDetailsScreen() {
     setExpandedId(null);
     setShowAll(false);
   }, [sortMode, filterMode, colorFilter, query]);
+
+  // Escape drops the colour filter: once a list is narrowed to one tint, the
+  // way out should not be another trip to the chip. Text fields keep their own
+  // Escape, and nothing happens when no colour is filtered.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || colorFilter === null) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      setColorFilter(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [colorFilter]);
 
   // The card menu is addressed by id, which keeps the row callback stable.
   const cardMenuCard = cardMenuId ? (deckCards.find((c) => c.id === cardMenuId) ?? null) : null;
@@ -393,6 +414,24 @@ export default function DeckDetailsScreen() {
               accessibilityLabel={`Filter cards: ${choice.label}`}
             />
           ))}
+
+          {/* A named way out while a colour is on, next to the shortcut a
+              desktop user can press without leaving the list. */}
+          {colorFilter !== null && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+              <IconButton
+                icon="close"
+                size="sm"
+                accessibilityLabel="Clear colour filter"
+                onPress={() => setColorFilter(null)}
+              />
+              {Platform.OS === 'web' && (
+                <AppText variant="caption" tone="tertiary">
+                  Esc
+                </AppText>
+              )}
+            </View>
+          )}
         </View>
       )}
 
