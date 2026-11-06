@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, TextInput } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { MaterialIcons } from '../../../components/Icon';
@@ -14,25 +14,25 @@ import {
   Pill,
   PrimaryButton,
   Screen,
-  SegmentedControl,
   SettingsNote,
   TopAppBar,
 } from '../../../components';
-import { colors, heights, iconSize, radii } from '../../../theme/tokens';
+import { colors, fills, heights, iconSize, radii } from '../../../theme/tokens';
 import { v2 } from '../../../theme/v2';
 import type { Flashcard } from '../../../data/types';
 
 type Side = 'front' | 'back';
 
 /**
- * Add cards — the composer is the card.
+ * Add cards — one card, both faces.
  *
- * Two stacked textareas made the page a form. Here the writing area is a single
- * card face with the study card's own chrome (a dot, the side name, the flip
- * control), so what you type is what you will be quizzed with; the Front/Back
- * rail flips between the two sides and the type direction follows the script you
- * type, since half the cards here are Persian. The optional fields sit behind a
- * row, so the page opens as one card and one decision.
+ * The page is a single pane whose top half is the front and whose bottom half is
+ * the back, separated by a fill step rather than a rule, so both sides are
+ * visible while you write and neither can be forgotten. Each face names itself
+ * and counts its own characters on one line; the swap control sits with the
+ * front, since it moves that side's text. Type direction follows the script, so
+ * a Persian face is written right-to-left. The optional fields stay folded away
+ * and the save decision lives in the fixed footer.
  */
 export default function AddCardScreen() {
   const { id, editCardId } = useLocalSearchParams<{ id: string; editCardId?: string }>();
@@ -49,13 +49,10 @@ export default function AddCardScreen() {
   const [back, setBack] = useState(existingCard?.back.text ?? '');
   const [example, setExample] = useState(existingCard?.example ?? '');
   const [synonyms, setSynonyms] = useState(existingCard?.synonyms ?? '');
-  const [side, setSide] = useState<Side>('front');
+  const [writing, setWriting] = useState<Side | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [focused, setFocused] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [receipt, setReceipt] = useState<string | null>(null);
-  const field = useRef<React.ComponentRef<typeof TextInput>>(null);
-  const mounted = useRef(false);
 
   // The store loads asynchronously, so on a deep link or reload the card being
   // edited can arrive after the first render. Fill the fields when it does;
@@ -69,33 +66,15 @@ export default function AddCardScreen() {
     setHydrated(true);
   }, [existingCard, hydrated]);
 
-  // Flipping sides moves the caret into the face you just turned to. The first
-  // render is skipped so opening the page does not yank the keyboard up.
-  useEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true;
-      return;
-    }
-    field.current?.focus();
-  }, [side]);
-
-  const value = side === 'front' ? front : back;
-  const setValue = side === 'front' ? setFront : setBack;
-  const direction = textDirection(value);
   const missing: Side | null = !front.trim() ? 'front' : !back.trim() ? 'back' : null;
   const canSave = missing === null;
   const detailsCount = [example.trim(), synonyms.trim()].filter(Boolean).length;
   const isEditing = Boolean(editCardId);
 
-  /** Swap the two sides and keep the writer on the face they were on. */
+  /** Swap the two sides; the caret does not move because both faces are on screen. */
   const swapSides = () => {
     setFront(back);
     setBack(front);
-    setReceipt(null);
-  };
-
-  const write = (text: string) => {
-    setValue(text);
     setReceipt(null);
   };
 
@@ -145,12 +124,87 @@ export default function AddCardScreen() {
       setBack('');
       setExample('');
       setSynonyms('');
-      setSide('front');
       setDetailsOpen(false);
+      setWriting(null);
       setReceipt(`Card saved. ${deckCardCount + 1} cards in this deck.`);
     } else {
       leaveComposer();
     }
+  };
+
+  /** A face's own name line: the marker, the side, what it holds, its count. */
+  const faceLine = (side: Side, hint: string) => {
+    const text = side === 'front' ? front : back;
+    const filled = Boolean(text.trim());
+    const active = writing === side;
+
+    return (
+      <View className="flex-row items-center gap-2 px-4 pt-3">
+        <View
+          style={{
+            width: 5,
+            height: 5,
+            borderRadius: 3,
+            backgroundColor: filled ? colors.primary : colors.outline,
+          }}
+        />
+        <AppText
+          variant="caption"
+          weight="semibold"
+          tone={active || filled ? 'accent' : 'muted'}
+          className="uppercase"
+        >
+          {side === 'front' ? 'Front' : 'Back'}
+        </AppText>
+        <AppText variant="caption" tone="tertiary" numberOfLines={1} className="flex-1">
+          {hint}
+        </AppText>
+        <AppText variant="caption" tone="tertiary" style={{ fontVariant: ['tabular-nums'] }}>
+          {text.trim().length}
+        </AppText>
+        {side === 'front' && (
+          <IconButton
+            icon="swap-vert"
+            size="sm"
+            accessibilityLabel="Swap front and back"
+            onPress={swapSides}
+          />
+        )}
+      </View>
+    );
+  };
+
+  /** One face's writing area. Both are always mounted, so both are always ready. */
+  const faceField = (side: Side, placeholder: string, lines: number) => {
+    const text = side === 'front' ? front : back;
+    const direction = textDirection(text);
+
+    return (
+      <TextInput
+        className="px-4 pb-2 pt-1 text-headline font-inter-medium text-on-surface"
+        // The browser's own focus rectangle would sit inside the rounded pane as
+        // a stray box; the ring is drawn once around the whole card instead, so
+        // focus is still visible while writing in either face.
+        style={{
+          minHeight: heights.field * lines,
+          outlineWidth: 0,
+          writingDirection: direction,
+          textAlign: direction === 'rtl' ? 'right' : 'left',
+        }}
+        value={text}
+        onChangeText={(next) => {
+          (side === 'front' ? setFront : setBack)(next);
+          setReceipt(null);
+        }}
+        placeholder={placeholder}
+        placeholderTextColor={colors.outline}
+        multiline
+        textAlignVertical="top"
+        onFocus={() => setWriting(side)}
+        onBlur={() => setWriting((current) => (current === side ? null : current))}
+        accessibilityLabel={side === 'front' ? 'Front — the prompt' : 'Back — the answer'}
+      />
+    );
   };
 
   return (
@@ -194,31 +248,8 @@ export default function AddCardScreen() {
         <Pill label={isEditing ? 'Editing' : `Card ${deckCardCount + 1}`} />
       </View>
 
-      <SegmentedControl
-        className="mb-3"
-        appearance="plain"
-        segments={[
-          {
-            key: 'front',
-            label: 'Front',
-            icon: front.trim() ? 'check' : undefined,
-            active: side === 'front',
-            onPress: () => setSide('front'),
-          },
-          {
-            key: 'back',
-            label: 'Back',
-            icon: back.trim() ? 'check' : undefined,
-            active: side === 'back',
-            onPress: () => setSide('back'),
-          },
-        ]}
-      />
-
-      {/* The writing area: one card face, with the study card's chrome. */}
+      {/* The card itself: front above, back below, split by a fill step. */}
       <GlassCard padding="none">
-        {/* Focus is drawn on the face, not on the raw textarea: a browser
-            rectangle inside a rounded card read as a stray box. */}
         <View
           pointerEvents="none"
           style={{
@@ -230,71 +261,28 @@ export default function AddCardScreen() {
             borderWidth: 2,
             borderColor: colors.primary,
             borderRadius: radii.pane,
-            opacity: focused ? 1 : 0,
+            opacity: writing ? 1 : 0,
           }}
         />
-        <View className="flex-row items-center justify-between pl-4 pr-1 pt-2">
-          <View className="flex-row items-center gap-2">
-            <View
-              style={{
-                width: 5,
-                height: 5,
-                borderRadius: 3,
-                backgroundColor: colors.primary,
-              }}
-            />
-            <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
-              {side === 'front' ? 'Front' : 'Back'}
-            </AppText>
-          </View>
-          <IconButton
-            icon="swap-vert"
-            size="sm"
-            accessibilityLabel="Swap front and back"
-            onPress={swapSides}
-          />
+
+        <View>
+          {faceLine('front', 'The prompt')}
+          {faceField('front', 'A word, a phrase, a question', 2.5)}
         </View>
 
-        <TextInput
-          ref={field}
-          className="px-4 pb-2 pt-2 text-headline font-inter-medium text-on-surface"
-          // Six field heights: the face carries most of the page, so the card
-          // reads as the thing you are making rather than as a form. The
-          // direction follows the script, so Persian is written right-to-left.
-          //
-          // The textarea's own focus outline is turned off in favour of the ring
-          // drawn around the whole face above: a browser rectangle inside a
-          // rounded card read as a stray box. Focus is still visible — the pane
-          // ring appears for keyboard and pointer focus alike.
-          style={{
-            minHeight: heights.field * 6,
-            outlineWidth: 0,
-            writingDirection: direction,
-            textAlign: direction === 'rtl' ? 'right' : 'left',
-          }}
-          value={value}
-          onChangeText={write}
-          placeholder={
-            side === 'front'
-              ? 'The prompt — a word, a phrase, a question'
-              : 'The answer — what you want to remember'
-          }
-          placeholderTextColor={colors.outline}
-          multiline
-          textAlignVertical="top"
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          accessibilityLabel={side === 'front' ? 'Front — the prompt' : 'Back — the answer'}
-        />
+        <View style={{ backgroundColor: fills.inset }}>
+          {faceLine('back', 'The answer')}
+          {faceField('back', 'What you want to remember', 3)}
+        </View>
 
-        {/* The face's own footer: how much is written, and what is missing. */}
+        {/* The card's own status: what is still missing, or that it is done. */}
         <View
-          className="flex-row items-center justify-between px-4 pb-3"
+          className="flex-row items-center gap-1.5 px-4 pb-3 pt-1"
           accessibilityLiveRegion="polite"
         >
-          <AppText variant="caption" tone="tertiary">
-            {value.trim().length} characters
-          </AppText>
+          {canSave && (
+            <MaterialIcons name="check-circle" size={iconSize.xs} color={colors.success} />
+          )}
           <AppText variant="caption" tone={canSave ? 'success' : 'tertiary'} numberOfLines={1}>
             {canSave ? 'Both sides are ready' : `The ${missing} side is empty`}
           </AppText>
