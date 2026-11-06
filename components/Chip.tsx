@@ -20,6 +20,12 @@ type ChipProps = {
    * select = a hairline pill with an accent rim when selected (deck picker).
    */
   variant?: 'filter' | 'select';
+  /**
+   * A trigger that opens a chooser rather than a toggle. It keeps the active
+   * fill, but must not announce itself as a pressed toggle: the value belongs
+   * to the menu it opens, not to the button.
+   */
+  menu?: boolean;
 };
 
 /**
@@ -36,6 +42,7 @@ export function Chip({
   active,
   onPress,
   variant = 'filter',
+  menu = false,
 }: ChipProps) {
   const press = usePressFeedback({ scale: 0.94 });
   const filled = variant === 'filter' && active;
@@ -63,13 +70,14 @@ export function Chip({
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
         accessibilityRole="button"
-        accessibilityState={{ selected: active }}
+        accessibilityState={menu ? undefined : { selected: active }}
         /*
          * `aria-pressed`, not only `accessibilityState`: react-native-web does
          * not expose `selected` on a button, so a screen reader could not tell
-         * which filter was on ("Bio" and "Chimi" read identically).
+         * which filter was on ("Bio" and "Chimi" read identically). A menu
+         * trigger opts out; its current value is already in the label.
          */
-        aria-pressed={active}
+        aria-pressed={menu ? undefined : active}
         accessibilityLabel={accessibilityLabel ?? label}
       >
         {variant === 'filter' && (

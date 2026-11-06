@@ -31,7 +31,13 @@ export function AchievementBadge({ icon, name, color, earned, index = 0 }: Achie
   });
 
   return (
-    <View className="items-center" style={{ width: layout.badgeColumn }}>
+    <View
+      className="items-center"
+      style={{ width: layout.badgeColumn }}
+      role="img"
+      accessibilityLabel={`${name}, ${earned ? 'earned' : 'locked'}`}
+      aria-label={`${name}, ${earned ? 'earned' : 'locked'}`}
+    >
       <Animated.View className="items-center" style={[reveal.style, { width: layout.badgeColumn }]}>
       <View
         className="items-center justify-center rounded-full"

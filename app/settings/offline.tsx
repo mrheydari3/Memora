@@ -83,7 +83,7 @@ export default function OfflineScreen() {
           icon="download-done"
           iconTone="success"
           title="Installed"
-          subtitle="Memora opens from your home screen and works offline."
+          subtitle="Memora opens from your home screen; cached pages stay available offline."
           trailing={installedMark}
           isLast
         />
@@ -92,7 +92,7 @@ export default function OfflineScreen() {
           icon="download"
           iconTone="info"
           title="Install Memora"
-          subtitle="Study with zero network access — everything is cached on your device."
+          subtitle="Open from your home screen; cached pages stay available offline."
           value="Install"
           onPress={handleInstall}
           isLast
@@ -114,7 +114,7 @@ export default function OfflineScreen() {
       scroll
       gutter
       contentMaxWidth={v2.layout.contentMaxWidth}
-      header={<TopAppBar title="Offline" back />}
+      header={<TopAppBar title="Offline" back backFallback="/settings" />}
     >
       <RevealItem index={0}>
         <SettingsPlate
@@ -122,7 +122,7 @@ export default function OfflineScreen() {
           icon="cloud-off"
           eyebrow="Storage"
           title={cached ? 'Cached on this device' : 'Only online for now'}
-          description="The cards you open are kept on this device, so a dropped connection never ends a session."
+          description="Your decks and review history already live on this device. The offline cache keeps the app shell available when the network is gone."
           status={{
             label: cached ? 'Cached' : 'Cache off',
             tone: cached ? 'success' : 'muted',
@@ -135,14 +135,14 @@ export default function OfflineScreen() {
         <SettingsRow
           icon="cloud-off"
           iconTone="info"
-          title="Offline study"
-          subtitle="Keep the cards you open on this device."
+          title="Offline cache"
+          subtitle="Keep the app shell and visited pages on this device."
           iconPulseKey={cached}
           trailing={
             <ToggleSwitch
               value={settings.offlineCacheEnabled}
               onToggle={handleOfflineToggle}
-              accessibilityLabel="Offline Study"
+              accessibilityLabel="Offline cache"
             />
           }
           isLast
@@ -153,20 +153,20 @@ export default function OfflineScreen() {
         <SettingsRow
           icon="touch-app"
           iconTone="info"
-          title="Open a card"
-          subtitle="The first visit still needs a connection."
+          title="Open a page"
+          subtitle="The first load of a page needs a connection."
         />
         <SettingsRow
           icon="download-done"
           iconTone="info"
-          title="Kept on device"
-          subtitle="Cached as you open it."
+          title="Cached as you browse"
+          subtitle="The app shell and pages you visit are stored."
         />
         <SettingsRow
           icon="cloud-off"
           iconTone="info"
-          title="Read offline"
-          subtitle="No connection needed."
+          title="Reopen offline"
+          subtitle="Cached pages open without a connection."
           isLast
         />
       </SettingsSection>
@@ -174,8 +174,8 @@ export default function OfflineScreen() {
       {installSection}
 
       <SettingsNote icon="info-outline">
-        Offline study is in beta: cards are cached as you open them, so a first visit still
-        needs a connection. After that, the shelf is yours.
+        Offline caching covers the app shell and pages you have opened. Your decks and reviews
+        are stored locally, but the first load of a page still needs a connection.
       </SettingsNote>
     </Screen>
   );

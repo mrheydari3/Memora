@@ -110,7 +110,12 @@ export default function ProfileScreen() {
   };
 
   return (
-    <Screen scroll gutter contentMaxWidth={v2.layout.contentMaxWidth} header={<TopAppBar title="Profile" back />}>
+    <Screen
+      scroll
+      gutter
+      contentMaxWidth={v2.layout.contentMaxWidth}
+      header={<TopAppBar title="Profile" back backFallback="/settings" />}
+    >
       {!loaded ? (
         <>
           <HeroSkeleton height={190} />

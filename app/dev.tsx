@@ -124,7 +124,7 @@ export default function DevDataScreen() {
       scroll
       gutter
       contentMaxWidth={v2.layout.contentMaxWidth}
-      header={<TopAppBar title="Developer data" back />}
+      header={<TopAppBar title="Developer data" back backFallback="/settings" />}
     >
       <RevealItem index={0}>
         <SettingsPlate

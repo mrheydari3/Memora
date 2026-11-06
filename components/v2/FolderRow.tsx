@@ -6,6 +6,7 @@ import { IconButton } from '../IconButton';
 import { alpha, colors, fills, heights, iconSize, radii } from '../../theme/tokens';
 import { usePressFeedback } from '../../motion';
 import { v2 } from '../../theme/v2';
+import { HintPressable } from '../HintPressable';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -59,13 +60,13 @@ export function FolderRow({
     <Animated.View style={[press.style, { width: '100%' }]}>
       <GlassCard padding="sm" style={{ width: '100%', borderRadius: v2.radii.card }}>
         <View className="flex-row items-center" style={{ gap: 4 }}>
-          <Pressable
+          <HintPressable
+            hint="Open folder"
             testID="folder-row"
             onPress={onPress}
             onPressIn={press.onPressIn}
             onPressOut={press.onPressOut}
             accessibilityRole="button"
-            accessibilityHint="Open folder"
             style={{ flex: 1, minWidth: 0 }}
           >
             <View className="flex-row items-center" style={{ gap: 12 }}>
@@ -108,7 +109,7 @@ export function FolderRow({
 
               <MaterialIcons name="chevron-right" size={iconSize.md} color={colors.outline} />
             </View>
-          </Pressable>
+          </HintPressable>
 
           {onOptions && (
             <IconButton

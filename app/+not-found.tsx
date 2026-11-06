@@ -14,7 +14,10 @@ export default function NotFoundScreen() {
   const router = useRouter();
 
   return (
-    <Screen edges={['top', 'bottom']} header={<TopAppBar title="Not found" back />}>
+    <Screen
+      edges={['top', 'bottom']}
+      header={<TopAppBar title="Not found" back backFallback="/(tabs)/library" />}
+    >
       <View className="flex-1 items-center justify-center px-6">
         <EmptyState
           icon="map"

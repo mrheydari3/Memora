@@ -145,7 +145,7 @@ try {
   await folderRow(FOLDER).click();
   await wait(500);
   check('folder opens as its own view', await page.getByRole('heading', { name: FOLDER }).isVisible());
-  check('folder view offers a way back', await page.getByRole('button', { name: 'All decks', exact: true }).isVisible());
+  check('folder view offers a way back', await page.getByRole('button', { name: 'Back to All decks', exact: true }).isVisible());
 
   await createFolder(NESTED_A);
   await closeSheet();
@@ -251,7 +251,7 @@ try {
   );
 
   // 7. Delete the parent folder: children and deck move up one level.
-  await page.getByRole('button', { name: 'All decks', exact: true }).click();
+  await page.getByRole('button', { name: 'Back to All decks', exact: true }).click();
   await wait(500);
   await openFolderOptions(FOLDER);
   await dialog().getByRole('button', { name: /Delete folder/ }).click();

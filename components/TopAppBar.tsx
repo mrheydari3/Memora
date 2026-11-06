@@ -1,5 +1,6 @@
 import { View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
+import { goBackOr } from '../services/navigation';
 import { AppText } from './AppText';
 import { IconButton } from './IconButton';
 import { glassFillAppBar, heights, iconSize } from '../theme/tokens';
@@ -17,6 +18,10 @@ type TopAppBarProps = {
   titleHeadingLevel?: 1 | 2 | 3 | null;
   /** Shows the back arrow top-left. */
   back?: boolean;
+  /** Where to land when the route has no history (deep link, refresh, PWA). */
+  backFallback?: Href;
+  /** Replaces the default back action; use for unsaved-change guards. */
+  onBack?: () => void;
   /** Right-side icon buttons. */
   actions?: { icon: IconName; onPress?: () => void; accessibilityLabel: string; disabled?: boolean }[];
   /** Custom left content replaces back + title. */
@@ -39,12 +44,22 @@ export function TopAppBar({
   title,
   titleHeadingLevel = 1,
   back = false,
+  backFallback = '/(tabs)/home',
+  onBack,
   actions = [],
   leftContent,
   rightContent,
   showBorder = true,
 }: TopAppBarProps) {
   const router = useRouter();
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+      return;
+    }
+    goBackOr(router, backFallback);
+  };
 
   return (
     <View
@@ -64,7 +79,7 @@ export function TopAppBar({
           {back && (
             <IconButton
               icon="arrow-back"
-              onPress={() => router.back()}
+              onPress={handleBack}
               accessibilityLabel="Go back"
               glyphSize={iconSize.md}
             />

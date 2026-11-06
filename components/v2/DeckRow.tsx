@@ -14,6 +14,7 @@ import {
 } from '../../theme/tokens';
 import { usePressFeedback } from '../../motion';
 import { v2 } from '../../theme/v2';
+import { HintPressable } from '../HintPressable';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -78,7 +79,8 @@ export function DeckRow({
     <Animated.View style={[press.style, { width: '100%' }]}>
       <GlassCard padding="sm" style={{ width: '100%', borderRadius: v2.radii.card }}>
         <View className="flex-row items-center" style={{ gap: 6 }}>
-          <Pressable
+          <HintPressable
+            hint="Open deck"
             testID="deck-row"
             onPress={onPress}
             onPressIn={press.onPressIn}
@@ -86,7 +88,6 @@ export function DeckRow({
             accessibilityRole="button"
             // Named by its content, like the shelf card: name, context, studied
             // share and due line are already the whole label.
-            accessibilityHint="Open deck"
             style={{ flex: 1, minWidth: 0 }}
           >
             <View className="flex-row items-center" style={{ gap: 12 }}>
@@ -166,7 +167,7 @@ export function DeckRow({
                 </AppText>
               </View>
             </View>
-          </Pressable>
+          </HintPressable>
 
           {onOptions && (
             <IconButton

@@ -47,7 +47,7 @@ export default function MassImportScreen() {
       scroll
       gutter
       contentMaxWidth={v2.layout.contentMaxWidth}
-      header={<TopAppBar title="Import" back />}
+      header={<TopAppBar title="Import" back backFallback="/(tabs)/home" />}
     >
       <RevealItem index={0}>
         <SettingsPlate

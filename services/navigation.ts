@@ -14,6 +14,27 @@
  */
 import type { Href } from 'expo-router';
 
+/** A router that can inspect history and replace the current route. */
+type BackRouter = {
+  canGoBack: () => boolean;
+  back: () => void;
+  replace: (href: Href) => void;
+};
+
+/**
+ * Go back when there is history; otherwise replace the current route with a
+ * meaningful parent. A deep link, a browser refresh or a restored PWA can mount
+ * a screen with an empty stack, and a bare `router.back()` then dispatches
+ * `GO_BACK` to no navigator and leaves the control dead.
+ */
+export function goBackOr(router: BackRouter, fallback: Href): void {
+  if (router.canGoBack()) {
+    router.back();
+    return;
+  }
+  router.replace(fallback);
+}
+
 /** How long a second push to the identical destination is treated as a repeat. */
 export const PUSH_REPEAT_WINDOW_MS = 500;
 

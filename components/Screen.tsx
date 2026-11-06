@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, ScrollView } from 'react-native';
+import { Animated, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Edge } from 'react-native-safe-area-context';
 import { useIsFocused } from 'expo-router';
@@ -33,6 +33,11 @@ type ScreenProps = {
    * Turn it off for a screen that owns its own entrance (a live session).
    */
   animate?: boolean;
+  /**
+   * A route-owned dialog covers this screen. On web the shell becomes inert so
+   * neither the keyboard nor assistive technology can reach the covered content.
+   */
+  backgroundInert?: boolean;
 };
 
 /**
@@ -61,6 +66,7 @@ export function Screen({
   contentClassName = '',
   contentMaxWidth,
   animate = true,
+  backgroundInert = false,
 }: ScreenProps) {
   const focused = useIsFocused();
   // A pass counter, not the boolean: returning to a tab must replay the entrance.
@@ -78,12 +84,33 @@ export function Screen({
   }, [focused]);
 
   const reveal = useReveal(pass, { distance: 8, duration: motion.base });
+  const screenRef = useRef<React.ComponentRef<typeof SafeAreaView>>(null);
+
+  // The attribute, not just aria-hidden, is what removes the shell from the web
+  // tab order. Cleanup restores it when the dialog closes or the route changes.
+  useEffect(() => {
+    if (!backgroundInert || Platform.OS !== 'web') return;
+    const node = screenRef.current as unknown as {
+      setAttribute: (name: string, value: string) => void;
+      removeAttribute: (name: string) => void;
+    } | null;
+    if (!node) return;
+    node.setAttribute('inert', '');
+    return () => node.removeAttribute('inert');
+  }, [backgroundInert]);
 
   return (
     // The main landmark lives in the root layout, around the navigator: the
     // floating tab capsule is rendered by the router outside any screen, so a
     // per-screen <main> left it as content outside a landmark.
-    <SafeAreaView className={`flex-1 bg-background ${className}`} edges={edges}>
+    <SafeAreaView
+      ref={screenRef}
+      className={`flex-1 bg-background ${className}`}
+      edges={edges}
+      aria-hidden={backgroundInert || undefined}
+      accessibilityElementsHidden={backgroundInert || undefined}
+      importantForAccessibility={backgroundInert ? 'no-hide-descendants' : undefined}
+    >
       {header}
       <Animated.View style={{ flex: 1, ...(animate ? reveal.style : null) }}>
         {scroll ? (

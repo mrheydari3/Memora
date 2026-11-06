@@ -144,7 +144,7 @@ export default function StatisticsScreen() {
       scroll
       gutter
       contentMaxWidth={v2.layout.contentMaxWidth}
-      header={<TopAppBar title="Statistics" back />}
+      header={<TopAppBar title="Statistics" back backFallback="/settings" />}
     >
       {!loaded ? (
         <StatisticsSkeleton />

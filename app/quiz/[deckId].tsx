@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { goBackOr } from '../../services/navigation';
 import Svg, { Circle } from 'react-native-svg';
 import { MaterialIcons } from '../../components/Icon';
 import * as Haptics from 'expo-haptics';
@@ -71,6 +72,9 @@ const CORRECT_REVEAL_MS = 320;
 const WRONG_REVEAL_MS = 700;
 /** How long the red pad stays still before it starts leaving. */
 const WRONG_HOLD_MS = 320;
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"]:not([aria-disabled="true"]), [role="radio"]:not([aria-disabled="true"]), [role="switch"]:not([aria-disabled="true"]), [role="checkbox"]:not([aria-disabled="true"]), [role="tab"]:not([aria-disabled="true"]), [tabindex]:not([tabindex="-1"])';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -395,6 +399,7 @@ export default function QuizScreen() {
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTickRef = useRef(Date.now());
   const mountedRef = useRef(true);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   const correctSound = useAudioPlayer(require('../../assets/sfx/correct.wav'));
   const wrongSound = useAudioPlayer(require('../../assets/sfx/wrong.wav'));
@@ -502,6 +507,14 @@ export default function QuizScreen() {
     (state: RoundState, cleared: boolean) => {
       if (submittedRef.current) return;
       submittedRef.current = true;
+      // Capture the opener before the shell turns inert. The browser blurs
+      // focused inert content, so reading activeElement after the render would
+      // remember <body> instead of the quiz control.
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        const active = document.activeElement;
+        returnFocusRef.current =
+          active instanceof HTMLElement && active !== document.body ? active : null;
+      }
       const final = cleared ? finishCleared(state) : state;
       commitRound(final);
       setPhase('over');
@@ -557,33 +570,62 @@ export default function QuizScreen() {
     };
   }, []);
 
-  // The result is a dialog over a finished round: focus moves into it so the
-  // tab order starts at the score, and Escape takes the same exit as the
-  // "Back to Game" control underneath it.
-  const resultRef = useRef<React.ComponentRef<typeof View> | null>(null);
+  // The result is a dialog over a finished round. The shell behind it is inert,
+  // so this effect owns the whole keyboard story: focus moves inside, Tab cycles
+  // between the result actions, Escape takes the same exit as "Back to Game",
+  // and focus returns to the control that was active before the round ended.
+  const resultRef = useRef<React.ComponentRef<typeof Animated.View> | null>(null);
   useEffect(() => {
     if (phase !== 'over' || Platform.OS !== 'web') return;
-    (resultRef.current as unknown as { focus?: () => void } | null)?.focus?.();
-    const doc = (
-      globalThis as {
-        document?: {
-          addEventListener?: (
-            type: 'keydown',
-            listener: (event: { key?: string }) => void
-          ) => void;
-          removeEventListener?: (
-            type: 'keydown',
-            listener: (event: { key?: string }) => void
-          ) => void;
-        };
+    const panel = resultRef.current as unknown as HTMLElement | null;
+    if (!panel) return;
+    const doc = document;
+    panel.focus();
+
+    const focusable = () => Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        router.replace('/(tabs)/library');
+        return;
       }
-    ).document;
-    const onKeyDown = (event: { key?: string }) => {
-      if (event.key === 'Escape') router.replace('/(tabs)/library');
+      if (event.key !== 'Tab') return;
+
+      const items = focusable();
+      if (items.length === 0) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
+
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = doc.activeElement;
+      if (!active || !panel.contains(active) || active === panel) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
-    doc?.addEventListener?.('keydown', onKeyDown);
-    return () => doc?.removeEventListener?.('keydown', onKeyDown);
+
+    doc.addEventListener('keydown', onKeyDown);
+    return () => doc.removeEventListener('keydown', onKeyDown);
   }, [phase, router]);
+
+  // Wait for the next live round before restoring focus: the shell's inert
+  // effect has been cleaned up by then, so the remembered control can accept it.
+  useEffect(() => {
+    if (phase !== 'playing' || Platform.OS !== 'web') return;
+    const target = returnFocusRef.current;
+    if (!target) return;
+    returnFocusRef.current = null;
+    if (target.isConnected) target.focus();
+  }, [phase]);
 
   useEffect(
     () => () => {
@@ -763,7 +805,11 @@ export default function QuizScreen() {
       className="flex-row items-center px-2"
       style={[glassFillAppBar, { height: heights.appbar }]}
     >
-      <IconButton icon="close" onPress={() => router.back()} accessibilityLabel="Close quiz" />
+      <IconButton
+        icon="close"
+        onPress={() => goBackOr(router, '/(tabs)/library')}
+        accessibilityLabel="Close quiz"
+      />
       <View className="flex-1 items-center px-2">
         <AppText variant="bodySm" weight="semibold" numberOfLines={1} headingLevel={1}>
           {deck?.name ?? 'Quiz'}
@@ -1096,7 +1142,12 @@ export default function QuizScreen() {
   );
 
   return (
-    <Screen edges={['top', 'bottom']} header={header}>
+    <>
+      <Screen
+        edges={['top', 'bottom']}
+        header={header}
+        backgroundInert={phase === 'over'}
+      >
       {/*
         One polite channel for the round: whether the pad was right, the score
         and the combo, in a sentence. The scoreboard stays visual so nothing is
@@ -1130,17 +1181,20 @@ export default function QuizScreen() {
           )}
         </View>
       </View>
+      </Screen>
 
       {phase === 'over' && (
         <Animated.View
+          ref={resultRef}
+          tabIndex={-1}
           role="dialog"
           aria-modal
+          accessibilityViewIsModal
+          accessibilityLabel={`Round result: ${round.score} points`}
           aria-label={`Round result: ${round.score} points`}
           style={[styles.result, resultReveal.style]}
         >
           <View
-            ref={resultRef}
-            tabIndex={-1}
             className="w-full items-center px-5"
             style={{ maxWidth: layout.resultMaxWidth }}
           >
@@ -1212,7 +1266,7 @@ export default function QuizScreen() {
           </View>
         </Animated.View>
       )}
-    </Screen>
+    </>
   );
 }
 
