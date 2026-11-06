@@ -82,6 +82,7 @@ type Tuning = {
   newPerDay: number;
   maxPerDay: number;
   shuffle: boolean;
+  adaptive: boolean;
 };
 
 /**
@@ -127,6 +128,7 @@ export default function AlgorithmSettingsScreen() {
     newPerDay: deck?.newCardsPerDay ?? 20,
     maxPerDay: deck?.maxCardsPerDay ?? 80,
     shuffle: deck?.shuffleCards ?? true,
+    adaptive: deck?.adaptiveOrdering ?? false,
   };
 
   /**
@@ -146,6 +148,7 @@ export default function AlgorithmSettingsScreen() {
     if (partial.newPerDay !== undefined) patch.newCardsPerDay = partial.newPerDay;
     if (partial.maxPerDay !== undefined) patch.maxCardsPerDay = partial.maxPerDay;
     if (partial.shuffle !== undefined) patch.shuffleCards = partial.shuffle;
+    if (partial.adaptive !== undefined) patch.adaptiveOrdering = partial.adaptive;
     void updateDeck(deck.id, patch);
   };
 
@@ -162,6 +165,7 @@ export default function AlgorithmSettingsScreen() {
       newCardsPerDay: view.newPerDay,
       maxCardsPerDay: view.maxPerDay,
       shuffleCards: view.shuffle,
+      adaptiveOrdering: view.adaptive,
     };
     if (deck) {
       shared.learningSteps = deck.learningSteps;
@@ -284,6 +288,20 @@ export default function AlgorithmSettingsScreen() {
             }
           />
           <SettingsRow
+            icon="insights"
+            iconTone="accent"
+            title="Adaptive review order"
+            subtitle="Put cards with lower estimated recall first; due dates stay unchanged"
+            iconPulseKey={view.adaptive}
+            trailing={
+              <ToggleSwitch
+                value={view.adaptive}
+                onToggle={(value) => tune({ adaptive: value })}
+                accessibilityLabel="Adaptive review order"
+              />
+            }
+          />
+          <SettingsRow
             icon="tune"
             iconTone="accent"
             title="Learning steps"
@@ -340,7 +358,7 @@ export default function AlgorithmSettingsScreen() {
           icon="shuffle"
           iconTone="warning"
           title="Shuffle cards"
-          subtitle="Mix reviews across the deck"
+          subtitle="Mix new cards; with adaptive order on, due priority is kept"
           iconPulseKey={view.shuffle}
           trailing={
             <ToggleSwitch

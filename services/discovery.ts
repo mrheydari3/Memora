@@ -48,6 +48,7 @@ export async function importDeck(
     newCardsPerDay: 20,
     maxCardsPerDay: 80,
     shuffleCards: true,
+    adaptiveOrdering: true,
     learningSteps: ['12 hours', '1 day', '2 days', '3 days'],
     masteredIntervalMultiplier: 2.5,
     ...FSRS_DEFAULTS,

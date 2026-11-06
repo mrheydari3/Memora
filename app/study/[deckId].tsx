@@ -7,6 +7,8 @@ import { useReviewStore } from '../../store/useReviewStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { getSchedulerForDeck } from '../../data/schedulers';
 import { buildStudyQueue } from '../../data/session';
+import { buildLearningEngine } from '../../data/intelligence';
+import type { LearningEngineResult } from '../../data/intelligence';
 import { FlashcardView } from '../../components/Flashcard';
 import {
   AppText,
@@ -75,6 +77,7 @@ export default function StudyScreen() {
 
   // Session queue
   const [queue, setQueue] = useState<Flashcard[]>([]);
+  const [learning, setLearning] = useState<LearningEngineResult | null>(null);
   const [index, setIndex] = useState(0);
   /**
    * The session's opening size. Re-queued learning cards grow `queue`, so it
@@ -110,6 +113,12 @@ export default function StudyScreen() {
   const [studyNowId, setStudyNowId] = useState<string | null>(null);
 
   const currentCard = queue[index];
+  const currentDecision = currentCard
+    ? (learning?.decisionsByCard[currentCard.id] ?? null)
+    : null;
+  const adaptiveActive = Boolean(
+    deck && deck.algorithmPreset === 'fsrs' && deck.adaptiveOrdering && learning
+  );
 
   const dueAtMs = currentCard ? new Date(currentCard.fsrs.due).getTime() : 0;
   const waitingMs =
@@ -150,22 +159,58 @@ export default function StudyScreen() {
 
   const scheduler = useMemo(() => (deck ? getSchedulerForDeck(deck) : null), [deck]);
 
-  // Build session queue on mount
+  // Build session queue on mount. The intelligence engine only ranks cards the
+  // existing capped queue already selected; FSRS still owns every due date.
   useEffect(() => {
     if (!deck) return;
     const cards = useDeckStore.getState().getCards(deck.id);
     const log = useReviewStore.getState().reviewLog;
-    const { newCards, dueCards } = buildStudyQueue(deck, cards, log);
+    const now = Date.now();
+    const { newCards, dueCards } = buildStudyQueue(deck, cards, log, now);
 
-    let next = [...newCards, ...dueCards];
-    if (deck.shuffleCards) {
+    let analysis: LearningEngineResult | null = null;
+    try {
+      analysis = buildLearningEngine({
+        decks: useDeckStore.getState().decks,
+        cardsByDeck: useDeckStore.getState().cardsByDeck,
+        reviewLog: log,
+        deckId: deck.id,
+        newCards,
+        dueCards,
+        now,
+      });
+    } catch (error) {
+      // An analysis failure must never block studying. Fall back to the exact
+      // queue the app used before the engine existed.
+      console.error('Failed to analyse the learning queue:', error);
+    }
+    setLearning(analysis);
+
+    const shuffled = (items: Flashcard[]) => {
       // Fisher–Yates: `sort(() => Math.random() - 0.5)` is biased and leaves
       // some cards far more likely to stay near their original position.
-      for (let i = next.length - 1; i > 0; i--) {
+      for (let i = items.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [next[i], next[j]] = [next[j], next[i]];
+        [items[i], items[j]] = [items[j], items[i]];
       }
+      return items;
+    };
+
+    const adaptive =
+      analysis !== null &&
+      deck.algorithmPreset === 'fsrs' &&
+      deck.adaptiveOrdering === true;
+    let nextNew = [...newCards];
+    let nextDue = [...dueCards];
+    if (deck.shuffleCards) {
+      nextNew = shuffled(nextNew);
+      if (!adaptive) nextDue = shuffled(nextDue);
     }
+    if (adaptive && analysis) {
+      nextDue = [...analysis.orderedDueCards];
+    }
+
+    const next = [...nextNew, ...nextDue];
     setQueue(next);
     setSessionTotal(next.length);
   }, [deck]);
@@ -526,6 +571,34 @@ export default function StudyScreen() {
         />
       </View>
 
+      {adaptiveActive && learning ? (
+        <View style={{ marginTop: 16 }}>
+          <AppText variant="caption" tone="muted" className="uppercase">
+            Adaptive order
+          </AppText>
+          <AppText variant="bodySm" tone="muted" className="mt-1">
+            {learning.session.projectedMinutes !== null
+              ? `~${Math.max(1, Math.round(learning.session.projectedMinutes))} min at your median pace.`
+              : 'Priority order is on.'}{' '}
+            Due dates are unchanged.
+          </AppText>
+          {learning.session.atRiskCards > 0 ? (
+            <AppText variant="caption" tone="tertiary" className="mt-1">
+              At session start, {learning.session.atRiskCards} review
+              {learning.session.atRiskCards === 1 ? ' was' : 's were'} below the estimated
+              retention target.
+            </AppText>
+          ) : null}
+          {learning.session.breakSuggestion ? (
+            <AppText variant="caption" tone="tertiary" className="mt-1">
+              A break at{' '}
+              {learning.session.breakSuggestion.afterReviews} reviews is suggested by your
+              session history.
+            </AppText>
+          ) : null}
+        </View>
+      ) : null}
+
       <View
         style={{
           marginTop: 20,
@@ -576,6 +649,7 @@ export default function StudyScreen() {
         </AppText>
         <AppText variant="caption" tone="muted">
           {formatCount(deckCards.length)} cards
+          {adaptiveActive ? ' · priority order' : ''}
         </AppText>
       </View>
     </View>
@@ -587,11 +661,26 @@ export default function StudyScreen() {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
+          gap: 8,
           paddingHorizontal: 4,
           marginBottom: 6,
         }}
       >
+        {adaptiveActive && currentDecision ? (
+          <View
+            accessible
+            accessibilityLabel={currentDecision.reasons.join(' ')}
+            style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+          >
+            <MaterialIcons name="bolt" size={iconSize.xs} color={colors.primary} />
+            <AppText variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+              {currentDecision.shortReason}
+            </AppText>
+          </View>
+        ) : (
+          <View style={{ flex: 1 }} />
+        )}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <View
             style={{

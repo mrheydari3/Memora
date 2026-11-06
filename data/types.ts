@@ -88,6 +88,12 @@ export type Deck = {
   newCardsPerDay: number; // default 20
   maxCardsPerDay: number; // default 80
   shuffleCards: boolean; // default true
+  /**
+   * User-controlled adaptive queue order. Optional so decks saved before this
+   * existed keep their original due order; new decks turn it on explicitly.
+   * It only ranks cards the existing scheduler already made due.
+   */
+  adaptiveOrdering?: boolean;
   learningSteps: string[]; // e.g. ['12 hours','1 day','2 days','3 days'] (SM-2 only)
   masteredIntervalMultiplier: number; // default 2.5 (SM-2 only)
   /**

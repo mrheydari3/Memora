@@ -15,6 +15,9 @@ export { analyzeDecks } from './analysis/decks';
 export { analyzeForecast } from './prediction/forecast';
 export { generateInsights } from './insights/insights';
 export { buildReports } from './reports/reports';
+export { buildLearningEngine, ADAPTIVE_POLICY } from './engine/learningEngine';
+export { MASTERY_LABELS, MASTERY_THRESHOLDS } from './learning/mastery';
+export { prioritySignalLabel } from './scheduling/priority';
 export { buildSeries, weeklySeries, reviewsInRange } from './analysis/series';
 export { startOfDay, addDays, dayKey, dayLabel, eachDay, calendarDaysBetween } from './core/dates';
 export { AnalyticsCache, intelligenceCacheKey } from './core/cache';
@@ -72,3 +75,26 @@ export type {
   WeekdayPoint,
   WorkloadForecast,
 } from './core/types';
+
+export type {
+  LearningDecision,
+  LearningEngineInput,
+  LearningEngineResult,
+  LearningEvidence,
+  LearningPolicy,
+  LearningWeakness,
+  MasteryAnalysis,
+  MasteryEstimate,
+  MasteryLevel,
+  OrderingEvaluation,
+  PriorityResult,
+  PrioritySignal,
+  PrioritySignalKind,
+  ProfileAdaptation,
+  SessionPlan,
+  StudyProfile,
+  StudyWindow,
+  StudyWindowId,
+  WeaknessAnalysis,
+  WeaknessKind,
+} from './engine/types';

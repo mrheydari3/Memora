@@ -291,3 +291,166 @@ session it reports the two rates and says "associated with", never "caused by".
 - No "habit strength" claim — a timestamp log measures behavioural consistency, not
   automaticity (SRHI/SRBAI are self-report instruments).
 - No causal claims about fatigue, session length or time of day.
+
+---
+
+## 6. Adaptive review ordering — research questions and decision
+
+### Questions
+
+1. Can Memora improve the learning experience without replacing FSRS or
+   recalculating its intervals?
+2. Which available signals are real observations, and which are model outputs?
+3. Is a weighted “learning score” defensible?
+4. Can historical data prove that a reordering policy improves future retention?
+5. When should the engine refuse to make a claim?
+
+### What the evidence supports
+
+FSRS is already the memory model and scheduler. Its DSR state is fitted to the
+learner’s ratings and intervals; Anki explicitly says users should tune desired
+retention rather than hand-edit the parameters, and its simulator is the official
+way to explore workload/retention tradeoffs ([FSRS algorithm](https://github.com/open-spaced-repetition/fsrs4anki/wiki/The-Algorithm),
+[Anki deck options](https://docs.ankiweb.net/deck-options.html#fsrs),
+[optimal retention](https://github.com/open-spaced-repetition/fsrs4anki/wiki/The-optimal-retention)).
+A second scheduler or a hand-built forgetting curve would duplicate the
+scheduler and create two sources of truth.
+
+Retrieval practice and distributed practice are well supported: retrieval
+attempts improve later retention more than restudy in controlled experiments,
+and spacing interacts with the retention interval ([Roediger & Karpicke 2006](https://doi.org/10.1111/j.1467-9280.2006.01693.x),
+[Karpicke & Blunt 2011](https://doi.org/10.1126/science.1199327),
+[Cepeda et al. 2006](https://doi.org/10.1037/0033-2909.132.3.354),
+[Bjork & Bjork 2011](https://bjorklab.psych.ucla.edu/wp-content/uploads/sites/13/2016/04/EBjork_RBjork_2011.pdf)).
+Those findings justify retrieval and spacing; they do **not** validate a
+particular queue-order formula or numeric priority weights.
+
+### Decision: order only, never reschedule
+
+The engine’s adaptive layer ranks cards the existing queue builder has already
+marked due. It does not alter `due`, `stability`, `difficulty`, `elapsed_days`,
+`scheduled_days`, `reps`, `lapses`, `state`, learning steps or the review log.
+FSRS remains the sole authority for the next interval. This makes the feature
+reversible and keeps every existing scheduler test meaningful.
+
+### Decision: lexicographic priority, not a weighted score
+
+The ordering is:
+
+1. a due learning/relearning step,
+2. a Review card whose FSRS R(now) is below the deck’s desired retention,
+3. other due Review cards,
+4. New cards (normally kept separate by the daily new-card cap).
+
+Within Review cards: lower R first, then more days overdue, then more lapses,
+then higher FSRS difficulty, then the earlier due time, then card id for a
+deterministic tie-break. A weighted sum would imply that one extra lapse is
+worth a fixed number of retrievability points; no evidence supports that
+exchange rate. A lexicographic policy is easier to explain and test, and the
+reported percentile is explicitly a queue position, not a recall probability.
+
+### Decision: no reinforcement learning or parameter fitting
+
+FSRS parameter optimisation needs hundreds of reviews and is a
+scheduler-level operation. The engine has no counterfactual labels: it cannot
+observe what would have happened if a card had appeared earlier or later. RL or
+contextual bandits would therefore be trained on fabricated feedback. The
+engine stays deterministic, local and inspectable instead.
+
+### Decision: the queue is not the whole intervention
+
+The engine also reports:
+
+- **mastery evidence** from post-graduation reviews plus FSRS state,
+- **weakness cues** from observed lapses, sample-gated recent Again rates and a
+  Wilson-separated deck comparison,
+- a **local profile** built from real pace, session size and observed recall,
+- **session estimates** from the learner’s own median review duration.
+
+None of these silently removes a card. A break suggestion is a suggestion, and
+is shown only when late-session recall is lower with enough reviews and the
+learner’s own median session is shorter than today’s queue.
+
+### Decision: mastery thresholds are product heuristics
+
+The labels New → Learning → Developing → Established → Strong are not a
+validated mastery scale. They combine observed post-graduation successes with
+FSRS stability, lapse count and a recent-lapse window. The thresholds are
+exported constants so they can be challenged and tested. A single Easy rating
+cannot reach Established or Strong; new cards and learning steps cannot either.
+Every card carries the limitations with its label.
+
+### Decision: time of day is an association, not a prescription
+
+The profile only reports a preferred study window when the 95% Wilson intervals
+for that window and the other windows do not overlap, with at least 30 reviews
+in each side. Even then the wording is “observed successful recall”, not “best
+time” and not a causal claim. Review duration is called recorded review time,
+not retrieval latency; it includes reading, revealing and rating.
+
+---
+
+## 7. Evaluation framework
+
+### What was implemented
+
+`data/intelligence/evaluation/ordering.ts` compares the same due cards under the
+baseline order and the priority order. It reports:
+
+- the number of cards with a finite FSRS R,
+- the number and position of cards whose R is below target,
+- the share of at-risk cards in the first half of each ordering,
+- how many overdue cards moved earlier,
+- the median position of at-risk cards.
+
+### What it does not prove
+
+This is a **structural replay**, not an experiment. The log contains one rating
+for each card in the position where it actually appeared. It does not contain
+a counterfactual rating the card would have received in another position. The
+engine therefore does not claim that moving a card earlier improves retention;
+it reports that the ordering changed and labels the limitation in the result.
+
+A true efficacy study would need a controlled or randomized comparison, enough
+reviews per arm, and a pre-registered outcome. The official FSRS simulator can
+model workload/retention tradeoffs from FSRS state, but it is still a simulation
+and is not a substitute for an outcome experiment
+([Anki simulator documentation](https://docs.ankiweb.net/deck-options.html#the-simulator)).
+
+---
+
+## 8. Research-to-code map
+
+| Decision | Implementation |
+| --- | --- |
+| FSRS is the only interval scheduler | `prioritizeDueCards` reads `createFSRSScheduler` and never writes card state |
+| No competing forgetting curve | R comes from the existing scheduler; no second formula |
+| Hard is a pass | All observed-success calculations use `rating >= 2` |
+| No arbitrary weighted composite | lexicographic ordering in `scheduling/priority.ts` |
+| No unsupported mastery claim | post-graduation review evidence + stability + lapse gates |
+| No false deck conclusions | 30-review floor and non-overlapping Wilson intervals |
+| No false time-of-day claim | 30-review floor and non-overlapping Wilson intervals |
+| No card removal | session plan only counts and estimates; the queue stays intact |
+| No hidden scheduling mutation | `affectsDueDates: false` in the public policy |
+| Offline operation | pure TypeScript, local review log, no network or external AI |
+
+---
+
+## 9. Known limitations and future work
+
+- Priority ordering is a defensible heuristic, not a validated intervention.
+  A future study could compare baseline and priority queues with a controlled
+  design, but the current log cannot answer that question.
+- No FSRS parameter optimisation is attempted. The raw log is preserved for a
+  future optimizer; fitting parameters on a small log would be unstable.
+- No content-aware model is used. Cards have no topic/tag model in the current
+  data contract, so the engine cannot claim topic-level weakness detection.
+- The profile has no configured “available minutes” input. It reports pace and
+  session history instead of inventing a daily time budget.
+- The mastery thresholds are product heuristics and should be recalibrated if
+  the app later has a validated outcome measure.
+- Archived decks are excluded from active analysis, consistent with Home and
+  Statistics. Orphan reviews remain counted in data quality.
+- The engine runs on the session’s initial queue, not on a background worker;
+  this is deliberate for the current data sizes and avoids blocking the review
+  interaction with new infrastructure.
