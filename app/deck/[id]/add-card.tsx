@@ -8,7 +8,7 @@ import { textDirection } from '../../../data/text';
 import {
   AppText,
   Button,
-  COLOR_CHOICES,
+  CARD_COLOR_CHOICES,
   GlassCard,
   IconButton,
   ListRow,
@@ -34,19 +34,8 @@ import type { Flashcard } from '../../../data/types';
 
 type Side = 'front' | 'back';
 
-/**
- * The tints a card may wear. They are the deck palette's own steps, so a card
- * can never introduce a colour the rest of the app does not know; the empty
- * value is the plain glass face.
- */
-const CARD_COLOURS = [
-  { value: '', label: 'No colour' },
-  { value: COLOR_CHOICES[0], label: 'Blue' },
-  { value: COLOR_CHOICES[1], label: 'Amber' },
-  { value: COLOR_CHOICES[2], label: 'Red' },
-  { value: COLOR_CHOICES[3], label: 'Green' },
-  { value: COLOR_CHOICES[4], label: 'Grey' },
-] as const;
+/** The swatch row: the shared card palette, led by the plain glass face. */
+const SWATCHES = [{ value: '', label: 'No colour' }, ...CARD_COLOR_CHOICES];
 
 /**
  * Add cards — you write on the card itself.
@@ -329,7 +318,7 @@ export default function AddCardScreen() {
           Front colour
         </AppText>
         <View className="mt-1 flex-row items-center" style={{ gap: 4 }}>
-          {CARD_COLOURS.map((choice) => {
+          {SWATCHES.map((choice) => {
             const active = color === choice.value;
             return (
               <Pressable

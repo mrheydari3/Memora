@@ -6,6 +6,8 @@ import { springTo, usePressFeedback } from '../motion';
 
 type ChipProps = {
   label: string;
+  /** A colour swatch before the label, e.g. the card-colour filter. */
+  dot?: string;
   /**
    * Longer, self-explanatory name for assistive tech ("Folder German A2").
    * Must contain the visible label, or it contradicts the screen (WCAG 2.5.3).
@@ -29,6 +31,7 @@ type ChipProps = {
  */
 export function Chip({
   label,
+  dot,
   accessibilityLabel,
   active,
   onPress,
@@ -52,6 +55,8 @@ export function Chip({
         style={{
           backgroundColor: rimmed ? colors.accentActive : fills.tile,
           minHeight: heights.hit,
+          flexDirection: 'row',
+          alignItems: 'center',
           justifyContent: 'center',
         }}
         onPress={onPress}
@@ -81,6 +86,17 @@ export function Chip({
               transform: [
                 { scale: fill.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) },
               ],
+            }}
+          />
+        )}
+        {dot && (
+          <View
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: 4,
+              marginRight: 6,
+              backgroundColor: dot,
             }}
           />
         )}

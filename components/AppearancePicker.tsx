@@ -5,17 +5,21 @@ import { alpha, colors, fills, heights, iconSize } from '../theme/tokens';
 import { ICON_CHOICES } from '../data/appearance';
 
 /**
- * The tints a deck or a folder may wear. All of them are palette tokens: a
- * folder's colour is user data, not a new design colour, so it is always one of
- * the semantic steps the rest of the app already knows.
+ * The tints a card, deck or folder may wear, named. All of them are palette
+ * tokens: a colour here is user data, not a new design colour, so it is always
+ * one of the semantic steps the rest of the app already knows. The labels are
+ * what a screen reader and the card-colour filter read out.
  */
-export const COLOR_CHOICES = [
-  colors.primary,
-  colors.warning,
-  colors.error,
-  colors.success,
-  colors.secondary,
-];
+export const CARD_COLOR_CHOICES = [
+  { value: colors.primary, label: 'Blue' },
+  { value: colors.warning, label: 'Amber' },
+  { value: colors.error, label: 'Red' },
+  { value: colors.success, label: 'Green' },
+  { value: colors.secondary, label: 'Grey' },
+] as const;
+
+/** The same tints as bare values, for a picker that only needs the colour. */
+export const COLOR_CHOICES = CARD_COLOR_CHOICES.map((choice) => choice.value);
 
 type AppearancePickerProps = {
   icon: string;

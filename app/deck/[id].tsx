@@ -20,6 +20,7 @@ import { v2 } from '../../theme/v2';
 import {
   AppText,
   Button,
+  CARD_COLOR_CHOICES,
   Chip,
   BottomSheetModal,
   EmptyState,
@@ -95,6 +96,7 @@ export default function DeckDetailsScreen() {
   const [nameDraft, setNameDraft] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('created');
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  const [colorFilter, setColorFilter] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -112,6 +114,11 @@ export default function DeckDetailsScreen() {
       })
     : [];
 
+  // Only the tints this deck actually wears: a filter for a colour no card has
+  // would be a control that can only empty the list.
+  const presentColors = new Set(deckCards.map((card) => card.color).filter(Boolean));
+  const deckColors = CARD_COLOR_CHOICES.filter((choice) => presentColors.has(choice.value));
+
   const visibleCards = deckCards.filter((card) => {
     const q = query.trim().toLowerCase();
     const matchesQuery =
@@ -124,7 +131,9 @@ export default function DeckDetailsScreen() {
       (filterMode === 'learning' &&
         (card.fsrs.state === 'Learning' || card.fsrs.state === 'Relearning')) ||
       (filterMode === 'review' && card.fsrs.state === 'Review');
-    return matchesQuery && matchesFilter;
+    // Colour narrows the state filter rather than replacing it: both must hold.
+    const matchesColor = colorFilter === null || card.color === colorFilter;
+    return matchesQuery && matchesFilter && matchesColor;
   });
 
   // Same calculation as the study session, so "Today's queue" is exactly the
@@ -138,7 +147,7 @@ export default function DeckDetailsScreen() {
   useEffect(() => {
     setExpandedId(null);
     setShowAll(false);
-  }, [sortMode, filterMode, query]);
+  }, [sortMode, filterMode, colorFilter, query]);
 
   // The card menu is addressed by id, which keeps the row callback stable.
   const cardMenuCard = cardMenuId ? (deckCards.find((c) => c.id === cardMenuId) ?? null) : null;
@@ -184,13 +193,14 @@ export default function DeckDetailsScreen() {
   const reviewDue = (queue?.dueCards.length ?? 0) - learningDue;
 
   const cardsEmpty = deckCards.length === 0;
-  const filtered = query.trim().length > 0 || filterMode !== 'all';
+  const filtered = query.trim().length > 0 || filterMode !== 'all' || colorFilter !== null;
   const shown = showAll ? visibleCards : visibleCards.slice(0, CARD_LIMIT);
   const sortLabel = SORT_LABELS[sortMode];
 
   const clearFilters = () => {
     setQuery('');
     setFilterMode('all');
+    setColorFilter(null);
   };
 
   const cycleSort = () => {
@@ -368,6 +378,23 @@ export default function DeckDetailsScreen() {
           />
         ))}
       </View>
+
+      {/* The tints this deck uses, each with its own swatch. Pressing the active
+          one clears it, so a colour filter never needs a second control to undo. */}
+      {deckColors.length > 0 && (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+          {deckColors.map((choice) => (
+            <Chip
+              key={choice.value}
+              label={choice.label}
+              dot={choice.value}
+              active={colorFilter === choice.value}
+              onPress={() => setColorFilter(colorFilter === choice.value ? null : choice.value)}
+              accessibilityLabel={`Filter cards: ${choice.label}`}
+            />
+          ))}
+        </View>
+      )}
 
       <View style={{ marginTop: 14, gap: 8 }}>
         {visibleCards.length === 0 ? (
