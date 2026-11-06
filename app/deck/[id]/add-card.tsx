@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, TextInput } from 'react-native';
+import { Pressable, View, TextInput } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { MaterialIcons } from '../../../components/Icon';
 import { useDeckStore } from '../../../store/useDeckStore';
@@ -8,6 +8,7 @@ import { textDirection } from '../../../data/text';
 import {
   AppText,
   Button,
+  COLOR_CHOICES,
   GlassCard,
   IconButton,
   ListRow,
@@ -17,11 +18,35 @@ import {
   SettingsNote,
   TopAppBar,
 } from '../../../components';
-import { colors, heights, iconSize, layout, radii, typography } from '../../../theme/tokens';
+import {
+  colors,
+  fills,
+  glass,
+  heights,
+  iconSize,
+  layout,
+  over,
+  radii,
+  typography,
+} from '../../../theme/tokens';
 import { v2 } from '../../../theme/v2';
 import type { Flashcard } from '../../../data/types';
 
 type Side = 'front' | 'back';
+
+/**
+ * The tints a card may wear. They are the deck palette's own steps, so a card
+ * can never introduce a colour the rest of the app does not know; the empty
+ * value is the plain glass face.
+ */
+const CARD_COLOURS = [
+  { value: '', label: 'No colour' },
+  { value: COLOR_CHOICES[0], label: 'Blue' },
+  { value: COLOR_CHOICES[1], label: 'Amber' },
+  { value: COLOR_CHOICES[2], label: 'Red' },
+  { value: COLOR_CHOICES[3], label: 'Green' },
+  { value: COLOR_CHOICES[4], label: 'Grey' },
+] as const;
 
 /**
  * Add cards — you write on the card itself.
@@ -30,8 +55,9 @@ type Side = 'front' | 'back';
  * centred poster, a short accent rule, and the answer beneath it. Both sides are
  * typed directly on that face — there are no field labels, boxes or counters —
  * so the composer cannot read as a form. The chrome is the study card's own (a
- * dot, the side you are writing, the swap control), the optional fields stay
- * folded away and the save decision lives in the fixed footer.
+ * dot, the side you are writing, the swap control), the card can be tinted from
+ * the palette, the optional fields sit open below it and the save decision lives
+ * in the fixed footer.
  */
 export default function AddCardScreen() {
   const { id, editCardId } = useLocalSearchParams<{ id: string; editCardId?: string }>();
@@ -48,8 +74,9 @@ export default function AddCardScreen() {
   const [back, setBack] = useState(existingCard?.back.text ?? '');
   const [example, setExample] = useState(existingCard?.example ?? '');
   const [synonyms, setSynonyms] = useState(existingCard?.synonyms ?? '');
+  const [color, setColor] = useState(existingCard?.color ?? '');
   const [writing, setWriting] = useState<Side | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(true);
   const [hydrated, setHydrated] = useState(false);
   const [receipt, setReceipt] = useState<string | null>(null);
 
@@ -62,6 +89,7 @@ export default function AddCardScreen() {
     setBack(existingCard.back.text);
     setExample(existingCard.example ?? '');
     setSynonyms(existingCard.synonyms ?? '');
+    setColor(existingCard.color ?? '');
     setHydrated(true);
   }, [existingCard, hydrated]);
 
@@ -69,6 +97,7 @@ export default function AddCardScreen() {
   const canSave = missing === null;
   const detailsCount = [example.trim(), synonyms.trim()].filter(Boolean).length;
   const isEditing = Boolean(editCardId);
+  const accent = color || colors.primary;
 
   /** Swap the two sides; the caret stays where it was because both are on the card. */
   const swapSides = () => {
@@ -100,6 +129,7 @@ export default function AddCardScreen() {
         back: { text: back.trim(), direction: textDirection(back) },
         example: example.trim() || undefined,
         synonyms: synonyms.trim() || undefined,
+        color: color || undefined,
       });
       leaveComposer();
       return;
@@ -112,6 +142,7 @@ export default function AddCardScreen() {
       back: { text: back.trim(), direction: textDirection(back) },
       example: example.trim() || undefined,
       synonyms: synonyms.trim() || undefined,
+      color: color || undefined,
       createdAt: Date.now(),
       fsrs: defaultFSRSState(),
     };
@@ -123,7 +154,7 @@ export default function AddCardScreen() {
       setBack('');
       setExample('');
       setSynonyms('');
-      setDetailsOpen(false);
+      setDetailsOpen(true);
       setWriting(null);
       setReceipt(`Card saved. ${deckCardCount + 1} cards in this deck.`);
     } else {
@@ -173,7 +204,15 @@ export default function AddCardScreen() {
       </View>
 
       {/* The card, composed the way it will be studied. */}
-      <GlassCard padding="none" style={{ minHeight: layout.cardMinHeight }}>
+      <GlassCard
+        padding="none"
+        style={{
+          minHeight: layout.cardMinHeight,
+          // The tint is mixed into the pane rather than laid over it: React
+          // Native styles cannot stack two background colours.
+          ...(color ? { backgroundColor: over(glass.fill, color, 0.16) } : {}),
+        }}
+      >
         <View
           pointerEvents="none"
           style={{
@@ -183,7 +222,7 @@ export default function AddCardScreen() {
             right: 0,
             bottom: 0,
             borderWidth: 2,
-            borderColor: colors.primary,
+            borderColor: accent,
             borderRadius: radii.pane,
             opacity: writing ? 1 : 0,
           }}
@@ -196,7 +235,7 @@ export default function AddCardScreen() {
                 width: 5,
                 height: 5,
                 borderRadius: 3,
-                backgroundColor: colors.primary,
+                backgroundColor: accent,
               }}
             />
             <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
@@ -246,7 +285,7 @@ export default function AddCardScreen() {
               borderRadius: 1,
               marginTop: 14,
               marginBottom: 14,
-              backgroundColor: colors.accentLine,
+              backgroundColor: color ?? colors.accentLine,
             }}
           />
 
@@ -284,8 +323,61 @@ export default function AddCardScreen() {
         </AppText>
       </View>
 
-      {/* Optional fields stay folded away: they are not part of most cards. */}
-      <GlassCard padding="none" className="mt-6">
+      {/* The card's tint, picked from the palette the rest of the app uses. */}
+      <View className="mt-5 px-1">
+        <AppText variant="label" tone="muted" className="uppercase">
+          Front colour
+        </AppText>
+        <View className="mt-1 flex-row items-center" style={{ gap: 4 }}>
+          {CARD_COLOURS.map((choice) => {
+            const active = color === choice.value;
+            return (
+              <Pressable
+                key={choice.label}
+                style={{
+                  width: heights.hit,
+                  height: heights.hit,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={() => {
+                  setColor(choice.value);
+                  setReceipt(null);
+                }}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: active }}
+                aria-checked={active}
+                accessibilityLabel={choice.value ? `Card colour ${choice.label}` : choice.label}
+              >
+                <View
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: choice.value || fills.control,
+                  }}
+                >
+                  {active ? (
+                    <MaterialIcons
+                      name="check"
+                      size={iconSize.sm}
+                      color={choice.value ? colors.onPrimary : colors.primary}
+                    />
+                  ) : choice.value ? null : (
+                    <MaterialIcons name="block" size={iconSize.xs} color={colors.outline} />
+                  )}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Optional fields are open: most cards get an example, so it should not
+          cost a second tap to reach. */}
+      <GlassCard padding="none" className="mt-5">
         <ListRow
           icon="notes"
           iconTone="info"

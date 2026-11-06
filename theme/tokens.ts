@@ -250,6 +250,23 @@ export function alpha(hex: string, a: number): string {
   return `rgba(${r},${g},${b},${a})`;
 }
 
+/**
+ * Flatten a translucent tint over an opaque base.
+ *
+ * React Native has no layer compositing for style colours, so a card tint has to
+ * be mixed into its surface: the result is what the eye would see if the tint
+ * were painted with `amount` alpha on top of `base`.
+ */
+export function over(base: string, color: string, amount: number): string {
+  const channels = (hex: string) => [1, 3, 5].map((index) => parseInt(hex.slice(index, index + 2), 16));
+  const [baseR, baseG, baseB] = channels(base);
+  const [r, g, b] = channels(color);
+  const mix = (from: number, to: number) => Math.round(from + (to - from) * amount);
+  return `#${[mix(baseR, r), mix(baseG, g), mix(baseB, b)]
+    .map((value) => value.toString(16).padStart(2, '0'))
+    .join('')}`;
+}
+
 /** Helper: lighten a hex color toward white. */
 export function tint(hex: string, ratio: number): string {
   const r = parseInt(hex.slice(1, 3), 16);

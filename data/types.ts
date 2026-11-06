@@ -44,6 +44,12 @@ export type Flashcard = {
   back: CardSide;
   example?: string;
   synonyms?: string;
+  /**
+   * The card's own tint, from the palette (a user choice, not a design colour).
+   * It washes the card face so a deck can be read in blocks; absent means the
+   * card keeps the plain glass face.
+   */
+  color?: string;
   createdAt: number; // epoch ms
   fsrs: FSRSCardState;
 };

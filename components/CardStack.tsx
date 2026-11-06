@@ -23,6 +23,7 @@ import {
   iconSize,
   layout,
   motion,
+  over,
   radii,
   shadow,
   spacing,
@@ -293,6 +294,9 @@ export function CardStack({
         <Animated.View
           style={[
             styles.card,
+            // The card's own tint, mixed into its face so both sides read as the
+            // same card in the gallery.
+            card.color ? { backgroundColor: over(glass.cardFace, card.color, 0.16) } : null,
             WEB_DRAG_SURFACE,
             {
               width: cardWidth,
@@ -311,6 +315,7 @@ export function CardStack({
             <Animated.View
               style={[
                 styles.face,
+                card.color ? { backgroundColor: over(glass.cardFace, card.color, 0.16) } : null,
                 {
                   transform: [{ perspective: 1200 }, { rotateY: frontTurn }],
                   pointerEvents: flipped ? 'none' : 'auto',
@@ -389,6 +394,7 @@ export function CardStack({
             <Animated.View
               style={[
                 styles.face,
+                card.color ? { backgroundColor: over(glass.cardFace, card.color, 0.16) } : null,
                 {
                   transform: [{ perspective: 1200 }, { rotateY: backTurn }],
                   pointerEvents: flipped ? 'auto' : 'none',

@@ -23,6 +23,7 @@ import {
   iconSize,
   layout,
   motion,
+  over,
   radii,
   shadow,
   spacing,
@@ -250,6 +251,9 @@ export function FlashcardView({
       <Animated.View
         style={[
           styles.card,
+          // A card that owns a tint reads in that colour in a session too; the
+          // tint is mixed into the face so the answer keeps the same surface.
+          card.color ? { backgroundColor: over(glass.cardFace, card.color, 0.16) } : null,
           // No height cap in a session: the card reaches the top and bottom of
           // the stage instead of floating with empty bands above and below it.
           full && { flex: 1 },
