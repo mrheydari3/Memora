@@ -53,6 +53,12 @@ export { QuizStartCard } from './QuizStartCard';
 export type { QuizDeckOption } from './QuizStartCard';
 export { DonutChart } from './DonutChart';
 export { MiniBarChart } from './MiniBarChart';
+export { TrendChart } from './TrendChart';
+export type { TrendPoint } from './TrendChart';
+export { MetricTile } from './MetricTile';
+export { DistributionList } from './DistributionList';
+export type { DistributionItem } from './DistributionList';
+export { InsightCard, RecommendationCard } from './InsightCard';
 export { EmptyState } from './EmptyState';
 
 // Motion: entrance and state cross-fade primitives

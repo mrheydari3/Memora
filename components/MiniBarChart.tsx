@@ -38,6 +38,9 @@ export function MiniBarChart({
   const max = maxValue ?? Math.max(...data.map((d) => d.value), 1);
   const isEmpty = data.length === 0 || data.every((d) => d.value === 0);
   const grow = useRef(new Animated.Value(0)).current;
+  // Values sit above the tallest bar; reserve their strip inside the layout so
+  // they cannot spill into the card heading on a narrow screen.
+  const valueSpace = showValues ? 22 : 0;
 
   useEffect(() => {
     if (prefersReducedMotion()) {
@@ -66,7 +69,10 @@ export function MiniBarChart({
 
   return (
     <View>
-      <View className="flex-row items-end gap-2" style={{ height }}>
+      <View
+        className="flex-row items-end gap-2"
+        style={{ height: height + valueSpace, paddingTop: valueSpace }}
+      >
         {data.map((d, i) => {
           const barHeight = Math.max(3, (d.value / max) * height);
           // Each bar fills its slice of the shared clock, so the row grows left
@@ -110,7 +116,7 @@ export function MiniBarChart({
           );
         })}
       </View>
-      <View className="mt-2 flex-row">
+      <View className="mt-2 flex-row gap-2">
         {data.map((d, i) => (
           <AppText
             key={i}

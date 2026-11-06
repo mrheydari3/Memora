@@ -247,19 +247,23 @@ export function HeroSkeleton({ height = 196 }: { height?: number }) {
   );
 }
 
-/** Statistics: a hero, a donut row and two tiles. */
+/** Statistics: range rail, overview hero, recall pane, tiles and a second pane. */
 export function StatisticsSkeleton() {
   return (
     <View style={{ gap: spacing.row }}>
+      <View>
+        <Skeleton width={48} height={8} radius={4} />
+        <Skeleton height={44} radius={radii.control} style={{ marginTop: 8 }} />
+      </View>
       <HeroSkeleton height={186} />
       <View className="rounded-xl p-5" style={glassFill}>
-        <View className="flex-row items-center">
-          <Skeleton width={124} height={124} radius={62} />
-          <View className="ml-5 flex-1" style={{ gap: 14 }}>
-            <Skeleton height={10} width="80%" radius={5} />
-            <Skeleton height={10} width="64%" radius={5} />
-            <Skeleton height={10} width="72%" radius={5} />
-          </View>
+        <Skeleton width={64} height={9} radius={5} />
+        <Skeleton height={28} width="34%" radius={8} style={{ marginTop: 10 }} />
+        <Skeleton height={8} width="86%" radius={4} style={{ marginTop: 10 }} />
+        <View style={{ gap: 14, marginTop: 18 }}>
+          <Skeleton height={10} width="80%" radius={5} />
+          <Skeleton height={10} width="64%" radius={5} />
+          <Skeleton height={10} width="72%" radius={5} />
         </View>
       </View>
       <View className="flex-row" style={{ gap: spacing.row }}>
@@ -272,6 +276,18 @@ export function StatisticsSkeleton() {
           <Skeleton width={18} height={18} radius={6} />
           <Skeleton height={18} width="52%" radius={7} style={{ marginTop: 12 }} />
           <Skeleton height={8} width="38%" radius={4} style={{ marginTop: 8 }} />
+        </View>
+      </View>
+      <View className="rounded-xl p-5" style={glassFill}>
+        <Skeleton width={58} height={9} radius={5} />
+        <View className="mt-4 flex-row items-center">
+          <Skeleton width={104} height={104} radius={52} />
+          <View className="ml-4 flex-1" style={{ gap: 12 }}>
+            <Skeleton height={9} width="78%" radius={5} />
+            <Skeleton height={9} width="62%" radius={5} />
+            <Skeleton height={9} width="70%" radius={5} />
+            <Skeleton height={9} width="54%" radius={5} />
+          </View>
         </View>
       </View>
     </View>

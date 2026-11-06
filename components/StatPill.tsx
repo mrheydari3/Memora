@@ -23,7 +23,7 @@ export function StatPill({ icon, value, label, color = colors.onSurfaceVariant }
       <AppText variant="headline" weight="semibold" className="mt-1">
         {value}
       </AppText>
-      <AppText variant="caption" tone="muted" className="uppercase">
+      <AppText variant="caption" tone="muted" align="center" className="uppercase">
         {label}
       </AppText>
     </View>

@@ -102,7 +102,7 @@ export function HeroPane({
             tone="accent"
             className="uppercase"
             headingLevel={headingLevel}
-            numberOfLines={1}
+            numberOfLines={2}
             style={{ flexShrink: 1 }}
           >
             {eyebrow}
