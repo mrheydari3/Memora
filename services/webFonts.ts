@@ -15,13 +15,19 @@
  * from a static URL loads them and the glyphs come back. Native is untouched:
  * on iOS/Android `useFonts` keeps loading the packaged assets, so only the web
  * path needs this.
+ *
+ * The face is added only after its load succeeds: adding a failing face leaves
+ * Chrome with an error face that renders zero-height text. `swap` paints the
+ * fallback first instead of waiting for the file.
  */
 import { Platform } from 'react-native';
 
 /** Served from `public/fonts`, which Expo answers at the site root. */
 const FACES = [
+  { family: 'Inter_400Regular', url: '/fonts/Inter_400Regular.ttf' },
   { family: 'Inter_500Medium', url: '/fonts/Inter_500Medium.ttf' },
   { family: 'Inter_600SemiBold', url: '/fonts/Inter_600SemiBold.ttf' },
+  { family: 'Inter_700Bold', url: '/fonts/Inter_700Bold.ttf' },
   // The same file @expo/vector-icons ships, served statically instead of
   // through the dev asset endpoint that fails. The family name must stay
   // `material` — that is what components/Icon.tsx puts on every glyph.
@@ -35,7 +41,12 @@ const FACES = [
 ] as const;
 
 type LoadableFontFace = { load: () => Promise<unknown> };
-type FontFaceConstructor = new (family: string, source: string) => LoadableFontFace;
+type FontFaceDescriptors = { display?: 'auto' | 'block' | 'swap' | 'fallback' | 'optional' };
+type FontFaceConstructor = new (
+  family: string,
+  source: string,
+  descriptors?: FontFaceDescriptors
+) => LoadableFontFace;
 
 type WebDocument = {
   fonts?: {
@@ -54,15 +65,20 @@ export function ensureWebFonts(): void {
   // `unknown` instead of pretending it is the built-in Document.
   const doc = (globalThis as unknown as { document?: WebDocument }).document;
   const FontFace = (globalThis as unknown as { FontFace?: FontFaceConstructor }).FontFace;
-  if (!doc?.fonts || !FontFace) return;
+  if (!doc?.fonts || !FontFace) {
+    return;
+  }
 
-  for (const { family, url } of FACES) {
-    const face = new FontFace(family, `url(${url})`);
-    face
+  const pending = FACES.map(({ family, url }) => {
+    const face = new FontFace(family, `url(${url})`, { display: 'swap' });
+    return face
       .load()
-      .then(() => doc.fonts?.add(face))
+      .then(() => {
+        doc.fonts?.add(face);
+      })
       .catch(() => {
         // The browser's fallback stays in place; nothing else to do here.
       });
-  }
+  });
+  void Promise.all(pending);
 }

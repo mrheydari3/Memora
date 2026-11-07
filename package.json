@@ -46,13 +46,17 @@
     "test:fixtures": "node --import ./scripts/ts-resolve.mjs --test tests/ui/fixtures.test.ts",
     "census:dry": "node --import ./scripts/ts-resolve.mjs scripts/census.mjs --dry-run",
     "census": "node --import ./scripts/ts-resolve.mjs scripts/census.mjs",
+    "responsive": "node --import ./scripts/ts-resolve.mjs scripts/responsive.mjs",
+    "perf": "node --import ./scripts/ts-resolve.mjs scripts/perf.mjs",
     "test:e2e": "playwright test",
     "test:flows": "playwright test tests/e2e/flows.spec.ts",
     "audit": "node scripts/audit.mjs",
     "check:design": "node scripts/check-design-tokens.mjs",
     "start": "expo start --web",
     "web": "expo start --web",
-    "build:web": "expo export --platform web"
+    "build:web": "expo export --platform web",
+    "serve:dist": "node scripts/serve-dist.mjs",
+    "test:boot": "playwright test --config playwright.boot.config.ts"
   },
   "private": true
 }

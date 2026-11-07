@@ -112,7 +112,7 @@ export function Screen({
       importantForAccessibility={backgroundInert ? 'no-hide-descendants' : undefined}
     >
       {header}
-      <Animated.View style={{ flex: 1, ...(animate ? reveal.style : null) }}>
+      <Animated.View testID="screen-body" style={{ flex: 1, ...(animate ? reveal.style : null) }}>
         {scroll ? (
           <ScrollView
             className={`flex-1 ${contentClassName}`}

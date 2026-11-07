@@ -1,7 +1,7 @@
 // Root layout: global CSS, dark background, splash hand-off, store initialization
 import '../global.css';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { Stack, usePathname } from 'expo-router';
 import Head from 'expo-router/head';
@@ -23,6 +23,10 @@ const styles = StyleSheet.create({
   // pushed the document 3px wide (a horizontal scrollbar on a page that has
   // nothing to scroll). Nothing here is content.
   shell: { flex: 1, overflow: 'hidden' },
+  stackShell: { flex: 1 },
+  // The route is laid out behind the splash but not painted until AppSplash
+  // sees real body text; revealing it is a paint, not a geometry change.
+  hiddenContent: { opacity: 0 },
   loadError: {
     flex: 1,
     alignItems: 'center',
@@ -31,13 +35,21 @@ const styles = StyleSheet.create({
   },
 });
 
+const NATIVE_FONTS = {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+};
+
+// Web fonts are registered by services/webFonts.ts from static /fonts files,
+// with font-display: swap. Loading the asset modules here as well leaves Chrome
+// with faces in its error state until the static replacement arrives, and those
+// faces render text at zero height.
+const WEB_FONTS: Record<string, never> = {};
+
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-  });
+  const [fontsLoaded, fontError] = useFonts(Platform.OS === 'web' ? WEB_FONTS : NATIVE_FONTS);
 
   // A push is only collapsed while its destination is still the active route,
   // so returning to a screen you just left is never swallowed.
@@ -74,14 +86,29 @@ export default function RootLayout() {
   const storesReady = deckLoaded && reviewLoaded && settingsLoaded && gameLoaded;
   // The app may only mount once every store has hydrated. A timeout must never
   // hand over an empty store: the first write would replace real data.
-  const ready = fontsReady && storesReady;
+  const shellReady = storesReady;
+  // On web the splash hands off to real body text, not to the shell: the route
+  // chunk starts loading as soon as the stores are ready and is laid out behind
+  // the splash (see the opacity wrapper below). The splash stays until that body
+  // has painted text, so no blank frame opens between its exit and the route.
+  // Native keeps waiting for its bundled fonts.
+  const splashReady = storesReady && (Platform.OS === 'web' || fontsReady);
 
   const [splashDone, setSplashDone] = useState(false);
+  // The route body is laid out, but hidden until this flips. Revealing it under
+  // the still-opaque splash keeps the skeleton-to-page change out of the frame
+  // after the hand-off.
+  const [contentReady, setContentReady] = useState(Platform.OS !== 'web');
 
   const loadFailed = Boolean(deckError || reviewError || settingsError || gameError);
   useEffect(() => {
     if (loadFailed) setSplashDone(true);
   }, [loadFailed]);
+
+  // Stable identities: the splash watcher keys its timers off these callbacks,
+  // so a new function per render would restart its countdown on every update.
+  const handleContentReady = useCallback(() => setContentReady(true), []);
+  const handleSplashDone = useCallback(() => setSplashDone(true), []);
 
   const retryLoad = () => {
     setSplashDone(false);
@@ -105,7 +132,13 @@ export default function RootLayout() {
         outside a landmark on every route (axe `region`).
       */}
       <View style={styles.shell} role="main">
-        {ready && (
+        {shellReady && (
+          <View
+            style={[
+              styles.stackShell,
+              Platform.OS === 'web' && !contentReady && !loadFailed ? styles.hiddenContent : null,
+            ]}
+          >
           <Stack
             screenOptions={{
               headerShown: false,
@@ -130,6 +163,7 @@ export default function RootLayout() {
               }}
             />
           </Stack>
+          </View>
         )}
         {loadFailed && (
           <View style={styles.loadError}>
@@ -146,7 +180,11 @@ export default function RootLayout() {
         )}
       </View>
       {!splashDone && !loadFailed && (
-        <AppSplash ready={ready} onDone={() => setSplashDone(true)} />
+        <AppSplash
+          ready={splashReady}
+          onContentReady={handleContentReady}
+          onDone={handleSplashDone}
+        />
       )}
     </>
   );

@@ -20,7 +20,12 @@
       "startUrl": "/"
     },
     "plugins": [
-      "expo-router",
+      [
+        "expo-router",
+        {
+          "asyncRoutes": false
+        }
+      ],
       "expo-status-bar",
       "expo-web-browser",
       "expo-font",
