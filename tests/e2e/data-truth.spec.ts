@@ -255,7 +255,7 @@ test.describe('Phase 7 — data truth', () => {
     }
   });
 
-  test('profile: XP, level, streak and badges recompute from the active log', async ({ page }) => {
+  test('profile: XP, level, streak, badges and deck order recompute from the data', async ({ page }) => {
     await boot(page, 'F2');
     const store = await readStore(page);
     const activeIds = new Set(activeDecks(store).map((deck) => deck.id));
@@ -272,6 +272,7 @@ test.describe('Phase 7 — data truth', () => {
 
     expect(log.length).toBe(33);
     expect(streak).toBe(13);
+    expect(earned).toBe(2);
 
     await page.goto('/profile');
     await settle(page);
@@ -283,6 +284,58 @@ test.describe('Phase 7 — data truth', () => {
     await expect(page.getByText('First Review', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('7-Day Streak', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('100 Reviews', { exact: true }).first()).toBeVisible();
+
+    // Deck order: the four most recently active decks, then the archived
+    // record. Recompute it from the stored review log and card states rather
+    // than pinning display copy to the fixture.
+    const archivedDecks = store.decks.filter((deck) => deck.archivedAt != null);
+    const lastReviewByDeck = new Map<string, number>();
+    for (const entry of store.log) {
+      lastReviewByDeck.set(
+        entry.deckId,
+        Math.max(lastReviewByDeck.get(entry.deckId) ?? 0, entry.reviewedAt)
+      );
+    }
+    const rankedDecks = activeDecks(store)
+      .map((deck) => {
+        const cards = store.cards[deck.id] ?? [];
+        let lastStudiedAt = lastReviewByDeck.get(deck.id) ?? 0;
+        let studied = 0;
+        for (const card of cards) {
+          if (card.fsrs.last_review == null) continue;
+          studied += 1;
+          const reviewedAt = Date.parse(card.fsrs.last_review);
+          if (Number.isFinite(reviewedAt)) lastStudiedAt = Math.max(lastStudiedAt, reviewedAt);
+        }
+        return {
+          deck,
+          lastStudiedAt,
+          progress: cards.length > 0 ? studied / cards.length : 0,
+          cardCount: cards.length,
+        };
+      })
+      .sort(
+        (a, b) =>
+          b.lastStudiedAt - a.lastStudiedAt ||
+          b.progress - a.progress ||
+          b.cardCount - a.cardCount ||
+          a.deck.name.localeCompare(b.deck.name, 'en')
+      );
+    const expectedOrder = [
+      ...rankedDecks
+        .slice(0, archivedDecks.length > 0 ? 4 : 5)
+        .map((entry) => entry.deck.name),
+      ...archivedDecks.slice(0, 1).map((deck) => deck.name),
+    ];
+    const deckButtons = page.getByRole('button', { name: /^Open / });
+    await expect(deckButtons).toHaveCount(expectedOrder.length);
+    expect(
+      await deckButtons.evaluateAll((buttons) =>
+        buttons.map((button) =>
+          (button.getAttribute('aria-label') ?? '').replace(/^Open /, '')
+        )
+      )
+    ).toEqual(expectedOrder);
   });
 
   test('statistics: the range total and deck count recompute from the log', async ({ page }) => {

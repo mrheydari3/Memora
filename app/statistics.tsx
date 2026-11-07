@@ -1,30 +1,39 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ComponentProps } from 'react';
+import {
+  Animated,
+  Platform,
+  Pressable,
+  Share,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import type { ViewStyle } from 'react-native';
+import { useRouter } from 'expo-router';
 import { MaterialIcons } from '../components/Icon';
 import { useDeckStore } from '../store/useDeckStore';
 import { useReviewStore } from '../store/useReviewStore';
 import {
   AppText,
-  DistributionList,
   DonutChart,
   EmptyState,
-  GlassCard,
-  HeroPane,
-  InsightCard,
   MiniBarChart,
-  Pill,
-  RecommendationCard,
-  RevealItem,
   Screen,
-  SegmentedControl,
-  StatPill,
   StatisticsSkeleton,
-  TopAppBar,
-  TrendChart,
 } from '../components';
-import type { DistributionItem } from '../components';
-import { MetricGrid, SectionHeading } from '../components/v3';
-import { colors, fills, iconSize, stateColors } from '../theme/tokens';
+import { HeaderIcon, HeaderProfileButton, Surface } from '../components/v3';
+import {
+  alpha,
+  colors,
+  fills,
+  heights,
+  iconSize,
+  motion,
+  over,
+  radii,
+  rims,
+  stateColors,
+} from '../theme/tokens';
 import { v2 } from '../theme/v2';
 import {
   buildIntelligence,
@@ -32,9 +41,32 @@ import {
   MIN_TREND_POINTS,
   RANGE_OPTIONS,
 } from '../data/intelligence';
-import type { DataQualityIssueKind, DeckIntelligence } from '../data/intelligence';
+import type {
+  DataQualityIssueKind,
+  DeckIntelligence,
+  RecommendationPriority,
+} from '../data/intelligence';
+import type {
+  InsightTone,
+  IntelligenceReport,
+} from '../data/intelligence/core/types';
+import { goBackOr, pushOnce } from '../services/navigation';
 
-const WEEKDAY_SHORT = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const CONTENT_MAX = 760;
+
+type IconName = ComponentProps<typeof MaterialIcons>['name'];
+
+const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
+const WEEKDAY_LETTER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const WEEKDAY_LONG = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
 
 const ISSUE_LABEL: Record<DataQualityIssueKind, string> = {
   duplicate: 'duplicate',
@@ -53,10 +85,23 @@ const VS_LIBRARY: Record<DeckIntelligence['vsLibrary'], string> = {
   insufficient_data: 'Not comparable',
 };
 
+const RECALL_RATING_COLORS = {
+  good: colors.success,
+  easy: colors.primaryContainer,
+  hard: colors.warning,
+  again: colors.error,
+};
+
 const formatCount = (value: number) => value.toLocaleString('en-US');
 
 const pct = (value: number | null) =>
   value === null ? '—' : `${Math.round(value * 100)}%`;
+
+const pct1 = (value: number | null) => {
+  if (value === null) return '—';
+  const rounded = Math.round(value * 1000) / 10;
+  return `${rounded}%`;
+};
 
 const num = (value: number | null, digits = 1) =>
   value === null ? '—' : value.toFixed(digits);
@@ -70,23 +115,1355 @@ function formatDuration(ms: number | null): string {
   return hours < 10 ? `${hours.toFixed(1)}h` : `${Math.round(hours)}h`;
 }
 
-const weekdayShortOf = (dayStart: number) => WEEKDAY_SHORT[new Date(dayStart).getDay()];
+function formatReviewTime(ms: number | null): string {
+  if (ms === null || ms <= 0) return '—';
+  if (ms < 60_000) {
+    const seconds = ms / 1000;
+    return seconds < 10
+      ? `${seconds.toFixed(1).replace(/\.0$/, '')}s`
+      : `${Math.round(seconds)}s`;
+  }
+  return formatDuration(ms);
+}
 
 const algorithmLabel = (algorithm: DeckIntelligence['algorithm']) =>
-  algorithm === 'fsrs' ? 'FSRS' : algorithm === 'fast' ? 'Fast' : 'SM-2';
+  algorithm === 'fsrs' ? 'FSRS-6' : algorithm === 'fast' ? 'Fast' : 'SM-2';
+
+async function copyOrShare(text: string): Promise<'copied' | 'shared'> {
+  if (
+    Platform.OS === 'web' &&
+    typeof navigator !== 'undefined' &&
+    navigator.clipboard?.writeText
+  ) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return 'copied';
+    } catch {
+      // Clipboard permission can be denied; fall through to the share sheet.
+    }
+  }
+  await Share.share({ message: text });
+  return 'shared';
+}
+
+type StatsSectionProps = {
+  title: string;
+  icon?: IconName;
+  badge?: string;
+  hint?: string;
+  children: React.ReactNode;
+  style?: ViewStyle | ViewStyle[];
+};
+
+function StatsSection({
+  title,
+  icon,
+  badge,
+  hint,
+  children,
+  style,
+}: StatsSectionProps) {
+  return (
+    <View style={[{ marginTop: v2.spacing.section }, style]}>
+      <View
+        style={{
+          minHeight: 28,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+          marginBottom: 10,
+        }}
+      >
+        {icon ? <MaterialIcons name={icon} size={iconSize.md} color={colors.primary} /> : null}
+        <AppText
+          variant="headline"
+          weight="semibold"
+          headingLevel={2}
+          numberOfLines={1}
+          style={{ letterSpacing: -0.3, flexShrink: 1 }}
+        >
+          {title}
+        </AppText>
+        {badge ? <TinyPill label={badge} accent /> : null}
+        {hint ? (
+          <AppText
+            variant="caption"
+            tone="tertiary"
+            numberOfLines={1}
+            style={{ marginStart: 'auto', flexShrink: 1, textAlign: 'right' }}
+          >
+            {hint}
+          </AppText>
+        ) : null}
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function TinyPill({ label, accent = false }: { label: string; accent?: boolean }) {
+  return (
+    <View
+      style={{
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: radii.pill,
+        backgroundColor: accent ? alpha(colors.primary, 0.13) : colors.surfaceControl,
+        borderWidth: 1,
+        borderColor: accent ? alpha(colors.primary, 0.3) : rims.soft,
+      }}
+    >
+      <AppText
+        variant="caption"
+        weight="medium"
+        tone={accent ? 'accent' : 'muted'}
+        style={{ fontSize: 11, letterSpacing: 0.2 }}
+      >
+        {label}
+      </AppText>
+    </View>
+  );
+}
+
+type StatsCardProps = {
+  children: React.ReactNode;
+  style?: ViewStyle;
+  tone?: 'pane' | 'inset';
+  padding?: 'none' | 'sm' | 'md';
+};
+
+function StatsCard({ children, style, tone = 'pane', padding = 'md' }: StatsCardProps) {
+  return (
+    <Surface
+      tone={tone}
+      radius="card"
+      padding={padding}
+      style={[{ borderWidth: 1, borderColor: rims.soft }, style ?? {}]}
+    >
+      {children}
+    </Surface>
+  );
+}
+
+type ShareNotice = {
+  id: number;
+  message: string;
+};
+
+function ShareToast({ message }: { message: string }) {
+  const reveal = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(reveal, {
+      toValue: 1,
+      duration: motion.fast,
+      useNativeDriver: Platform.OS !== 'web',
+    }).start();
+  }, [reveal]);
+
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: heights.pageHeader + 8,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        paddingHorizontal: 16,
+      }}
+    >
+      <Animated.View
+        accessibilityRole="alert"
+        accessibilityLiveRegion="polite"
+        style={{
+          maxWidth: '100%',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+          paddingHorizontal: 16,
+          paddingVertical: 8,
+          borderRadius: radii.pill,
+          borderWidth: 1,
+          borderColor: rims.soft,
+          backgroundColor: colors.surfaceCardFace,
+          shadowColor: colors.background,
+          shadowOpacity: 0.4,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 6,
+          opacity: reveal,
+          transform: [
+            {
+              translateY: reveal.interpolate({
+                inputRange: [0, 1],
+                outputRange: [-6, 0],
+              }),
+            },
+          ],
+        }}
+      >
+        <MaterialIcons name="check-circle" size={18} color={colors.success} />
+        <AppText
+          variant="caption"
+          weight="medium"
+          numberOfLines={2}
+          style={{ textAlign: 'center' }}
+        >
+          {message}
+        </AppText>
+      </Animated.View>
+    </View>
+  );
+}
+
+function StatisticsHeader({
+  onBack,
+  onShare,
+  onProfile,
+  notice,
+}: {
+  onBack: () => void;
+  onShare: () => void;
+  onProfile: () => void;
+  notice?: ShareNotice | null;
+}) {
+  return (
+    <View style={{ backgroundColor: colors.appBarGlass, zIndex: 20 }}>
+      <View
+        style={{
+          height: heights.pageHeader,
+          width: '100%',
+          maxWidth: CONTENT_MAX,
+          alignSelf: 'center',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 4,
+          paddingHorizontal: 12,
+        }}
+      >
+        <HeaderIcon icon="arrow-back" label="Go back" onPress={onBack} />
+        <View
+          style={{
+            flex: 1,
+            minWidth: 0,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 4,
+          }}
+        >
+          <AppText
+            variant="headline"
+            weight="semibold"
+            headingLevel={1}
+            numberOfLines={1}
+            style={{ letterSpacing: -0.4 }}
+          >
+            Statistics
+          </AppText>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+          <HeaderIcon icon="share" label="Share statistics" onPress={onShare} />
+          <HeaderProfileButton onPress={onProfile} />
+        </View>
+      </View>
+      {notice ? <ShareToast key={notice.id} message={notice.message} /> : null}
+    </View>
+  );
+}
+
+function RangeTabs({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (days: number) => void;
+}) {
+  return (
+    <View
+      style={{
+        alignSelf: 'center',
+        flexDirection: 'row',
+        gap: 2,
+        padding: 4,
+        borderRadius: radii.pill,
+        borderWidth: 1,
+        borderColor: rims.soft,
+        backgroundColor: colors.surfacePane,
+      }}
+    >
+      {RANGE_OPTIONS.map((days) => {
+        const active = value === days;
+        return (
+          <Pressable
+            key={days}
+            onPress={() => onChange(days)}
+            accessibilityRole="button"
+            accessibilityLabel={`${days} days`}
+            accessibilityState={{ selected: active }}
+            style={({ pressed }) => ({
+              minWidth: 76,
+              minHeight: 44,
+              paddingHorizontal: 14,
+              borderRadius: radii.pill,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: active ? alpha(colors.primary, 0.14) : 'transparent',
+              opacity: pressed ? 0.72 : 1,
+            })}
+          >
+            <AppText
+              variant="bodySm"
+              weight={active ? 'semibold' : 'medium'}
+              tone={active ? 'accent' : 'muted'}
+            >
+              {days} days
+            </AppText>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+type VolumeBar = {
+  label: string;
+  value: number;
+  highlight: boolean;
+};
+
+function buildVolumeBars(
+  points: readonly { dayStart: number; value: number }[],
+  rangeDays: number
+): VolumeBar[] {
+  const buckets = Array.from({ length: 7 }, (_, index) => {
+    const start = Math.floor((index * points.length) / 7);
+    const end = Math.max(start + 1, Math.floor(((index + 1) * points.length) / 7));
+    const slice = points.slice(start, end);
+    const first = points[start] ?? points[0];
+    return {
+      value: slice.reduce((sum, point) => sum + point.value, 0),
+      label:
+        rangeDays <= 7
+          ? first
+            ? WEEKDAY_LETTER[new Date(first.dayStart).getDay()]
+            : '·'
+          : rangeDays <= 30
+            ? `W${index + 1}`
+            : `M${index + 1}`,
+    };
+  });
+
+  const peak = Math.max(0, ...buckets.map((bucket) => bucket.value));
+  const peakIndex = peak > 0 ? buckets.findIndex((bucket) => bucket.value === peak) : -1;
+  return buckets.map((bucket, index) => ({
+    ...bucket,
+    highlight: index === peakIndex,
+  }));
+}
+
+function VolumeBars({ bars, total }: { bars: VolumeBar[]; total: number }) {
+  const max = Math.max(1, ...bars.map((bar) => bar.value));
+
+  return (
+    <View
+      accessible
+      accessibilityRole="img"
+      accessibilityLabel={`${formatCount(total)} reviews across ${bars.length} intervals`}
+    >
+      <View style={{ height: 92, flexDirection: 'row', alignItems: 'flex-end', gap: 6 }}>
+        {bars.map((bar, index) => (
+          <View
+            key={`${bar.label}-${index}`}
+            style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}
+          >
+            {bar.highlight && bar.value > 0 ? (
+              <AppText
+                variant="caption"
+                weight="semibold"
+                tone="accent"
+                style={{ fontVariant: ['tabular-nums'] }}
+              >
+                {formatCount(bar.value)}
+              </AppText>
+            ) : (
+              <View style={{ height: 16 }} />
+            )}
+            <View
+              style={{
+                width: '100%',
+                maxWidth: 40,
+                height: Math.max(4, Math.round((bar.value / max) * 64)),
+                borderRadius: 6,
+                backgroundColor: bar.highlight
+                  ? colors.primaryContainer
+                  : alpha(colors.primaryContainer, 0.32),
+              }}
+            />
+          </View>
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
+        {bars.map((bar, index) => (
+          <View key={`${bar.label}-label-${index}`} style={{ flex: 1, alignItems: 'center' }}>
+            <AppText
+              variant="caption"
+              weight={bar.highlight ? 'semibold' : 'regular'}
+              tone={bar.highlight ? 'accent' : 'tertiary'}
+            >
+              {bar.label}
+            </AppText>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function OverviewHero({
+  report,
+  rangeDays,
+}: {
+  report: IntelligenceReport;
+  rangeDays: number;
+}) {
+  const { overview, performance } = report;
+  const bars = buildVolumeBars(performance.activity.points, rangeDays);
+  const activeDays = overview.activeDays;
+  const perActiveDay = activeDays > 0 ? overview.studyTimeMs / activeDays : 0;
+  const recall = performance.recall.successRate;
+
+  return (
+    <Surface
+      tone="pane"
+      radius="pane"
+      padding="md"
+      style={{
+        backgroundColor: over(colors.surfacePane, colors.primaryContainer, 0.16),
+        borderWidth: 1,
+        borderColor: alpha(colors.primary, 0.3),
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <AppText
+            variant="caption"
+            weight="semibold"
+            tone="accent"
+            style={{ letterSpacing: 1.4, textTransform: 'uppercase' }}
+          >
+            {`${report.range.label} · intelligence`}
+          </AppText>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'flex-end',
+              gap: 8,
+              marginTop: 8,
+            }}
+          >
+            <AppText
+              variant="display"
+              weight="semibold"
+              accessibilityLabel={`${overview.totalReviews} reviews`}
+              style={{ letterSpacing: -2, fontVariant: ['tabular-nums'] }}
+            >
+              {formatCount(overview.totalReviews)}
+            </AppText>
+            <AppText variant="bodyLg" tone="muted" style={{ paddingBottom: 8 }}>
+              reviews
+            </AppText>
+          </View>
+        </View>
+        <TinyPill label={`${overview.deckCount} decks`} />
+      </View>
+
+      <View
+        style={{
+          marginTop: 6,
+          flexDirection: 'row',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 4,
+        }}
+      >
+        <AppText variant="bodySm" tone="muted">
+          {`${activeDays} active day${activeDays === 1 ? '' : 's'} · ${formatDuration(
+            perActiveDay
+          )} / day · `}
+        </AppText>
+        <AppText
+          variant="bodySm"
+          weight="semibold"
+          tone={recall === null ? 'muted' : 'success'}
+        >
+          {recall === null
+            ? `${performance.recall.sampleSize} rated so far`
+            : `${pct1(recall)} successful recall`}
+        </AppText>
+      </View>
+
+      <View
+        style={{
+          marginTop: 16,
+          padding: 12,
+          borderRadius: radii.control,
+          borderWidth: 1,
+          borderColor: rims.soft,
+          backgroundColor: fills.inset,
+        }}
+      >
+        <VolumeBars bars={bars} total={overview.totalReviews} />
+      </View>
+    </Surface>
+  );
+}
+
+function EmptyRangeHero({
+  report,
+  rangeDays,
+}: {
+  report: IntelligenceReport;
+  rangeDays: number;
+}) {
+  return (
+    <Surface
+      tone="pane"
+      radius="pane"
+      padding="md"
+      style={{
+        marginTop: 20,
+        backgroundColor: over(colors.surfacePane, colors.primaryContainer, 0.16),
+        borderWidth: 1,
+        borderColor: alpha(colors.primary, 0.3),
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <AppText
+            variant="caption"
+            weight="semibold"
+            tone="accent"
+            style={{ letterSpacing: 1.4, textTransform: 'uppercase' }}
+          >
+            {`${report.range.label} · no reviews`}
+          </AppText>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'flex-end',
+              gap: 8,
+              marginTop: 8,
+            }}
+          >
+            <AppText
+              variant="display"
+              weight="semibold"
+              accessibilityLabel="0 reviews"
+              style={{ letterSpacing: -2, fontVariant: ['tabular-nums'] }}
+            >
+              0
+            </AppText>
+            <AppText variant="bodyLg" tone="muted" style={{ paddingBottom: 8 }}>
+              reviews
+            </AppText>
+          </View>
+        </View>
+        <TinyPill label={`${report.overview.deckCount} decks`} />
+      </View>
+      <AppText variant="bodySm" tone="muted" style={{ marginTop: 6 }}>
+        {`No reviews in the last ${rangeDays} days.`}
+      </AppText>
+      <View
+        style={{
+          marginTop: 16,
+          padding: 12,
+          borderRadius: radii.control,
+          borderWidth: 1,
+          borderColor: rims.soft,
+          backgroundColor: fills.inset,
+        }}
+      >
+        <AppText variant="caption" tone="tertiary">
+          Study a few cards and this page will report recall, memory and workload from
+          your own review log.
+        </AppText>
+      </View>
+    </Surface>
+  );
+}
+
+function RecallTile({
+  label,
+  color,
+  count,
+  share,
+}: {
+  label: string;
+  color: string;
+  count: number;
+  share: number | null;
+}) {
+  return (
+    <View
+      style={{
+        flexGrow: 1,
+        flexBasis: '47%',
+        minWidth: 120,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        borderRadius: radii.control,
+        borderWidth: 1,
+        borderColor: rims.soft,
+        backgroundColor: fills.inset,
+      }}
+    >
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }} />
+      <AppText variant="caption" weight="medium" numberOfLines={1} style={{ flex: 1 }}>
+        {label}
+      </AppText>
+      <AppText
+        variant="bodySm"
+        weight="semibold"
+        style={{ fontVariant: ['tabular-nums'] }}
+      >
+        {share === null ? '—' : `${Math.round(share * 100)}%`}
+      </AppText>
+      <AppText variant="caption" tone="muted" style={{ fontVariant: ['tabular-nums'] }}>
+        {`(${formatCount(count)})`}
+      </AppText>
+    </View>
+  );
+}
+
+function RecallCard({ report }: { report: IntelligenceReport }) {
+  const recall = report.performance.recall;
+  const legend = [
+    {
+      key: 'good',
+      label: 'Good',
+      count: recall.counts.good,
+      share: recall.shares.good,
+      color: RECALL_RATING_COLORS.good,
+    },
+    {
+      key: 'easy',
+      label: 'Easy',
+      count: recall.counts.easy,
+      share: recall.shares.easy,
+      color: RECALL_RATING_COLORS.easy,
+    },
+    {
+      key: 'hard',
+      label: 'Hard',
+      count: recall.counts.hard,
+      share: recall.shares.hard,
+      color: RECALL_RATING_COLORS.hard,
+    },
+    {
+      key: 'again',
+      label: 'Again',
+      count: recall.counts.again,
+      share: recall.shares.again,
+      color: RECALL_RATING_COLORS.again,
+    },
+  ];
+  const segments = legend.filter((item) => item.count > 0);
+
+  return (
+    <StatsCard>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <AppText
+            variant="display"
+            weight="bold"
+            style={[v2.type.stat, { letterSpacing: -0.8, fontVariant: ['tabular-nums'] }]}
+          >
+            {pct1(recall.successRate)}
+          </AppText>
+          <AppText variant="bodySm" tone="muted" style={{ marginTop: 2 }}>
+            Successful recall rate
+          </AppText>
+        </View>
+        <View
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: alpha(
+              recall.successRate === null ? colors.outline : colors.success,
+              0.12
+            ),
+          }}
+        >
+          <MaterialIcons
+            name={recall.successRate === null ? 'hourglass-empty' : 'check'}
+            size={18}
+            color={recall.successRate === null ? colors.outline : colors.success}
+          />
+        </View>
+      </View>
+
+      <AppText variant="caption" tone="muted" style={{ marginTop: 8 }}>
+        Again counts as a lapse; Hard, Good, and Easy count as retained.
+      </AppText>
+
+      {recall.successRate === null ? (
+        <AppText variant="caption" tone="tertiary" style={{ marginTop: 4 }}>
+          {`Recall appears after ${MIN_RECALL_SAMPLE} rated reviews. This range has ${recall.sampleSize}.`}
+        </AppText>
+      ) : null}
+
+      <View
+        accessible
+        accessibilityRole="img"
+        accessibilityLabel={`${formatCount(recall.sampleSize)} rated reviews by rating`}
+        style={{
+          height: 12,
+          borderRadius: 6,
+          overflow: 'hidden',
+          flexDirection: 'row',
+          backgroundColor: fills.track,
+          marginTop: 16,
+        }}
+      >
+        {segments.map((item) => (
+          <View
+            key={item.key}
+            style={{ flex: item.count, backgroundColor: item.color }}
+          />
+        ))}
+      </View>
+
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
+        {legend.map((item) => (
+          <RecallTile
+            key={item.key}
+            label={item.label}
+            color={item.color}
+            count={item.count}
+            share={item.share}
+          />
+        ))}
+      </View>
+
+      <View
+        style={{
+          flexDirection: 'row',
+          gap: 12,
+          marginTop: 16,
+          paddingTop: 14,
+          borderTopWidth: 1,
+          borderTopColor: rims.soft,
+        }}
+      >
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <MaterialIcons name="timer" size={14} color={colors.outline} />
+            <AppText variant="caption" tone="muted" numberOfLines={1}>
+              Median review time
+            </AppText>
+          </View>
+          <AppText
+            variant="body"
+            weight="semibold"
+            style={{ marginTop: 4, fontVariant: ['tabular-nums'] }}
+          >
+            {formatReviewTime(report.performance.duration.medianMs)}
+          </AppText>
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <MaterialIcons name="analytics" size={14} color={colors.outline} />
+            <AppText variant="caption" tone="muted" numberOfLines={1}>
+              Avg per active day
+            </AppText>
+          </View>
+          <AppText
+            variant="body"
+            weight="semibold"
+            style={{ marginTop: 4, fontVariant: ['tabular-nums'] }}
+          >
+            {`${num(report.performance.volume.perActiveDay, 0)} reviews`}
+          </AppText>
+        </View>
+      </View>
+    </StatsCard>
+  );
+}
+
+function MemoryLegendRow({
+  label,
+  count,
+  total,
+  color,
+}: {
+  label: string;
+  count: number;
+  total: number;
+  color: string;
+}) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }} />
+      <AppText variant="caption" weight="medium" tone="muted" style={{ flex: 1 }}>
+        {label}
+      </AppText>
+      <AppText variant="caption" weight="semibold" style={{ fontVariant: ['tabular-nums'] }}>
+        {formatCount(count)}
+      </AppText>
+      <AppText variant="caption" tone="tertiary" style={{ fontVariant: ['tabular-nums'] }}>
+        {total > 0 ? `(${Math.round((count / total) * 100)}%)` : '(—)'}
+      </AppText>
+    </View>
+  );
+}
+
+function MemorySubMetric({
+  label,
+  value,
+  note,
+  color,
+  divider = false,
+}: {
+  label: string;
+  value: string;
+  note: string;
+  color: string;
+  divider?: boolean;
+}) {
+  return (
+    <View
+      style={{
+        flex: 1,
+        minWidth: 0,
+        alignItems: 'center',
+        paddingHorizontal: 4,
+        borderLeftWidth: divider ? 1 : 0,
+        borderLeftColor: rims.soft,
+      }}
+    >
+      <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+        {label}
+      </AppText>
+      <AppText
+        variant="bodySm"
+        weight="semibold"
+        numberOfLines={1}
+        style={{ color, marginTop: 3, fontVariant: ['tabular-nums'] }}
+      >
+        {value}
+      </AppText>
+      <AppText variant="caption" tone="muted" numberOfLines={1} style={{ marginTop: 2 }}>
+        {note}
+      </AppText>
+    </View>
+  );
+}
+
+function MemoryCard({
+  report,
+  narrow,
+}: {
+  report: IntelligenceReport;
+  narrow: boolean;
+}) {
+  const memory = report.memory;
+  const total = memory.coverage.fsrsCards;
+  if (total <= 0) return null;
+
+  const rows = [
+    {
+      label: 'In review',
+      value: memory.states.Review,
+      color: stateColors.Review,
+    },
+    {
+      label: 'Learning',
+      value: memory.states.Learning,
+      color: stateColors.Learning,
+    },
+    {
+      label: 'Relearning',
+      value: memory.states.Relearning,
+      color: stateColors.Relearning,
+    },
+    {
+      label: 'New',
+      value: memory.states.New,
+      color: stateColors.New,
+    },
+  ];
+
+  return (
+    <StatsCard>
+      <View
+        style={{
+          flexDirection: narrow ? 'column' : 'row',
+          alignItems: 'center',
+          gap: 16,
+        }}
+      >
+        <DonutChart
+          size={narrow ? 104 : 112}
+          strokeWidth={10}
+          centerLabel={formatCount(total)}
+          centerSubtitle="active"
+          segments={[
+            {
+              value: memory.states.Review,
+              color: stateColors.Review,
+              label: 'In review',
+            },
+            {
+              value: memory.states.Learning,
+              color: stateColors.Learning,
+              label: 'Learning',
+            },
+            {
+              value: memory.states.Relearning,
+              color: stateColors.Relearning,
+              label: 'Relearning',
+            },
+            {
+              value: memory.states.New,
+              color: stateColors.New,
+              label: 'New',
+            },
+          ]}
+        />
+        <View
+          style={{
+            flex: narrow ? undefined : 1,
+            width: narrow ? '100%' : undefined,
+            gap: 8,
+          }}
+        >
+          {rows.map((row) => (
+            <MemoryLegendRow
+              key={row.label}
+              label={row.label}
+              count={row.value}
+              total={total}
+              color={row.color}
+            />
+          ))}
+        </View>
+      </View>
+
+      <View
+        style={{
+          flexDirection: 'row',
+          marginTop: 16,
+          padding: 12,
+          borderRadius: radii.control,
+          borderWidth: 1,
+          borderColor: rims.soft,
+          backgroundColor: fills.inset,
+        }}
+      >
+        <MemorySubMetric
+          label={narrow ? 'Predicted' : 'Predicted library'}
+          value={pct1(memory.retention.meanRetrievability)}
+          note="Now"
+          color={colors.success}
+        />
+        <MemorySubMetric
+          divider
+          label="Below target"
+          value={formatCount(memory.retention.atRisk)}
+          note={`target ${pct1(memory.retention.threshold)}`}
+          color={memory.retention.atRisk > 0 ? colors.warning : colors.onSurface}
+        />
+        <MemorySubMetric
+          divider
+          label={narrow ? 'Stability' : 'Stability median'}
+          value={
+            memory.stability.median === null
+              ? '—'
+              : `${num(memory.stability.median)}d`
+          }
+          note="Half-life span"
+          color={colors.primary}
+        />
+      </View>
+
+      <AppText variant="caption" tone="tertiary" style={{ marginTop: 12 }}>
+        Calculated entirely on-device via FSRS-6 memory model.
+      </AppText>
+    </StatsCard>
+  );
+}
+
+function StudyHabitsCard({
+  report,
+  now,
+  narrow,
+}: {
+  report: IntelligenceReport;
+  now: number;
+  narrow: boolean;
+}) {
+  const streak = report.overview.streak;
+  const bestHour = report.behavior.bestHour?.label ?? '—';
+  const today = new Date(now).getDay();
+  const weekdayByDay = new Map(
+    report.performance.weekday.map((point) => [point.weekday, point])
+  );
+
+  return (
+    <StatsCard>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: alpha(colors.warning, 0.14),
+          }}
+        >
+          <MaterialIcons name="local-fire-department" size={18} color={colors.warning} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
+            {streak > 0 ? `${streak}-day active streak` : 'No active streak'}
+          </AppText>
+          <AppText variant="caption" tone="muted" numberOfLines={1}>
+            Current cadence
+          </AppText>
+        </View>
+        <View style={{ alignItems: 'flex-end', maxWidth: narrow ? 92 : 130 }}>
+          <AppText
+            variant="bodySm"
+            weight="semibold"
+            numberOfLines={1}
+            style={{ fontVariant: ['tabular-nums'] }}
+          >
+            {bestHour}
+          </AppText>
+          <AppText variant="caption" tone="muted" numberOfLines={1}>
+            Peak study hour
+          </AppText>
+        </View>
+      </View>
+
+      <View style={{ flexDirection: 'row', gap: 6, marginTop: 16 }}>
+        {WEEKDAY_ORDER.map((day) => {
+          const point = weekdayByDay.get(day);
+          const active = (point?.reviews ?? 0) > 0;
+          const isToday = day === today;
+          return (
+            <View key={day} style={{ flex: 1, alignItems: 'center', gap: 6 }}>
+              <View
+                accessible
+                accessibilityLabel={`${WEEKDAY_LONG[day]}${isToday ? ', today' : ''}: ${
+                  point?.reviews ?? 0
+                } reviews`}
+                style={{
+                  width: '100%',
+                  height: 38,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: isToday
+                    ? colors.primaryContainer
+                    : active
+                      ? alpha(colors.success, 0.18)
+                      : fills.inset,
+                  borderWidth: 1,
+                  borderColor: isToday ? colors.primaryContainer : rims.soft,
+                }}
+              >
+                {active || isToday ? (
+                  <MaterialIcons
+                    name={isToday ? 'star' : 'check'}
+                    size={16}
+                    color={isToday ? colors.onPrimary : colors.success}
+                  />
+                ) : null}
+              </View>
+              <AppText
+                variant="caption"
+                weight={isToday ? 'semibold' : 'regular'}
+                tone={isToday ? 'accent' : 'muted'}
+              >
+                {WEEKDAY_LETTER[day]}
+              </AppText>
+            </View>
+          );
+        })}
+      </View>
+
+      <AppText variant="caption" tone="muted" style={{ marginTop: 12 }}>
+        {`${report.performance.volume.activeDays} of ${report.range.days} days active · today starred.`}
+      </AppText>
+    </StatsCard>
+  );
+}
+
+function DeckCard({ deck }: { deck: DeckIntelligence }) {
+  const rate = deck.recall.successRate;
+  const recallColor =
+    rate === null
+      ? colors.outline
+      : rate >= 0.85
+        ? colors.success
+        : rate >= 0.7
+          ? colors.warning
+          : colors.error;
+  const status =
+    deck.due.overdue > 0 ? `${formatCount(deck.due.overdue)} overdue` : VS_LIBRARY[deck.vsLibrary];
+  const statusColor =
+    deck.due.overdue > 0
+      ? colors.warning
+      : deck.vsLibrary === 'above'
+        ? colors.success
+        : deck.vsLibrary === 'below'
+          ? colors.warning
+          : colors.onSurfaceVariant;
+
+  return (
+    <Surface
+      tone="pane"
+      radius="card"
+      padding="sm"
+      style={{ borderWidth: 1, borderColor: rims.soft }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <AppText
+              variant="bodySm"
+              weight="semibold"
+              numberOfLines={1}
+              style={{ flexShrink: 1 }}
+            >
+              {deck.name}
+            </AppText>
+            <TinyPill label={algorithmLabel(deck.algorithm)} />
+          </View>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 4,
+              marginTop: 4,
+            }}
+          >
+            <AppText variant="caption" tone="muted">
+              {`${formatCount(deck.reviews)} reviews · `}
+            </AppText>
+            <AppText variant="caption" weight="medium" style={{ color: statusColor }}>
+              {status}
+            </AppText>
+          </View>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <AppText
+            variant="bodySm"
+            weight="semibold"
+            style={{ color: recallColor, fontVariant: ['tabular-nums'] }}
+          >
+            {pct(rate)}
+          </AppText>
+          <AppText variant="caption" tone="muted">
+            Recall
+          </AppText>
+        </View>
+      </View>
+    </Surface>
+  );
+}
+
+function ForecastCard({
+  report,
+  narrow,
+}: {
+  report: IntelligenceReport;
+  narrow: boolean;
+}) {
+  const workload = report.forecast.workload;
+  const target =
+    report.forecast.retention.desiredRetention ?? report.memory.retention.threshold;
+  const daily = workload.daily.map((day, index) => ({
+    value: day.count,
+    label: index === 0 ? 'Today' : index === 1 ? 'Tom' : `+${index}d`,
+    highlight: index === 0,
+  }));
+
+  return (
+    <StatsCard>
+      <MiniBarChart
+        data={daily}
+        height={narrow ? 84 : 96}
+        showValues
+        emptyLabel="Nothing scheduled in the next 7 days."
+      />
+      <AppText variant="caption" tone="tertiary" style={{ marginTop: 10 }}>
+        {target === null
+          ? 'Scheduled cards only; no retention target is set.'
+          : `Forecast calculated using your optimal ${pct1(
+              target
+            )} retention target.`}
+      </AppText>
+    </StatsCard>
+  );
+}
+
+type StandoutItem = {
+  key: string;
+  title: string;
+  body: string;
+  tag: string;
+  color: string;
+  icon: IconName;
+};
+
+const PRIORITY_TAG: Record<RecommendationPriority, string> = {
+  high: 'High impact',
+  medium: 'Suggested',
+  low: 'Low priority',
+};
+
+const PRIORITY_COLOR: Record<RecommendationPriority, string> = {
+  high: colors.success,
+  medium: colors.primary,
+  low: colors.outline,
+};
+
+const INSIGHT_TAG: Record<InsightTone, string> = {
+  positive: 'Positive',
+  neutral: 'Observation',
+  attention: 'Actionable',
+};
+
+const INSIGHT_COLOR: Record<InsightTone, string> = {
+  positive: colors.success,
+  neutral: colors.primary,
+  attention: colors.warning,
+};
+
+function InsightTile({ item }: { item: StandoutItem }) {
+  return (
+    <Surface
+      tone="pane"
+      radius="card"
+      padding="sm"
+      style={{ borderWidth: 1, borderColor: rims.soft }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+        <View
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: alpha(item.color, 0.12),
+          }}
+        >
+          <MaterialIcons name={item.icon} size={18} color={item.color} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+            <AppText variant="bodySm" weight="semibold" style={{ flex: 1 }}>
+              {item.title}
+            </AppText>
+            <View
+              style={{
+                paddingHorizontal: 6,
+                paddingVertical: 2,
+                borderRadius: 6,
+                backgroundColor: alpha(item.color, 0.12),
+                borderWidth: 1,
+                borderColor: alpha(item.color, 0.3),
+              }}
+            >
+              <AppText
+                variant="caption"
+                weight="semibold"
+                style={{
+                  color: item.color,
+                  fontSize: 10,
+                  letterSpacing: 0.4,
+                  textTransform: 'uppercase',
+                }}
+              >
+                {item.tag}
+              </AppText>
+            </View>
+          </View>
+          <AppText variant="caption" tone="muted" style={{ marginTop: 4 }}>
+            {item.body}
+          </AppText>
+        </View>
+      </View>
+    </Surface>
+  );
+}
+
+function ReportsCard({ report }: { report: IntelligenceReport }) {
+  const periods = [report.reports.daily, report.reports.weekly, report.reports.monthly];
+  return (
+    <StatsCard padding="none" style={{ overflow: 'hidden' }}>
+      {periods.map((period, index) => (
+        <View
+          key={period.period}
+          style={{
+            paddingHorizontal: 16,
+            paddingVertical: 14,
+            borderBottomWidth: index === periods.length - 1 ? 0 : 1,
+            borderBottomColor: rims.soft,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <AppText variant="bodySm" weight="semibold">
+              {period.label}
+            </AppText>
+            <AppText variant="bodySm" tone="muted">
+              {`${formatCount(period.reviews)} reviews`}
+            </AppText>
+          </View>
+          <AppText variant="caption" tone="muted" style={{ marginTop: 2 }}>
+            {`${period.activeDays} active day${period.activeDays === 1 ? '' : 's'} · ${formatDuration(
+              period.studyTimeMs
+            )} · ${
+              period.successRate === null
+                ? 'recall needs 10 reviews'
+                : `${pct(period.successRate)} recall`
+            }`}
+          </AppText>
+          {period.topDeck ? (
+            <AppText variant="caption" tone="tertiary" style={{ marginTop: 2 }}>
+              {`Top deck: ${period.topDeck.name} (${period.topDeck.reviews})`}
+            </AppText>
+          ) : null}
+        </View>
+      ))}
+    </StatsCard>
+  );
+}
 
 export default function StatisticsScreen() {
   const { width } = useWindowDimensions();
-  const narrow = width < 360;
-  const decks = useDeckStore((s) => s.decks);
-  const cardsByDeck = useDeckStore((s) => s.cardsByDeck);
-  const loaded = useDeckStore((s) => s.loaded);
-  const reviewLog = useReviewStore((s) => s.reviewLog);
+  const narrow = width < 380;
+  const router = useRouter();
+  const decks = useDeckStore((state) => state.decks);
+  const cardsByDeck = useDeckStore((state) => state.cardsByDeck);
+  const loaded = useDeckStore((state) => state.loaded);
+  const reviewLog = useReviewStore((state) => state.reviewLog);
 
   const [rangeDays, setRangeDays] = useState<number>(30);
-  // Due dates are wall-clock facts; one tick a minute keeps the workload and the
-  // forecast window from freezing while the screen stays open.
   const [now, setNow] = useState(() => Date.now());
+  const [shareNotice, setShareNotice] = useState<ShareNotice | null>(null);
 
   useEffect(() => {
     if (!loaded) useDeckStore.getState().load();
@@ -97,6 +1474,12 @@ export default function StatisticsScreen() {
     const id = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (!shareNotice) return;
+    const id = setTimeout(() => setShareNotice(null), 2800);
+    return () => clearTimeout(id);
+  }, [shareNotice]);
 
   const { report, error } = useMemo(() => {
     try {
@@ -120,729 +1503,237 @@ export default function StatisticsScreen() {
   }, [decks, cardsByDeck, reviewLog, now, rangeDays]);
 
   const reviewedDecks = report?.decks.decks.filter((deck) => deck.reviews > 0).slice(0, 6) ?? [];
-  const medianSessionReviews = report?.behavior.sessions.medianReviews ?? null;
 
-  const rangeControl = (
-    <View className="mb-4">
-      <AppText variant="caption" tone="muted" className="mb-2 uppercase">
-        Range
-      </AppText>
-      <SegmentedControl
-        segments={RANGE_OPTIONS.map((days) => ({
-          key: String(days),
-          label: `${days} days`,
-          active: rangeDays === days,
-          onPress: () => setRangeDays(days),
-        }))}
-      />
-    </View>
+  const standoutItems: StandoutItem[] = report
+    ? [
+        ...report.insights.recommendations.map((recommendation) => ({
+          key: `recommendation-${recommendation.id}`,
+          title: recommendation.action,
+          body: recommendation.reason,
+          tag: PRIORITY_TAG[recommendation.priority],
+          color: PRIORITY_COLOR[recommendation.priority],
+          icon: 'arrow-forward' as IconName,
+        })),
+        ...report.insights.insights.map((insight) => ({
+          key: `insight-${insight.id}`,
+          title: insight.title,
+          body: insight.detail,
+          tag: INSIGHT_TAG[insight.tone],
+          color: INSIGHT_COLOR[insight.tone],
+          icon:
+            insight.tone === 'attention'
+              ? ('warning' as IconName)
+              : insight.tone === 'positive'
+                ? ('trending-up' as IconName)
+                : ('lightbulb' as IconName),
+        })),
+      ].slice(0, 2)
+    : [];
+
+  const forecastMinutes =
+    report && report.forecast.workload.next7 > 0 && report.performance.duration.medianMs
+      ? Math.max(
+          1,
+          Math.round(
+            (report.performance.duration.medianMs * report.forecast.workload.next7) / 60_000
+          )
+        )
+      : null;
+
+  const handleShare = () => {
+    if (!report) return;
+    const recall = report.performance.recall.successRate;
+    const text = [
+      `Memora — ${report.range.label}`,
+      `${formatCount(report.overview.totalReviews)} reviews · ${report.overview.deckCount} decks`,
+      recall === null ? 'Recall needs more rated reviews.' : `${pct1(recall)} successful recall`,
+    ].join('\n');
+    void copyOrShare(text)
+      .then((mode) => {
+        setShareNotice({
+          id: Date.now(),
+          message:
+            mode === 'copied'
+              ? 'Statistics snapshot copied to clipboard'
+              : 'Statistics snapshot ready to share',
+        });
+      })
+      .catch(() => {});
+  };
+
+  const header = (
+    <StatisticsHeader
+      onBack={() => goBackOr(router, '/settings')}
+      onShare={handleShare}
+      onProfile={() => pushOnce(router, '/profile')}
+      notice={shareNotice}
+    />
   );
 
   return (
-    <Screen
-      scroll
-      gutter
-      contentMaxWidth={v2.layout.contentMaxWidth}
-      header={<TopAppBar title="Statistics" back backFallback="/settings" />}
-    >
+    <Screen scroll gutter contentMaxWidth={CONTENT_MAX} header={header}>
       {!loaded ? (
         <StatisticsSkeleton />
       ) : error || !report ? (
-        <GlassCard className="mt-4">
+        <StatsCard style={{ marginTop: 16 }}>
           <EmptyState
             icon="error-outline"
             title="Analysis unavailable"
             description={error ?? 'The analysis could not be computed.'}
             titleVariant="headline"
           />
-        </GlassCard>
+        </StatsCard>
       ) : report.performance.status === 'empty' ? (
         <>
-          {rangeControl}
-          <RevealItem index={0}>
-            <HeroPane
-              tone="accent"
-              eyebrow={`${report.range.label} · no reviews`}
-              value={0}
-              unit="reviews"
-              valueLabel="No reviews in this range"
-              context="Nothing has been reviewed in the selected window."
-              trailing={
-                <Pill label={`${report.overview.deckCount} decks`} tone="accent" />
-              }
-              rail={
-                <TrendChart
-                  points={report.trends.series.points.map((point) => ({
-                    value: point.value,
-                    label: point.label,
-                  }))}
-                  height={64}
-                  emptyLabel="No review days in this range."
-                />
-              }
+          <RangeTabs value={rangeDays} onChange={setRangeDays} />
+          <EmptyRangeHero report={report} rangeDays={rangeDays} />
+          <StatsCard style={{ marginTop: 16 }}>
+            <EmptyState
+              icon="insights"
+              title="No reviews in this range"
+              description="Study a few cards and this page will report recall, memory, workload and trends from your own review log. A longer range may already contain history."
+              titleVariant="headline"
             />
-          </RevealItem>
-          <RevealItem index={1}>
-            <GlassCard className="mt-4">
-              <EmptyState
-                icon="insights"
-                title="No reviews in this range"
-                description="Study a few cards and this page will report recall, memory, workload and trends from your own review log. A longer range may already contain history."
-                titleVariant="headline"
-              />
-            </GlassCard>
-          </RevealItem>
+          </StatsCard>
           {report.coverage.archivedDecks > 0 ? (
-            <AppText variant="caption" tone="tertiary" className="mt-3">
-              {report.coverage.archivedDecks} archived deck
-              {report.coverage.archivedDecks === 1 ? ' is' : 's are'} excluded from this
-              analysis.
+            <AppText variant="caption" tone="tertiary" style={{ marginTop: 12 }}>
+              {`${report.coverage.archivedDecks} archived deck${
+                report.coverage.archivedDecks === 1 ? ' is' : 's are'
+              } excluded from this analysis.`}
             </AppText>
           ) : null}
         </>
       ) : (
         <>
-          {rangeControl}
+          <RangeTabs value={rangeDays} onChange={setRangeDays} />
+          <OverviewHero report={report} rangeDays={rangeDays} />
 
-          {/* Overview */}
-          <RevealItem index={0}>
-            <HeroPane
-              tone="accent"
-              eyebrow={`${report.range.label} · intelligence`}
-              value={formatCount(report.overview.totalReviews)}
-              unit="reviews"
-              valueLabel={`${report.overview.totalReviews} reviews`}
-              context={`${report.overview.activeDays} active days · ${formatDuration(
-                report.overview.studyTimeMs
-              )} · ${
-                report.performance.recall.successRate === null
-                  ? `${report.performance.recall.sampleSize} rated so far`
-                  : `${pct(report.performance.recall.successRate)} successful recall`
-              }`}
-              trailing={
-                <Pill label={`${report.overview.deckCount} decks`} tone="accent" />
-              }
-              rail={
-                <TrendChart
-                  points={report.trends.series.points.map((point) => ({
-                    value: point.value,
-                    label: point.label,
-                  }))}
-                  height={64}
-                  emptyLabel="No reviews in this range."
-                />
-              }
-            />
-          </RevealItem>
+          <StatsSection
+            title="Recall performance"
+            hint={
+              report.performance.recall.sampleSize > 0
+                ? `${formatCount(report.performance.recall.sampleSize)} rated`
+                : undefined
+            }
+          >
+            <RecallCard report={report} />
+          </StatsSection>
 
-          {/* Recall */}
-          <RevealItem index={1}>
-            <SectionHeading
-              className="mt-7"
-              label="Recall"
-              hint={`${formatCount(report.performance.recall.sampleSize)} rated`}
-            />
-            <GlassCard className="mt-3">
-              <View className="flex-row flex-wrap items-end" style={{ columnGap: 10 }}>
-                <AppText variant="display" style={v2.type.stat}>
-                  {pct(report.performance.recall.successRate)}
-                </AppText>
-                <AppText variant="bodySm" tone="muted" style={{ paddingBottom: 6 }}>
-                  successful
-                </AppText>
-              </View>
-              <AppText variant="caption" tone="muted" className="mt-1">
-                Again is a failed recall. Hard, Good and Easy are successes; Hard is a
-                success with effort, not a failure.
-              </AppText>
-
-              {report.performance.recall.successInterval ? (
-                <View className="mt-3">
-                  <View
-                    className="h-1.5 overflow-hidden rounded-full"
-                    style={{ backgroundColor: fills.track }}
-                  >
-                    <View
-                      className="h-full rounded-full"
-                      style={{
-                        marginLeft: `${report.performance.recall.successInterval.low * 100}%`,
-                        width: `${
-                          (report.performance.recall.successInterval.high -
-                            report.performance.recall.successInterval.low) *
-                          100
-                        }%`,
-                        backgroundColor: colors.primary,
-                      }}
-                    />
-                  </View>
-                  <AppText variant="caption" tone="tertiary" className="mt-1.5">
-                    95% interval {pct(report.performance.recall.successInterval.low)}–
-                    {pct(report.performance.recall.successInterval.high)} ·{' '}
-                    {report.performance.recall.sampleSize} reviews
-                  </AppText>
-                </View>
-              ) : (
-                <AppText variant="caption" tone="tertiary" className="mt-2">
-                  A percentage appears after {MIN_RECALL_SAMPLE} rated reviews. This range
-                  has {report.performance.recall.sampleSize}.
-                </AppText>
-              )}
-
-              <DistributionList
-                className="mt-4"
-                items={[
-                  {
-                    key: 'again',
-                    label: 'Again — failed',
-                    count: report.performance.recall.counts.again,
-                    share: report.performance.recall.shares.again,
-                    color: colors.error,
-                  },
-                  {
-                    key: 'hard',
-                    label: 'Hard — with effort',
-                    count: report.performance.recall.counts.hard,
-                    share: report.performance.recall.shares.hard,
-                    color: colors.warning,
-                  },
-                  {
-                    key: 'good',
-                    label: 'Good',
-                    count: report.performance.recall.counts.good,
-                    share: report.performance.recall.shares.good,
-                    color: colors.primary,
-                  },
-                  {
-                    key: 'easy',
-                    label: 'Easy',
-                    count: report.performance.recall.counts.easy,
-                    share: report.performance.recall.shares.easy,
-                    color: colors.success,
-                  },
-                ]}
-              />
-            </GlassCard>
-
-            <MetricGrid
-              className="mt-3"
-              columns={2}
-              items={[
-                {
-                  label: 'Median review',
-                  value: formatDuration(report.performance.duration.medianMs),
-                  note:
-                    report.performance.duration.sampleSize > 0
-                      ? `p90 ${formatDuration(report.performance.duration.p90Ms)} · ${
-                          report.performance.duration.sampleSize
-                        } timed`
-                      : 'No timed reviews yet',
-                },
-                {
-                  label: narrow ? 'Active day' : 'Per active day',
-                  value: num(report.performance.volume.perActiveDay),
-                  note: `${num(report.performance.volume.perCalendarDay, 2)} per calendar day`,
-                },
-              ]}
-            />
-          </RevealItem>
-
-          {/* Memory */}
           {report.memory.coverage.fsrsCards > 0 ? (
-            <RevealItem index={2}>
-              <SectionHeading
-                className="mt-7"
-                label="Memory"
-                hint={`${report.memory.coverage.fsrsCards} FSRS cards`}
-              />
-              <GlassCard className="mt-3">
-                <View className={narrow ? 'items-center' : 'flex-row items-center'}>
-                  <DonutChart
-                    size={narrow ? 104 : undefined}
-                    strokeWidth={10}
-                    centerLabel={formatCount(report.memory.coverage.fsrsCards)}
-                    centerSubtitle="cards"
-                    segments={[
-                      {
-                        value: report.memory.states.Review,
-                        color: stateColors.Review,
-                        label: 'In review schedule',
-                      },
-                      {
-                        value: report.memory.states.Learning,
-                        color: stateColors.Learning,
-                        label: 'Learning',
-                      },
-                      {
-                        value: report.memory.states.Relearning,
-                        color: stateColors.Relearning,
-                        label: 'Relearning',
-                      },
-                      {
-                        value: report.memory.states.New,
-                        color: stateColors.New,
-                        label: 'New',
-                      },
-                    ]}
-                  />
-                  <View
-                    className={narrow ? 'mt-4 w-full gap-3' : 'flex-1 gap-3'}
-                    style={narrow ? undefined : { marginLeft: 20 }}
-                  >
-                    {[
-                      { label: 'In review schedule', value: report.memory.states.Review, color: stateColors.Review },
-                      { label: 'Learning', value: report.memory.states.Learning, color: stateColors.Learning },
-                      { label: 'Relearning', value: report.memory.states.Relearning, color: stateColors.Relearning },
-                      { label: 'New', value: report.memory.states.New, color: stateColors.New },
-                    ].map((row) => (
-                      <View key={row.label} className="flex-row items-center">
-                        <View
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: row.color }}
-                        />
-                        <AppText
-                          variant="caption"
-                          weight="medium"
-                          tone="muted"
-                          className="mx-2 flex-1"
-                          numberOfLines={1}
-                        >
-                          {row.label}
-                        </AppText>
-                        <AppText variant="bodySm" weight="semibold">
-                          {formatCount(row.value)}
-                        </AppText>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-
-                <MetricGrid
-                  className="mt-4"
-                  columns={2}
-                  items={[
-                    {
-                      label: narrow ? 'At risk' : 'Below target',
-                      value: formatCount(report.memory.retention.atRisk),
-                      note: `target ${pct(report.memory.retention.threshold)}`,
-                      color:
-                        report.memory.retention.atRisk > 0 ? colors.warning : undefined,
-                    },
-                    {
-                      label: width < 420 ? 'Predicted' : 'Predicted recall',
-                      value: pct(report.memory.retention.meanRetrievability),
-                      note: 'FSRS estimate, now',
-                    },
-                  ]}
-                />
-
-                <AppText variant="caption" tone="tertiary" className="mt-3">
-                  “In review schedule” means a card has graduated to long intervals, not
-                  that it is mastered. Retrievability is an FSRS probability estimate, not
-                  a measured retention test.
-                </AppText>
-              </GlassCard>
-
-              {report.memory.stability.sampleSize > 0 ? (
-                <GlassCard className="mt-3" padding="sm">
-                  <AppText variant="label" tone="muted" className="mb-3 uppercase">
-                    Stability
-                  </AppText>
-                  <DistributionList
-                    hideEmptyBars
-                    items={report.memory.stability.buckets.map((bucket) => ({
-                      key: bucket.key,
-                      label: bucket.label,
-                      count: bucket.count,
-                      share: bucket.share,
-                      color: colors.primary,
-                    }))}
-                  />
-                  <AppText variant="caption" tone="tertiary" className="mt-2">
-                    Median stability {num(report.memory.stability.median)} days across{' '}
-                    {report.memory.stability.sampleSize} reviewed cards.
-                  </AppText>
-                </GlassCard>
-              ) : null}
-
-              {report.memory.attention.length > 0 ? (
-                <GlassCard className="mt-3" padding="sm">
-                  <AppText variant="label" tone="muted" className="uppercase">
-                    Needs attention
-                  </AppText>
-                  {report.memory.attention.slice(0, 3).map((card) => (
-                    <View key={card.cardId} className="mt-3">
-                      <View className="flex-row items-start">
-                        <AppText
-                          variant="bodySm"
-                          weight="semibold"
-                          className="flex-1"
-                          numberOfLines={1}
-                        >
-                          {card.front || 'Untitled card'}
-                        </AppText>
-                        <AppText variant="caption" tone="warning" className="ml-2">
-                          {card.lapses} lapses
-                        </AppText>
-                      </View>
-                      <AppText variant="caption" tone="muted" className="mt-0.5">
-                        {card.deckName} · R {pct(card.retrievability)} ·{' '}
-                        {card.overdueDays > 0
-                          ? `${card.overdueDays}d overdue`
-                          : 'due now'}
-                      </AppText>
-                    </View>
-                  ))}
-                </GlassCard>
-              ) : null}
-
-              {report.memory.coverage.nonFsrsDecks > 0 ? (
-                <AppText variant="caption" tone="tertiary" className="mt-2">
-                  {report.memory.coverage.note}
-                </AppText>
-              ) : null}
-            </RevealItem>
+            <StatsSection title="Memory" badge="FSRS-6">
+              <MemoryCard report={report} narrow={narrow} />
+            </StatsSection>
           ) : null}
 
-          {/* Study behaviour */}
-          <RevealItem index={3}>
-            <SectionHeading
-              className="mt-7"
-              label="Study habits"
-              hint={`${report.behavior.sessions.count} sessions`}
-            />
-            <MetricGrid
-              className="mt-3"
-              columns={2}
-              items={[
-                {
-                  label: 'Consistency',
-                  value: pct(report.behavior.consistency.activeDayRatio),
-                  note: `${report.performance.volume.activeDays} of ${report.range.days} days`,
-                },
-                {
-                  label: narrow ? 'Streak' : 'Current streak',
-                  value: `${report.overview.streak}d`,
-                  note: `longest ${report.overview.longestStreak}d`,
-                },
-              ]}
-            />
+          <StatsSection title="Study habits">
+            <StudyHabitsCard report={report} now={now} narrow={narrow} />
+          </StatsSection>
 
-            <GlassCard className="mt-3">
-              <AppText variant="label" tone="muted" className="uppercase">
-                When you study
-              </AppText>
-              <View className="mt-3">
-                <MiniBarChart
-                  data={report.performance.weekday.map((point) => ({
-                    value: point.reviews,
-                    label: point.label.slice(0, 2),
-                    highlight: point.weekday === new Date(now).getDay(),
-                  }))}
-                  height={56}
-                  showValues
-                  emptyLabel="No reviews in this range."
-                />
-              </View>
-              <AppText variant="caption" tone="muted" className="mt-2">
-                {report.behavior.bestWeekday
-                  ? `${report.behavior.bestWeekday.label} is your most active day (${report.behavior.bestWeekday.reviews} reviews).`
-                  : 'No dominant study day yet.'}
-                {report.behavior.bestHour
-                  ? ` Most reviews happen ${report.behavior.bestHour.label}.`
-                  : ''}{' '}
-                Today is highlighted.
-              </AppText>
-            </GlassCard>
-
-            <GlassCard className="mt-3" padding="sm">
-              <View className="flex-row items-center">
-                <MaterialIcons name="schedule" size={iconSize.sm} color={colors.outline} />
-                <AppText variant="bodySm" weight="semibold" className="ml-2 flex-1">
-                  Sessions
-                </AppText>
-                <AppText variant="bodySm" tone="muted">
-                  {report.behavior.sessions.count}
-                </AppText>
-              </View>
-              <AppText variant="caption" tone="muted" className="mt-1">
-                {medianSessionReviews === null
-                  ? 'No sessions in this range.'
-                  : `Median ${num(medianSessionReviews, 0)} ${
-                      Math.round(medianSessionReviews) === 1 ? 'review' : 'reviews'
-                    } over ${formatDuration(
-                      report.behavior.sessions.medianDurationMs
-                    )}.`}
-                {report.performance.efficiency.successfulReviewsPerMinute !== null
-                  ? ` ${num(
-                      report.performance.efficiency.successfulReviewsPerMinute,
-                      2
-                    )} successful reviews per minute.`
-                  : ''}
-              </AppText>
-              {report.behavior.intraSession.status === 'ok' &&
-              report.behavior.intraSession.direction !== 'stable' ? (
-                <AppText variant="caption" tone="tertiary" className="mt-1.5">
-                  In long sessions, the last third recalled{' '}
-                  {pct(report.behavior.intraSession.lastRate)} against{' '}
-                  {pct(report.behavior.intraSession.firstRate)} in the first. This is an
-                  association in your data, not proof of fatigue.
-                </AppText>
-              ) : null}
-            </GlassCard>
-          </RevealItem>
-
-          {/* Decks */}
           {reviewedDecks.length > 0 ? (
-            <RevealItem index={4}>
-              <SectionHeading
-                className="mt-7"
-                label="Decks"
-                hint={`${report.decks.comparableCount} comparable`}
-              />
-              <GlassCard className="mt-3" padding="none">
-                {reviewedDecks.map((deck, index) => (
-                  <View
-                    key={deck.deckId}
-                    className={index === 0 ? 'px-5 py-4' : 'px-5 pb-4'}
-                  >
-                    <View className="flex-row items-center">
-                      <AppText
-                        variant="bodySm"
-                        weight="semibold"
-                        className="flex-1"
-                        numberOfLines={1}
-                      >
-                        {deck.name}
-                      </AppText>
-                      <Pill label={algorithmLabel(deck.algorithm)} />
-                      <AppText
-                        variant="bodySm"
-                        weight="semibold"
-                        className="ml-3"
-                        style={{
-                          color:
-                            deck.vsLibrary === 'above'
-                              ? colors.success
-                              : deck.vsLibrary === 'below'
-                                ? colors.warning
-                                : colors.onSurfaceVariant,
-                        }}
-                      >
-                        {pct(deck.recall.successRate)}
-                      </AppText>
-                    </View>
-                    <AppText variant="caption" tone="muted" className="mt-1">
-                      {deck.reviews} reviews · {VS_LIBRARY[deck.vsLibrary]} ·{' '}
-                      {deck.due.overdue} overdue
-                      {deck.lapse.rate !== null
-                        ? ` · ${pct(deck.lapse.rate)} lapsed`
-                        : ''}
-                    </AppText>
-                  </View>
+            <StatsSection
+              title="Deck breakdown"
+              hint={`${reviewedDecks.length} studied`}
+            >
+              <View style={{ gap: 10 }}>
+                {reviewedDecks.map((deck) => (
+                  <DeckCard key={deck.deckId} deck={deck} />
                 ))}
-              </GlassCard>
-            </RevealItem>
+              </View>
+            </StatsSection>
           ) : null}
 
-          {/* Predictions */}
-          <RevealItem index={5}>
-            <SectionHeading className="mt-7" label="Next 7 days" hint="prediction" />
-            <GlassCard className="mt-3">
-              <MiniBarChart
-                data={report.forecast.workload.daily.map((day) => ({
-                  value: day.count,
-                  label: weekdayShortOf(day.dayStart),
-                  highlight: day.dayStart === report.range.end,
-                }))}
-                height={56}
-                showValues
-                emptyLabel="Nothing scheduled in the next 7 days."
-              />
-              <View className="mt-4 flex-row gap-2">
-                <StatPill
-                  value={formatCount(report.forecast.workload.overdue)}
-                  label="Overdue"
-                  color={colors.warning}
-                />
-                <StatPill
-                  value={formatCount(report.forecast.workload.dueToday)}
-                  label="Due today"
-                />
-                <StatPill
-                  value={formatCount(
-                    Math.max(0, report.forecast.workload.next7 - report.forecast.workload.dueToday)
-                  )}
-                  label={narrow ? 'Next 6d' : 'Next 6 days'}
-                />
-              </View>
-              <AppText variant="caption" tone="tertiary" className="mt-2">
-                Scheduled cards only; the first bar is today. New cards are introduced by
-                your daily cap, not by a due date.
-              </AppText>
-            </GlassCard>
+          <StatsSection
+            title="Next 7 days"
+            hint={`Total: ${formatCount(report.forecast.workload.next7)}${
+              forecastMinutes === null ? '' : ` (~${forecastMinutes}m)`
+            }`}
+          >
+            <ForecastCard report={report} narrow={narrow} />
+          </StatsSection>
 
-            <GlassCard className="mt-3" padding="sm">
-              <AppText variant="label" tone="muted" className="uppercase">
-                Expected work
-              </AppText>
-              {report.forecast.volume.seven.status === 'ok' ? (
-                <AppText variant="bodySm" tone="muted" className="mt-1.5">
-                  About{' '}
-                  <AppText variant="bodySm" weight="semibold">
-                    {Math.round(report.forecast.volume.seven.expectedReviews ?? 0)}
-                  </AppText>{' '}
-                  reviews ({num(report.forecast.volume.seven.expectedPerDay)}/day), with an
-                  80% range of{' '}
-                  {Math.round(report.forecast.volume.seven.interval?.low ?? 0)}–
-                  {Math.round(report.forecast.volume.seven.interval?.high ?? 0)}. This
-                  assumes your last four weeks continue.
-                </AppText>
-              ) : (
-                <AppText variant="bodySm" tone="muted" className="mt-1.5">
-                  {report.forecast.volume.seven.confidence.rationale}
-                </AppText>
-              )}
-
-              <View className="mt-3">
-                <AppText variant="caption" tone="muted">
-                  New cards:{' '}
-                  {report.forecast.backlog.status === 'ok'
-                    ? `${num(report.forecast.backlog.newPerWeek)}/week; ${
-                        report.forecast.backlog.remainingNewCards
-                      } remaining, about ${Math.ceil(
-                        report.forecast.backlog.weeks ?? 0
-                      )} weeks at that pace.`
-                    : report.forecast.backlog.confidence.rationale}
-                </AppText>
-                <AppText variant="caption" tone="muted" className="mt-1">
-                  Recall at next due:{' '}
-                  {report.forecast.retention.status === 'ok'
-                    ? `${pct(
-                        report.forecast.retention.meanPredictedRetrievability
-                      )} by FSRS — a model estimate, not measured retention.`
-                    : report.forecast.retention.note}
-                </AppText>
-              </View>
-            </GlassCard>
-          </RevealItem>
-
-          {/* Insights */}
-          <RevealItem index={6}>
-            <SectionHeading
-              className="mt-7"
-              label="What stands out"
-              hint={report.insights.status === 'ok' ? 'evidence-gated' : 'limited data'}
-            />
-            {report.insights.status === 'ok' ? (
-              <>
-                {report.insights.recommendations.map((recommendation) => (
-                  <RecommendationCard
-                    key={recommendation.id}
-                    recommendation={recommendation}
-                  />
+          <StatsSection title="What stands out" icon="lightbulb-outline">
+            {report.insights.status === 'ok' && standoutItems.length > 0 ? (
+              <View style={{ gap: 10 }}>
+                {standoutItems.map((item) => (
+                  <InsightTile key={item.key} item={item} />
                 ))}
-                {report.insights.insights.map((insight) => (
-                  <InsightCard key={insight.id} insight={insight} />
-                ))}
-              </>
+              </View>
             ) : (
-              <GlassCard className="mt-3">
+              <StatsCard>
                 <EmptyState
                   icon="insights"
                   title="Not enough evidence yet"
                   description={`Insights appear once the data can separate a real change from noise: at least ${MIN_RECALL_SAMPLE} rated reviews, and ${MIN_TREND_POINTS} days of history for a trend. This range has ${report.performance.recall.sampleSize} rated reviews over ${report.range.days} days.`}
                 />
-              </GlassCard>
+              </StatsCard>
             )}
-          </RevealItem>
+          </StatsSection>
 
-          {/* Fixed reports */}
-          <RevealItem index={7}>
-            <SectionHeading className="mt-7" label="Reports" hint="fixed windows" />
-            <GlassCard className="mt-3" padding="none">
-              {[report.reports.daily, report.reports.weekly, report.reports.monthly].map(
-                (period) => (
-                  <View key={period.period} className="px-5 py-4">
-                    <View className="flex-row items-center justify-between">
-                      <AppText variant="bodySm" weight="semibold">
-                        {period.label}
-                      </AppText>
-                      <AppText variant="bodySm" tone="muted">
-                        {formatCount(period.reviews)} reviews
-                      </AppText>
-                    </View>
-                    <AppText variant="caption" tone="muted" className="mt-1">
-                      {period.activeDays} active day
-                      {period.activeDays === 1 ? '' : 's'} ·{' '}
-                      {formatDuration(period.studyTimeMs)} ·{' '}
-                      {period.successRate === null
-                        ? 'recall needs 10 reviews'
-                        : `${pct(period.successRate)} recall`}
-                    </AppText>
-                    {period.topDeck ? (
-                      <AppText variant="caption" tone="tertiary" className="mt-0.5">
-                        Top deck: {period.topDeck.name} ({period.topDeck.reviews})
-                      </AppText>
-                    ) : null}
-                  </View>
-                )
-              )}
-            </GlassCard>
-          </RevealItem>
+          <StatsSection title="Reports" hint="fixed windows">
+            <ReportsCard report={report} />
+          </StatsSection>
 
-          {/* Method and data quality */}
-          <RevealItem index={8}>
-            <GlassCard tone="inset" className="mt-3" padding="sm">
-              <AppText variant="label" tone="muted" className="uppercase">
-                How to read this
-              </AppText>
-              <AppText variant="caption" tone="muted" className="mt-2">
-                Again counts as a failed recall; Hard, Good and Easy count as successful.
-                Percentages appear after {MIN_RECALL_SAMPLE} rated reviews, with a 95%
-                Wilson interval. Trends need 20 reviews in each window and 8 days of
-                history.
-              </AppText>
-              <AppText variant="caption" tone="muted" className="mt-1.5">
-                Memory numbers come from FSRS state on FSRS decks only. Retrievability is
-                the model’s probability estimate — actual retention cannot be measured
-                from a review log.
-              </AppText>
-              <AppText variant="caption" tone="tertiary" className="mt-1.5">
-                Computed on this device from {formatCount(report.dataQuality.usableCount)}{' '}
-                usable reviews
-                {report.coverage.archivedDecks > 0
+          <Surface
+            tone="inset"
+            radius="card"
+            padding="sm"
+            style={{ marginTop: 12, borderWidth: 1, borderColor: rims.soft }}
+          >
+            <AppText variant="label" tone="muted" style={{ textTransform: 'uppercase' }}>
+              How to read this
+            </AppText>
+            <AppText variant="caption" tone="muted" style={{ marginTop: 6 }}>
+              Again counts as a failed recall; Hard, Good and Easy count as successful.
+              Percentages appear after {MIN_RECALL_SAMPLE} rated reviews, with a 95% Wilson
+              interval. Trends need 20 reviews in each window and 8 days of history.
+            </AppText>
+            <AppText variant="caption" tone="muted" style={{ marginTop: 6 }}>
+              Memory numbers come from FSRS state on FSRS decks only. Retrievability is the
+              model’s probability estimate — actual retention cannot be measured from a
+              review log.
+            </AppText>
+            <AppText variant="caption" tone="tertiary" style={{ marginTop: 6 }}>
+              {`Computed on this device from ${formatCount(
+                report.dataQuality.usableCount
+              )} usable reviews${
+                report.coverage.archivedDecks > 0
                   ? `; ${report.coverage.archivedDecks} archived deck${
                       report.coverage.archivedDecks === 1 ? '' : 's'
                     } excluded`
-                  : ''}
-                .
-              </AppText>
-            </GlassCard>
+                  : ''
+              }.`}
+            </AppText>
+          </Surface>
 
-            {report.dataQuality.excludedCount > 0 ||
-            report.dataQuality.issues.length > 0 ? (
-              <GlassCard tone="inset" className="mt-3" padding="sm">
-                <AppText variant="label" tone="muted" className="uppercase">
-                  Data check
+          {report.dataQuality.excludedCount > 0 || report.dataQuality.issues.length > 0 ? (
+            <Surface
+              tone="inset"
+              radius="card"
+              padding="sm"
+              style={{ marginTop: 10, borderWidth: 1, borderColor: rims.soft }}
+            >
+              <AppText variant="label" tone="muted" style={{ textTransform: 'uppercase' }}>
+                Data check
+              </AppText>
+              <AppText variant="caption" tone="muted" style={{ marginTop: 4 }}>
+                {`${formatCount(report.dataQuality.usableCount)} of ${formatCount(
+                  report.dataQuality.rawCount
+                )} stored reviews were usable; ${formatCount(
+                  report.dataQuality.excludedCount
+                )} excluded.`}
+              </AppText>
+              {report.dataQuality.issues.map((issue) => (
+                <AppText
+                  key={issue.kind}
+                  variant="caption"
+                  tone="tertiary"
+                  style={{ marginTop: 4 }}
+                >
+                  {`· ${issue.count} ${ISSUE_LABEL[issue.kind]}: ${issue.detail}`}
                 </AppText>
-                <AppText variant="caption" tone="muted" className="mt-1">
-                  {formatCount(report.dataQuality.usableCount)} of{' '}
-                  {formatCount(report.dataQuality.rawCount)} stored reviews were usable;{' '}
-                  {formatCount(report.dataQuality.excludedCount)} excluded.
-                </AppText>
-                {report.dataQuality.issues.map((issue) => (
-                  <AppText
-                    key={issue.kind}
-                    variant="caption"
-                    tone="tertiary"
-                    className="mt-1"
-                  >
-                    · {issue.count} {ISSUE_LABEL[issue.kind]}: {issue.detail}
-                  </AppText>
-                ))}
-              </GlassCard>
-            ) : null}
-          </RevealItem>
+              ))}
+            </Surface>
+          ) : null}
         </>
       )}
     </Screen>

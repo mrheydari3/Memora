@@ -8,11 +8,13 @@ import { useReviewStore } from '../../store/useReviewStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { getSchedulerForDeck } from '../../data/schedulers';
 import { buildStudyQueue } from '../../data/session';
+import { computeStreak } from '../../data/streak';
 import { buildLearningEngine } from '../../data/intelligence';
 import type { LearningEngineResult } from '../../data/intelligence';
 import { FlashcardView } from '../../components/Flashcard';
 import { AppText, Screen, IconButton, EmptyState, TopAppBar } from '../../components';
 import { StartButton, StudyRatings, TodayRail } from '../../components/v2';
+import { HeaderIcon } from '../../components/v3/HeaderIcon';
 import { SessionSummary } from '../../components/v3/SessionSummary';
 import {
   alpha,
@@ -33,6 +35,9 @@ import { speakCard, speak, stopSpeaking } from '../../services/tts';
 import type { Flashcard, FSRSLogSnapshot, Rating, RatingButtonLabel } from '../../data/types';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
+
+/** Profile and Settings count ten XP per review; a session earns the same. */
+const XP_PER_REVIEW = 10;
 
 /** Format a stability value (in days) for the memory-state chip. */
 function formatStability(days: number): string {
@@ -70,7 +75,8 @@ export default function StudyScreen() {
   const { width } = useWindowDimensions();
   const wide = width >= 900;
 
-  const deck = useDeckStore((s) => s.decks.find((d) => d.id === deckId));
+  const decks = useDeckStore((s) => s.decks);
+  const deck = decks.find((d) => d.id === deckId);
   const cardsByDeck = useDeckStore((s) => s.cardsByDeck);
   const updateCard = useDeckStore((s) => s.updateCard);
   const logReview = useReviewStore((s) => s.logReview);
@@ -175,6 +181,20 @@ export default function StudyScreen() {
         (entry) => entry.deckId === deck?.id && entry.reviewedAt >= sessionStartedAt
       ),
     [reviewLog, deck, sessionStartedAt]
+  );
+
+  const activeDeckIds = useMemo(
+    () => new Set(decks.filter((item) => !item.archivedAt).map((item) => item.id)),
+    [decks]
+  );
+  const streak = useMemo(
+    () =>
+      computeStreak(
+        reviewLog
+          .filter((entry) => activeDeckIds.has(entry.deckId))
+          .map((entry) => entry.reviewedAt)
+      ),
+    [reviewLog, activeDeckIds]
   );
 
   // Build session queue on mount. The intelligence engine only ranks cards the
@@ -484,37 +504,74 @@ export default function StudyScreen() {
   const emptyDeck = deckCards.length === 0;
 
   const completionHeader = (
-    <TopAppBar
-      leftContent={
-        <View
-          style={{
-            flex: 1,
-            width: '100%',
-            maxWidth: 760,
-            marginStart: 'auto',
-            marginEnd: 'auto',
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          <IconButton
+    <View style={{ backgroundColor: colors.appBarGlass }}>
+      <View
+        style={{
+          height: heights.pageHeader,
+          width: '100%',
+          maxWidth: 760,
+          alignSelf: 'center',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 4,
+          paddingHorizontal: 12,
+        }}
+      >
+        <View style={{ width: width >= 400 ? 100 : 44, alignItems: 'flex-start' }}>
+          <HeaderIcon
             icon="close"
+            label="Close session"
             onPress={() => goBackOr(router, deckFallback)}
-            accessibilityLabel="Close session"
           />
+        </View>
+        <View style={{ flex: 1, minWidth: 0, alignItems: 'center' }}>
           <AppText
-            variant="bodyLg"
+            variant="headline"
             weight="semibold"
             headingLevel={1}
             numberOfLines={1}
-            style={{ flexShrink: 1 }}
           >
             {emptyDeck ? 'Study' : 'Session Complete'}
           </AppText>
         </View>
-      }
-    />
+        <View
+          style={{
+            width: width >= 400 ? 100 : 44,
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+          }}
+        >
+          {width >= 400 ? (
+            <View
+              style={{
+                maxWidth: 100,
+                minHeight: 28,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                borderRadius: radii.pill,
+                borderWidth: 1,
+                borderColor: rims.soft,
+                backgroundColor: colors.surfacePane,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+              }}
+            >
+              <MaterialIcons name="folder" size={iconSize.xs} color={colors.primary} />
+              <AppText
+                variant="caption"
+                weight="medium"
+                tone="muted"
+                numberOfLines={1}
+                style={{ flexShrink: 1 }}
+              >
+                {deck.name}
+              </AppText>
+            </View>
+          ) : null}
+        </View>
+      </View>
+    </View>
   );
 
   if (!currentCard) {
@@ -524,7 +581,6 @@ export default function StudyScreen() {
 
     const counts: [number, number, number, number] = [0, 0, 0, 0];
     let durationMs = 0;
-    let newIntroduced = 0;
     for (const entry of sessionReviews) {
       switch (entry.rating) {
         case 1:
@@ -541,7 +597,6 @@ export default function StudyScreen() {
           break;
       }
       durationMs += Math.max(0, entry.elapsedMs);
-      if (entry.cardWasNew) newIntroduced += 1;
     }
 
     const reviewed = sessionReviews.length;
@@ -567,11 +622,11 @@ export default function StudyScreen() {
         <SessionSummary
           deckName={deck.name}
           deckColor={deck.color}
-          deckIcon={deck.icon as IconName}
           emptyDeck={emptyDeck}
           reviewed={reviewed}
           recallPct={reviewed > 0 ? Math.round((recalled / reviewed) * 100) : 0}
-          newCount={newIntroduced}
+          xpEarned={reviewed * XP_PER_REVIEW}
+          streak={streak}
           durationMs={durationMs}
           ratings={counts}
           nextReview={nextReview}

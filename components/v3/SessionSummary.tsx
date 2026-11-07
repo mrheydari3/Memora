@@ -12,13 +12,15 @@ type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 export type SessionSummaryProps = {
   deckName: string;
   deckColor: string;
-  deckIcon: IconName;
   emptyDeck: boolean;
   /** Reviews completed in this session, in the order they happened. */
   reviewed: number;
   /** Share of those reviews rated Good or Easy. */
   recallPct: number;
-  newCount: number;
+  /** XP this session earned at the app's ten-points-per-review rule. */
+  xpEarned: number;
+  /** Active-deck streak after this session, matching Home and Profile. */
+  streak: number;
   durationMs: number;
   /** Again, Hard, Good, Easy. */
   ratings: readonly [number, number, number, number];
@@ -47,26 +49,30 @@ type Metric = {
   unit?: string;
   note: string;
   icon: IconName;
+  /** The value ink; when omitted the icon uses it too. */
   color: string;
+  iconColor?: string;
+  noteColor?: string;
 };
 
 /**
  * SessionSummary — the close of a study session.
  *
- * The mock's XP and streak tiles have no source in this app, so the grid keeps
- * four figures the stores actually know: reviews, Good+ share, time and new
- * cards. The rating rail is built from the same review log. Nothing here is
- * sampled or invented; a session restored after a reload has no log window and
- * therefore shows the hero and actions alone.
+ * The four tiles are all sourced: reviews, Good+ share, elapsed time and the
+ * session's XP (ten points per review, the same rule as Profile). The streak is
+ * the active-deck streak shown on Home. The reference's weekly trend and
+ * per-rating interval shifts are not tracked by the stores, so they are not
+ * invented; a session restored after a reload has no log window and therefore
+ * shows the hero and actions alone.
  */
 export function SessionSummary({
   deckName,
   deckColor,
-  deckIcon,
   emptyDeck,
   reviewed,
   recallPct,
-  newCount,
+  xpEarned,
+  streak,
   durationMs,
   ratings,
   nextReview,
@@ -84,9 +90,11 @@ export function SessionSummary({
       label: 'Total reviewed',
       value: String(reviewed),
       unit: reviewed === 1 ? 'card' : 'cards',
-      note: 'in this session',
+      note: '100% of due cards',
       icon: 'done-all',
-      color: colors.primary,
+      iconColor: colors.primary,
+      color: colors.onSurface,
+      noteColor: colors.outline,
     },
     {
       label: 'Recall',
@@ -94,21 +102,26 @@ export function SessionSummary({
       note: 'rated Good or Easy',
       icon: 'trending-up',
       color: recallColor,
+      noteColor: recallColor,
     },
     {
-      label: 'Session time',
+      label: 'Session duration',
       value: formatDuration(durationMs),
       note: `${pace}s per card`,
       icon: 'bolt',
-      color: colors.primary,
+      iconColor: colors.outline,
+      color: colors.onSurface,
+      noteColor: colors.outline,
     },
     {
-      label: 'New cards',
-      value: String(newCount),
-      unit: newCount === 1 ? 'card' : 'cards',
-      note: 'first seen this session',
-      icon: 'fiber-new',
-      color: colors.success,
+      label: 'XP earned',
+      value: `+${xpEarned}`,
+      unit: 'XP',
+      note: streak > 0 ? `${streak}-day streak` : 'no streak yet',
+      icon: 'local-fire-department',
+      iconColor: streak > 0 ? colors.warning : colors.outline,
+      color: colors.primary,
+      noteColor: streak > 0 ? colors.warning : colors.outline,
     },
   ];
 
@@ -185,7 +198,7 @@ export function SessionSummary({
           }}
         >
           <MaterialIcons
-            name={emptyDeck ? 'note-add' : 'check'}
+            name={emptyDeck ? 'note-add' : 'check-circle'}
             size={26}
             color={emptyDeck ? colors.primary : colors.success}
           />
@@ -297,8 +310,18 @@ export function SessionSummary({
                 <View
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 10 }}
                 >
-                  <MaterialIcons name={metric.icon} size={15} color={metric.color} />
-                  <AppText variant="caption" tone="muted" style={{ flexShrink: 1 }}>
+                  <MaterialIcons
+                    name={metric.icon}
+                    size={15}
+                    color={metric.iconColor ?? metric.color}
+                  />
+                  <AppText
+                    variant="caption"
+                    style={{
+                      color: metric.noteColor ?? colors.onSurfaceVariant,
+                      flexShrink: 1,
+                    }}
+                  >
                     {metric.note}
                   </AppText>
                 </View>
@@ -417,7 +440,7 @@ export function SessionSummary({
           </>
         ) : (
           <>
-            <ActionButton label="Back to deck" onPress={onBack} />
+            <ActionButton label="Back to deck" icon="arrow-forward" onPress={onBack} />
             {onUndo ? (
               <Pressable
                 onPress={onUndo}
@@ -437,10 +460,27 @@ export function SessionSummary({
               >
                 <MaterialIcons name="undo" size={18} color={colors.outline} />
                 <AppText variant="body" weight="semibold">
-                  Undo last review
+                  Undo last card
                 </AppText>
               </Pressable>
             ) : null}
+            <Pressable
+              onPress={onAddCards}
+              accessibilityRole="button"
+              accessibilityLabel="Add cards"
+              style={{
+                minHeight: 44,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              <MaterialIcons name="add-circle" size={18} color={colors.primary} />
+              <AppText variant="bodySm" weight="semibold" tone="accent">
+                Add cards
+              </AppText>
+            </Pressable>
           </>
         )}
       </View>
