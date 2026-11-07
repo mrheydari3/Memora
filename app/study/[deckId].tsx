@@ -11,15 +11,9 @@ import { buildStudyQueue } from '../../data/session';
 import { buildLearningEngine } from '../../data/intelligence';
 import type { LearningEngineResult } from '../../data/intelligence';
 import { FlashcardView } from '../../components/Flashcard';
-import {
-  AppText,
-  Screen,
-  IconButton,
-  GhostButton,
-  EmptyState,
-  TopAppBar,
-} from '../../components';
+import { AppText, Screen, IconButton, EmptyState, TopAppBar } from '../../components';
 import { StartButton, StudyRatings, TodayRail } from '../../components/v2';
+import { SessionSummary } from '../../components/v3/SessionSummary';
 import {
   alpha,
   colors,
@@ -60,6 +54,15 @@ function formatWait(ms: number): string {
   return `in ${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, '0')}s`;
 }
 
+/** A study card's next due date, rounded to its largest honest unit. */
+function formatNextDue(ms: number): string {
+  const minutes = Math.max(1, Math.ceil(ms / 60_000));
+  if (minutes < 60) return `in ${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return minutes % 60 === 0 ? `in ${hours}h` : `in ${hours}h ${minutes % 60}m`;
+  return `in ${Math.floor(hours / 24)}d`;
+}
+
 export default function StudyScreen() {
   const { deckId } = useLocalSearchParams<{ deckId: string }>();
   const router = useRouter();
@@ -87,6 +90,10 @@ export default function StudyScreen() {
    * jumped backwards (26 → 27) the moment a card came back for another step.
    */
   const [sessionTotal, setSessionTotal] = useState(0);
+  /** Reviews are counted from this instant, so the summary describes this visit. */
+  const [sessionStartedAt] = useState(() => Date.now());
+  /** The queue arrives in an effect; before it does, the session is not complete. */
+  const [queueBuilt, setQueueBuilt] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
   // When the current card was first shown. Review time is recorded per card;
   // using time-since-session-start inflated the statistics by counting the
@@ -155,11 +162,20 @@ export default function StudyScreen() {
     setCardShownAt(Date.now());
   }, [currentCard?.id, waiting]);
 
-  // The memory chip, the completion panel and the footer each settle in once.
+  // The memory chip and the footer each settle in once per reveal.
   const memoryReveal = useReveal(showAnswer, { duration: motion.base, distance: 6 });
-  const doneReveal = useReveal(currentCard ? 'session' : 'done');
 
   const scheduler = useMemo(() => (deck ? getSchedulerForDeck(deck) : null), [deck]);
+
+  // The completion pane only speaks about this visit: reviews from before this
+  // mount, including a session restored by a reload, are deliberately excluded.
+  const sessionReviews = useMemo(
+    () =>
+      reviewLog.filter(
+        (entry) => entry.deckId === deck?.id && entry.reviewedAt >= sessionStartedAt
+      ),
+    [reviewLog, deck, sessionStartedAt]
+  );
 
   // Build session queue on mount. The intelligence engine only ranks cards the
   // existing capped queue already selected; FSRS still owns every due date.
@@ -215,6 +231,7 @@ export default function StudyScreen() {
     const next = [...nextNew, ...nextDue];
     setQueue(next);
     setSessionTotal(next.length);
+    setQueueBuilt(true);
   }, [deck]);
 
   // Compute interval previews for the current card. `now` is pinned to when the
@@ -464,50 +481,104 @@ export default function StudyScreen() {
     />
   );
 
-  if (!currentCard) {
-    const emptyDeck = deckCards.length === 0;
-    return (
-      <Screen header={header}>
+  const emptyDeck = deckCards.length === 0;
+
+  const completionHeader = (
+    <TopAppBar
+      leftContent={
         <View
           style={{
             flex: 1,
+            width: '100%',
+            maxWidth: 760,
+            marginStart: 'auto',
+            marginEnd: 'auto',
+            flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'center',
-            paddingHorizontal: 32,
+            gap: 8,
           }}
         >
-          <Animated.View style={doneReveal.style}>
-            <EmptyState
-              icon={emptyDeck ? 'note-add' : 'check'}
-              title={emptyDeck ? 'No cards yet' : 'All done'}
-              titleVariant="headline"
-              description={
-                emptyDeck
-                  ? 'This deck has no cards. Add one from the deck screen to start studying.'
-                  : 'You have completed every due card in this deck.'
-              }
-              action={
-                <View>
-                  {emptyDeck && (
-                    <GhostButton
-                      label="Add cards"
-                      className="px-6"
-                      onPress={() => pushOnce(router, `/deck/${deck.id}/add-card`)}
-                    />
-                  )}
-                  {lastUndo && (
-                    <GhostButton label="Undo last review" className="px-6" onPress={undoLastReview} />
-                  )}
-                  <GhostButton
-                    className="mt-3 px-6"
-                    label="Back to deck"
-                    onPress={() => goBackOr(router, deckFallback)}
-                  />
-                </View>
-              }
-            />
-          </Animated.View>
+          <IconButton
+            icon="close"
+            onPress={() => goBackOr(router, deckFallback)}
+            accessibilityLabel="Close session"
+          />
+          <AppText
+            variant="bodyLg"
+            weight="semibold"
+            headingLevel={1}
+            numberOfLines={1}
+            style={{ flexShrink: 1 }}
+          >
+            {emptyDeck ? 'Study' : 'Session Complete'}
+          </AppText>
         </View>
+      }
+    />
+  );
+
+  if (!currentCard) {
+    if (!queueBuilt) {
+      return <Screen header={completionHeader}>{null}</Screen>;
+    }
+
+    const counts: [number, number, number, number] = [0, 0, 0, 0];
+    let durationMs = 0;
+    let newIntroduced = 0;
+    for (const entry of sessionReviews) {
+      switch (entry.rating) {
+        case 1:
+          counts[0] += 1;
+          break;
+        case 2:
+          counts[1] += 1;
+          break;
+        case 3:
+          counts[2] += 1;
+          break;
+        case 4:
+          counts[3] += 1;
+          break;
+      }
+      durationMs += Math.max(0, entry.elapsedMs);
+      if (entry.cardWasNew) newIntroduced += 1;
+    }
+
+    const reviewed = sessionReviews.length;
+    const recalled = counts[2] + counts[3];
+    const now = Date.now();
+    const upcoming = deckCards
+      .map((card) => new Date(card.fsrs.due).getTime())
+      .filter((due) => due > now);
+    const nextDue =
+      upcoming.length > 0 ? upcoming.reduce((earliest, due) => Math.min(earliest, due)) : null;
+    const dueSoon = upcoming.filter((due) => due <= now + 86_400_000).length;
+    const nextReview =
+      nextDue === null
+        ? null
+        : `Next review ${formatNextDue(nextDue - now)}${
+            dueSoon > 0
+              ? ` · ${dueSoon} card${dueSoon === 1 ? '' : 's'} in the next 24h`
+              : ''
+          }`;
+
+    return (
+      <Screen header={completionHeader} scroll gutter contentMaxWidth={760}>
+        <SessionSummary
+          deckName={deck.name}
+          deckColor={deck.color}
+          deckIcon={deck.icon as IconName}
+          emptyDeck={emptyDeck}
+          reviewed={reviewed}
+          recallPct={reviewed > 0 ? Math.round((recalled / reviewed) * 100) : 0}
+          newCount={newIntroduced}
+          durationMs={durationMs}
+          ratings={counts}
+          nextReview={nextReview}
+          onAddCards={() => pushOnce(router, `/deck/${deck.id}/add-card`)}
+          onUndo={lastUndo ? undoLastReview : null}
+          onBack={() => goBackOr(router, deckFallback)}
+        />
       </Screen>
     );
   }

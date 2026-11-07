@@ -1,23 +1,26 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, useWindowDimensions } from 'react-native';
+import { ScrollView, useWindowDimensions, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { goBackOr } from '../../services/navigation';
 import { MaterialIcons } from '../../components/Icon';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { speak, stopSpeaking } from '../../services/tts';
 import {
-  AppText,
   BottomSheetModal,
   ListRow,
   RevealItem,
   Screen,
-  SettingsNote,
-  SettingsPlate,
-  SettingsRow,
-  SettingsSection,
   ToggleSwitch,
-  TopAppBar,
 } from '../../components';
+import {
+  SettingsBackHeader,
+  SettingsChapter,
+  SettingsFootnote,
+  SettingsHero,
+  SettingsLine,
+} from '../../components/v3';
 import { colors, heights, iconSize } from '../../theme/tokens';
-import { v2 } from '../../theme/v2';
+import { v3 } from '../../theme/v3';
 
 const LANGUAGES: { code: string; name: string }[] = [
   { code: 'en-US', name: 'English (en-US)' },
@@ -39,13 +42,19 @@ const SAMPLES: Record<string, string> = {
 };
 
 /**
- * Speech — one voice per card side.
+ * Speech — one voice per card side, v3 "Nocturne Focus".
  *
- * The page follows the settings rhythm: one plate with the current route and
- * its readouts, then chapters for playback, the two voices and a sound check.
- * Every control is a standard setting row; there are no stamps or rules.
+ * The hero reads the pair as one line (DE → FA) and its ledger names each half
+ * plus what it reads, so the page's subject is legible before any switch. The
+ * chapters then hold the three playback switches, the two voices and the sound
+ * check as 64px lines in 22px panes.
+ *
+ * Every switch keeps its exact accessible name — the persistence flow and the
+ * voice-picker sheet flow query them by name — and the pickers keep the sheet
+ * they had, including the height cap on a short window.
  */
 export default function TTSSettingsScreen() {
+  const router = useRouter();
   const { height } = useWindowDimensions();
   const { settings, update } = useSettingsStore();
   const [pickerField, setPickerField] = useState<'front' | 'back' | null>(null);
@@ -53,10 +62,7 @@ export default function TTSSettingsScreen() {
   // The language list never takes more than half the window. On a short window
   // the sheet header and padding still fit, and the cap turns the list into a
   // real scroll region instead of letting the last language fall off-screen.
-  const listMaxHeight = Math.max(
-    160,
-    Math.min(heights.sheetTall, Math.round(height * 0.5))
-  );
+  const listMaxHeight = Math.max(160, Math.min(heights.sheetTall, Math.round(height * 0.5)));
 
   // Leaving the screen should never leave a sample talking in the background.
   useEffect(() => () => void stopSpeaking(), []);
@@ -83,8 +89,8 @@ export default function TTSSettingsScreen() {
   };
 
   const ledger = [
-    { label: 'Route', value: `${shortCode(front)} → ${shortCode(back)}` },
-    { label: 'Mode', value: settings.ttsAutoPlay ? 'Automatic' : 'On tap' },
+    { label: 'Front', value: shortCode(front) },
+    { label: 'Back', value: shortCode(back) },
     { label: 'Reads', value: settings.ttsReadWholeCard ? 'Whole card' : 'Front only' },
   ];
 
@@ -92,105 +98,109 @@ export default function TTSSettingsScreen() {
     <Screen
       scroll
       gutter
-      contentMaxWidth={v2.layout.contentMaxWidth}
-      header={<TopAppBar title="Speech" back backFallback="/settings" />}
+      contentMaxWidth={v3.layout.contentMaxWidth}
+      header={<SettingsBackHeader title="Speech" onBack={() => goBackOr(router, '/settings')} />}
     >
-      <RevealItem index={0}>
-        <SettingsPlate
-          tone="glass"
-          icon="record-voice-over"
-          eyebrow="Voice"
-          title={`${shortCode(front)} → ${shortCode(back)}`}
-          description="One card, two voices. Each side is read in the language it was written in — by the speech engine already on this device."
-          status={{
-            label: settings.ttsEnabled ? 'On this device' : 'Muted',
-            tone: settings.ttsEnabled ? 'success' : 'muted',
-          }}
-          ledger={ledger}
-        />
-      </RevealItem>
-
-      <SettingsSection label="Playback" index={1}>
-        <SettingsRow
-          icon="record-voice-over"
-          iconTone="accent"
-          title="Text-to-Speech"
-          subtitle={settings.ttsEnabled ? 'Speaks cards aloud' : 'Silent'}
-          iconPulseKey={settings.ttsEnabled}
-          trailing={
-            <ToggleSwitch
-              value={settings.ttsEnabled}
-              onToggle={(v) => update({ ttsEnabled: v })}
-              accessibilityLabel="Text-to-Speech"
+      <View style={{ paddingBottom: 24 }}>
+        <View style={{ gap: 28 }}>
+          <RevealItem index={0}>
+            <SettingsHero
+              testID="tts-hero"
+              eyebrow="Voice"
+              status={{
+                label: settings.ttsEnabled ? 'On this device' : 'Muted',
+                tone: settings.ttsEnabled ? 'success' : 'muted',
+              }}
+              title={`${shortCode(front)} → ${shortCode(back)}`}
+              description="One card, two voices. Each side is read in the language it was written in — by the speech engine already on this device."
+              ledger={ledger}
             />
-          }
-        />
-        <SettingsRow
-          icon="volume-up"
-          iconTone="accent"
-          title="Read entire card"
-          subtitle="Front, then back, in one pass"
-          trailing={
-            <ToggleSwitch
-              value={settings.ttsReadWholeCard}
-              onToggle={(v) => update({ ttsReadWholeCard: v })}
-              accessibilityLabel="Read Entire Card"
-            />
-          }
-        />
-        <SettingsRow
-          icon="play-circle-outline"
-          iconTone="accent"
-          title="Automatic playback"
-          subtitle="Starts speaking as soon as a card appears"
-          iconPulseKey={settings.ttsAutoPlay}
-          trailing={
-            <ToggleSwitch
-              value={settings.ttsAutoPlay}
-              onToggle={(v) => update({ ttsAutoPlay: v })}
-              accessibilityLabel="Automatic Playback"
-            />
-          }
-          isLast
-        />
-      </SettingsSection>
+          </RevealItem>
 
-      <SettingsSection label="Voices" index={2}>
-        <SettingsRow
-          icon="translate"
-          iconTone="info"
-          title="Front language"
-          subtitle="Used for every front card"
-          value={langName(front)}
-          onPress={() => setPickerField('front')}
-        />
-        <SettingsRow
-          icon="translate"
-          iconTone="info"
-          title="Back language"
-          subtitle="Every back card answers in this voice"
-          value={langName(back)}
-          onPress={() => setPickerField('back')}
-          isLast
-        />
-      </SettingsSection>
+          <RevealItem index={1}>
+            <SettingsChapter label="Playback">
+              <SettingsLine
+                icon="record-voice-over"
+                title="Text-to-Speech"
+                subtitle={settings.ttsEnabled ? 'Speaks cards aloud' : 'Silent'}
+                trailing={
+                  <ToggleSwitch
+                    value={settings.ttsEnabled}
+                    onToggle={(v) => update({ ttsEnabled: v })}
+                    accessibilityLabel="Text-to-Speech"
+                  />
+                }
+              />
+              <SettingsLine
+                icon="volume-up"
+                title="Read entire card"
+                subtitle="Front, then back, in one pass"
+                trailing={
+                  <ToggleSwitch
+                    value={settings.ttsReadWholeCard}
+                    onToggle={(v) => update({ ttsReadWholeCard: v })}
+                    accessibilityLabel="Read Entire Card"
+                  />
+                }
+              />
+              <SettingsLine
+                icon="play-circle-outline"
+                title="Automatic playback"
+                subtitle="Starts speaking as soon as a card appears"
+                trailing={
+                  <ToggleSwitch
+                    value={settings.ttsAutoPlay}
+                    onToggle={(v) => update({ ttsAutoPlay: v })}
+                    accessibilityLabel="Automatic Playback"
+                  />
+                }
+                last
+              />
+            </SettingsChapter>
+          </RevealItem>
 
-      <SettingsSection label="Sound check" index={3}>
-        <SettingsRow
-          icon="play-arrow"
-          iconTone="success"
-          title="Preview voices"
-          subtitle="Hear a sample in both languages — front first, then back"
-          value="Play"
-          onPress={previewVoices}
-          isLast
-        />
-      </SettingsSection>
+          <RevealItem index={2}>
+            <SettingsChapter label="Voices">
+              <SettingsLine
+                icon="translate"
+                tone={colors.info}
+                title="Front language"
+                subtitle="Used for every front card"
+                value={langName(front)}
+                onPress={() => setPickerField('front')}
+              />
+              <SettingsLine
+                icon="translate"
+                tone={colors.info}
+                title="Back language"
+                subtitle="Every back card answers in this voice"
+                value={langName(back)}
+                onPress={() => setPickerField('back')}
+                last
+              />
+            </SettingsChapter>
+          </RevealItem>
 
-      <SettingsNote icon="hearing">
-        Audio comes from the speech engine on your device. Once a voice is installed, it keeps
-        reading offline — no audio leaves the device.
-      </SettingsNote>
+          <RevealItem index={3}>
+            <SettingsChapter label="Sound check">
+              <SettingsLine
+                icon="play-arrow"
+                tone={colors.success}
+                title="Preview voices"
+                subtitle="Hear a sample in both languages — front first, then back"
+                value="Play"
+                onPress={previewVoices}
+                last
+              />
+            </SettingsChapter>
+          </RevealItem>
+
+          <SettingsFootnote icon="hearing">
+            Audio comes from the speech engine on your device. Once a voice is installed, it keeps
+            reading offline — no audio leaves the device.
+          </SettingsFootnote>
+        </View>
+      </View>
 
       <BottomSheetModal
         visible={pickerField !== null}
@@ -202,10 +212,7 @@ export default function TTSSettingsScreen() {
             : 'Every front card and the samples use this voice.'
         }
       >
-        <ScrollView
-          style={{ maxHeight: listMaxHeight }}
-          showsVerticalScrollIndicator
-        >
+        <ScrollView style={{ maxHeight: listMaxHeight }} showsVerticalScrollIndicator>
           {LANGUAGES.map((lang) => (
             <ListRow
               key={lang.code}

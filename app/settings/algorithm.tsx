@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { pushOnce } from '../../services/navigation';
+import { goBackOr, pushOnce } from '../../services/navigation';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import {
@@ -16,23 +16,24 @@ import {
 import {
   AppText,
   BottomSheetModal,
-  Button,
   ListRow,
   PrimaryButton,
   RadioOptionCard,
   RevealItem,
   Screen,
-  SettingsNote,
-  SettingsPlate,
-  SettingsRow,
-  SettingsSection,
   Stepper,
   ToggleSwitch,
-  TopAppBar,
 } from '../../components';
+import {
+  SettingsBackHeader,
+  SettingsChapter,
+  SettingsFootnote,
+  SettingsHero,
+  SettingsLine,
+} from '../../components/v3';
 import type { Deck } from '../../data/types';
 import { colors, heights, iconSize } from '../../theme/tokens';
-import { v2 } from '../../theme/v2';
+import { v3 } from '../../theme/v3';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 type PresetId = Deck['algorithmPreset'];
@@ -86,12 +87,15 @@ type Tuning = {
 };
 
 /**
- * Algorithm — one scheduler per deck.
+ * Algorithm — one scheduler per deck, v3 "Nocturne Focus".
  *
- * The page follows the same settings rhythm as the index: one plate with the
- * current deck and its readouts, then chapters for the deck, the model, the
- * model's parameters and the daily limits. Every control is a standard setting
- * row or radio option; there are no seals, stamps or decorative rules.
+ * The page keeps the index's drawer rhythm: a raised hero states the deck and
+ * the three numbers the scheduler is set by, then chapters hold the model, its
+ * parameters and the daily limits as 64px lines in 22px panes.
+ *
+ * Every control and its accessible name are unchanged — the scheduler flow and
+ * the focus-trapping sheet flows query them by name — and the retention draft
+ * still writes once on close, not on every 1% step.
  */
 export default function AlgorithmSettingsScreen() {
   const router = useRouter();
@@ -220,17 +224,18 @@ export default function AlgorithmSettingsScreen() {
       ? [
           { label: 'Retention', value: `${retention}%` },
           { label: 'Max interval', value: formatMaxInterval(view.maximumInterval) },
-          { label: 'Daily limit', value: `${view.newPerDay} new · ${view.maxPerDay} total` },
+          { label: 'Daily', value: `${view.newPerDay} new · ${view.maxPerDay} total` },
         ]
       : preset === 'general'
         ? [
-            { label: 'Learning steps', value: `${deck?.learningSteps.length ?? 0} steps` },
-            { label: 'Starting multiplier', value: `× ${deck?.masteredIntervalMultiplier ?? 2.5}` },
-            { label: 'Daily limit', value: `${view.newPerDay} new · ${view.maxPerDay} total` },
+            { label: 'Steps', value: `${deck?.learningSteps.length ?? 0} steps` },
+            { label: 'Multiplier', value: `× ${deck?.masteredIntervalMultiplier ?? 2.5}` },
+            { label: 'Daily', value: `${view.newPerDay} new · ${view.maxPerDay} total` },
           ]
         : [
-            { label: 'Schedule', value: 'No dates, no queue' },
-            { label: 'Daily limit', value: `${view.maxPerDay} cards` },
+            { label: 'Schedule', value: 'No dates' },
+            { label: 'Queue', value: 'In order' },
+            { label: 'Daily', value: `${view.maxPerDay} cards` },
           ];
 
   const advancedSettings = deck
@@ -245,183 +250,195 @@ export default function AlgorithmSettingsScreen() {
     <Screen
       scroll
       gutter
-      contentMaxWidth={v2.layout.contentMaxWidth}
-      header={<TopAppBar title="Algorithm" back backFallback="/settings" />}
+      contentMaxWidth={v3.layout.contentMaxWidth}
+      header={
+        <SettingsBackHeader title="Algorithm" onBack={() => goBackOr(router, '/settings')} />
+      }
     >
-      <RevealItem index={0}>
-        <SettingsPlate
-          tone="accent"
-          icon="tune"
-          eyebrow="Scheduler"
-          title={deck?.name ?? 'No deck yet'}
-          description={presetMeta.description}
-          status={{ label: 'Per deck', tone: 'muted' }}
-          ledger={ledger}
-        />
-      </RevealItem>
-
-      {decks.length > 1 && (
-        <SettingsSection label="Deck" index={1}>
-          <SettingsRow
-            icon="style"
-            iconTone="info"
-            title="Current deck"
-            subtitle={deck?.name ?? 'No deck yet'}
-            value="Change"
-            onPress={() => setSheet('deck')}
-            isLast
-          />
-        </SettingsSection>
-      )}
-
-      <SettingsSection label="Model" index={2}>
-        <View className="gap-2 p-3">
-          {PRESETS.map((option) => (
-            <RadioOptionCard
-              key={option.id}
-              icon={option.icon}
-              title={option.title}
-              description={option.short}
-              selected={preset === option.id}
-              onSelect={() => tune({ preset: option.id })}
+      <View style={{ paddingBottom: 24 }}>
+        <View style={{ gap: 28 }}>
+          <RevealItem index={0}>
+            <SettingsHero
+              testID="algorithm-hero"
+              eyebrow="Scheduler"
+              status={{ label: 'Per deck', tone: 'accent' }}
+              title={deck?.name ?? 'No deck yet'}
+              description={presetMeta.description}
+              ledger={ledger}
             />
-          ))}
-        </View>
-      </SettingsSection>
+          </RevealItem>
 
-      {preset === 'fsrs' && (
-        <SettingsSection label="FSRS parameters" index={3}>
-          <SettingsRow
-            icon="track-changes"
-            iconTone="accent"
-            title="Desired retention"
-            subtitle="Higher means more reviews, stronger recall"
-            value={`${retention}%`}
-            onPress={openRetention}
-          />
-          <SettingsRow
-            icon="timeline"
-            iconTone="accent"
-            title="Maximum interval"
-            subtitle="Longest gap FSRS may schedule"
-            value={formatMaxInterval(view.maximumInterval)}
-            onPress={() => setSheet('interval')}
-          />
-          <SettingsRow
-            icon="shuffle"
-            iconTone="accent"
-            title="Fuzz intervals"
-            subtitle="Spread due dates so reviews don't clump"
-            iconPulseKey={view.fuzz}
-            trailing={
-              <ToggleSwitch
-                value={view.fuzz}
-                onToggle={(value) => tune({ fuzz: value })}
-                accessibilityLabel="Fuzz intervals"
+          {decks.length > 1 && (
+            <RevealItem index={1}>
+              <SettingsChapter label="Deck">
+                <SettingsLine
+                  icon="style"
+                  tone={colors.info}
+                  title="Current deck"
+                  subtitle={deck?.name ?? 'No deck yet'}
+                  value="Change"
+                  onPress={() => setSheet('deck')}
+                  last
+                />
+              </SettingsChapter>
+            </RevealItem>
+          )}
+
+          <RevealItem index={2}>
+            <SettingsChapter label="Model">
+              <View style={{ gap: 8, padding: 12 }}>
+                {PRESETS.map((option) => (
+                  <RadioOptionCard
+                    key={option.id}
+                    icon={option.icon}
+                    title={option.title}
+                    description={option.short}
+                    selected={preset === option.id}
+                    onSelect={() => tune({ preset: option.id })}
+                  />
+                ))}
+              </View>
+            </SettingsChapter>
+          </RevealItem>
+
+          {preset === 'fsrs' && (
+            <RevealItem index={3}>
+              <SettingsChapter label="FSRS parameters">
+                <SettingsLine
+                  icon="track-changes"
+                  title="Desired retention"
+                  subtitle="Higher means more reviews, stronger recall"
+                  value={`${retention}%`}
+                  onPress={openRetention}
+                />
+                <SettingsLine
+                  icon="timeline"
+                  title="Maximum interval"
+                  subtitle="Longest gap FSRS may schedule"
+                  value={formatMaxInterval(view.maximumInterval)}
+                  onPress={() => setSheet('interval')}
+                />
+                <SettingsLine
+                  icon="shuffle"
+                  title="Fuzz intervals"
+                  subtitle="Spread due dates so reviews don't clump"
+                  trailing={
+                    <ToggleSwitch
+                      value={view.fuzz}
+                      onToggle={(value) => tune({ fuzz: value })}
+                      accessibilityLabel="Fuzz intervals"
+                    />
+                  }
+                />
+                <SettingsLine
+                  icon="insights"
+                  title="Adaptive review order"
+                  subtitle="Put cards with lower estimated recall first; due dates stay unchanged"
+                  trailing={
+                    <ToggleSwitch
+                      value={view.adaptive}
+                      onToggle={(value) => tune({ adaptive: value })}
+                      accessibilityLabel="Adaptive review order"
+                    />
+                  }
+                />
+                <SettingsLine
+                  icon="tune"
+                  title="Learning steps"
+                  subtitle="Then FSRS takes over long-term scheduling"
+                  value={learningSteps.length > 0 ? learningSteps.join(' → ') : 'Auto'}
+                  onPress={advancedSettings}
+                  last
+                />
+              </SettingsChapter>
+            </RevealItem>
+          )}
+
+          {preset === 'general' && (
+            <RevealItem index={3}>
+              <SettingsChapter label="SM-2">
+                <SettingsLine
+                  icon="history"
+                  title="Learning steps and intervals"
+                  subtitle="Classic SM-2 tuning — no memory model"
+                  onPress={advancedSettings}
+                  last
+                />
+              </SettingsChapter>
+            </RevealItem>
+          )}
+
+          {preset === 'fast' && (
+            <RevealItem index={3}>
+              <SettingsChapter label="Fast repetition">
+                <SettingsLine
+                  icon="bolt"
+                  tone={colors.warning}
+                  title="No dates, no queue"
+                  subtitle="Cards stay available in order; a session is a quick pass."
+                  last
+                />
+              </SettingsChapter>
+            </RevealItem>
+          )}
+
+          <RevealItem index={4}>
+            <SettingsChapter label="Daily limits">
+              <SettingsLine
+                icon="add-circle-outline"
+                tone={colors.warning}
+                title="New cards per day"
+                value={String(view.newPerDay)}
+                onPress={() => setSheet('new')}
               />
-            }
-          />
-          <SettingsRow
-            icon="insights"
-            iconTone="accent"
-            title="Adaptive review order"
-            subtitle="Put cards with lower estimated recall first; due dates stay unchanged"
-            iconPulseKey={view.adaptive}
-            trailing={
-              <ToggleSwitch
-                value={view.adaptive}
-                onToggle={(value) => tune({ adaptive: value })}
-                accessibilityLabel="Adaptive review order"
+              <SettingsLine
+                icon="stacked-bar-chart"
+                tone={colors.warning}
+                title="Maximum cards per day"
+                subtitle="Learning steps don't count against this"
+                value={String(view.maxPerDay)}
+                onPress={() => setSheet('max')}
               />
-            }
-          />
-          <SettingsRow
-            icon="tune"
-            iconTone="accent"
-            title="Learning steps"
-            subtitle="Then FSRS takes over long-term scheduling"
-            value={learningSteps.length > 0 ? learningSteps.join(' → ') : 'Auto'}
-            onPress={advancedSettings}
-            isLast
-          />
-        </SettingsSection>
-      )}
+              <SettingsLine
+                icon="shuffle"
+                tone={colors.warning}
+                title="Shuffle cards"
+                subtitle="Mix new cards; with adaptive order on, due priority is kept"
+                trailing={
+                  <ToggleSwitch
+                    value={view.shuffle}
+                    onToggle={(value) => tune({ shuffle: value })}
+                    accessibilityLabel="Shuffle Cards"
+                  />
+                }
+                last
+              />
+            </SettingsChapter>
+          </RevealItem>
 
-      {preset === 'general' && (
-        <SettingsSection label="SM-2" index={3}>
-          <SettingsRow
-            icon="history"
-            iconTone="accent"
-            title="Learning steps and intervals"
-            subtitle="Classic SM-2 tuning — no memory model"
-            onPress={advancedSettings}
-            isLast
-          />
-        </SettingsSection>
-      )}
+          {decks.length > 1 && (
+            <RevealItem index={5}>
+              <SettingsChapter label="Library">
+                <SettingsLine
+                  icon="copy-all"
+                  title="Apply to all decks"
+                  subtitle="Copy this scheduler, its parameters and daily limits everywhere"
+                  accessibilityLabel="Apply to all decks"
+                  onPress={() => setSheet('applyAll')}
+                  last
+                />
+              </SettingsChapter>
+            </RevealItem>
+          )}
 
-      {preset === 'fast' && (
-        <SettingsSection label="Fast repetition" index={3}>
-          <SettingsRow
-            icon="bolt"
-            iconTone="warning"
-            title="No dates, no queue"
-            subtitle="Cards stay available in order; a session is a quick pass."
-            isLast
-          />
-        </SettingsSection>
-      )}
-
-      <SettingsSection label="Daily limits" index={4}>
-        <SettingsRow
-          icon="add-circle-outline"
-          iconTone="warning"
-          title="New cards per day"
-          value={String(view.newPerDay)}
-          onPress={() => setSheet('new')}
-        />
-        <SettingsRow
-          icon="stacked-bar-chart"
-          iconTone="warning"
-          title="Maximum cards per day"
-          subtitle="Learning steps don't count against this"
-          value={String(view.maxPerDay)}
-          onPress={() => setSheet('max')}
-        />
-        <SettingsRow
-          icon="shuffle"
-          iconTone="warning"
-          title="Shuffle cards"
-          subtitle="Mix new cards; with adaptive order on, due priority is kept"
-          iconPulseKey={view.shuffle}
-          trailing={
-            <ToggleSwitch
-              value={view.shuffle}
-              onToggle={(value) => tune({ shuffle: value })}
-              accessibilityLabel="Shuffle Cards"
-            />
-          }
-          isLast
-        />
-      </SettingsSection>
-
-      {decks.length > 1 && (
-        <View className="mt-6">
-          <Button
-            variant="secondary"
-            label="Apply to all decks"
-            icon="copy-all"
-            onPress={() => setSheet('applyAll')}
-          />
+          {preset === 'fsrs' && (
+            <SettingsFootnote icon="psychology">
+              FSRS-6 · 21 parameters. Scheduling follows the memory model instead of hand-tuned
+              intervals.
+            </SettingsFootnote>
+          )}
         </View>
-      )}
-
-      {preset === 'fsrs' && (
-        <SettingsNote icon="psychology">
-          FSRS-6 · 21 parameters. Scheduling follows the memory model instead of hand-tuned
-          intervals.
-        </SettingsNote>
-      )}
+      </View>
 
       <BottomSheetModal
         visible={sheet === 'deck'}

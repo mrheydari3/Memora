@@ -27,6 +27,8 @@ export const v3 = {
     deckName: { fontSize: 17, lineHeight: 24, letterSpacing: 0 },
     /** A section-opening line, e.g. the Game hero's "Beat the clock.". */
     headlineMd: { fontSize: 24, lineHeight: 30, letterSpacing: -0.5 },
+    /** The composer's prompt: the card's front, written on the card itself. */
+    composerFront: { fontSize: 30, lineHeight: 36, letterSpacing: -0.7 },
   },
 
   spacing: {
@@ -61,6 +63,8 @@ export const v3 = {
   layout: {
     /** The reading column on a wide canvas. */
     contentMaxWidth: 960,
+    /** The card composer is one card wide, not one page wide. */
+    composerMaxWidth: 420,
     /** A deck row's studied rail stops here, so its % never sits under the due tile. */
     deckRail: 220,
   },

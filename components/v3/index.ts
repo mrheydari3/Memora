@@ -4,3 +4,10 @@ export { FolderGroup } from './FolderGroup';
 export { ArchivedRow } from './ArchivedRow';
 export { ShelfHeader } from './ShelfHeader';
 export { HeaderIcon } from './HeaderIcon';
+export {
+  SettingsBackHeader,
+  SettingsChapter,
+  SettingsFootnote,
+  SettingsHero,
+  SettingsLine,
+} from './SettingsPane';

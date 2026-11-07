@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
@@ -10,11 +10,10 @@ import { computeStreak } from '../../data/streak';
 import { exportJson } from '../../services/export';
 import { MaterialIcons } from '../../components/Icon';
 import { AppText, RevealItem, Screen, ToggleSwitch } from '../../components';
-import { alpha, colors, fills, iconSize } from '../../theme/tokens';
+import { SettingsChapter as Chapter, SettingsLine } from '../../components/v3';
+import { alpha, colors, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import type { Deck } from '../../data/types';
-
-type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
 const APP_VERSION = Constants.expoConfig?.version ?? '1.2.0';
 const XP_PER_REVIEW = 10;
@@ -28,152 +27,6 @@ const PRESET_LABELS: Record<Deck['algorithmPreset'], string> = {
 
 const formatCount = (value: number) => value.toLocaleString('en-US');
 const NUMERIC = { fontVariant: ['tabular-nums'] as const };
-
-type RowProps = {
-  icon: IconName;
-  /** The glyph's colour; the tile itself stays a quiet control fill. */
-  tone?: string;
-  title: string;
-  subtitle?: string;
-  /** A short right-aligned state, e.g. "On" or the scheduler's name. */
-  value?: string;
-  onPress?: () => void;
-  trailing?: React.ReactNode;
-  /** The last row in a pane draws no divider. */
-  last?: boolean;
-};
-
-/**
- * One settings line, v3: a 40px tile, a 15/600 title, a 13px subtitle and an
- * optional state. Rows that do something are buttons with a 64px minimum
- * target; switch rows stay inert containers so the switch owns the press.
- *
- * The divider starts at the title, not the card edge, so a pane reads as one
- * group instead of a stack of separate boxes.
- */
-function SettingsLine({
-  icon,
-  tone = colors.primary,
-  title,
-  subtitle,
-  value,
-  onPress,
-  trailing,
-  last = false,
-}: RowProps) {
-  const [hovered, setHovered] = useState(false);
-
-  const content = (
-    <>
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 12,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: colors.surfaceControl,
-          flexShrink: 0,
-        }}
-      >
-        <MaterialIcons name={icon} size={iconSize.lg} color={tone} />
-      </View>
-
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <AppText variant="body" weight="semibold" numberOfLines={1}>
-          {title}
-        </AppText>
-        {subtitle && (
-          <AppText variant="bodySm" tone="muted" numberOfLines={2} style={{ marginTop: 2 }}>
-            {subtitle}
-          </AppText>
-        )}
-      </View>
-
-      {value && (
-        <AppText variant="caption" tone="tertiary" numberOfLines={1}>
-          {value}
-        </AppText>
-      )}
-      {trailing}
-      {onPress && (
-        <MaterialIcons name="chevron-right" size={iconSize.lg} color={colors.outline} />
-      )}
-    </>
-  );
-
-  const baseStyle = {
-    minHeight: 64,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 12,
-  };
-
-  return (
-    <View>
-      {onPress ? (
-        <Pressable
-          onPress={onPress}
-          onHoverIn={() => setHovered(true)}
-          onHoverOut={() => setHovered(false)}
-          accessibilityRole="button"
-          accessibilityLabel={`${title}${subtitle ? `. ${subtitle}` : ''}${
-            value ? `. ${value}` : ''
-          }`}
-          style={[baseStyle, hovered ? { backgroundColor: alpha(colors.surfaceTile, 0.5) } : null]}
-        >
-          {content}
-        </Pressable>
-      ) : (
-        <View style={baseStyle}>{content}</View>
-      )}
-
-      {!last && (
-        <View
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          style={{ height: 1, backgroundColor: colors.outlineVariant, marginStart: 68 }}
-        />
-      )}
-    </View>
-  );
-}
-
-type ChapterProps = {
-  label: string;
-  children: React.ReactNode;
-};
-
-/** A chapter title and its pane; the pane's radius matches a deck card. */
-function Chapter({ label, children }: ChapterProps) {
-  return (
-    <View>
-      <AppText
-        variant="label"
-        weight="semibold"
-        tone="tertiary"
-        headingLevel={2}
-        className="uppercase"
-        style={{ letterSpacing: 0.6, marginBottom: 10, paddingHorizontal: 4 }}
-      >
-        {label}
-      </AppText>
-      <View
-        style={{
-          backgroundColor: colors.surfacePane,
-          borderRadius: 22,
-          borderWidth: 1,
-          borderColor: alpha(colors.outlineSoft, 0.2),
-          overflow: 'hidden',
-        }}
-      >
-        {children}
-      </View>
-    </View>
-  );
-}
 
 /**
  * Settings — v3 "Nocturne Focus".

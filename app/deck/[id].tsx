@@ -7,39 +7,27 @@ import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
 import { buildStudyQueue } from '../../data/session';
 import { exportJson } from '../../services/export';
-import {
-  alpha,
-  colors,
-  fills,
-  heights,
-  iconSize,
-  radii,
-  stateColors,
-} from '../../theme/tokens';
-import { v2 } from '../../theme/v2';
+import { alpha, colors, fills, heights, iconSize, radii, stateColors } from '../../theme/tokens';
+import { v3 } from '../../theme/v3';
 import { HintPressable } from '../../components/HintPressable';
 import {
   AppText,
   Button,
   CARD_COLOR_CHOICES,
-  Chip,
   BottomSheetModal,
+  DeckCardGridSkeleton,
   EmptyState,
   Field,
-  HeroPane,
   HeroSkeleton,
-  DeckCardGridSkeleton,
   IconButton,
   ListRow,
-  Pill,
   PrimaryButton,
   RevealItem,
   Screen,
   SearchBar,
   SheetScrollView,
-  TopAppBar,
 } from '../../components';
-import { StartButton, TodayRail } from '../../components/v2';
+import { HeaderIcon } from '../../components/v3';
 import type { Flashcard } from '../../data/types';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -73,11 +61,149 @@ const FILTERS: { key: FilterMode; label: string }[] = [
 
 const CARD_LIMIT = 8;
 
+const NUMERIC = { fontVariant: ['tabular-nums'] as const };
+
 /** 1811 → "1,811" without depending on Intl being present on the runtime. */
 function formatCount(value: number): string {
   return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
+/**
+ * The deck's bar: the deck name is the page's h1, so descending from the shelf
+ * keeps naming the deck instead of replacing it with a generic route name.
+ * Every action draws a bare 22px glyph on a 44px target, v3's app-bar rule.
+ */
+function DeckHeader({
+  title,
+  onBack,
+  onAdd,
+  onOptions,
+}: {
+  title: string;
+  onBack: () => void;
+  onAdd?: () => void;
+  onOptions?: () => void;
+}) {
+  return (
+    <View
+      style={{
+        height: 64,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 12,
+        backgroundColor: colors.appBarGlass,
+      }}
+    >
+      <HeaderIcon icon="arrow-back" label="Go back" onPress={onBack} />
+      <AppText
+        variant="headline"
+        weight="semibold"
+        headingLevel={1}
+        numberOfLines={1}
+        style={{ letterSpacing: -0.4, flex: 1, minWidth: 0, marginStart: 4 }}
+      >
+        {title}
+      </AppText>
+      {onAdd && <HeaderIcon icon="add" label="Add cards" onPress={onAdd} />}
+      {onOptions && <HeaderIcon icon="more-horiz" label="More options" onPress={onOptions} />}
+    </View>
+  );
+}
+
+/** The hero's live status chip: due, caught up, or filed away. */
+function StatusChip({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: 'accent' | 'success' | 'muted';
+}) {
+  const ink = tone === 'accent' ? colors.primary : tone === 'success' ? colors.success : colors.outline;
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: radii.pill,
+        backgroundColor: tone === 'muted' ? colors.surfaceControl : alpha(ink, 0.12),
+        borderWidth: 1,
+        borderColor: tone === 'muted' ? alpha(colors.outlineSoft, 0.4) : alpha(ink, 0.25),
+        flexShrink: 0,
+      }}
+    >
+      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: ink }} />
+      <AppText variant="caption" tone={tone === 'muted' ? 'muted' : tone}>
+        {label}
+      </AppText>
+    </View>
+  );
+}
+
+/** One filter choice: selection is the tint behind the label, never an outline. */
+function FilterPill({
+  label,
+  active,
+  dot,
+  accessibilityLabel,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  dot?: string;
+  accessibilityLabel: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      aria-pressed={active}
+      accessibilityLabel={accessibilityLabel}
+      style={{
+        minHeight: 44,
+        paddingHorizontal: 16,
+        borderRadius: radii.pill,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        backgroundColor: active ? alpha(colors.primary, 0.14) : colors.surfaceControl,
+      }}
+    >
+      {dot && (
+        <View
+          aria-hidden
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: dot }}
+        />
+      )}
+      <AppText variant="caption" weight="semibold" tone={active ? 'accent' : 'muted'}>
+        {label}
+      </AppText>
+    </Pressable>
+  );
+}
+
+/**
+ * Deck details — design v3, "Nocturne Focus".
+ *
+ * The shelf row opens onto one raised pane that states the deck's today: its
+ * glyph and card count, the due figure, the new/learning/review split as an
+ * inset ledger, and the session pill. Below it the card browser is a single
+ * chapter — search, sort and filters in the pane's header, then 64px rows
+ * separated by a hairline that starts at the text, the same rhythm the settings
+ * panes use.
+ *
+ * Everything the page could do before is still here and still addressed the
+ * same way: the browsers, the eight-card fold, the four sheets (options, sort,
+ * card menu, confirmations) and their focus handling.
+ */
 export default function DeckDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -181,12 +307,14 @@ export default function DeckDetailsScreen() {
   const openCardMenu = useCallback((card: Flashcard) => setCardMenuId(card.id), []);
   const closeCardMenu = useCallback(() => setCardMenuId(null), []);
 
+  const backHome = () => goBackOr(router, '/(tabs)/home');
+
   // The store hydrates asynchronously: until it has, "Deck not found" would be a
   // lie for a deck that is about to load. Show the page's shape instead.
   if (!deck && !loaded) {
     return (
-      <Screen header={<TopAppBar title="Deck" back backFallback="/(tabs)/home" />}>
-        <View className="flex-1" style={{ paddingHorizontal: 20, paddingTop: 20 }}>
+      <Screen header={<DeckHeader title="Deck" onBack={backHome} />}>
+        <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
           <HeroSkeleton height={150} />
           <View className="mt-6">
             <DeckCardGridSkeleton count={1} />
@@ -198,7 +326,7 @@ export default function DeckDetailsScreen() {
 
   if (!deck) {
     return (
-      <Screen header={<TopAppBar title="Deck" back backFallback="/(tabs)/home" />}>
+      <Screen header={<DeckHeader title="Deck" onBack={backHome} />}>
         <View className="flex-1 items-center justify-center px-8">
           <EmptyState
             icon="layers-clear"
@@ -223,6 +351,10 @@ export default function DeckDetailsScreen() {
   const filtered = query.trim().length > 0 || filterMode !== 'all' || colorFilter !== null;
   const shown = showAll ? visibleCards : visibleCards.slice(0, CARD_LIMIT);
   const sortLabel = SORT_LABELS[sortMode];
+  const archived = Boolean(deck.archivedAt);
+  const countLabel = `${formatCount(deckCards.length)} ${
+    deckCards.length === 1 ? 'card' : 'cards'
+  }`;
 
   const clearFilters = () => {
     setQuery('');
@@ -285,73 +417,165 @@ export default function DeckDetailsScreen() {
     router.replace('/(tabs)/home');
   };
 
-  const identity = (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-      <View
-        style={{
-          width: heights.tileLg,
-          height: heights.tileLg,
-          borderRadius: v2.radii.card,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: alpha(deck.color, 0.16),
-        }}
-      >
-        <MaterialIcons name={deck.icon as IconName} size={iconSize.lg} color={deck.color} />
-      </View>
-
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <AppText variant="title" headingLevel={1} style={v2.type.title} numberOfLines={2}>
-          {deck.name}
-        </AppText>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 8,
-            marginTop: 4,
-          }}
-        >
-          <AppText variant="caption" tone="muted">
-            {formatCount(deckCards.length)} cards ·{' '}
-            {totalDue > 0 ? `${totalDue} due` : 'caught up'}
-          </AppText>
-          {deck.archivedAt ? <Pill label="Archived" tone="warning" /> : null}
-        </View>
-      </View>
-    </View>
-  );
+  const ledger = [
+    { key: 'new', label: 'New', value: newDue, color: stateColors.New },
+    { key: 'learning', label: 'Learning', value: learningDue, color: stateColors.Learning },
+    { key: 'review', label: 'Review', value: reviewDue, color: stateColors.Review },
+  ];
 
   const hero = (
-    <HeroPane
-      stage
-      wide={wide}
+    <View
       testID="deck-hero"
-      eyebrow="Today’s queue"
-      value={totalDue}
-      unit="cards due"
-      valueLabel={`${totalDue} cards due in this deck`}
-      context={totalDue > 0 ? 'in this deck today' : 'Nothing due — you are all caught up'}
-      action={
-        <StartButton
-          label={totalDue > 0 ? 'Start session' : 'Nothing due today'}
-          disabled={totalDue === 0}
-          onPress={() => pushOnce(router, `/study/${deck.id}`)}
+      style={{
+        backgroundColor: colors.surfaceCardFace,
+        borderRadius: v3.radii.pane,
+        borderWidth: 1,
+        borderColor: alpha(colors.outlineSoft, 0.3),
+        padding: v3.spacing.panel,
+        gap: 16,
+      }}
+    >
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <View
+            aria-hidden
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: v3.radii.tile,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: alpha(deck.color, 0.15),
+              flexShrink: 0,
+            }}
+          >
+            <MaterialIcons name={deck.icon as IconName} size={iconSize.lg} color={deck.color} />
+          </View>
+          <View style={{ minWidth: 0 }}>
+            <AppText
+              variant="label"
+              weight="semibold"
+              tone="accent"
+              className="uppercase"
+              numberOfLines={1}
+              style={{ letterSpacing: 0.6 }}
+            >
+              Today’s queue
+            </AppText>
+            <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+              {countLabel}
+            </AppText>
+          </View>
+        </View>
+
+        <StatusChip
+          label={archived ? 'Archived' : totalDue > 0 ? 'Due today' : 'Caught up'}
+          tone={archived ? 'muted' : totalDue > 0 ? 'accent' : 'success'}
         />
-      }
-      rail={
-        totalDue > 0 ? (
-          <TodayRail
-            segments={[
-              { label: 'New', value: newDue, color: stateColors.New },
-              { label: 'Learning', value: learningDue, color: stateColors.Learning },
-              { label: 'Review', value: reviewDue, color: stateColors.Review },
-            ]}
-          />
-        ) : undefined
-      }
-    />
+      </View>
+
+      <View>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
+          <AppText
+            variant="display"
+            style={[wide ? v3.type.heroWide : v3.type.hero, NUMERIC]}
+            accessibilityLabel={`${totalDue} cards due in this deck`}
+          >
+            {totalDue}
+          </AppText>
+          <AppText variant="headline" weight="semibold" tone="tertiary" numberOfLines={1}>
+            cards due
+          </AppText>
+        </View>
+        <AppText variant="bodySm" tone="tertiary" style={{ marginTop: 2 }}>
+          {totalDue > 0 ? 'in this deck today' : 'Nothing due — you are all caught up'}
+        </AppText>
+      </View>
+
+      {/* The queue's composition, in the same inset ledger the settings hero
+          uses: three cells, one rule between neighbours, tabular figures. */}
+      <View
+        style={{
+          flexDirection: 'row',
+          backgroundColor: colors.surfaceInset,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: alpha(colors.outlineSoft, 0.2),
+          paddingVertical: 12,
+          paddingHorizontal: 12,
+        }}
+      >
+        {ledger.map((cell, index) => (
+          <View
+            key={cell.key}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              paddingStart: index === 0 ? 0 : 10,
+              borderStartWidth: index === 0 ? 0 : 1,
+              borderStartColor: colors.outlineVariant,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View
+                aria-hidden
+                style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: cell.color }}
+              />
+              <AppText variant="caption" tone="tertiary">
+                {cell.label}
+              </AppText>
+            </View>
+            <AppText
+              variant="title"
+              weight="semibold"
+              numberOfLines={1}
+              style={[NUMERIC, { marginTop: 2 }]}
+            >
+              {cell.value}
+            </AppText>
+          </View>
+        ))}
+      </View>
+
+      <Pressable
+        onPress={totalDue > 0 ? () => pushOnce(router, `/study/${deck.id}`) : undefined}
+        disabled={totalDue === 0}
+        accessibilityRole="button"
+        accessibilityLabel={totalDue > 0 ? 'Start session' : 'Nothing due today'}
+        accessibilityState={{ disabled: totalDue === 0 }}
+        style={{
+          minHeight: 52,
+          borderRadius: radii.pill,
+          paddingHorizontal: 20,
+          paddingVertical: 10,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          backgroundColor: totalDue > 0 ? colors.primaryContainer : fills.control,
+        }}
+      >
+        <AppText
+          variant="body"
+          weight="semibold"
+          style={{ color: totalDue > 0 ? colors.onPrimaryContainer : colors.outline }}
+        >
+          {totalDue > 0 ? 'Start session' : 'Nothing due today'}
+        </AppText>
+        {totalDue > 0 && (
+          <MaterialIcons name="arrow-forward" size={iconSize.lg} color={colors.onPrimaryContainer} />
+        )}
+      </Pressable>
+    </View>
   );
 
   const cardsSection = (
@@ -362,113 +586,178 @@ export default function DeckDetailsScreen() {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 12,
+          paddingHorizontal: 4,
+          paddingBottom: 10,
         }}
       >
-        <AppText variant="headline" headingLevel={2} style={v2.type.headline}>
-          Cards
-        </AppText>
-        <AppText variant="caption" tone="muted">
-          {filtered
-            ? `${formatCount(visibleCards.length)} of ${formatCount(deckCards.length)}`
-            : `${formatCount(deckCards.length)} cards`}
-        </AppText>
-      </View>
-
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 }}>
-        {/* The app's one search field. The deck browser used to build its own
-            48px pill with a raw 15px input, so its height, radius and clear
-            affordance drifted from every other search in the app. */}
-        <View style={{ flex: 1 }}>
-          <SearchBar
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search cards"
-            accessibilityLabel="Search cards"
-          />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <AppText
+            variant="label"
+            weight="semibold"
+            tone="tertiary"
+            headingLevel={2}
+            className="uppercase"
+            numberOfLines={1}
+            style={{ letterSpacing: 0.6 }}
+          >
+            Cards
+          </AppText>
+          <View
+            style={{
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: radii.pill,
+              backgroundColor: colors.surfaceControl,
+            }}
+          >
+            <AppText variant="caption" weight="medium" tone="muted" numberOfLines={1}>
+              {filtered
+                ? `${formatCount(visibleCards.length)} of ${formatCount(deckCards.length)}`
+                : countLabel}
+            </AppText>
+          </View>
         </View>
 
-        <Chip
-          label={`Sort: ${sortLabel}`}
-          active
-          menu
-          onPress={() => setSortVisible(true)}
-          accessibilityLabel={`Sort: ${sortLabel}. Open sort options.`}
-        />
+        <AppText variant="caption" tone="tertiary" numberOfLines={1} style={NUMERIC}>
+          {totalDue > 0 ? `${formatCount(totalDue)} due` : 'All caught up'}
+        </AppText>
       </View>
 
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-        {FILTERS.map((entry) => (
-          <Chip
-            key={entry.key}
-            label={entry.label}
-            active={filterMode === entry.key}
-            onPress={() => setFilterMode(entry.key)}
-            accessibilityLabel={`Filter cards: ${entry.label}`}
-          />
-        ))}
-      </View>
-
-      {/* The tints this deck uses, each with its own swatch. Pressing the active
-          one clears it, so a colour filter never needs a second control to undo. */}
-      {deckColors.length > 0 && (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-          {deckColors.map((choice) => (
-            <Chip
-              key={choice.value}
-              label={choice.label}
-              dot={choice.value}
-              active={colorFilter === choice.value}
-              onPress={() => setColorFilter(colorFilter === choice.value ? null : choice.value)}
-              accessibilityLabel={`Filter cards: ${choice.label}`}
-            />
-          ))}
-
-          {/* A named way out while a colour is on, next to the shortcut a
-              desktop user can press without leaving the list. */}
-          {colorFilter !== null && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-              <IconButton
-                icon="close"
-                size="sm"
-                accessibilityLabel="Clear colour filter"
-                onPress={() => setColorFilter(null)}
+      <View
+        style={{
+          backgroundColor: colors.surfacePane,
+          borderRadius: v3.radii.card,
+          borderWidth: 1,
+          borderColor: alpha(colors.outlineSoft, 0.2),
+          overflow: 'hidden',
+        }}
+      >
+        <View style={{ padding: 12, gap: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {/* The app's one search field: its height, radius and clear
+                affordance stay the same as every other search in the app. */}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <SearchBar
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Search cards"
+                accessibilityLabel="Search cards"
               />
-              {Platform.OS === 'web' && (
-                <AppText variant="caption" tone="tertiary">
-                  Esc
-                </AppText>
+            </View>
+
+            <Pressable
+              onPress={() => setSortVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel={`Sort: ${sortLabel}. Open sort options.`}
+              style={{
+                minHeight: 44,
+                paddingHorizontal: 12,
+                borderRadius: v3.radii.control,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                backgroundColor: colors.surfaceControl,
+                flexShrink: 0,
+              }}
+            >
+              <View
+                aria-hidden
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              >
+                <MaterialIcons name="sort" size={iconSize.sm} color={colors.outline} />
+              </View>
+              <AppText variant="caption" weight="semibold" numberOfLines={1}>
+                Sort: {sortLabel}
+              </AppText>
+            </Pressable>
+          </View>
+
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {FILTERS.map((entry) => (
+              <FilterPill
+                key={entry.key}
+                label={entry.label}
+                active={filterMode === entry.key}
+                accessibilityLabel={`Filter cards: ${entry.label}`}
+                onPress={() => setFilterMode(entry.key)}
+              />
+            ))}
+          </View>
+
+          {/* The tints this deck uses, each with its own swatch. Pressing the
+              active one clears it, so a colour filter never needs a second
+              control to undo. */}
+          {deckColors.length > 0 && (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {deckColors.map((choice) => (
+                <FilterPill
+                  key={choice.value}
+                  label={choice.label}
+                  dot={choice.value}
+                  active={colorFilter === choice.value}
+                  accessibilityLabel={`Filter cards: ${choice.label}`}
+                  onPress={() =>
+                    setColorFilter(colorFilter === choice.value ? null : choice.value)
+                  }
+                />
+              ))}
+
+              {/* A named way out while a colour is on, next to the shortcut a
+                  desktop user can press without leaving the list. */}
+              {colorFilter !== null && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                  <IconButton
+                    icon="close"
+                    size="sm"
+                    accessibilityLabel="Clear colour filter"
+                    onPress={() => setColorFilter(null)}
+                  />
+                  {Platform.OS === 'web' && (
+                    <AppText variant="caption" tone="tertiary">
+                      Esc
+                    </AppText>
+                  )}
+                </View>
               )}
             </View>
           )}
         </View>
-      )}
 
-      <View style={{ marginTop: 14, gap: 8 }}>
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ height: 1, backgroundColor: colors.outlineVariant }}
+        />
+
         {visibleCards.length === 0 ? (
-          <EmptyState
-            icon={cardsEmpty ? 'note-add' : 'search-off'}
-            title={cardsEmpty ? 'No cards yet' : 'Nothing matches'}
-            description={
-              cardsEmpty
-                ? 'Add your first card to start studying this deck.'
-                : 'Try a different search or filter.'
-            }
-            action={
-              cardsEmpty ? (
-                <Button
-                  variant="outline"
-                  size="md"
-                  label="Add cards"
-                  icon="add"
-                  onPress={() => pushOnce(router, `/deck/${deck.id}/add-card`)}
-                />
-              ) : (
-                <Button variant="text" size="md" label="Clear filters" onPress={clearFilters} />
-              )
-            }
-          />
+          <View style={{ paddingHorizontal: 24, paddingVertical: 28 }}>
+            <EmptyState
+              icon={cardsEmpty ? 'note-add' : 'search-off'}
+              title={cardsEmpty ? 'No cards yet' : 'Nothing matches'}
+              description={
+                cardsEmpty
+                  ? 'Add your first card to start studying this deck.'
+                  : 'Try a different search or filter.'
+              }
+              action={
+                cardsEmpty ? (
+                  <Button
+                    variant="outline"
+                    size="md"
+                    label="Add cards"
+                    icon="add"
+                    onPress={() => pushOnce(router, `/deck/${deck.id}/add-card`)}
+                  />
+                ) : (
+                  <Button variant="text" size="md" label="Clear filters" onPress={clearFilters} />
+                )
+              }
+            />
+          </View>
         ) : (
-          shown.map((card) => {
+          shown.map((card, index) => {
             const expanded = expandedId === card.id;
             return (
               <View
@@ -476,20 +765,10 @@ export default function DeckDetailsScreen() {
                 // A deck can hold thousands of rows; this class lets the
                 // browser skip layout and paint for the ones off screen.
                 className="defer-render"
-                style={{
-                  minHeight: 64,
-                  borderRadius: radii.control,
-                  backgroundColor: fills.inset,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  // The card's wash is its own layer, so the row has to clip it.
-                  overflow: 'hidden',
-                }}
+                style={{ position: 'relative' }}
               >
-                {/* A tinted card reads in its own colour in the ledger too, so a
-                    deck can be scanned without opening a card. A layer rather
-                    than a mixed fill: React Native cannot stack two background
-                    colours on one view. */}
+                {/* A tinted card reads in its own colour in the ledger too, so
+                    a deck can be scanned without opening a card. */}
                 {card.color ? (
                   <View
                     pointerEvents="none"
@@ -499,97 +778,129 @@ export default function DeckDetailsScreen() {
                       left: 0,
                       right: 0,
                       bottom: 0,
-                      backgroundColor: alpha(card.color, 0.12),
+                      backgroundColor: alpha(card.color, 0.1),
                     }}
                   />
                 ) : null}
-                <HintPressable
-                  hint={expanded ? 'Hide the full card' : 'Show the full card'}
-                  testID="deck-card-row"
-                  onPress={() => setExpandedId(expanded ? null : card.id)}
-                  accessibilityRole="button"
-                  accessibilityState={{ expanded }}
-                  aria-expanded={expanded}
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    minHeight: 64,
-                    paddingLeft: 14,
-                    paddingRight: 4,
-                    paddingVertical: 12,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 10,
-                  }}
-                >
-                  <View
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: 64 }}>
+                  <HintPressable
+                    hint={expanded ? 'Hide the full card' : 'Show the full card'}
+                    testID="deck-card-row"
+                    onPress={() => setExpandedId(expanded ? null : card.id)}
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded }}
+                    aria-expanded={expanded}
                     style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: 4,
-                      backgroundColor: stateColors[card.fsrs.state],
+                      flex: 1,
+                      minWidth: 0,
+                      minHeight: 64,
+                      paddingStart: 16,
+                      paddingEnd: 4,
+                      paddingVertical: 12,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 10,
+                    }}
+                  >
+                    <View
+                      aria-hidden
+                      accessibilityElementsHidden
+                      importantForAccessibility="no-hide-descendants"
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: stateColors[card.fsrs.state],
+                        flexShrink: 0,
+                      }}
+                    />
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <AppText
+                        variant="body"
+                        weight="semibold"
+                        numberOfLines={expanded ? undefined : 1}
+                        style={{ writingDirection: card.front.direction }}
+                      >
+                        {card.front.text}
+                      </AppText>
+                      <AppText
+                        variant="bodySm"
+                        tone="muted"
+                        align="left"
+                        style={{ marginTop: 2, writingDirection: card.back.direction }}
+                        numberOfLines={expanded ? undefined : 1}
+                      >
+                        {card.back.text}
+                      </AppText>
+                    </View>
+                    <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+                      {card.fsrs.state}
+                    </AppText>
+                    <View
+                      aria-hidden
+                      accessibilityElementsHidden
+                      importantForAccessibility="no-hide-descendants"
+                    >
+                      <MaterialIcons
+                        name={expanded ? 'expand-less' : 'expand-more'}
+                        size={iconSize.md}
+                        color={colors.outline}
+                      />
+                    </View>
+                  </HintPressable>
+
+                  <Pressable
+                    onPress={() => openCardMenu(card)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`More options for ${card.front.text}`}
+                    style={{
+                      width: 44,
+                      height: 44,
+                      marginEnd: 4,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <MaterialIcons name="more-vert" size={iconSize.md} color={colors.outline} />
+                  </Pressable>
+                </View>
+
+                {index < shown.length - 1 && (
+                  <View
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                    style={{
+                      height: 1,
+                      backgroundColor: colors.outlineVariant,
+                      marginStart: 34,
                     }}
                   />
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <AppText
-                      variant="body"
-                      weight="semibold"
-                      numberOfLines={expanded ? undefined : 1}
-                      style={{ writingDirection: card.front.direction }}
-                    >
-                      {card.front.text}
-                    </AppText>
-                    <AppText
-                      variant="caption"
-                      tone="muted"
-                      align="left"
-                      style={{ marginTop: 2, writingDirection: card.back.direction }}
-                      numberOfLines={expanded ? undefined : 1}
-                    >
-                      {card.back.text}
-                    </AppText>
-                  </View>
-                  <AppText variant="caption" tone="muted">
-                    {card.fsrs.state}
-                  </AppText>
-                  <MaterialIcons
-                    name={expanded ? 'expand-less' : 'expand-more'}
-                    size={iconSize.md}
-                    color={colors.outline}
-                  />
-                </HintPressable>
-
-                <Pressable
-                  onPress={() => openCardMenu(card)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`More options for ${card.front.text}`}
-                  style={{
-                    width: 44,
-                    height: 44,
-                    marginRight: 4,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <MaterialIcons name="more-vert" size={iconSize.md} color={colors.outline} />
-                </Pressable>
+                )}
               </View>
             );
           })
         )}
-      </View>
 
-      {visibleCards.length > CARD_LIMIT && (
-        <Pressable
-          onPress={() => setShowAll((value) => !value)}
-          accessibilityRole="button"
-          style={{ minHeight: 44, justifyContent: 'center', marginTop: 4 }}
-        >
-          <AppText variant="caption" weight="semibold" tone="accent">
-            {showAll ? 'Show fewer' : `Show all ${formatCount(visibleCards.length)} cards`}
-          </AppText>
-        </Pressable>
-      )}
+        {visibleCards.length > CARD_LIMIT && (
+          <Pressable
+            onPress={() => setShowAll((value) => !value)}
+            accessibilityRole="button"
+            style={{
+              minHeight: 48,
+              justifyContent: 'center',
+              paddingHorizontal: 16,
+              borderTopWidth: 1,
+              borderTopColor: colors.outlineVariant,
+            }}
+          >
+            <AppText variant="bodySm" weight="semibold" tone="accent">
+              {showAll ? 'Show fewer' : `Show all ${formatCount(visibleCards.length)} cards`}
+            </AppText>
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 
@@ -597,45 +908,19 @@ export default function DeckDetailsScreen() {
     <Screen
       scroll
       gutter
-      contentMaxWidth={v2.layout.contentMaxWidth}
+      contentMaxWidth={v3.layout.contentMaxWidth}
       header={
-        <TopAppBar
-          title="Deck"
-          // The deck's name is this page's h1 (below the bar), matching the
-          // quiz route; a generic "Deck" heading named nothing.
-          titleHeadingLevel={null}
-          back
-          backFallback="/(tabs)/home"
-          actions={[
-            {
-              icon: 'add',
-              accessibilityLabel: 'Add cards',
-              onPress: () => pushOnce(router, `/deck/${deck.id}/add-card`),
-            },
-            {
-              icon: 'more-horiz',
-              accessibilityLabel: 'More options',
-              onPress: () => setOptionsVisible(true),
-            },
-          ]}
+        <DeckHeader
+          title={deck.name}
+          onBack={backHome}
+          onAdd={() => pushOnce(router, `/deck/${deck.id}/add-card`)}
+          onOptions={() => setOptionsVisible(true)}
         />
       }
     >
-      {/* The shell's paddingTop already opens the page; a second section gap
-          here left the deck screen starting lower than every other route. */}
-      <View style={{ paddingBottom: 48, ...(wide ? { gap: v2.spacing.section } : {}) }}>
-        {/* Wide: the queue band spans the page, so no column can end a third of
-            the way down beside the long card ledger; the ledger then owns the
-            full column. Mobile keeps identity → queue → cards, unchanged. */}
-        <RevealItem index={0}>{identity}</RevealItem>
-        <RevealItem index={1}>
-          <View style={wide ? undefined : { marginTop: 20 }}>{hero}</View>
-        </RevealItem>
-        <RevealItem index={2}>
-          <View style={wide ? undefined : { marginTop: v2.spacing.section }}>
-            {cardsSection}
-          </View>
-        </RevealItem>
+      <View style={{ paddingBottom: 48, gap: 28 }}>
+        <RevealItem index={0}>{hero}</RevealItem>
+        <RevealItem index={1}>{cardsSection}</RevealItem>
       </View>
 
       {/* Deck options sheet */}
@@ -643,7 +928,7 @@ export default function DeckDetailsScreen() {
         visible={optionsVisible}
         onClose={() => setOptionsVisible(false)}
         title={deck.name}
-        subtitle={`${formatCount(deckCards.length)} cards`}
+        subtitle={countLabel}
       >
         <SheetRow icon="edit" label="Rename Deck" onPress={openRename} />
         <SheetRow

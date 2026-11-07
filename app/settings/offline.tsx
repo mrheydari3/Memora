@@ -1,35 +1,37 @@
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { goBackOr } from '../../services/navigation';
 import { MaterialIcons } from '../../components/Icon';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useInstallStore } from '../../store/useInstallStore';
 import { registerServiceWorker, unregisterServiceWorker } from '../../services/install';
+import { RevealItem, Screen, ToggleSwitch } from '../../components';
 import {
-  RevealItem,
-  Screen,
-  SettingsNote,
-  SettingsPlate,
-  SettingsRow,
-  SettingsSection,
-  ToggleSwitch,
-  TopAppBar,
-} from '../../components';
+  SettingsBackHeader,
+  SettingsChapter,
+  SettingsFootnote,
+  SettingsHero,
+  SettingsLine,
+} from '../../components/v3';
 import { colors, iconSize } from '../../theme/tokens';
-import { v2 } from '../../theme/v2';
+import { v3 } from '../../theme/v3';
 
 const installedMark = (
   <MaterialIcons name="check-circle" size={iconSize.md} color={colors.success} />
 );
 
 /**
- * Offline & install — what stays on the device when the network is gone.
+ * Offline & install — what stays on the device when the network is gone, in the
+ * v3 "Nocturne Focus" language.
  *
- * The page follows the settings rhythm: one plate with the cache state and the
- * install readout, then chapters for the cache, how it behaves, and installing
- * the app. Every control is a standard setting row; there are no stamps, room
- * numbers or decorative rules.
+ * The hero answers cache, install and storage in one pane; the chapters then
+ * hold the cache switch, how caching behaves and the install action as 64px
+ * lines. The service worker is still registered only while the cache is on, so
+ * opening this page never opts the user in behind their back.
  */
 export default function OfflineScreen() {
+  const router = useRouter();
   const { settings, update } = useSettingsStore();
   const { installed, promptInstall, deferredPrompt } = useInstallStore();
 
@@ -59,124 +61,130 @@ export default function OfflineScreen() {
   };
 
   const ledger = [
-    { label: 'Offline cache', value: cached ? 'On' : 'Off', accent: cached },
+    { label: 'Offline cache', value: cached ? 'On' : 'Off' },
     {
       label: 'Install',
-      value: isInstalled ? 'Installed' : Platform.OS === 'web' ? 'Not installed' : 'On this device',
+      value: isInstalled ? 'Installed' : Platform.OS === 'web' ? 'Not installed' : 'On device',
     },
     { label: 'Storage', value: 'On this device' },
   ];
 
   const installSection = (
-    <SettingsSection label="Install app" index={3}>
+    <SettingsChapter label="Install app">
       {Platform.OS !== 'web' ? (
-        <SettingsRow
+        <SettingsLine
           icon="check-circle"
-          iconTone="success"
+          tone={colors.success}
           title="On this device"
           subtitle="Everything is stored locally."
           trailing={installedMark}
-          isLast
+          last
         />
       ) : isInstalled ? (
-        <SettingsRow
+        <SettingsLine
           icon="download-done"
-          iconTone="success"
+          tone={colors.success}
           title="Installed"
           subtitle="Memora opens from your home screen; cached pages stay available offline."
           trailing={installedMark}
-          isLast
+          last
         />
       ) : canPrompt ? (
-        <SettingsRow
+        <SettingsLine
           icon="download"
-          iconTone="info"
+          tone={colors.info}
           title="Install Memora"
           subtitle="Open from your home screen; cached pages stay available offline."
           value="Install"
           onPress={handleInstall}
-          isLast
+          last
         />
       ) : (
-        <SettingsRow
+        <SettingsLine
           icon="ios-share"
-          iconTone="info"
+          tone={colors.info}
           title="Add to home screen"
           subtitle="Open the browser menu and choose “Add to Home Screen”."
-          isLast
+          last
         />
       )}
-    </SettingsSection>
+    </SettingsChapter>
   );
 
   return (
     <Screen
       scroll
       gutter
-      contentMaxWidth={v2.layout.contentMaxWidth}
-      header={<TopAppBar title="Offline" back backFallback="/settings" />}
+      contentMaxWidth={v3.layout.contentMaxWidth}
+      header={<SettingsBackHeader title="Offline" onBack={() => goBackOr(router, '/settings')} />}
     >
-      <RevealItem index={0}>
-        <SettingsPlate
-          tone="glass"
-          icon="cloud-off"
-          eyebrow="Storage"
-          title={cached ? 'Cached on this device' : 'Only online for now'}
-          description="Your decks and review history already live on this device. The offline cache keeps the app shell available when the network is gone."
-          status={{
-            label: cached ? 'Cached' : 'Cache off',
-            tone: cached ? 'success' : 'muted',
-          }}
-          ledger={ledger}
-        />
-      </RevealItem>
-
-      <SettingsSection label="Cache" index={1}>
-        <SettingsRow
-          icon="cloud-off"
-          iconTone="info"
-          title="Offline cache"
-          subtitle="Keep the app shell and visited pages on this device."
-          iconPulseKey={cached}
-          trailing={
-            <ToggleSwitch
-              value={settings.offlineCacheEnabled}
-              onToggle={handleOfflineToggle}
-              accessibilityLabel="Offline cache"
+      <View style={{ paddingBottom: 24 }}>
+        <View style={{ gap: 28 }}>
+          <RevealItem index={0}>
+            <SettingsHero
+              testID="offline-hero"
+              eyebrow="Storage"
+              status={{
+                label: cached ? 'Cached' : 'Cache off',
+                tone: cached ? 'success' : 'muted',
+              }}
+              title={cached ? 'Cached on this device' : 'Only online for now'}
+              description="Your decks and review history already live on this device. The offline cache keeps the app shell available when the network is gone."
+              ledger={ledger}
             />
-          }
-          isLast
-        />
-      </SettingsSection>
+          </RevealItem>
 
-      <SettingsSection label="How it works" index={2}>
-        <SettingsRow
-          icon="touch-app"
-          iconTone="info"
-          title="Open a page"
-          subtitle="The first load of a page needs a connection."
-        />
-        <SettingsRow
-          icon="download-done"
-          iconTone="info"
-          title="Cached as you browse"
-          subtitle="The app shell and pages you visit are stored."
-        />
-        <SettingsRow
-          icon="cloud-off"
-          iconTone="info"
-          title="Reopen offline"
-          subtitle="Cached pages open without a connection."
-          isLast
-        />
-      </SettingsSection>
+          <RevealItem index={1}>
+            <SettingsChapter label="Cache">
+              <SettingsLine
+                icon="cloud-off"
+                tone={colors.info}
+                title="Offline cache"
+                subtitle="Keep the app shell and visited pages on this device."
+                trailing={
+                  <ToggleSwitch
+                    value={settings.offlineCacheEnabled}
+                    onToggle={handleOfflineToggle}
+                    accessibilityLabel="Offline cache"
+                  />
+                }
+                last
+              />
+            </SettingsChapter>
+          </RevealItem>
 
-      {installSection}
+          <RevealItem index={2}>
+            <SettingsChapter label="How it works">
+              <SettingsLine
+                icon="touch-app"
+                tone={colors.info}
+                title="Open a page"
+                subtitle="The first load of a page needs a connection."
+              />
+              <SettingsLine
+                icon="download-done"
+                tone={colors.info}
+                title="Cached as you browse"
+                subtitle="The app shell and pages you visit are stored."
+              />
+              <SettingsLine
+                icon="cloud-off"
+                tone={colors.info}
+                title="Reopen offline"
+                subtitle="Cached pages open without a connection."
+                last
+              />
+            </SettingsChapter>
+          </RevealItem>
 
-      <SettingsNote icon="info-outline">
-        Offline caching covers the app shell and pages you have opened. Your decks and reviews
-        are stored locally, but the first load of a page still needs a connection.
-      </SettingsNote>
+          <RevealItem index={3}>{installSection}</RevealItem>
+
+          <SettingsFootnote icon="info-outline">
+            Offline caching covers the app shell and pages you have opened. Your decks and reviews
+            are stored locally, but the first load of a page still needs a connection.
+          </SettingsFootnote>
+        </View>
+      </View>
     </Screen>
   );
 }

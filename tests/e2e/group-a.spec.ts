@@ -38,7 +38,7 @@ test.describe('Group A sheets and composer', () => {
     await page.goto('/deck/deck-german-a2b1');
     await settle(page);
 
-    await page.getByRole('button', { name: 'More options' }).click();
+    await page.getByRole('button', { name: 'More options', exact: true }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toHaveCount(1);
     await expect(dialog).toHaveAttribute('aria-label', 'Schritt Plus Neu A2/B1');
@@ -54,7 +54,7 @@ test.describe('Group A sheets and composer', () => {
 
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
-    await expect(page.getByRole('button', { name: 'More options' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'More options', exact: true })).toBeFocused();
   });
 
   test('long front text grows instead of clipping', async ({ page }) => {
