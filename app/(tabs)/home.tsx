@@ -563,6 +563,7 @@ export default function HomeScreen() {
       <BottomSheetModal
         visible={folderSheet}
         onClose={closeFolders}
+        focusKey={`${folderSheetMode}-${editingFolderId ?? 'list'}`}
         title={
           folderSheetMode === 'edit'
             ? 'Edit folder'

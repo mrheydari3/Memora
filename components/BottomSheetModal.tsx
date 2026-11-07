@@ -130,6 +130,12 @@ type BottomSheetModalProps = {
   title?: string;
   /** Optional line under the title (counts, context). */
   subtitle?: string;
+  /**
+   * Re-runs focus management when the body swaps while the sheet stays open.
+   * Without it the control that had focus can unmount, dropping focus onto the
+   * page behind the scrim and out of the dialog.
+   */
+  focusKey?: string | number;
   children: React.ReactNode;
 };
 
@@ -171,6 +177,7 @@ export function BottomSheetModal({
   onClose,
   title,
   subtitle,
+  focusKey,
   children,
 }: BottomSheetModalProps) {
   const { mounted, value } = usePresence(visible, { duration: motion.base });
@@ -204,7 +211,9 @@ export function BottomSheetModal({
     const panel = panelRef.current as unknown as WebElement | null;
     if (!doc || !panel) return;
 
-    returnFocusRef.current = doc.activeElement;
+    // A content swap while open must not replace the trigger the sheet returns
+    // focus to; only the first pass (or a fresh open) records it.
+    if (!returnFocusRef.current) returnFocusRef.current = doc.activeElement;
 
     const focusable = () => Array.from(panel.querySelectorAll(FOCUSABLE));
     const first = () => focusable()[0] ?? panel;
@@ -237,7 +246,7 @@ export function BottomSheetModal({
 
     doc.addEventListener('keydown', onKeyDown);
     return () => doc.removeEventListener('keydown', onKeyDown);
-  }, [visible, mounted]);
+  }, [visible, mounted, focusKey]);
 
   /**
    * Wait for the exit animation to unmount the modal before returning focus.

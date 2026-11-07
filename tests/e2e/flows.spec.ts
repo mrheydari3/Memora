@@ -1,4 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 import { STORAGE_KEYS } from '../../data/storageKeys';
 
 /**
@@ -96,6 +97,82 @@ const addCardToDeck = async (page: Page, deckId: string, front: string, back: st
   await page.getByRole('button', { name: 'Save card' }).click();
   await expect(page).toHaveURL(new RegExp(`/deck/${deckId}$`));
 };
+
+const createQuizDeck = async (page: Page) => {
+  const deckId = await createDeck(page, 'Quiz Flow Deck');
+  for (let index = 1; index <= 4; index += 1) {
+    await addCardToDeck(
+      page,
+      deckId,
+      `Quiz question ${index}`,
+      `Quiz answer ${index}`
+    );
+  }
+  return deckId;
+};
+
+type QuizCard = { front: { text: string }; back: { text: string } };
+
+/** Finds which visible answer is correct for the current quiz card. */
+const quizAnswerContext = async (page: Page, deckId: string) => {
+  const cards = (await readStorage<Record<string, QuizCard[]>>(
+    page,
+    STORAGE_KEYS.allCards,
+    {}
+  ))[deckId] ?? [];
+  const mainText = await page.locator('[role="main"]').innerText();
+  const card = cards.find((entry) => mainText.includes(entry.front.text));
+  if (!card) throw new Error('Could not identify the current quiz card');
+
+  const answers = page.locator('[data-testid^="answer-"]');
+  const count = await answers.count();
+  for (let index = 0; index < count; index += 1) {
+    if ((await answers.nth(index).innerText()).trim() === card.back.text) {
+      return { card, correctPosition: index + 1 };
+    }
+  }
+  throw new Error('Could not find the correct quiz answer');
+};
+
+const installTtsStub = async (page: Page) => {
+  await page.addInitScript(() => {
+    type TtsCall = { text: string; lang?: string };
+    const calls: TtsCall[] = [];
+    (window as typeof window & { __ttsCalls?: TtsCall[] }).__ttsCalls = calls;
+
+    class FakeUtterance {
+      text = '';
+      lang = '';
+      rate = 1;
+      pitch = 1;
+      volume = 1;
+      voice = null;
+      onend: (() => void) | null = null;
+    }
+    (window as unknown as { SpeechSynthesisUtterance: typeof FakeUtterance })
+      .SpeechSynthesisUtterance = FakeUtterance;
+
+    const synth = {
+      speak: (utterance: FakeUtterance) => {
+        calls.push({ text: utterance.text, lang: utterance.lang });
+        utterance.onend?.();
+      },
+      cancel: () => {},
+      getVoices: () => [],
+      pause: () => {},
+      resume: () => {},
+      speaking: false,
+    };
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: synth });
+  });
+};
+
+const ttsCalls = async (page: Page) =>
+  page.evaluate(
+    () =>
+      (window as typeof window & { __ttsCalls?: Array<{ text: string; lang?: string }> })
+        .__ttsCalls ?? []
+  );
 
 test.describe('Phase 5 — behaviour', () => {
   test('deck: create, reload, then delete with confirmation', async ({ page }) => {
@@ -295,6 +372,54 @@ test.describe('Phase 5 — behaviour', () => {
     const afterArchive = await readStorage<DeckRecord[]>(page, STORAGE_KEYS.decks, []);
     expect(afterArchive.find((deck) => deck.id === DECK_ID)?.archivedAt).toBeTruthy();
     await expect(page.getByTestId('deck-row').filter({ hasText: DECK })).toHaveCount(1);
+  });
+
+  test('deck: export downloads the deck and its cards', async ({ page }) => {
+    await go(page, `/deck/${DECK_ID}`);
+    const downloadPromise = page.waitForEvent('download');
+    await openDeckOptions(page);
+    await page.getByRole('button', { name: 'Export Deck' }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/\.json$/);
+    const path = await download.path();
+    expect(path).toBeTruthy();
+    const payload = JSON.parse(await readFile(path!, 'utf8')) as {
+      deck: { id: string };
+      cards: unknown[];
+    };
+    expect(payload.deck.id).toBe(DECK_ID);
+    expect(payload.cards.length).toBeGreaterThan(0);
+  });
+
+  test('folder: deleting a parent re-parents its child folders', async ({ page }) => {
+    await go(page, '/home');
+    const sheet = await openFolderSheet(page);
+    await addFolderToSheet(sheet, 'Tree Parent');
+    await addFolderToSheet(sheet, 'Tree Child');
+
+    await sheet.getByRole('button', { name: 'Options for folder Tree Child' }).click();
+    const editor = page.getByRole('dialog').filter({ hasText: 'Save folder' });
+    await editor.getByRole('button', { name: /Location/ }).click();
+    const location = page.getByRole('dialog').filter({ hasText: 'Choose the folder' });
+    await location.getByRole('button', { name: /Tree Parent/ }).click();
+    await editor.getByRole('button', { name: 'Save folder' }).click();
+    await closeSheet(page);
+
+    await page.reload();
+    await settle(page);
+    await page.getByRole('button', { name: 'Manage folders' }).click();
+    const list = page.getByRole('dialog').filter({ hasText: 'New folder' });
+    await list.getByRole('button', { name: 'Options for folder Tree Parent' }).click();
+    const deleteEditor = page.getByRole('dialog').filter({ hasText: 'Delete folder' });
+    await deleteEditor.getByRole('button', { name: /^Delete folder/ }).click();
+    await page.reload();
+    await settle(page);
+
+    type Folder = { name: string; parentId?: string | null };
+    const folders = await readStorage<Folder[]>(page, STORAGE_KEYS.folders, []);
+    expect(folders.find((folder) => folder.name === 'Tree Parent')).toBeUndefined();
+    expect(folders.find((folder) => folder.name === 'Tree Child')?.parentId ?? null).toBeNull();
+    await expect(page.getByTestId('folder-row').filter({ hasText: 'Tree Child' })).toBeVisible();
   });
 
   test('folder: move up and down rewrites sibling order', async ({ page }) => {
@@ -528,6 +653,106 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(page.getByText('No cards yet')).toBeVisible();
   });
 
+  test('study: TTS reads the front and answer in their configured languages', async ({ page }) => {
+    await installTtsStub(page);
+    await go(page, `/study/${DECK_ID}`);
+    const cards = (await readStorage<Record<string, QuizCard[]>>(
+      page,
+      STORAGE_KEYS.allCards,
+      {}
+    ))[DECK_ID] ?? [];
+    const fronts = new Set(cards.map((card) => card.front.text));
+    const backs = new Set(cards.map((card) => card.back.text));
+
+    await expect.poll(async () => (await ttsCalls(page)).length).toBeGreaterThan(0);
+    const first = await ttsCalls(page);
+    expect(first.some((call) => fronts.has(call.text))).toBe(true);
+    expect(first.some((call) => call.lang === 'de-DE')).toBe(true);
+
+    const beforeReveal = first.length;
+    await page.keyboard.press('Space');
+    await expect.poll(async () => (await ttsCalls(page)).length).toBeGreaterThan(beforeReveal);
+    const after = await ttsCalls(page);
+    expect(after.some((call) => backs.has(call.text))).toBe(true);
+    expect(after.some((call) => call.lang === 'fa-IR')).toBe(true);
+  });
+
+  test('quiz: a wrong answer reveals the correct one and records the miss', async ({ page }) => {
+    const deckId = await createQuizDeck(page);
+    await go(page, `/quiz/${deckId}`);
+    await expect(page.getByText('Press 1–4 to answer')).toBeVisible();
+
+    const { card, correctPosition } = await quizAnswerContext(page, deckId);
+    const wrongPosition = correctPosition === 1 ? 2 : 1;
+    await page.getByTestId(`answer-${wrongPosition}`).click();
+    await expect(page.locator('[role="status"]')).toContainText(
+      `Wrong. The answer was ${card.back.text}`
+    );
+    await expect
+      .poll(async () => {
+        const log = await readStorage<Array<{ deckId: string; rating: number }>>(
+          page,
+          STORAGE_KEYS.reviewLog,
+          []
+        );
+        return log.some((entry) => entry.deckId === deckId && entry.rating === 1);
+      })
+      .toBe(true);
+  });
+
+  test('quiz: correct answers build a combo', async ({ page }) => {
+    const deckId = await createQuizDeck(page);
+    await go(page, `/quiz/${deckId}`);
+    await expect(page.getByText('Press 1–4 to answer')).toBeVisible();
+
+    for (let round = 0; round < 2; round += 1) {
+      const { correctPosition } = await quizAnswerContext(page, deckId);
+      await page.getByTestId(`answer-${correctPosition}`).click();
+      await expect(page.locator('[role="status"]')).toContainText(
+        round === 0 ? 'Correct. Score 100' : 'combo 2'
+      );
+      if (round === 0) await page.waitForTimeout(650);
+    }
+  });
+
+  test('quiz: the clock warns under ten seconds', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-11-06T12:00:00Z') });
+    await page.goto(`/quiz/${DECK_ID}`);
+    await page.waitForSelector('[role="main"]', { timeout: 30_000 });
+    await page.clock.runFor(1_500);
+    await expect(page.getByText('Press 1–4 to answer')).toBeVisible();
+    await page.clock.runFor(51_000);
+    await expect(page.getByText('Hurry — under 10s')).toBeVisible();
+  });
+
+  test('quiz: clearing the deck pays the bonus and Play again restarts', async ({ page }) => {
+    const deckId = await createQuizDeck(page);
+    await page.clock.install({ time: new Date('2026-11-06T12:00:00Z') });
+    await page.goto(`/quiz/${deckId}`);
+    await page.waitForSelector('[role="main"]', { timeout: 30_000 });
+    await page.clock.runFor(1_500);
+    await expect(page.getByText('Press 1–4 to answer')).toBeVisible();
+
+    for (let index = 0; index < 4; index += 1) {
+      await page.getByTestId('answer-1').click();
+      await page.clock.runFor(1_000);
+    }
+
+    const result = page.getByRole('dialog', { name: /^Round result:/ });
+    await expect(result).toBeVisible();
+    await expect(result).toContainText('Deck cleared');
+    await expect(result).toContainText('Includes the +250 deck-cleared bonus');
+    await result.getByRole('button', { name: 'Play again' }).click();
+    await expect(page.getByText('Press 1–4 to answer')).toBeVisible();
+  });
+
+  test('quiz: an unplayable deck explains what it needs', async ({ page }) => {
+    const deckId = await createDeck(page, 'Quiz Empty Deck');
+    await go(page, `/quiz/${deckId}`);
+    await expect(page.getByText('Not enough cards')).toBeVisible();
+    await expect(page.getByText(/at least four cards/)).toBeVisible();
+  });
+
   test('quiz: answer, finish the clock round, and persist the game record', async ({ page }) => {
     await page.clock.install({ time: new Date('2026-11-06T12:00:00Z') });
     await page.goto(`/quiz/${DECK_ID}`);
@@ -612,6 +837,123 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(page.getByText('German (de-DE)')).toBeVisible();
   });
 
+  test('settings: remaining toggles, back voice, and algorithm preset persist', async ({ page }) => {
+    await go(page, '/settings');
+    const haptics = page.getByRole('switch', { name: 'Quiz haptics' });
+    const hapticsBefore = await haptics.getAttribute('aria-checked');
+    await haptics.click();
+    const hapticsAfter = hapticsBefore === 'true' ? 'false' : 'true';
+    await page.reload();
+    await settle(page);
+    await expect(page.getByRole('switch', { name: 'Quiz haptics' })).toHaveAttribute(
+      'aria-checked',
+      hapticsAfter
+    );
+
+    await go(page, '/settings/tts');
+    for (const name of ['Read Entire Card', 'Automatic Playback']) {
+      const toggle = page.getByRole('switch', { name });
+      const before = await toggle.getAttribute('aria-checked');
+      await toggle.click();
+      const after = before === 'true' ? 'false' : 'true';
+      await page.reload();
+      await settle(page);
+      await expect(page.getByRole('switch', { name })).toHaveAttribute('aria-checked', after);
+    }
+
+    await page.getByRole('button', { name: /Back language/ }).click();
+    const picker = page.getByRole('dialog', { name: 'Back language' });
+    await picker.getByRole('button', { name: 'French (fr-FR)' }).click();
+    await expect(page.getByText('French (fr-FR)').first()).toBeVisible();
+    await page.reload();
+    await settle(page);
+    await expect(page.getByText('French (fr-FR)').first()).toBeVisible();
+
+    await go(page, '/settings/algorithm');
+    await page.getByRole('radio', { name: /Fast Repetition/ }).click();
+    await page.reload();
+    await settle(page);
+    const decks = await readStorage<Array<{ id: string; algorithmPreset: string }>>(
+      page,
+      STORAGE_KEYS.decks,
+      []
+    );
+    expect(decks.find((deck) => deck.id === DECK_ID)?.algorithmPreset).toBe('fast');
+  });
+
+  test('settings: adaptive order, shuffle, offline cache and install prompt work', async ({ page }) => {
+    await go(page, '/settings/algorithm');
+    const adaptive = page.getByRole('switch', { name: 'Adaptive review order' });
+    const adaptiveBefore = await adaptive.getAttribute('aria-checked');
+    await adaptive.click();
+    const adaptiveAfter = adaptiveBefore === 'true' ? 'false' : 'true';
+    const shuffle = page.getByRole('switch', { name: 'Shuffle Cards' });
+    const shuffleBefore = await shuffle.getAttribute('aria-checked');
+    await shuffle.click();
+    const shuffleAfter = shuffleBefore === 'true' ? 'false' : 'true';
+    await page.reload();
+    await settle(page);
+    await expect(page.getByRole('switch', { name: 'Adaptive review order' })).toHaveAttribute(
+      'aria-checked',
+      adaptiveAfter
+    );
+    await expect(page.getByRole('switch', { name: 'Shuffle Cards' })).toHaveAttribute(
+      'aria-checked',
+      shuffleAfter
+    );
+
+    await go(page, '/settings/offline');
+    const cache = page.getByRole('switch', { name: 'Offline cache' });
+    const cacheBefore = await cache.getAttribute('aria-checked');
+    await cache.click();
+    const cacheAfter = cacheBefore === 'true' ? 'false' : 'true';
+    await page.reload();
+    await settle(page);
+    await expect(page.getByRole('switch', { name: 'Offline cache' })).toHaveAttribute(
+      'aria-checked',
+      cacheAfter
+    );
+
+    await page.evaluate(() => {
+      const event = new Event('beforeinstallprompt') as Event & {
+        prompt: () => Promise<void>;
+        userChoice: Promise<{ outcome: string }>;
+      };
+      event.prompt = () => {
+        (window as typeof window & { __installPrompted?: boolean }).__installPrompted = true;
+        return Promise.resolve();
+      };
+      event.userChoice = Promise.resolve({ outcome: 'accepted' });
+      window.dispatchEvent(event);
+    });
+    await expect(page.getByRole('button', { name: /Install Memora/ })).toBeVisible();
+    await page.getByRole('button', { name: /Install Memora/ }).click();
+    await expect(page.getByText('Installed').first()).toBeVisible();
+    expect(
+      await page.evaluate(
+        () =>
+          (window as typeof window & { __installPrompted?: boolean }).__installPrompted ?? false
+      )
+    ).toBe(true);
+  });
+
+  test('navigation: settings rows open their pages', async ({ page }) => {
+    await go(page, '/settings');
+    const rows: Array<[RegExp, string]> = [
+      [/^Algorithm/, '/settings/algorithm'],
+      [/^Text-to-Speech/, '/settings/tts'],
+      [/^Profile/, '/profile'],
+      [/^Statistics/, '/statistics'],
+      [/^Offline & install/, '/settings/offline'],
+    ];
+    for (const [name, path] of rows) {
+      await page.getByRole('button', { name }).click();
+      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      await page.getByRole('button', { name: 'Go back' }).click();
+      await expect(page).toHaveURL(/\/settings$/);
+    }
+  });
+
   test('navigation: tabs and direct-link fallback land on the right route', async ({ page }) => {
     await go(page, '/home');
     await page.getByRole('tab', { name: 'Game' }).click();
@@ -647,6 +989,16 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(page).toHaveURL(new RegExp(`/deck/${DECK_ID}$`));
   });
 
+  test('sheets: scrim click closes the folder sheet and returns focus', async ({ page }) => {
+    await go(page, '/home');
+    const trigger = page.getByRole('button', { name: 'Manage folders' });
+    await trigger.click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.mouse.click(8, 140);
+    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+
   test('sheets: Escape closes the folder sheet and returns focus', async ({ page }) => {
     await go(page, '/home');
     const trigger = page.getByRole('button', { name: 'Manage folders' });
@@ -655,5 +1007,130 @@ test.describe('Phase 5 — behaviour', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toBeHidden();
     await expect(trigger).toBeFocused();
+  });
+
+  /**
+   * Every sheet opened from a screen (not from inside another sheet) gets the
+   * same contract: it is a named dialog, focus starts on its close button and
+   * cannot leave the dialog, Escape closes it, and focus returns to the trigger.
+   * Sheets opened from a row inside another sheet are covered by the flows that
+   * open them; their opener unmounts, so focus restore has no stable target.
+   */
+  const sheetFlows: Array<{ name: string; path: string; trigger: (page: Page) => Locator }> = [
+    {
+      name: 'deck sort',
+      path: `/deck/${DECK_ID}`,
+      trigger: (page) => page.getByRole('button', { name: /^Sort:/ }),
+    },
+    {
+      name: 'card menu',
+      path: `/deck/${DECK_ID}`,
+      trigger: (page) => page.locator('[aria-label^="More options for "]').first(),
+    },
+    {
+      name: 'deck options on Home',
+      path: '/home',
+      trigger: (page) => page.locator('[aria-label^="Options for deck "]').first(),
+    },
+    {
+      name: 'front voice picker',
+      path: '/settings/tts',
+      trigger: (page) => page.getByRole('button', { name: /^Front language/ }),
+    },
+    {
+      name: 'back voice picker',
+      path: '/settings/tts',
+      trigger: (page) => page.getByRole('button', { name: /^Back language/ }),
+    },
+    {
+      name: 'retention stepper',
+      path: '/settings/algorithm',
+      trigger: (page) => page.getByRole('button', { name: /^Desired retention/ }),
+    },
+    {
+      name: 'maximum interval',
+      path: '/settings/algorithm',
+      trigger: (page) => page.getByRole('button', { name: /^Maximum interval/ }),
+    },
+    {
+      name: 'new cards per day',
+      path: '/settings/algorithm',
+      trigger: (page) => page.getByRole('button', { name: /^New cards per day/ }),
+    },
+    {
+      name: 'maximum cards per day',
+      path: '/settings/algorithm',
+      trigger: (page) => page.getByRole('button', { name: /^Maximum cards per day/ }),
+    },
+  ];
+
+  for (const flow of sheetFlows) {
+    test(`sheets: the ${flow.name} sheet traps focus, closes on Escape and restores focus`, async ({
+      page,
+    }) => {
+      await go(page, flow.path);
+      const trigger = flow.trigger(page);
+      await trigger.click();
+
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Close sheet' })).toBeFocused();
+
+      await page.keyboard.press('Shift+Tab');
+      expect(
+        await dialog.evaluate((node) => node.contains(document.activeElement))
+      ).toBe(true);
+
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden();
+      await expect(trigger).toBeFocused();
+    });
+  }
+
+  test('sheets: the folder editor opens from the Folders sheet and Escape closes it', async ({
+    page,
+  }) => {
+    await go(page, '/home');
+    const opener = page.getByRole('button', { name: 'Manage folders' });
+    await opener.click();
+    const sheet = page.getByRole('dialog');
+    await expect(sheet).toBeVisible();
+    await addFolderToSheet(sheet, 'Sheet Edit Folder');
+
+    await sheet
+      .locator('[aria-label^="Options for folder "]')
+      .first()
+      .click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Edit folder' })).toBeVisible();
+    expect(await dialog.evaluate((node) => node.contains(document.activeElement))).toBe(true);
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(opener).toBeFocused();
+  });
+
+  test('sheets: the algorithm deck picker and apply-to-all sheets need a second deck', async ({
+    page,
+  }) => {
+    await createDeck(page, 'Sheet Second Deck');
+    await go(page, '/settings/algorithm');
+
+    const picker = page.getByRole('button', { name: /^Current deck/ });
+    await picker.click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Close sheet' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(picker).toBeFocused();
+
+    const applyAll = page.getByRole('button', { name: 'Apply to all decks', exact: true });
+    await applyAll.click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Close sheet' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(applyAll).toBeFocused();
   });
 });

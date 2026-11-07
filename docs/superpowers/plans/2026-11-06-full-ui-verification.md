@@ -131,19 +131,19 @@ Also store an `ariaSnapshot()` per surface as reviewed text. **84/84 snapshots w
 
 Script one flow per control family in Appendix B, each ending in a reload to prove persistence:
 
-- [ ] Deck: create → validate → save; rename; file into folder; pin; move; archive; duplicate; reset progress; delete (with confirmation). *(Partial: create, delete confirmation, rename, move-to-folder, pin, archive, duplicate, reset progress and move order are scripted and reloaded. Export remains.)*
-- [ ] Folder: create; duplicate-name rejection; rename; icon/colour; nest; re-parent; move up/down; pin; delete (children move up, decks survive). *(Partial: create, duplicate rejection, rename, icon/colour, pin, deck-move/delete, nest, re-parent and move up/down are scripted. Nested child-folder re-parenting on delete remains.)*
-- [ ] Card: add with both faces; validate empty; colour; edit; delete; long text. *(Partial: add, empty validation, colour, edit, delete and persistence are scripted; long-text growth is covered by `group-a.spec.ts`, not this flow.)*
-- [ ] Study: reveal; all four ratings; requeue; stable denominator; completion; empty deck; keyboard Space/1–4; TTS. *(Partial: reveal, four ratings, keyboard, requeue, stable denominator, completion, empty deck and review-log persistence are scripted. TTS remains.)*
-- [ ] Quiz: correct; wrong + reveal; combo; timer warning; round end; play again; cleared bonus; unplayable deck; result focus trap and restore. *(Partial: answer, round end, record persistence and return to Game are scripted. Correct/wrong paths, combo, warning, play again, cleared bonus and unplayable deck remain; `quiz-result.spec.ts` covers result focus.)*
-- [x] Discover: list → detail → import → opens the deck → appears on Home. *(19/19 flow suite scripted and reloaded.)*
-- [ ] Settings: each toggle persists; algorithm presets; TTS languages; offline; install prompt. *(Partial: sound, fuzz, TTS toggle and front-language persistence are scripted. Remaining toggles, presets, offline and install remain.)*
-- [ ] Navigation: every row/button/link, browser back/forward, direct deep link, unknown route. *(Partial: tab bar, back fallback, add-deck close, browser forward and unknown route are scripted. Every row/link remains.)*
-- [ ] Sheets: open, Escape, scrim click, focus trap, focus return for every sheet. *(Partial: folder-sheet Escape/return is scripted; `group-a.spec.ts` covers deck-sheet trap/return. Scrim and every other sheet remain.)*
+- [x] Deck: create → validate → save; rename; file into folder; pin; move; archive; duplicate; reset progress; delete (with confirmation). *(All scripted and reloaded, export included: the downloaded JSON is parsed and both card faces are asserted.)*
+- [x] Folder: create; duplicate-name rejection; rename; icon/colour; nest; re-parent; move up/down; pin; delete (children move up, decks survive). *(All scripted and reloaded, including a parent deletion that re-parents its child folders to the root.)*
+- [x] Card: add with both faces; validate empty; colour; edit; delete; long text. *(All scripted and reloaded; long-text growth is measured in `group-a.spec.ts`, not duplicated here.)*
+- [x] Study: reveal; all four ratings; requeue; stable denominator; completion; empty deck; keyboard Space/1–4; TTS. *(All scripted and reloaded; TTS runs against a stubbed Web Speech API and asserts both configured languages and the spoken front/back text. The real voice engine belongs to Phase 9.)*
+- [x] Quiz: correct; wrong + reveal; combo; timer warning; round end; play again; cleared bonus; unplayable deck; result focus trap and restore. *(Six flows scripted: wrong + reveal + review log, combo, clock warning, cleared bonus + Play again, unplayable deck, and answer → clock round end → persisted record. Result focus stays in `quiz-result.spec.ts`.)*
+- [x] Discover: list → detail → import → opens the deck → appears on Home. *(Scripted and reloaded.)*
+- [x] Settings: each toggle persists; algorithm presets; TTS languages; offline; install prompt. *(All scripted and reloaded, including the offline cache and a dispatched `beforeinstallprompt`.)*
+- [x] Navigation: every row/button/link, browser back/forward, direct deep link, unknown route. *(Settings rows, all three tabs, back fallback, close-to-Library, unknown route, browser back and forward are scripted. Deck/folder options and the remaining rows are the triggers of the flows above.)*
+- [x] Sheets: open, Escape, scrim click, focus trap, focus return for every sheet. *(13 variants scripted here: 9 screen-opened sheets through one table, the Folders sheet's scrim and Escape, its in-place edit mode, and the two algorithm sheets that need a second deck. `group-a.spec.ts` owns the deck-options and discard cases, `quiz-result.spec.ts` the result dialog. Sheets whose opener unmounts are exercised by the flow that opens them; focus restore has no stable target there and is not asserted.)*
 
 **Acceptance:** every unique control has at least one scripted action, or is documented as decorative with a reason.
 
-**Status:** 19 Phase 5 flows pass; **acceptance not met** because the family inventory above is only partially scripted. The measured pass and remaining gaps are in the Phase 5 run log.
+**Status:** **acceptance met on 2026-11-07** — 42 flows pass in 3.8 min on the rebuilt dev bundle, each ending in a visible state or a reload read from storage. The remaining limits are recorded, not hidden: TTS is a stubbed Web Speech API, long-text growth lives in `group-a.spec.ts`, and sheets opened from another sheet do not assert focus restore. See the Phase 5 follow-up 4 run log.
 
 ### Phase 6 — Responsive and visual (1 day)
 
@@ -497,3 +497,17 @@ Buttons (all variants, sizes, disabled, destructive) → add-deck, folder sheet,
 - Command: `LD_LIBRARY_PATH=.ui-verify/phase4/root/usr/lib/x86_64-linux-gnu`, `PLAYWRIGHT_BROWSERS_PATH=0`, `BASE_URL=http://127.0.0.1:3005`, `npx playwright test tests/e2e/flows.spec.ts --project=chromium`.
 - Result: **19/19 pass** (2.1 min); `npx tsc --noEmit` **0 errors**; `npm test` **161/161**.
 - Remaining: deck export; study TTS; quiz wrong/combo/warning/play-again/cleared/unplayable; settings offline/install; navigation rows; every sheet's scrim/focus cycle; nested child-folder re-parenting on delete.
+
+---
+
+## Phase 5 follow-up 4 — 2026-11-07
+
+**Status: Phase 5 acceptance met.**
+
+- Grew `tests/e2e/flows.spec.ts` from 19 to **42 flows**: deck export (parsed JSON download), child-folder re-parenting on parent delete, study TTS (front/answer languages and text), quiz coverage now spanning six flows, three settings batches (remaining toggles, back voice, algorithm preset, adaptive order, shuffle, offline cache, install prompt), three navigation flows (settings rows, tabs/fallback, unknown route + forward), two sheet flows (scrim, Escape) and a table that drives nine more sheets.
+- Every flow ends by reading the persisted store after a reload or by asserting the visible post-condition; none asserts a click alone.
+- **Defect found and fixed (G6):** switching the Folders sheet into edit mode unmounted the row options control that had focus, so focus fell to `<body>` while the dialog stayed open. `BottomSheetModal` now accepts `focusKey`; changing it while the sheet is open re-runs focus management and keeps the original trigger for the close. `app/(tabs)/home.tsx` passes the folder sheet's mode.
+- Test-only corrections (no app defect): root folders may store no `parentId`, so nullish counts as root; `Move up` is matched exactly because another subtitle contains it; folder options are scoped to the open dialog because the Home shelf now renders a second options button behind the scrim.
+- Commands: `LD_LIBRARY_PATH=.ui-verify/phase4/root/usr/lib/x86_64-linux-gnu`, `PLAYWRIGHT_BROWSERS_PATH=0`, `BASE_URL=http://127.0.0.1:3005`, `npx playwright test tests/e2e/flows.spec.ts --project=chromium`.
+- Results: **42/42 flows pass (3.8 min)** on the restarted bundle (the server runs with `CI=1`, so it was restarted after the component edit); `npm test` **161/161**; `npx tsc --noEmit` **0 errors**; `git diff --check` clean.
+- Environment limits: Chromium only on the Expo dev server (cross-browser and `dist/` are Phase 9); TTS uses a stub, not an installed voice; sheets opened from another sheet are exercised by their flow but do not assert focus restore.
