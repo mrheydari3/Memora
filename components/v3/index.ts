@@ -1,3 +1,7 @@
+export { Surface } from './Surface';
+export type { SurfaceTone, SurfaceRadius, SurfacePadding } from './Surface';
+export { ActionButton } from './ActionButton';
+export type { ActionTone } from './ActionButton';
 export { TodayPane } from './TodayPane';
 export { DeckShelfRow } from './DeckShelfRow';
 export { FolderGroup } from './FolderGroup';

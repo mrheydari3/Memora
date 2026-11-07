@@ -3,7 +3,8 @@ import { Animated, Pressable, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { alpha, colors, glassFill, iconSize, radii, stateColors } from '../../theme/tokens';
+import { alpha, colors, iconSize, radii, stateColors } from '../../theme/tokens';
+import { Surface } from './Surface';
 import { v3 } from '../../theme/v3';
 import { usePressFeedback } from '../../motion';
 
@@ -197,16 +198,7 @@ export function DeckShelfRow({
 
   return (
     <Animated.View style={[press.style, { width: '100%' }]}>
-      <View
-        style={[
-          glassFill,
-          {
-            width: '100%',
-            borderRadius: v3.radii.card,
-            padding: 16,
-          },
-        ]}
-      >
+      <Surface tone="pane" radius="card" padding="sm" style={{ width: '100%' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <HintPressable
             hint="Open deck"
@@ -224,7 +216,7 @@ export function DeckShelfRow({
             <RowOptions label={`Options for deck ${name}`} onPress={onOptions} />
           )}
         </View>
-      </View>
+      </Surface>
     </Animated.View>
   );
 }

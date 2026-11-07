@@ -1,16 +1,8 @@
-import { Animated, Pressable, useWindowDimensions, View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 import { AppText } from '../AppText';
-import { MaterialIcons } from '../Icon';
-import { usePressFeedback } from '../../motion';
-import {
-  colors,
-  fills,
-  glassFill,
-  iconSize,
-  radii,
-  rims,
-  stateColors,
-} from '../../theme/tokens';
+import { ActionButton } from './ActionButton';
+import { Surface } from './Surface';
+import { colors, radii, stateColors } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
 type Segment = { label: string; value: number; color: string };
@@ -39,15 +31,16 @@ const NUMERIC = { fontVariant: ['tabular-nums'] as const };
 /**
  * TodayPane — the mockup's hero, measured against its own classes:
  *
- *   rounded-[24px] p-5 gap-5, inset top rim the rim and inset
- *   bottom rule in the accent line; eyebrow 12/600 uppercase accent; status
- *   chip on the control fill with a 6px learning dot; figure 40/44 (56 on wide) and its
- *   unit at 20/600 outline; context 13 outline; "Next up" row 13 + 12 tabular;
- *   rail 6px, 320 cap, 2px gaps between segments; legend dots 8px; CTA 52px
- *   pill in the accent fill with a 20px arrow.
+ *   rounded-[24px] p-5 gap-5, the one raised scene pane, an inset top rim;
+ *   eyebrow 12/600 uppercase accent; status chip on the control fill with a
+ *   6px learning dot; figure 40/44 (56 on wide) and its unit at 20/600 outline;
+ *   context 13 outline; "Next up" row 13 + 12 tabular; rail 6px, 320 cap, 2px
+ *   gaps between segments; legend dots 8px; CTA 52px pill in the accent fill
+ *   with a 20px arrow.
  *
  * Order follows the mockup: the rail belongs to the next deck, so it sits above
- * the action rather than under it.
+ * the action rather than under it. The scene pane and the pill are the shared
+ * v3 primitives; this file only composes them.
  */
 export function TodayPane({
   due,
@@ -63,7 +56,6 @@ export function TodayPane({
 }: TodayPaneProps) {
   const { width } = useWindowDimensions();
   const wide = width >= 900;
-  const press = usePressFeedback({ scale: 0.975 });
   const date = new Date().toLocaleDateString('en-GB', {
     weekday: 'short',
     day: 'numeric',
@@ -76,23 +68,9 @@ export function TodayPane({
     { label: 'review', value: reviewCount, color: stateColors.Review },
   ];
   const total = segments.reduce((sum, segment) => sum + segment.value, 0);
-  const ink = disabled ? colors.outline : colors.onPrimaryContainer;
 
   return (
-    <View
-      testID="today-panel"
-      style={[
-        glassFill,
-        {
-          borderRadius: v3.radii.pane,
-          borderTopWidth: 1,
-          borderTopColor: rims.soft,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.accentLine,
-          overflow: 'hidden',
-        },
-      ]}
-    >
+    <Surface tone="scene" padding="none" testID="today-panel" style={{ overflow: 'hidden' }}>
       <View
         testID="today-panel-body"
         style={{ padding: v3.spacing.panel, gap: v3.spacing.panel }}
@@ -212,36 +190,13 @@ export function TodayPane({
           </View>
         )}
 
-        <Animated.View style={press.style}>
-          <Pressable
-            onPress={disabled ? undefined : onStart}
-            onPressIn={disabled ? undefined : press.onPressIn}
-            onPressOut={disabled ? undefined : press.onPressOut}
-            disabled={disabled}
-            accessibilityRole="button"
-            accessibilityLabel={label}
-            accessibilityState={{ disabled }}
-            style={{
-              minHeight: 52,
-              borderRadius: radii.pill,
-              paddingHorizontal: 20,
-              paddingVertical: 10,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              backgroundColor: disabled ? fills.control : colors.primaryContainer,
-            }}
-          >
-            <AppText variant="body" weight="semibold" style={{ color: ink }}>
-              {label}
-            </AppText>
-            {!disabled && (
-              <MaterialIcons name="arrow-forward" size={iconSize.lg} color={ink} />
-            )}
-          </Pressable>
-        </Animated.View>
+        <ActionButton
+          label={label}
+          onPress={onStart}
+          disabled={disabled}
+          icon="arrow-forward"
+        />
       </View>
-    </View>
+    </Surface>
   );
 }

@@ -1,9 +1,10 @@
 import { Pressable, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
-import { StartButton } from '../v2';
 import { GhostButton } from '../GhostButton';
-import { alpha, colors, fills, glassFill, over, radii, rims } from '../../theme/tokens';
+import { ActionButton } from './ActionButton';
+import { Surface } from './Surface';
+import { alpha, colors, fills, over, radii, rims } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -164,20 +165,7 @@ export function SessionSummary({
         </View>
       </View>
 
-      <View
-        style={[
-          glassFill,
-          {
-            borderRadius: v3.radii.pane,
-            borderTopWidth: 1,
-            borderTopColor: rims.soft,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.outlineVariant,
-            padding: v3.spacing.panel,
-            alignItems: 'center',
-          },
-        ]}
-      >
+      <Surface tone="scene" padding="md" style={{ alignItems: 'center' }}>
         <View
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
@@ -254,7 +242,7 @@ export function SessionSummary({
             </AppText>
           </View>
         ) : null}
-      </View>
+      </Surface>
 
       {reviewed > 0 ? (
         <>
@@ -267,22 +255,18 @@ export function SessionSummary({
             }}
           >
             {metrics.map((metric) => (
-              <View
+              <Surface
                 key={metric.label}
-                style={[
-                  glassFill,
-                  {
-                    flexGrow: 1,
-                    flexBasis: '46%',
-                    minWidth: 130,
-                    minHeight: 116,
-                    justifyContent: 'space-between',
-                    borderRadius: v3.radii.control,
-                    borderWidth: 1,
-                    borderColor: rims.soft,
-                    padding: 16,
-                  },
-                ]}
+                tone="pane"
+                radius="control"
+                padding="sm"
+                style={{
+                  flexGrow: 1,
+                  flexBasis: '46%',
+                  minWidth: 130,
+                  minHeight: 116,
+                  justifyContent: 'space-between',
+                }}
               >
                 <View>
                   <AppText variant="caption" tone="muted">
@@ -318,24 +302,11 @@ export function SessionSummary({
                     {metric.note}
                   </AppText>
                 </View>
-              </View>
+              </Surface>
             ))}
           </View>
 
-          <View
-            style={[
-              glassFill,
-              {
-                marginTop: v3.spacing.section,
-                borderRadius: v3.radii.pane,
-                borderTopWidth: 1,
-                borderTopColor: rims.soft,
-                borderBottomWidth: 1,
-                borderBottomColor: colors.outlineVariant,
-                padding: v3.spacing.panel,
-              },
-            ]}
-          >
+          <Surface tone="pane" padding="md" style={{ marginTop: v3.spacing.section }}>
             <View
               style={{
                 flexDirection: 'row',
@@ -432,21 +403,21 @@ export function SessionSummary({
                 </View>
               ))}
             </View>
-          </View>
+          </Surface>
         </>
       ) : null}
 
       <View style={{ marginTop: v3.spacing.section, gap: 10 }}>
         {emptyDeck ? (
           <>
-            <StartButton label="Add cards" onPress={onAddCards} />
+            <ActionButton label="Add cards" onPress={onAddCards} />
             <View style={{ alignItems: 'center' }}>
               <GhostButton label="Back to deck" onPress={onBack} />
             </View>
           </>
         ) : (
           <>
-            <StartButton label="Back to deck" onPress={onBack} />
+            <ActionButton label="Back to deck" onPress={onBack} />
             {onUndo ? (
               <Pressable
                 onPress={onUndo}

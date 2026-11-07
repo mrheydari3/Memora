@@ -4,6 +4,7 @@ import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
 import { alpha, colors, iconSize } from '../../theme/tokens';
+import { Surface } from './Surface';
 import { v3 } from '../../theme/v3';
 
 type ArchivedRowProps = {
@@ -52,16 +53,15 @@ function RowOptions({ label, onPress }: { label: string; onPress: () => void }) 
  */
 export function ArchivedRow({ name, cardCount, onPress, onOptions }: ArchivedRowProps) {
   return (
-    <View
+    <Surface
+      tone="scene"
+      radius="card"
+      padding="sm"
       style={{
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        padding: 16,
-        borderRadius: 22,
         backgroundColor: alpha(colors.surfacePane, 0.6),
-        borderWidth: 1,
-        borderColor: alpha(colors.outlineSoft, 0.3),
         opacity: 0.75,
       }}
     >
@@ -134,6 +134,6 @@ export function ArchivedRow({ name, cardCount, onPress, onOptions }: ArchivedRow
       </View>
 
       {onOptions && <RowOptions label={`Options for deck ${name}`} onPress={onOptions} />}
-    </View>
+    </Surface>
   );
 }

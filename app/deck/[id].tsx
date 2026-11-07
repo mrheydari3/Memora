@@ -7,7 +7,7 @@ import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
 import { buildStudyQueue } from '../../data/session';
 import { exportJson } from '../../services/export';
-import { alpha, colors, fills, heights, iconSize, radii, stateColors } from '../../theme/tokens';
+import { alpha, colors, heights, iconSize, radii, stateColors } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { HintPressable } from '../../components/HintPressable';
 import {
@@ -27,7 +27,7 @@ import {
   SearchBar,
   SheetScrollView,
 } from '../../components';
-import { HeaderIcon } from '../../components/v3';
+import { ActionButton, HeaderIcon, Surface } from '../../components/v3';
 import type { Flashcard } from '../../data/types';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -424,17 +424,7 @@ export default function DeckDetailsScreen() {
   ];
 
   const hero = (
-    <View
-      testID="deck-hero"
-      style={{
-        backgroundColor: colors.surfaceCardFace,
-        borderRadius: v3.radii.pane,
-        borderWidth: 1,
-        borderColor: alpha(colors.outlineSoft, 0.3),
-        padding: v3.spacing.panel,
-        gap: 16,
-      }}
-    >
+    <Surface tone="scene" testID="deck-hero" style={{ gap: 16 }}>
       <View
         style={{
           flexDirection: 'row',
@@ -546,36 +536,13 @@ export default function DeckDetailsScreen() {
         ))}
       </View>
 
-      <Pressable
-        onPress={totalDue > 0 ? () => pushOnce(router, `/study/${deck.id}`) : undefined}
+      <ActionButton
+        label={totalDue > 0 ? 'Start session' : 'Nothing due today'}
+        icon="arrow-forward"
+        onPress={() => pushOnce(router, `/study/${deck.id}`)}
         disabled={totalDue === 0}
-        accessibilityRole="button"
-        accessibilityLabel={totalDue > 0 ? 'Start session' : 'Nothing due today'}
-        accessibilityState={{ disabled: totalDue === 0 }}
-        style={{
-          minHeight: 52,
-          borderRadius: radii.pill,
-          paddingHorizontal: 20,
-          paddingVertical: 10,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-          backgroundColor: totalDue > 0 ? colors.primaryContainer : fills.control,
-        }}
-      >
-        <AppText
-          variant="body"
-          weight="semibold"
-          style={{ color: totalDue > 0 ? colors.onPrimaryContainer : colors.outline }}
-        >
-          {totalDue > 0 ? 'Start session' : 'Nothing due today'}
-        </AppText>
-        {totalDue > 0 && (
-          <MaterialIcons name="arrow-forward" size={iconSize.lg} color={colors.onPrimaryContainer} />
-        )}
-      </Pressable>
-    </View>
+      />
+    </Surface>
   );
 
   const cardsSection = (

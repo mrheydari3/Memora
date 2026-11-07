@@ -10,7 +10,7 @@ import { computeStreak } from '../../data/streak';
 import { exportJson } from '../../services/export';
 import { MaterialIcons } from '../../components/Icon';
 import { AppText, RevealItem, Screen, ToggleSwitch } from '../../components';
-import { SettingsChapter as Chapter, SettingsLine } from '../../components/v3';
+import { SettingsChapter as Chapter, SettingsLine, Surface } from '../../components/v3';
 import { alpha, colors, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import type { Deck } from '../../data/types';
@@ -153,17 +153,7 @@ export default function SettingsScreen() {
       <View style={{ paddingBottom: 24 }}>
         <View style={{ gap: 28 }}>
           <RevealItem index={0}>
-            <View
-              testID="settings-hero"
-              style={{
-                backgroundColor: colors.surfaceCardFace,
-                borderRadius: v3.radii.pane,
-                borderWidth: 1,
-                borderColor: alpha(colors.outlineSoft, 0.3),
-                padding: 20,
-                gap: 16,
-              }}
-            >
+            <Surface tone="scene" testID="settings-hero" style={{ gap: 16 }}>
               <View style={{ gap: 6 }}>
                 <View
                   style={{
@@ -253,7 +243,7 @@ export default function SettingsScreen() {
                   </View>
                 ))}
               </View>
-            </View>
+            </Surface>
           </RevealItem>
 
           <RevealItem index={1}>

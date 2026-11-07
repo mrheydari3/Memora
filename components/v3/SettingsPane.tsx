@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HeaderIcon } from './HeaderIcon';
+import { Surface } from './Surface';
 import { alpha, colors, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
@@ -80,17 +81,7 @@ export function SettingsHero({
         : colors.onSurfaceVariant;
 
   return (
-    <View
-      testID={testID}
-      style={{
-        backgroundColor: colors.surfaceCardFace,
-        borderRadius: v3.radii.pane,
-        borderWidth: 1,
-        borderColor: alpha(colors.outlineSoft, 0.3),
-        padding: 20,
-        gap: 16,
-      }}
-    >
+    <Surface tone="scene" padding="md" testID={testID} style={{ gap: 16 }}>
       <View style={{ gap: 6 }}>
         <View
           style={{
@@ -185,7 +176,7 @@ export function SettingsHero({
           </View>
         ))}
       </View>
-    </View>
+    </Surface>
   );
 }
 

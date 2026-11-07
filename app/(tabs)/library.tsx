@@ -10,8 +10,8 @@ import { pushOnce } from '../../services/navigation';
 import { buildStudyQueue } from '../../data/session';
 import { isDeckPlayable, type QuizMode } from '../../data/quiz';
 import { folderPath } from '../../data/folders';
-import { AppText, EmptyState, PrimaryButton, RevealItem, Screen } from '../../components';
-import { HeaderIcon } from '../../components/v3';
+import { AppText, EmptyState, RevealItem, Screen } from '../../components';
+import { ActionButton, HeaderIcon, Surface } from '../../components/v3';
 import { usePressFeedback } from '../../motion';
 import { alpha, colors, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
@@ -272,10 +272,6 @@ function RecordCard({ rank, deck, record, flex }: RecordCardProps) {
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: first ? colors.selectionSurface : colors.surfaceControl,
-            borderWidth: 1,
-            borderColor: first
-              ? alpha(colors.primary, 0.2)
-              : alpha(colors.outlineSoft, 0.3),
           }}
         >
           <AppText variant="caption" weight="bold" tone={first ? 'accent' : 'muted'}>
@@ -369,7 +365,6 @@ export default function GameScreen() {
   const gamesLoaded = useGameStore((s) => s.loaded);
   const [quizDeckId, setQuizDeckId] = useState<string | null>(null);
   const [mode, setMode] = useState<QuizMode>('forward');
-  const ctaPress = usePressFeedback({ scale: 0.965 });
 
   useEffect(() => {
     if (!deckLoaded) useDeckStore.getState().load();
@@ -501,15 +496,7 @@ export default function GameScreen() {
         contentMaxWidth={v3.layout.contentMaxWidth}
         header={header}
       >
-        <View
-          style={{
-            backgroundColor: colors.surfaceCardFace,
-            borderRadius: v3.radii.pane,
-            padding: 20,
-            borderWidth: 1,
-            borderColor: alpha(colors.outlineSoft, 0.3),
-          }}
-        >
+        <Surface tone="scene">
           <EmptyState
             icon="sports-esports"
             title="Not enough cards"
@@ -521,7 +508,7 @@ export default function GameScreen() {
             }
             action={
               <View style={{ width: 208 }}>
-                <PrimaryButton
+                <ActionButton
                   label="Add a deck"
                   icon="add"
                   onPress={() => pushOnce(router, '/add-deck')}
@@ -529,23 +516,16 @@ export default function GameScreen() {
               </View>
             }
           />
-        </View>
+        </Surface>
       </Screen>
     );
   }
 
   const hero = (
-    <View
+    <Surface
+      tone="scene"
       testID="game-hero"
-      style={{
-        backgroundColor: colors.surfaceCardFace,
-        borderRadius: v3.radii.pane,
-        borderWidth: 1,
-        borderColor: alpha(colors.outlineSoft, 0.3),
-        padding: roomy ? 24 : 20,
-        gap: 20,
-        overflow: 'hidden',
-      }}
+      style={{ padding: roomy ? 24 : 20, gap: 20, overflow: 'hidden' }}
     >
       <Svg
         pointerEvents="none"
@@ -654,8 +634,6 @@ export default function GameScreen() {
               paddingVertical: 4,
               borderRadius: 999,
               backgroundColor: colors.surfaceControl,
-              borderWidth: 1,
-              borderColor: alpha(colors.outlineSoft, 0.3),
               flexShrink: 0,
             }}
           >
@@ -677,42 +655,13 @@ export default function GameScreen() {
         </AppText>
       </View>
 
-      <Animated.View style={ctaPress.style}>
-        <Pressable
-          onPress={play}
-          disabled={!selected}
-          onPressIn={ctaPress.onPressIn}
-          onPressOut={ctaPress.onPressOut}
-          accessibilityRole="button"
-          accessibilityLabel="Play 60 seconds"
-          accessibilityState={{ disabled: !selected }}
-          style={{
-            minHeight: 52,
-            borderRadius: 999,
-            borderWidth: 1,
-            borderColor: alpha(colors.primary, 0.4),
-            backgroundColor: selected ? colors.primaryContainer : colors.surfaceControl,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-          }}
-        >
-          <AppText
-            variant="body"
-            weight="semibold"
-            style={{ color: selected ? colors.onPrimaryContainer : colors.outline }}
-          >
-            Play 60 seconds
-          </AppText>
-          <MaterialIcons
-            name="arrow-forward"
-            size={iconSize.lg}
-            color={selected ? colors.onPrimaryContainer : colors.outline}
-          />
-        </Pressable>
-      </Animated.View>
-    </View>
+      <ActionButton
+        label="Play 60 seconds"
+        icon="arrow-forward"
+        onPress={play}
+        disabled={!selected}
+      />
+    </Surface>
   );
 
   const deckPicker = (
@@ -735,8 +684,6 @@ export default function GameScreen() {
             paddingVertical: 2,
             borderRadius: 999,
             backgroundColor: colors.surfaceControl,
-            borderWidth: 1,
-            borderColor: alpha(colors.outlineSoft, 0.3),
           }}
         >
           <AppText variant="caption" tone="muted">
