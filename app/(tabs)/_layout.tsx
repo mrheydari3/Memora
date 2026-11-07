@@ -45,10 +45,12 @@ export default function TabLayout() {
             tabBarAccessibilityLabel: tab.title,
             // The custom bar passes a token string; resolve the navigation
             // ColorValue (which can be null/native) before handing it on.
-            tabBarIcon: ({ color, size }) => (
+            // v3's dock uses a 20px glyph; the token falls back for the
+            // preview states that do not pass a size.
+            tabBarIcon: ({ color }) => (
               <MaterialIcons
                 name={tab.icon}
-                size={size ?? iconSize.nav}
+                size={iconSize.lg}
                 color={typeof color === 'string' ? color : undefined}
               />
             ),

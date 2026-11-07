@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
 import { useDeckStore } from '../../store/useDeckStore';
@@ -32,14 +32,22 @@ import {
   Screen,
   SectionHeader,
   SheetScrollView,
-  TopAppBar,
 } from '../../components';
 import { MaterialIcons } from '../../components/Icon';
-import { DeckRow, FolderRow, TodayHero } from '../../components/v2';
-import { colors, heights, iconSize } from '../../theme/tokens';
+import {
+  ArchivedRow,
+  DeckShelfRow,
+  FolderGroup,
+  HeaderIcon,
+  ShelfHeader,
+  TodayPane,
+} from '../../components/v3';
+import { colors, fills, heights, iconSize, radii } from '../../theme/tokens';
 import { v2 } from '../../theme/v2';
+import { v3 } from '../../theme/v3';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
+
 
 type DeckQueue = {
   deck: Deck;
@@ -122,6 +130,8 @@ export default function HomeScreen() {
   const [editParentId, setEditParentId] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
   const [deckMenuId, setDeckMenuId] = useState<string | null>(null);
+  // v3 groups: a folder's decks sit under its header until it is collapsed.
+  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() => new Set());
 
   const activeDeckIds = useMemo(
     () => new Set(decks.filter((deck) => !deck.archivedAt).map((deck) => deck.id)),
@@ -322,92 +332,136 @@ export default function HomeScreen() {
   };
 
   const header = (
-    <TopAppBar
-      leftContent={
-        <View className="flex-1 flex-row items-center" style={{ gap: 8, paddingStart: 8 }}>
+    <View
+      style={{
+        height: 56,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8,
+        paddingHorizontal: 20,
+        backgroundColor: colors.appBarGlass,
+      }}
+    >
+      <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.surfaceControl,
+          }}
+        >
           <MaterialIcons name="blur-on" size={iconSize.lg} color={colors.primary} />
-          <AppText variant="bodyLg" weight="semibold">
-            Memora
-          </AppText>
         </View>
-      }
-      rightContent={
-        <View className="flex-row items-center" style={{ gap: 6, marginEnd: 6 }}>
+        <AppText variant="headline" weight="semibold" numberOfLines={1} style={{ letterSpacing: -0.4 }}>
+          Memora
+        </AppText>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            paddingHorizontal: 10,
+            paddingVertical: 4,
+            borderRadius: 999,
+            backgroundColor: colors.surfaceInset,
+          }}
+        >
           <MaterialIcons
             name="local-fire-department"
-            size={iconSize.sm}
+            size={16}
             color={streak > 0 ? colors.warning : colors.outline}
           />
-          <AppText variant="bodySm" weight="semibold">
-            {streak}
-          </AppText>
-          <AppText variant="caption" tone="muted" numberOfLines={1}>
-            {streak === 1 ? 'day' : 'days'}
+          <AppText variant="caption" weight="semibold" tone={streak > 0 ? 'warning' : 'muted'}>
+            {streak}d
           </AppText>
         </View>
-      }
-      actions={[
-        {
-          icon: 'explore',
-          accessibilityLabel: 'Discover',
-          onPress: () => pushOnce(router, '/discover'),
-        },
-        {
-          icon: 'add',
-          accessibilityLabel: 'Add deck',
-          onPress: () => pushOnce(router, '/add-deck'),
-        },
-      ]}
-    />
+      </View>
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+        <HeaderIcon
+          icon="explore"
+          label="Discover"
+          onPress={() => pushOnce(router, '/discover')}
+        />
+        <HeaderIcon
+          icon="add"
+          label="Add deck"
+          onPress={() => pushOnce(router, '/add-deck')}
+        />
+        <Pressable
+          onPress={() => pushOnce(router, '/profile')}
+          accessibilityRole="button"
+          accessibilityLabel="Profile"
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.primary,
+            marginStart: 6,
+          }}
+        >
+          <MaterialIcons name="person" size={18} color={colors.onPrimary} />
+        </Pressable>
+      </View>
+    </View>
   );
 
-  // Folders and decks share one shelf, folders first: the containers read as
-  // the way into a smaller list, and the decks below are this level's own.
-  const shelfRows = [
-    ...visibleFolders.map((folder) => ({
-      key: `folder-${folder.id}`,
-      node: (
-        <FolderRow
-          name={folder.name}
-          icon={folder.icon}
-          color={folder.color}
-          pinned={folder.pinnedAt != null}
-          decks={folder.decks}
-          due={folder.due}
-          onOptions={() => openFolderEditor(folder.id)}
-          onPress={() => setOpenFolderId(folder.id)}
-        />
-      ),
-    })),
-    ...visibleDecks.map((entry) => ({
-      key: entry.deck.id,
-      node: (
-        <DeckRow
-          name={entry.deck.name}
-          icon={entry.deck.icon as IconName}
-          color={entry.deck.color}
-          cardCount={entry.cardCount}
-          due={entry.total}
-          progress={entry.progress}
-          pinned={entry.deck.pinnedAt != null}
-          onOptions={() => setDeckMenuId(entry.deck.id)}
-          onPress={() => pushOnce(router, `/deck/${entry.deck.id}`)}
-        />
-      ),
-    })),
-  ];
+  const toggleFolder = (id: string) =>
+    setCollapsedFolders((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  // A group holds the decks filed directly in its folder; anything deeper stays
+  // one tap away through `onOpen`, which keeps the existing drill-in view.
+  const decksInFolder = (folderId: string) =>
+    deckQueues.filter((entry) => entry.deck.folderId === folderId);
+
+  const archivedDecks = useMemo(
+    () =>
+      decks
+        .filter((deck) => deck.archivedAt)
+        .map((deck) => ({ deck, cards: (cardsByDeck[deck.id] ?? []).length })),
+    [decks, cardsByDeck]
+  );
+
+  const caughtUpFolders = visibleFolders.filter(
+    (folder) => folder.decks > 0 && folder.due === 0
+  ).length;
 
   const deckCountLabel = `${visibleDecks.length} ${
     visibleDecks.length === 1 ? 'deck' : 'decks'
   }`;
-  const cardCountLabel = `${visibleCards.toLocaleString('en-US')} ${
-    visibleCards === 1 ? 'card' : 'cards'
-  }`;
-  const dueLabel = visibleDue > 0 ? `${visibleDue} due` : 'all caught up';
   const folderCountLabel = `${visibleFolders.length} ${
     visibleFolders.length === 1 ? 'folder' : 'folders'
   }`;
-  const shelfCaption = [folderCountLabel, deckCountLabel, cardCountLabel, dueLabel].join(' · ');
+  const dueLabel = visibleDue > 0 ? `${visibleDue} due` : 'all caught up';
+  const shelfMeta = openFolder
+    ? `${folderCountLabel} · ${visibleCards.toLocaleString('en-US')} cards · ${dueLabel}`
+    : `${deckCountLabel} · ${dueLabel}`;
+
+  const renderDeck = (entry: DeckQueue) => (
+    <DeckShelfRow
+      key={entry.deck.id}
+      name={entry.deck.name}
+      icon={entry.deck.icon as IconName}
+      color={entry.deck.color}
+      cardCount={entry.cardCount}
+      due={entry.total}
+      progress={entry.progress}
+      pinned={entry.deck.pinnedAt != null}
+      onOptions={() => setDeckMenuId(entry.deck.id)}
+      onPress={() => pushOnce(router, `/deck/${entry.deck.id}`)}
+    />
+  );
 
   const decksSection = (
     <View>
@@ -431,65 +485,98 @@ export default function HomeScreen() {
         </Pressable>
       )}
 
-      <View className="flex-row items-center justify-between" style={{ gap: 12 }}>
-        <AppText
-          variant="title"
-          headingLevel={2}
-          style={[v2.type.title, { flexShrink: 1 }]}
-          numberOfLines={1}
-        >
-          {openFolder ? openFolder.name : 'Your decks'}
-        </AppText>
-        <Pressable
-          onPress={() => {
-            setFolderSheetMode('list');
-            setFolderSheet(true);
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Manage folders"
-          style={{
-            minHeight: heights.hit,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-          }}
-        >
-          <MaterialIcons name="folder" size={iconSize.md} color={colors.primary} />
-          <AppText variant="bodySm" weight="semibold" tone="accent">
-            Folders
-          </AppText>
-        </Pressable>
-      </View>
-
-      <AppText variant="caption" tone="muted" className="mt-1">
-        {shelfCaption}
-      </AppText>
+      <ShelfHeader
+        title={openFolder ? openFolder.name : 'Your decks'}
+        countLabel={deckCountLabel}
+        meta={shelfMeta}
+        statusLabel={
+          !openFolder && caughtUpFolders > 0 ? `${caughtUpFolders} caught up` : undefined
+        }
+        onManageFolders={() => {
+          setFolderSheetMode('list');
+          setFolderSheet(true);
+        }}
+      />
 
       {/* The shelf is one rule and a list. The hairline separates the section's
           numbers from the things they count; the rows below it are the library
           itself, with no drawing between them. */}
-      <View
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={{
-          height: StyleSheet.hairlineWidth,
-          backgroundColor: colors.hairlineStrong,
-          marginTop: v2.spacing.block,
-        }}
-      />
 
-      <View style={{ marginTop: v2.spacing.card, gap: v2.spacing.card }}>
-        {shelfRows.length === 0 ? (
+      <View style={{ gap: 20 }}>
+        {visibleDecks.length > 0 && (
+          <View style={{ gap: 8 }}>
+            <AppText
+              variant="label"
+              tone="tertiary"
+              className="uppercase"
+            >
+              {openFolder ? 'Decks here' : 'Top level · Standalone'}
+            </AppText>
+            {visibleDecks.map(renderDeck)}
+          </View>
+        )}
+
+        {visibleFolders.map((folder) => {
+          const entries = decksInFolder(folder.id);
+          const nested = folders.filter((candidate) => candidate.parentId === folder.id).length;
+          return (
+            <FolderGroup
+              key={folder.id}
+              name={folder.name}
+              icon={folder.icon}
+              color={folder.color}
+              deckCount={folder.decks}
+              due={folder.due}
+              pinned={folder.pinnedAt != null}
+              nestedFolders={nested}
+              expanded={!collapsedFolders.has(folder.id)}
+              onToggle={() => toggleFolder(folder.id)}
+              onOpen={() => setOpenFolderId(folder.id)}
+            >
+              {entries.length > 0 ? (
+                entries.map(renderDeck)
+              ) : (
+                <AppText variant="caption" tone="muted">
+                  No decks inside yet.
+                </AppText>
+              )}
+            </FolderGroup>
+          );
+        })}
+
+        {visibleDecks.length === 0 && visibleFolders.length === 0 && (
           <AppText variant="body" tone="muted">
             {openFolder
               ? 'This folder is empty. Move a deck in from the deck’s options, or add a folder.'
               : 'No decks yet.'}
           </AppText>
-        ) : (
-          shelfRows.map((row) => <View key={row.key}>{row.node}</View>)
         )}
       </View>
+
+      {!openFolder && archivedDecks.length > 0 && (
+        <View style={{ marginTop: 28, gap: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <MaterialIcons name="inventory-2" size={iconSize.sm} color={colors.outline} />
+              <AppText variant="label" tone="tertiary" className="uppercase">
+                Archived
+              </AppText>
+            </View>
+            <AppText variant="caption" tone="tertiary">
+              {archivedDecks.length} {archivedDecks.length === 1 ? 'deck' : 'decks'}
+            </AppText>
+          </View>
+          {archivedDecks.map(({ deck, cards }) => (
+            <ArchivedRow
+              key={deck.id}
+              name={deck.name}
+              cardCount={cards}
+              onPress={() => pushOnce(router, `/deck/${deck.id}`)}
+              onOptions={() => setDeckMenuId(deck.id)}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 
@@ -537,7 +624,8 @@ export default function HomeScreen() {
       ) : continueEntry ? (
         <View>
           <RevealItem index={0}>
-              <TodayHero
+              <View style={{ marginTop: 12 }}>
+              <TodayPane
                 due={totalDue}
                 deckCount={dueDecks}
                 minutes={minutes}
@@ -552,9 +640,10 @@ export default function HomeScreen() {
                 disabled={totalDue === 0}
                 onStart={() => pushOnce(router, `/study/${continueEntry.deck.id}`)}
               />
+              </View>
           </RevealItem>
 
-          <View style={{ marginTop: v2.spacing.section }}>
+          <View style={{ marginTop: 28 }}>
             <RevealItem index={1}>{decksSection}</RevealItem>
           </View>
         </View>

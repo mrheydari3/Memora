@@ -1,0 +1,6 @@
+{
+  "entrypoint": "worker.mjs",
+  "compatibilityDate": "2026-11-07",
+  "modules": [{ "name": "worker.mjs", "type": "esm", "path": "./worker.mjs" }],
+  "assetsDirectory": "./dist-deploy"
+}

@@ -54,6 +54,21 @@ const colors = {
   /** Informational accent for data and storage states. */
   info: '#6FD6E5',
   surfaceVariant: '#202A38',
+  /** v3 "Nocturne Focus": the mockup's opaque surface-control (#222831). */
+  surfacePane: '#141A24',
+  /** The Game hero's raised card face (#171E29). */
+  surfaceCardFace: '#171E29',
+  surfaceControl: '#222831',
+  /** Inset grouping fills: folder headers and nested wells (#1D232D). */
+  surfaceInset: '#1D232D',
+  /** Interactive option tiles (#20252F). */
+  surfaceTile: '#20252F',
+  /** The selected pill behind the active tab (#233143). */
+  selectionSurface: '#233143',
+  /** The shelf rule: #92B0D6 at 20%. */
+  hairlineRule: 'rgba(146, 176, 214, 0.20)',
+  /** The app bar in v3: pane ink at 85%, so the page still scrolls under it. */
+  appBarGlass: 'rgba(12, 16, 23, 0.85)',
   /**
    * The only line colours left in the system, for the four cases that still
    * draw one: a focus ring, a dashed empty frame, the radio dot and a thin
