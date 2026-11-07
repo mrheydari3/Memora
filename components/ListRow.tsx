@@ -59,6 +59,8 @@ type ListRowProps = {
   /** Extra row style — a fill, a radius, a margin. Merged into the geometry. */
   style?: ViewStyle | ViewStyle[];
   accessibilityLabel?: string;
+  /** Disclosure state for a row that opens a detail region. */
+  ariaExpanded?: boolean;
 };
 
 const DENSITY = {
@@ -144,6 +146,7 @@ export function ListRow({
   className = '',
   style,
   accessibilityLabel,
+  ariaExpanded,
 }: ListRowProps) {
   // Every pressable row answers a touch the same way: a spring dip and a faint
   // veil, both on the native driver (the old `active:` class only worked on web).
@@ -330,6 +333,7 @@ export function ListRow({
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         aria-pressed={selected}
+        aria-expanded={ariaExpanded}
       >
         <Animated.View
           pointerEvents="none"

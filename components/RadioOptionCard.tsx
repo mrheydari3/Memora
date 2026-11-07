@@ -37,7 +37,6 @@ export function RadioOptionCard({
       accessibilityRole="radio"
       accessibilityState={{ checked: selected }}
       aria-checked={selected}
-      accessibilityLabel={title}
       className="rounded-xl"
     >
       <View

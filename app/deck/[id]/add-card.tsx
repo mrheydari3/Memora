@@ -279,9 +279,9 @@ export default function AddCardScreen() {
 
         <View className="flex-1 justify-center px-6 pb-8 pt-2">
           <TextInput
-            className="w-full text-center font-inter-bold text-on-surface"
-            // The browser's own outline would cut a rectangle across the card;
-            // the ring above marks focus instead, so the card stays one surface.
+            className="composer-input w-full text-center font-inter-bold text-on-surface"
+            // The card ring is the primary focus mark; the inset CSS ring on
+            // the input is the keyboard-safe backup the audit requires.
             style={{
               ...typography.title,
               minHeight: FRONT_MIN_HEIGHT,
@@ -323,7 +323,7 @@ export default function AddCardScreen() {
           />
 
           <TextInput
-            className="w-full text-center font-inter-medium text-on-surface-variant"
+            className="composer-input w-full text-center font-inter-medium text-on-surface-variant"
             style={{
               ...typography.headline,
               minHeight: BACK_MIN_HEIGHT,
@@ -431,9 +431,7 @@ export default function AddCardScreen() {
             />
           }
           onPress={() => setDetailsOpen((open) => !open)}
-          accessibilityLabel={
-            detailsOpen ? 'Hide example and synonyms' : 'Show example and synonyms'
-          }
+          ariaExpanded={detailsOpen}
         />
 
         {detailsOpen && (

@@ -7,20 +7,11 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Deck, DeckFolder, Flashcard, GameRecord, ReviewLogEntry, Settings } from './types';
+import { STORAGE_KEYS } from './storageKeys';
 
 // ---- Storage Keys -----------------------------------------------------------
 
-const KEYS = {
-  decks: 'memory:decks',
-  folders: 'memory:folders',
-  /** Legacy per-deck key, only read to clean it up. */
-  cards: (deckId: string) => `memory:cards:${deckId}`,
-  allCards: 'memory:cards:all', // flat index for quick lookup across decks
-  reviewLog: 'memory:reviewLog',
-  settings: 'memory:settings',
-  gameRecords: 'memory:gameRecords',
-  initialized: 'memory:initialized',
-} as const;
+const KEYS = STORAGE_KEYS;
 
 // ---- Generic helpers --------------------------------------------------------
 

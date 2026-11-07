@@ -61,6 +61,7 @@ export function SearchBar({
       <MaterialIcons name="search" size={iconSize.md} color={colors.outline} />
       <TextInput
         className="ml-2 flex-1 text-body font-inter-regular text-on-surface"
+        style={{ minHeight: heights.field }}
         value={value}
         onChangeText={onChangeText}
         onFocus={() => setFocused(true)}

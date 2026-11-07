@@ -99,6 +99,16 @@ body {
   }
 }
 
+/* The composer's prompt and answer sit directly on the card, so the
+   browser's rectangular outline would read as a second card edge. Keep the
+   audit-visible keyboard ring, but inset and rounded to sit inside each
+   writing face. */
+.composer-input:focus-visible {
+  outline: none;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 2px theme('colors.primary');
+}
+
 /*
  * Long ledgers without a second scroll container.
  *

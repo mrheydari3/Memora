@@ -42,7 +42,12 @@
   },
   "scripts": {
     "test": "node --import ./scripts/ts-resolve.mjs --test \"data/**/*.test.ts\"",
+    "test:surfaces": "node --import ./scripts/ts-resolve.mjs --test tests/ui/route-parity.test.ts",
+    "test:fixtures": "node --import ./scripts/ts-resolve.mjs --test tests/ui/fixtures.test.ts",
+    "census:dry": "node --import ./scripts/ts-resolve.mjs scripts/census.mjs --dry-run",
+    "census": "node --import ./scripts/ts-resolve.mjs scripts/census.mjs",
     "test:e2e": "playwright test",
+    "test:flows": "playwright test tests/e2e/flows.spec.ts",
     "audit": "node scripts/audit.mjs",
     "check:design": "node scripts/check-design-tokens.mjs",
     "start": "expo start --web",

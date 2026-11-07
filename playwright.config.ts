@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const externalBaseURL = process.env.BASE_URL;
+
 /**
  * Playwright config for the audit's regression suite.
  *
@@ -16,17 +18,22 @@ export default defineConfig({
   workers: 1,
   reporter: [['list']],
   use: {
-    baseURL: process.env.BASE_URL ?? 'http://localhost:8081',
+    baseURL: externalBaseURL ?? 'http://localhost:8081',
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 1,
     colorScheme: 'dark',
     trace: 'retain-on-failure',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 } } }],
-  webServer: {
-    command: 'BROWSER=none npx expo start --web --port 8081',
-    url: 'http://localhost:8081',
-    reuseExistingServer: true,
-    timeout: 180_000,
-  },
+  // When BASE_URL points at an already-running server, do not start a second
+  // Expo instance on 8081. This lets CI and the Phase 5 flows target the
+  // workspace's reserved preview port.
+  webServer: externalBaseURL
+    ? undefined
+    : {
+        command: 'BROWSER=none npx expo start --web --port 8081',
+        url: 'http://localhost:8081',
+        reuseExistingServer: true,
+        timeout: 180_000,
+      },
 });
