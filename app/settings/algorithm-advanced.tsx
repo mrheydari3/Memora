@@ -13,7 +13,6 @@ import { isSM2StepValid } from '../../data/schedulers/sm2';
 import {
   AppText,
   Screen,
-  TopAppBar,
   GlassCard,
   LearningStepRow,
   SettingsPlate,
@@ -28,6 +27,7 @@ import {
   Pill,
   IconButton,
 } from '../../components';
+import { PageHeader } from '../../components/v3';
 import { colors, iconSize } from '../../theme/tokens';
 import { v2 } from '../../theme/v2';
 
@@ -210,7 +210,11 @@ export default function AlgorithmAdvancedScreen() {
         gutter
         contentMaxWidth={v2.layout.contentMaxWidth}
         header={
-          <TopAppBar title="Advanced" back backFallback="/settings/algorithm" />
+          <PageHeader
+            title="Advanced"
+            back
+            onBack={() => goBackOr(router, '/settings/algorithm')}
+          />
         }
       >
         <GlassCard tone="inset">
@@ -229,7 +233,11 @@ export default function AlgorithmAdvancedScreen() {
         gutter
         contentMaxWidth={v2.layout.contentMaxWidth}
         header={
-          <TopAppBar title="Advanced" back backFallback="/settings/algorithm" />
+          <PageHeader
+            title="Advanced"
+            back
+            onBack={() => goBackOr(router, '/settings/algorithm')}
+          />
         }
       >
         <GlassCard>
@@ -255,7 +263,13 @@ export default function AlgorithmAdvancedScreen() {
       scroll
       gutter
       contentMaxWidth={v2.layout.contentMaxWidth}
-      header={<TopAppBar title="Advanced" back backFallback="/settings/algorithm" />}
+      header={
+        <PageHeader
+          title="Advanced"
+          back
+          onBack={() => goBackOr(router, '/settings/algorithm')}
+        />
+      }
     >
       <SettingsPlate
         icon="tune"

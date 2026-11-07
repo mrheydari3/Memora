@@ -80,7 +80,7 @@ export function TodayPane({
             variant="label"
             weight="semibold"
             tone="accent"
-            headingLevel={1}
+            headingLevel={2}
             className="uppercase"
             numberOfLines={2}
             style={{ flexShrink: 1 }}

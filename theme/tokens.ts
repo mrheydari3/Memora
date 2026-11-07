@@ -92,6 +92,7 @@ type Palette = {
   radii: Record<'micro' | 'sm' | 'control' | 'pane' | 'sheet' | 'pill', number>;
   heights: Record<
     | 'appbar'
+    | 'pageHeader'
     | 'rowCompact'
     | 'row'
     | 'rowTall'

@@ -12,7 +12,6 @@ import {
   TopAppBar,
   GlassCard,
   HeroPane,
-  SectionHeader,
   AchievementBadge,
   EmptyState,
   ListRow,
@@ -20,6 +19,7 @@ import {
   HeroSkeleton,
   SettingsGroupSkeleton,
 } from '../components';
+import { SectionHeading } from '../components/v3';
 import { colors, fills, heights, iconSize } from '../theme/tokens';
 import { v2 } from '../theme/v2';
 
@@ -180,7 +180,7 @@ export default function ProfileScreen() {
 
       <RevealItem index={1}>
       {/* Achievements */}
-      <SectionHeader
+      <SectionHeading
         className="mt-7"
         label="Achievements"
         hint={`${achievements.filter((a) => a.earned).length} of ${achievements.length}`}
@@ -213,7 +213,7 @@ export default function ProfileScreen() {
 
       <RevealItem index={2}>
       {/* Decks */}
-      <SectionHeader className="mt-7" label="My decks" />
+      <SectionHeading className="mt-7" label="My decks" />
       <GlassCard className="mt-3" padding="none">
         {decks.length === 0 && (
           <View className="px-4 py-6">

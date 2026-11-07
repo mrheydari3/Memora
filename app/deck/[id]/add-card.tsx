@@ -14,6 +14,7 @@ import {
   PrimaryButton,
   Screen,
 } from '../../../components';
+import { HeaderIcon, PageHeader } from '../../../components/v3';
 import {
   alpha,
   colors,
@@ -41,7 +42,7 @@ const NUMERIC = { fontVariant: ['tabular-nums'] as const };
 /**
  * Add cards, v3 "Nocturne Focus" — you write on the card itself.
  *
- * The page is one flashcard laid out the way it will be studied: a 56px bar
+ * The page is one flashcard laid out the way it will be studied: a 64px bar
  * with the route's name, the deck it lands in, then the card face. Both sides
  * are typed directly on that face — no field boxes — with a character count, a
  * divider whose swap control trades the sides, and a live readiness line under
@@ -202,54 +203,13 @@ export default function AddCardScreen() {
   };
 
   const header = (
-    <View
-      style={{
-        height: 56,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: colors.appBarGlass,
-      }}
-    >
-      {/* On a wide canvas the bar's controls stay on the card's column, not at
-          the viewport edges a thousand pixels apart. */}
-      <View
-        style={{
-          width: '100%',
-          maxWidth: v3.layout.composerMaxWidth,
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: 8,
-        }}
-      >
-        <Pressable
-          onPress={handleBack}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <MaterialIcons name="arrow-back" size={22} color={colors.onSurface} />
-        </Pressable>
-
-        <AppText
-          variant="headline"
-          weight="semibold"
-          headingLevel={1}
-          numberOfLines={1}
-          style={{ flex: 1, textAlign: 'center', letterSpacing: -0.4 }}
-        >
-          {title}
-        </AppText>
-
-        <Pressable
-          onPress={handleBack}
-          accessibilityRole="button"
-          accessibilityLabel="Close composer"
-          style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <MaterialIcons name="close" size={22} color={colors.outline} />
-        </Pressable>
-      </View>
-    </View>
+    <PageHeader
+      title={title}
+      back
+      onBack={handleBack}
+      maxWidth={v3.layout.composerMaxWidth}
+      actions={<HeaderIcon icon="close" label="Close composer" onPress={handleBack} />}
+    />
   );
 
   const footer = (

@@ -2,7 +2,8 @@ import { View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { alpha, colors, iconSize, radii } from '../../theme/tokens';
+import { alpha, colors, iconSize } from '../../theme/tokens';
+import { SectionHeading } from './SectionHeading';
 
 type ShelfHeaderProps = {
   /** The section's name; defaults to "Your decks". */
@@ -17,13 +18,10 @@ type ShelfHeaderProps = {
 };
 
 /**
- * ShelfHeader — the mockup's section header:
+ * ShelfHeader — the Home shelf's specialized section header.
  *
- *   title row pb-2, label 12/600 uppercase tracking-wider outline + a
- *   surface-control count chip; the way in is a 12/600 accent "Folders" chip
- *   on a 40% surface-control fill; the meta line pb-3 carries counts in tabular
- *   figures and, when it applies, "1 caught up" in the review green; the rule
- *   under it is the token at 20% and the shelf starts 16px below that.
+ * The label, count chip and Folders action come from `SectionHeading`; the
+ * shelf adds the meta line and closes with the same 20% rule.
  */
 export function ShelfHeader({
   title = 'Your decks',
@@ -34,63 +32,35 @@ export function ShelfHeader({
 }: ShelfHeaderProps) {
   return (
     <View>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          paddingBottom: 8,
-        }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
-          <AppText
-            variant="label"
-            weight="semibold"
-            tone="tertiary"
-            headingLevel={2}
-            className="uppercase"
-            numberOfLines={1}
-            style={{ flexShrink: 1, letterSpacing: 0.6 }}
-          >
-            {title}
-          </AppText>
-          <View
+      <SectionHeading
+        label={title}
+        count={countLabel}
+        rule={false}
+        className="mb-2"
+        action={
+          <HintPressable
+            hint="Manage folders"
+            onPress={onManageFolders}
+            accessibilityRole="button"
+            accessibilityLabel="Manage folders"
             style={{
-              paddingHorizontal: 8,
-              paddingVertical: 2,
-              borderRadius: radii.pill,
-              backgroundColor: colors.surfaceControl,
+              minHeight: 44,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              paddingHorizontal: 10,
+              borderRadius: 8,
+              backgroundColor: alpha(colors.surfaceControl, 0.4),
             }}
           >
-            <AppText variant="caption" weight="medium" tone="muted">
-              {countLabel}
+            <MaterialIcons name="folder-open" size={iconSize.sm} color={colors.primary} />
+            <AppText variant="caption" weight="semibold" tone="accent">
+              Folders
             </AppText>
-          </View>
-        </View>
-
-        <HintPressable
-          hint="Manage folders"
-          onPress={onManageFolders}
-          accessibilityRole="button"
-          accessibilityLabel="Manage folders"
-          style={{
-            minHeight: 44,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            paddingHorizontal: 10,
-            borderRadius: 8,
-            backgroundColor: alpha(colors.surfaceControl, 0.4),
-          }}
-        >
-          <MaterialIcons name="folder-open" size={iconSize.sm} color={colors.primary} />
-          <AppText variant="caption" weight="semibold" tone="accent">
-            Folders
-          </AppText>
-        </HintPressable>
-      </View>
+          </HintPressable>
+        }
+      />
 
       <View
         style={{

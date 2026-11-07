@@ -173,6 +173,8 @@ const radii = {
 /** Control and row heights. Nothing measures itself with a magic number. */
 const heights = {
   appbar: 56,
+  /** The v3 app bar and every stack-page header. */
+  pageHeader: 64,
   rowCompact: 56,
   row: 60,
   rowTall: 68,

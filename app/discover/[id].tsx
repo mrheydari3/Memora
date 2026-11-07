@@ -10,7 +10,6 @@ import {
   Screen,
   TopAppBar,
   GlassCard,
-  SectionHeader,
   PrimaryButton,
   GhostButton,
   EmptyState,
@@ -18,6 +17,7 @@ import {
   Skeleton,
   SkeletonText,
 } from '../../components';
+import { SectionHeading } from '../../components/v3';
 import { colors, iconSize, radii } from '../../theme/tokens';
 import { v2 } from '../../theme/v2';
 
@@ -139,7 +139,11 @@ export default function DiscoverDeckPreviewScreen() {
           </RevealItem>
 
           <RevealItem index={1}>
-          <SectionHeader className="mt-7" label="Sample cards" hint={`${deck.sampleCards.length}`} />
+          <SectionHeading
+            className="mt-7"
+            label="Sample cards"
+            count={`${deck.sampleCards.length}`}
+          />
           </RevealItem>
           <View className="mt-3 flex-row flex-wrap gap-3">
             {deck.sampleCards.map((card, i) => (

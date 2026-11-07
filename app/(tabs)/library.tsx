@@ -11,7 +11,13 @@ import { buildStudyQueue } from '../../data/session';
 import { isDeckPlayable, type QuizMode } from '../../data/quiz';
 import { folderPath } from '../../data/folders';
 import { AppText, EmptyState, RevealItem, Screen } from '../../components';
-import { ActionButton, HeaderIcon, Surface } from '../../components/v3';
+import {
+  ActionButton,
+  HeaderIcon,
+  HeaderProfileButton,
+  PageHeader,
+  Surface,
+} from '../../components/v3';
 import { usePressFeedback } from '../../motion';
 import { alpha, colors, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
@@ -435,56 +441,24 @@ export default function GameScreen() {
   };
 
   const header = (
-    <View
-      style={{
-        height: 64,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 8,
-        paddingHorizontal: 20,
-        backgroundColor: colors.appBarGlass,
-      }}
-    >
-      <AppText
-        variant="headline"
-        weight="semibold"
-        headingLevel={1}
-        numberOfLines={1}
-        style={{ letterSpacing: -0.4 }}
-      >
-        Game
-      </AppText>
-
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-        <HeaderIcon
-          icon="add"
-          label="Add deck"
-          onPress={() => pushOnce(router, '/add-deck')}
-        />
-        <HeaderIcon
-          icon="settings"
-          label="Settings"
-          onPress={() => pushOnce(router, '/settings')}
-        />
-        <Pressable
-          onPress={() => pushOnce(router, '/profile')}
-          accessibilityRole="button"
-          accessibilityLabel="Profile"
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: colors.primary,
-            marginStart: 8,
-          }}
-        >
-          <MaterialIcons name="person" size={18} color={colors.onPrimary} />
-        </Pressable>
-      </View>
-    </View>
+    <PageHeader
+      title="Game"
+      actions={
+        <>
+          <HeaderIcon
+            icon="add"
+            label="Add deck"
+            onPress={() => pushOnce(router, '/add-deck')}
+          />
+          <HeaderIcon
+            icon="settings"
+            label="Settings"
+            onPress={() => pushOnce(router, '/settings')}
+          />
+          <HeaderProfileButton onPress={() => pushOnce(router, '/profile')} />
+        </>
+      }
+    />
   );
 
   if (playableDecks.length === 0) {

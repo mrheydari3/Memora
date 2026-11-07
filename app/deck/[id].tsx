@@ -27,7 +27,7 @@ import {
   SearchBar,
   SheetScrollView,
 } from '../../components';
-import { ActionButton, HeaderIcon, Surface } from '../../components/v3';
+import { ActionButton, HeaderIcon, PageHeader, Surface } from '../../components/v3';
 import type { Flashcard } from '../../data/types';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -66,49 +66,6 @@ const NUMERIC = { fontVariant: ['tabular-nums'] as const };
 /** 1811 → "1,811" without depending on Intl being present on the runtime. */
 function formatCount(value: number): string {
   return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
-/**
- * The deck's bar: the deck name is the page's h1, so descending from the shelf
- * keeps naming the deck instead of replacing it with a generic route name.
- * Every action draws a bare 22px glyph on a 44px target, v3's app-bar rule.
- */
-function DeckHeader({
-  title,
-  onBack,
-  onAdd,
-  onOptions,
-}: {
-  title: string;
-  onBack: () => void;
-  onAdd?: () => void;
-  onOptions?: () => void;
-}) {
-  return (
-    <View
-      style={{
-        height: 64,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 12,
-        backgroundColor: colors.appBarGlass,
-      }}
-    >
-      <HeaderIcon icon="arrow-back" label="Go back" onPress={onBack} />
-      <AppText
-        variant="headline"
-        weight="semibold"
-        headingLevel={1}
-        numberOfLines={1}
-        style={{ letterSpacing: -0.4, flex: 1, minWidth: 0, marginStart: 4 }}
-      >
-        {title}
-      </AppText>
-      {onAdd && <HeaderIcon icon="add" label="Add cards" onPress={onAdd} />}
-      {onOptions && <HeaderIcon icon="more-horiz" label="More options" onPress={onOptions} />}
-    </View>
-  );
 }
 
 /** The hero's live status chip: due, caught up, or filed away. */
@@ -313,7 +270,7 @@ export default function DeckDetailsScreen() {
   // lie for a deck that is about to load. Show the page's shape instead.
   if (!deck && !loaded) {
     return (
-      <Screen header={<DeckHeader title="Deck" onBack={backHome} />}>
+      <Screen header={<PageHeader title="Deck" back onBack={backHome} />}>
         <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
           <HeroSkeleton height={150} />
           <View className="mt-6">
@@ -326,7 +283,7 @@ export default function DeckDetailsScreen() {
 
   if (!deck) {
     return (
-      <Screen header={<DeckHeader title="Deck" onBack={backHome} />}>
+      <Screen header={<PageHeader title="Deck" back onBack={backHome} />}>
         <View className="flex-1 items-center justify-center px-8">
           <EmptyState
             icon="layers-clear"
@@ -877,11 +834,24 @@ export default function DeckDetailsScreen() {
       gutter
       contentMaxWidth={v3.layout.contentMaxWidth}
       header={
-        <DeckHeader
+        <PageHeader
           title={deck.name}
+          back
           onBack={backHome}
-          onAdd={() => pushOnce(router, `/deck/${deck.id}/add-card`)}
-          onOptions={() => setOptionsVisible(true)}
+          actions={
+            <>
+              <HeaderIcon
+                icon="add"
+                label="Add cards"
+                onPress={() => pushOnce(router, `/deck/${deck.id}/add-card`)}
+              />
+              <HeaderIcon
+                icon="more-horiz"
+                label="More options"
+                onPress={() => setOptionsVisible(true)}
+              />
+            </>
+          }
         />
       }
     >

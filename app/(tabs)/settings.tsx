@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { pushOnce } from '../../services/navigation';
@@ -10,7 +10,13 @@ import { computeStreak } from '../../data/streak';
 import { exportJson } from '../../services/export';
 import { MaterialIcons } from '../../components/Icon';
 import { AppText, RevealItem, Screen, ToggleSwitch } from '../../components';
-import { SettingsChapter as Chapter, SettingsLine, Surface } from '../../components/v3';
+import {
+  HeaderProfileButton,
+  PageHeader,
+  SettingsChapter as Chapter,
+  SettingsLine,
+  Surface,
+} from '../../components/v3';
 import { alpha, colors, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import type { Deck } from '../../data/types';
@@ -88,52 +94,10 @@ export default function SettingsScreen() {
   };
 
   const header = (
-    <View
-      style={{
-        height: 64,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 8,
-        paddingHorizontal: 20,
-        backgroundColor: colors.appBarGlass,
-      }}
-    >
-      <AppText
-        variant="headline"
-        weight="semibold"
-        headingLevel={1}
-        numberOfLines={1}
-        style={{ letterSpacing: -0.4 }}
-      >
-        Settings
-      </AppText>
-
-      <Pressable
-        onPress={() => pushOnce(router, '/profile')}
-        accessibilityRole="button"
-        accessibilityLabel="Profile"
-        style={{
-          width: 44,
-          height: 44,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <View
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: colors.primary,
-          }}
-        >
-          <MaterialIcons name="person" size={18} color={colors.onPrimary} />
-        </View>
-      </Pressable>
-    </View>
+    <PageHeader
+      title="Settings"
+      actions={<HeaderProfileButton onPress={() => pushOnce(router, '/profile')} />}
+    />
   );
 
   const ledger = [

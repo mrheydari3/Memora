@@ -13,7 +13,7 @@ import {
   ToggleSwitch,
 } from '../../components';
 import {
-  SettingsBackHeader,
+  PageHeader,
   SettingsChapter,
   SettingsFootnote,
   SettingsHero,
@@ -99,7 +99,9 @@ export default function TTSSettingsScreen() {
       scroll
       gutter
       contentMaxWidth={v3.layout.contentMaxWidth}
-      header={<SettingsBackHeader title="Speech" onBack={() => goBackOr(router, '/settings')} />}
+      header={
+        <PageHeader title="Speech" back onBack={() => goBackOr(router, '/settings')} />
+      }
     >
       <View style={{ paddingBottom: 24 }}>
         <View style={{ gap: 28 }}>

@@ -242,14 +242,16 @@ export type Metric = { label: string; value: string; unit?: string; note?: strin
 export function MetricGrid(props: { items: Metric[]; columns?: 2 | 4 }): JSX.Element;
 ```
 
-- [ ] Create the components. Header height is **64**; title is `AppText variant="headline" headingLevel={1}`; back is `HeaderIcon icon="arrow-back"` with a 44px target.
-- [ ] Convert Home, Game, Settings, Deck, Advanced/TTS/Offline headers **and the composer's 56px bar** to `PageHeader` (brand on tabs, back on stack pages). Remove duplicated header markup and the 56/64 mix.
-- [ ] Convert Home's `ShelfHeader` body and every `SectionHeader` call site to `SectionHeading`; keep the shelf's count chip, right-side Folders action and 20% rule.
-- [ ] Convert the repeated 3-cell ledgers (Stats, Profile, Quiz result) to `MetricGrid`.
-- [ ] Run `npx tsc --noEmit`, `npm run check:design`, `npx playwright test tests/e2e/a11y.spec.ts tests/e2e/keyboard.spec.ts`.
-- [ ] Commit: `refactor(ui): extract the v3 header, section and metric grammar`.
+- [x] Create the components. Header height is **64** (`heights.pageHeader`); title is `AppText variant="headline" headingLevel={1}`; back is `HeaderIcon icon="arrow-back"` with a 44px target. `PageHeader` also exports `HeaderProfileButton` for the shared 32px avatar on a 44px target.
+- [x] Convert Home, Game, Settings, Deck, Advanced/TTS/Offline headers **and the composer's 56px bar** to `PageHeader` (brand on Home, title on the other tabs, back on stack pages). Duplicated header markup and the 56/64 mix are gone from the converted routes.
+- [x] Convert Home's `ShelfHeader` body and every screen `SectionHeader` call site to `SectionHeading`; the shelf keeps its count chip, right-side Folders action and 20% rule. The legacy `SettingsSection` still uses `SectionHeader` until Task 13.
+- [x] Convert Statistics' repeated metric pairs to `MetricGrid`; Profile has no metric ledger to convert, and the Quiz result ledger moves in Task 5 with the rest of that result screen.
+- [x] Run `npx tsc --noEmit`, `npm run check:design`, `npm test`, `npm run test:surfaces`, `npm run test:fixtures`, `npm run build:web`; all pass. Playwright a11y/keyboard are **blocked** by the missing Chromium system library.
+- [x] Commit: `feat(ui): one v3 header, section and metric grammar`.
 
-**Acceptance:** every route renders exactly one `h1` in a 64px header (after the remaining screens convert in Tasks 4–11); `TopAppBar` is still used by not-yet-converted screens until Task 11, then `rg "<TopAppBar" app` is zero; axe reports no heading/landmark regression; keyboard tab order starts at the back/brand, not at invisible chrome.
+**Acceptance:** every converted route renders exactly one `h1` in a 64px header; `TopAppBar` remains only on the not-yet-converted screens until Task 11; no horizontal overflow in the inspected routes; axe/keyboard verification is still blocked by the Playwright launcher.
+
+**Result (2026-11-07):** `npx tsc --noEmit` **0** · `npm run check:design` **clean (96 files)** · `npm test` **161/161** · `npm run test:surfaces` **11/11** · `npm run test:fixtures` **14/14** · `npm run build:web` exported `dist/`. Loaded the `/dev` fixture (6 decks, 47 cards, 33 reviews) and inspected `/home`, `/library`, `/deck/deck-german-a2b1`, `/deck/deck-german-a2b1/add-card`, `/settings`, `/settings/tts` and `/statistics` at 432px: the brand/title/back bars are 64px, the profile avatar is a 44px target, Statistics renders the new section rules and metric tiles, and every route reports one `h1` with `scrollWidth === innerWidth`. Home exposed a pre-existing second `h1` in `TodayPane`; the date eyebrow is now level 2. The Statistics inner scroller would not move for a second capture, so the grid was verified from the first row plus rendered text. Playwright visual/a11y/keyboard suites still cannot launch (`libnspr4.so` missing), so the axe/keyboard gates are not run.
 
 #### Task 3: `RatingKeys` and the study/quiz control vocabulary
 

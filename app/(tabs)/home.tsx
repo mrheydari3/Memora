@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, useWindowDimensions, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
 import { useDeckStore } from '../../store/useDeckStore';
@@ -30,7 +30,6 @@ import {
   PrimaryButton,
   RevealItem,
   Screen,
-  SectionHeader,
   SheetScrollView,
 } from '../../components';
 import { MaterialIcons } from '../../components/Icon';
@@ -39,6 +38,9 @@ import {
   DeckShelfRow,
   FolderGroup,
   HeaderIcon,
+  HeaderProfileButton,
+  PageHeader,
+  SectionHeading,
   ShelfHeader,
   TodayPane,
 } from '../../components/v3';
@@ -90,6 +92,7 @@ type FolderSheetMode = 'list' | 'edit' | 'location';
  */
 export default function HomeScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
 
   const decks = useDeckStore((s) => s.decks);
   const cardsByDeck = useDeckStore((s) => s.cardsByDeck);
@@ -332,84 +335,48 @@ export default function HomeScreen() {
   };
 
   const header = (
-    <View
-      style={{
-        height: 56,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 8,
-        paddingHorizontal: 20,
-        backgroundColor: colors.appBarGlass,
-      }}
-    >
-      <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <View
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: colors.surfaceControl,
-          }}
-        >
-          <MaterialIcons name="blur-on" size={iconSize.lg} color={colors.primary} />
-        </View>
-        <AppText variant="headline" weight="semibold" numberOfLines={1} style={{ letterSpacing: -0.4 }}>
-          Memora
-        </AppText>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 4,
-            paddingHorizontal: 10,
-            paddingVertical: 4,
-            borderRadius: 999,
-            backgroundColor: colors.surfaceInset,
-          }}
-        >
-          <MaterialIcons
-            name="local-fire-department"
-            size={16}
-            color={streak > 0 ? colors.warning : colors.outline}
+    <PageHeader
+      brand
+      meta={
+        width >= 360 ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 999,
+              backgroundColor: colors.surfaceInset,
+            }}
+          >
+            <MaterialIcons
+              name="local-fire-department"
+              size={16}
+              color={streak > 0 ? colors.warning : colors.outline}
+            />
+            <AppText variant="caption" weight="semibold" tone={streak > 0 ? 'warning' : 'muted'}>
+              {streak}d
+            </AppText>
+          </View>
+        ) : undefined
+      }
+      actions={
+        <>
+          <HeaderIcon
+            icon="explore"
+            label="Discover"
+            onPress={() => pushOnce(router, '/discover')}
           />
-          <AppText variant="caption" weight="semibold" tone={streak > 0 ? 'warning' : 'muted'}>
-            {streak}d
-          </AppText>
-        </View>
-      </View>
-
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-        <HeaderIcon
-          icon="explore"
-          label="Discover"
-          onPress={() => pushOnce(router, '/discover')}
-        />
-        <HeaderIcon
-          icon="add"
-          label="Add deck"
-          onPress={() => pushOnce(router, '/add-deck')}
-        />
-        <Pressable
-          onPress={() => pushOnce(router, '/profile')}
-          accessibilityRole="button"
-          accessibilityLabel="Profile"
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: colors.primary,
-            marginStart: 6,
-          }}
-        >
-          <MaterialIcons name="person" size={18} color={colors.onPrimary} />
-        </Pressable>
-      </View>
-    </View>
+          <HeaderIcon
+            icon="add"
+            label="Add deck"
+            onPress={() => pushOnce(router, '/add-deck')}
+          />
+          <HeaderProfileButton onPress={() => pushOnce(router, '/profile')} />
+        </>
+      }
+    />
   );
 
   const toggleFolder = (id: string) =>
@@ -735,10 +702,10 @@ export default function HomeScreen() {
 
               {folders.length > 0 && (
                 <View className="mt-6">
-                  <SectionHeader
+                  <SectionHeading
                     label="Your folders"
-                    hint={`${folders.length}`}
-                    className="px-0"
+                    count={`${folders.length}`}
+                    rule={false}
                   />
                   <View className="mt-2">
                     {folders.map((folder) => {

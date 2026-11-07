@@ -11,13 +11,11 @@ import {
   GlassCard,
   HeroPane,
   InsightCard,
-  MetricTile,
   MiniBarChart,
   Pill,
   RecommendationCard,
   RevealItem,
   Screen,
-  SectionHeader,
   SegmentedControl,
   StatPill,
   StatisticsSkeleton,
@@ -25,6 +23,7 @@ import {
   TrendChart,
 } from '../components';
 import type { DistributionItem } from '../components';
+import { MetricGrid, SectionHeading } from '../components/v3';
 import { colors, fills, iconSize, stateColors } from '../theme/tokens';
 import { v2 } from '../theme/v2';
 import {
@@ -238,7 +237,7 @@ export default function StatisticsScreen() {
 
           {/* Recall */}
           <RevealItem index={1}>
-            <SectionHeader
+            <SectionHeading
               className="mt-7"
               label="Recall"
               hint={`${formatCount(report.performance.recall.sampleSize)} rated`}
@@ -324,33 +323,33 @@ export default function StatisticsScreen() {
               />
             </GlassCard>
 
-            <View className="mt-3 flex-row" style={{ gap: 12 }}>
-              <MetricTile
-                label="Median review"
-                value={formatDuration(report.performance.duration.medianMs)}
-                detail={
-                  report.performance.duration.sampleSize > 0
-                    ? `p90 ${formatDuration(report.performance.duration.p90Ms)} · ${
-                        report.performance.duration.sampleSize
-                      } timed`
-                    : 'No timed reviews yet'
-                }
-              />
-              <MetricTile
-                label={narrow ? 'Active day' : 'Per active day'}
-                value={num(report.performance.volume.perActiveDay)}
-                detail={`${num(
-                  report.performance.volume.perCalendarDay,
-                  2
-                )} per calendar day`}
-              />
-            </View>
+            <MetricGrid
+              className="mt-3"
+              columns={2}
+              items={[
+                {
+                  label: 'Median review',
+                  value: formatDuration(report.performance.duration.medianMs),
+                  note:
+                    report.performance.duration.sampleSize > 0
+                      ? `p90 ${formatDuration(report.performance.duration.p90Ms)} · ${
+                          report.performance.duration.sampleSize
+                        } timed`
+                      : 'No timed reviews yet',
+                },
+                {
+                  label: narrow ? 'Active day' : 'Per active day',
+                  value: num(report.performance.volume.perActiveDay),
+                  note: `${num(report.performance.volume.perCalendarDay, 2)} per calendar day`,
+                },
+              ]}
+            />
           </RevealItem>
 
           {/* Memory */}
           {report.memory.coverage.fsrsCards > 0 ? (
             <RevealItem index={2}>
-              <SectionHeader
+              <SectionHeading
                 className="mt-7"
                 label="Memory"
                 hint={`${report.memory.coverage.fsrsCards} FSRS cards`}
@@ -417,19 +416,24 @@ export default function StatisticsScreen() {
                   </View>
                 </View>
 
-                <View className="mt-4 flex-row" style={{ gap: 12 }}>
-                  <MetricTile
-                    label={narrow ? 'At risk' : 'Below target'}
-                    value={formatCount(report.memory.retention.atRisk)}
-                    detail={`target ${pct(report.memory.retention.threshold)}`}
-                    tone={report.memory.retention.atRisk > 0 ? 'warning' : 'default'}
-                  />
-                  <MetricTile
-                    label={width < 420 ? 'Predicted' : 'Predicted recall'}
-                    value={pct(report.memory.retention.meanRetrievability)}
-                    detail="FSRS estimate, now"
-                  />
-                </View>
+                <MetricGrid
+                  className="mt-4"
+                  columns={2}
+                  items={[
+                    {
+                      label: narrow ? 'At risk' : 'Below target',
+                      value: formatCount(report.memory.retention.atRisk),
+                      note: `target ${pct(report.memory.retention.threshold)}`,
+                      color:
+                        report.memory.retention.atRisk > 0 ? colors.warning : undefined,
+                    },
+                    {
+                      label: width < 420 ? 'Predicted' : 'Predicted recall',
+                      value: pct(report.memory.retention.meanRetrievability),
+                      note: 'FSRS estimate, now',
+                    },
+                  ]}
+                />
 
                 <AppText variant="caption" tone="tertiary" className="mt-3">
                   “In review schedule” means a card has graduated to long intervals, not
@@ -501,23 +505,27 @@ export default function StatisticsScreen() {
 
           {/* Study behaviour */}
           <RevealItem index={3}>
-            <SectionHeader
+            <SectionHeading
               className="mt-7"
               label="Study habits"
               hint={`${report.behavior.sessions.count} sessions`}
             />
-            <View className="mt-3 flex-row" style={{ gap: 12 }}>
-              <MetricTile
-                label="Consistency"
-                value={pct(report.behavior.consistency.activeDayRatio)}
-                detail={`${report.performance.volume.activeDays} of ${report.range.days} days`}
-              />
-              <MetricTile
-                label={narrow ? 'Streak' : 'Current streak'}
-                value={`${report.overview.streak}d`}
-                detail={`longest ${report.overview.longestStreak}d`}
-              />
-            </View>
+            <MetricGrid
+              className="mt-3"
+              columns={2}
+              items={[
+                {
+                  label: 'Consistency',
+                  value: pct(report.behavior.consistency.activeDayRatio),
+                  note: `${report.performance.volume.activeDays} of ${report.range.days} days`,
+                },
+                {
+                  label: narrow ? 'Streak' : 'Current streak',
+                  value: `${report.overview.streak}d`,
+                  note: `longest ${report.overview.longestStreak}d`,
+                },
+              ]}
+            />
 
             <GlassCard className="mt-3">
               <AppText variant="label" tone="muted" className="uppercase">
@@ -586,7 +594,7 @@ export default function StatisticsScreen() {
           {/* Decks */}
           {reviewedDecks.length > 0 ? (
             <RevealItem index={4}>
-              <SectionHeader
+              <SectionHeading
                 className="mt-7"
                 label="Decks"
                 hint={`${report.decks.comparableCount} comparable`}
@@ -638,7 +646,7 @@ export default function StatisticsScreen() {
 
           {/* Predictions */}
           <RevealItem index={5}>
-            <SectionHeader className="mt-7" label="Next 7 days" hint="prediction" />
+            <SectionHeading className="mt-7" label="Next 7 days" hint="prediction" />
             <GlassCard className="mt-3">
               <MiniBarChart
                 data={report.forecast.workload.daily.map((day) => ({
@@ -720,7 +728,7 @@ export default function StatisticsScreen() {
 
           {/* Insights */}
           <RevealItem index={6}>
-            <SectionHeader
+            <SectionHeading
               className="mt-7"
               label="What stands out"
               hint={report.insights.status === 'ok' ? 'evidence-gated' : 'limited data'}
@@ -750,7 +758,7 @@ export default function StatisticsScreen() {
 
           {/* Fixed reports */}
           <RevealItem index={7}>
-            <SectionHeader className="mt-7" label="Reports" hint="fixed windows" />
+            <SectionHeading className="mt-7" label="Reports" hint="fixed windows" />
             <GlassCard className="mt-3" padding="none">
               {[report.reports.daily, report.reports.weekly, report.reports.monthly].map(
                 (period) => (

@@ -10,12 +10,12 @@ import {
   TopAppBar,
   GlassCard,
   ListRow,
-  SectionHeader,
   EmptyState,
   GhostButton,
   RevealItem,
   SkeletonRow,
 } from '../../components';
+import { SectionHeading } from '../../components/v3';
 import { v2 } from '../../theme/v2';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -96,7 +96,7 @@ export default function DiscoverScreen() {
           </RevealItem>
 
           <RevealItem index={1}>
-            <SectionHeader className="mt-6" label="Starter decks" hint={`${decks.length}`} />
+            <SectionHeading className="mt-6" label="Starter decks" count={`${decks.length}`} />
           </RevealItem>
 
           <RevealItem index={2}>
