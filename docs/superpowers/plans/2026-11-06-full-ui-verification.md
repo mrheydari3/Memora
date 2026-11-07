@@ -131,19 +131,19 @@ Also store an `ariaSnapshot()` per surface as reviewed text. **84/84 snapshots w
 
 Script one flow per control family in Appendix B, each ending in a reload to prove persistence:
 
-- [ ] Deck: create → validate → save; rename; file into folder; pin; move; archive; duplicate; reset progress; delete (with confirmation). *(Partial: create, delete confirmation, rename, move-to-folder, pin, archive and duplicate are scripted and reloaded. Reset progress, export and move order remain.)*
-- [ ] Folder: create; duplicate-name rejection; rename; icon/colour; nest; re-parent; move up/down; pin; delete (children move up, decks survive). *(Partial: create, duplicate rejection, rename, icon/colour, pin, delete, deck-move/delete, nest and re-parent are scripted. Move up/down remain.)*
+- [ ] Deck: create → validate → save; rename; file into folder; pin; move; archive; duplicate; reset progress; delete (with confirmation). *(Partial: create, delete confirmation, rename, move-to-folder, pin, archive, duplicate, reset progress and move order are scripted and reloaded. Export remains.)*
+- [ ] Folder: create; duplicate-name rejection; rename; icon/colour; nest; re-parent; move up/down; pin; delete (children move up, decks survive). *(Partial: create, duplicate rejection, rename, icon/colour, pin, deck-move/delete, nest, re-parent and move up/down are scripted. Nested child-folder re-parenting on delete remains.)*
 - [ ] Card: add with both faces; validate empty; colour; edit; delete; long text. *(Partial: add, empty validation, colour, edit, delete and persistence are scripted; long-text growth is covered by `group-a.spec.ts`, not this flow.)*
-- [ ] Study: reveal; all four ratings; requeue; stable denominator; completion; empty deck; keyboard Space/1–4; TTS. *(Partial: reveal, four ratings, keyboard, and review-log persistence are scripted. Requeue, denominator, completion, empty deck and TTS remain.)*
+- [ ] Study: reveal; all four ratings; requeue; stable denominator; completion; empty deck; keyboard Space/1–4; TTS. *(Partial: reveal, four ratings, keyboard, requeue, stable denominator, completion, empty deck and review-log persistence are scripted. TTS remains.)*
 - [ ] Quiz: correct; wrong + reveal; combo; timer warning; round end; play again; cleared bonus; unplayable deck; result focus trap and restore. *(Partial: answer, round end, record persistence and return to Game are scripted. Correct/wrong paths, combo, warning, play again, cleared bonus and unplayable deck remain; `quiz-result.spec.ts` covers result focus.)*
-- [x] Discover: list → detail → import → opens the deck → appears on Home. *(13/13 flow suite scripted and reloaded.)*
+- [x] Discover: list → detail → import → opens the deck → appears on Home. *(19/19 flow suite scripted and reloaded.)*
 - [ ] Settings: each toggle persists; algorithm presets; TTS languages; offline; install prompt. *(Partial: sound, fuzz, TTS toggle and front-language persistence are scripted. Remaining toggles, presets, offline and install remain.)*
-- [ ] Navigation: every row/button/link, browser back/forward, direct deep link, unknown route. *(Partial: tab bar, back fallback and add-deck close are scripted. Every row/link, forward and unknown route remain.)*
+- [ ] Navigation: every row/button/link, browser back/forward, direct deep link, unknown route. *(Partial: tab bar, back fallback, add-deck close, browser forward and unknown route are scripted. Every row/link remains.)*
 - [ ] Sheets: open, Escape, scrim click, focus trap, focus return for every sheet. *(Partial: folder-sheet Escape/return is scripted; `group-a.spec.ts` covers deck-sheet trap/return. Scrim and every other sheet remain.)*
 
 **Acceptance:** every unique control has at least one scripted action, or is documented as decorative with a reason.
 
-**Status:** 13 Phase 5 flows pass; **acceptance not met** because the family inventory above is only partially scripted. The measured pass and remaining gaps are in the Phase 5 run log.
+**Status:** 19 Phase 5 flows pass; **acceptance not met** because the family inventory above is only partially scripted. The measured pass and remaining gaps are in the Phase 5 run log.
 
 ### Phase 6 — Responsive and visual (1 day)
 
@@ -465,4 +465,35 @@ Buttons (all variants, sizes, disabled, destructive) → add-deck, folder sheet,
 - Removed the old `domClick` workaround from the folder flows now that the Phase 4 pointer fix is in place; normal pointer activation is exercised.
 - Command: `LD_LIBRARY_PATH=.ui-verify/phase4/root/usr/lib/x86_64-linux-gnu`, `PLAYWRIGHT_BROWSERS_PATH=0`, `BASE_URL=http://127.0.0.1:3005`, `npx playwright test tests/e2e/flows.spec.ts --project=chromium`.
 - Result: **13/13 pass**, including the two new management flows.
-- Still open: deck reset/export/move order; folder move up/down; card long text in this suite; study requeue/denominator/completion/empty/TTS; quiz wrong/combo/warning/play-again/cleared/unplayable; settings offline/install and remaining toggles; all navigation rows/forward/unknown route; every sheet's scrim/focus cycle.
+- Still open: deck export; card long text in this suite; study requeue/denominator/completion/empty/TTS; quiz wrong/combo/warning/play-again/cleared/unplayable; settings offline/install and remaining toggles; navigation rows; every sheet's scrim/focus cycle; nested child-folder re-parenting on delete.
+
+---
+
+## Phase 5 follow-up 2 — 2026-11-07
+
+**Status: 17/17 flows pass; coverage is still partial.**
+
+- Added four flows:
+  - Folder move down, reload, move back up, reload; asserts root sibling order `A/C/B` then `A/B/C`.
+  - Deck move up, reload, move back down, reload; asserts the stored order changes both ways.
+  - Reset progress after one real study rating; asserts the deck's review log is empty and every card returns to `New`, including after reload.
+  - Unknown route renders “This page moved on”, returns to Game, and browser back/forward restores Home then the deck detail.
+- Two test-only corrections during the run: root folders may store no `parentId` (treat nullish as root), and `Move up` must be matched exactly because the delete-folder subtitle contains “move up one level”. Neither was an app defect.
+- Command: `LD_LIBRARY_PATH=.ui-verify/phase4/root/usr/lib/x86_64-linux-gnu`, `PLAYWRIGHT_BROWSERS_PATH=0`, `BASE_URL=http://127.0.0.1:3005`, `npx playwright test tests/e2e/flows.spec.ts --project=chromium`.
+- Result: **17/17 pass** (1.8 min); `npx tsc --noEmit` **0 errors**.
+- Remaining: deck export; study TTS; quiz wrong/combo/warning/play-again/cleared/unplayable; settings offline/install; navigation rows; every sheet's scrim/focus cycle; nested child-folder re-parenting on delete.
+
+---
+
+## Phase 5 follow-up 3 — 2026-11-07
+
+**Status: 19/19 flows pass; coverage is still partial.**
+
+- Fixed a real empty-deck copy defect in `app/study/[deckId].tsx`: a deck with no cards used to say “All done / You have completed every due card”, which claims work that never existed. It now says “No cards yet”, explains how to start, and offers **Add cards**; a non-empty caught-up deck still says “All done”.
+- Added two Study flows:
+  - A controlled two-card deck is created through the UI. Rating `Again` re-enters the learning queue; the header stays `2 / 2` instead of growing the denominator. The session then reaches “All done”, and the review log survives reload.
+  - A newly created empty deck shows the new empty state, the **Add cards** action opens the composer, and a reload still shows “No cards yet”.
+- Restarted the Expo server for the source change (the server runs with `CI=1`, so it has no watch mode).
+- Command: `LD_LIBRARY_PATH=.ui-verify/phase4/root/usr/lib/x86_64-linux-gnu`, `PLAYWRIGHT_BROWSERS_PATH=0`, `BASE_URL=http://127.0.0.1:3005`, `npx playwright test tests/e2e/flows.spec.ts --project=chromium`.
+- Result: **19/19 pass** (2.1 min); `npx tsc --noEmit` **0 errors**; `npm test` **161/161**.
+- Remaining: deck export; study TTS; quiz wrong/combo/warning/play-again/cleared/unplayable; settings offline/install; navigation rows; every sheet's scrim/focus cycle; nested child-folder re-parenting on delete.

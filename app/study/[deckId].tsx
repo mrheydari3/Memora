@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Animated, Pressable, Platform, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { goBackOr } from '../../services/navigation';
+import { goBackOr, pushOnce } from '../../services/navigation';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
@@ -465,6 +465,7 @@ export default function StudyScreen() {
   );
 
   if (!currentCard) {
+    const emptyDeck = deckCards.length === 0;
     return (
       <Screen header={header}>
         <View
@@ -477,12 +478,23 @@ export default function StudyScreen() {
         >
           <Animated.View style={doneReveal.style}>
             <EmptyState
-              icon="check"
-              title="All done"
+              icon={emptyDeck ? 'note-add' : 'check'}
+              title={emptyDeck ? 'No cards yet' : 'All done'}
               titleVariant="headline"
-              description="You have completed every due card in this deck."
+              description={
+                emptyDeck
+                  ? 'This deck has no cards. Add one from the deck screen to start studying.'
+                  : 'You have completed every due card in this deck.'
+              }
               action={
                 <View>
+                  {emptyDeck && (
+                    <GhostButton
+                      label="Add cards"
+                      className="px-6"
+                      onPress={() => pushOnce(router, `/deck/${deck.id}/add-card`)}
+                    />
+                  )}
                   {lastUndo && (
                     <GhostButton label="Undo last review" className="px-6" onPress={undoLastReview} />
                   )}
