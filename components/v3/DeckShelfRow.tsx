@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { Animated, Pressable, View } from 'react-native';
+import { Animated, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
 import { alpha, colors, iconSize, radii, stateColors } from '../../theme/tokens';
+import { RowOptions } from './RowOptions';
 import { Surface } from './Surface';
 import { v3 } from '../../theme/v3';
 import { usePressFeedback } from '../../motion';
@@ -27,35 +27,6 @@ type DeckShelfRowProps = {
 };
 
 const NUMERIC = { fontVariant: ['tabular-nums'] as const };
-
-/** The mockup's options tile: a 40px transparent square on a 44px target. */
-function RowOptions({ label, onPress }: { label: string; onPress: () => void }) {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <Pressable
-      onPress={onPress}
-      onHoverIn={() => setHovered(true)}
-      onHoverOut={() => setHovered(false)}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-    >
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 8,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: hovered ? alpha(colors.surfaceTile, 0.9) : 'transparent',
-        }}
-      >
-        <MaterialIcons name="more-vert" size={iconSize.lg} color={colors.outline} />
-      </View>
-    </Pressable>
-  );
-}
 
 /**
  * DeckShelfRow — the mockup's deck line, measured against its classes:

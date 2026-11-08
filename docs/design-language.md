@@ -178,7 +178,7 @@ theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌
 
 **چیدمان و سطح:** `Screen` (+ `ScreenScroll`, `ScreenBody`) · `Surface` (`scene`/`pane`/`inset`/`control`) · `PageHeader` (+ `HeaderIcon`, `HeaderProfileButton`) · `SectionHeading` · `ShelfHeader` · `ListRow` · `FolderGroup` · `DeckShelfRow` · `ArchivedRow` · `TodayPane` · `BottomSheetModal` + `SheetPanel`
 
-**تنظیمات:** `SettingsHero` · `SettingsChapter` · `SettingsLine` · `SettingsFootnote` · `SettingsBackHeader` · `MetricGrid`
+**تنظیمات:** `SettingsHero` · `SettingsChapter` · `SettingsLine` · `SettingsFootnote` · `MetricGrid`
 
 **کنترل:** `Button` (`primary` / `primaryQuiet` / `secondary` / `outline` / `text`، به‌همراه پرچم `destructive` و اندازه‌های `md`/`lg`) · `PrimaryButton` · `GhostButton` · `IconButton` · `ToggleSwitch` · `SearchBar` · `Chip` (`filter`/`select`) · `SegmentedControl` · `Stepper` · `Field` · `Pill` (`neutral`/`accent`/`warning`) · `Menu` / `Select` / `ActionMenu` / `ContextMenu` · `AppearancePicker`
 

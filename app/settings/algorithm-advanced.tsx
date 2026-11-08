@@ -23,7 +23,7 @@ import {
 } from '../../components';
 import {
   ActionButton,
-  SettingsBackHeader,
+  PageHeader,
   SettingsChapter,
   SettingsFootnote,
   SettingsHero,
@@ -210,7 +210,7 @@ export default function AlgorithmAdvancedScreen() {
 
   const deckName = deck?.name ?? 'this deck';
   const header = (
-    <SettingsBackHeader title="Advanced" onBack={() => goBackOr(router, '/settings/algorithm')} />
+    <PageHeader title="Advanced" back onBack={() => goBackOr(router, '/settings/algorithm')} />
   );
 
   // The store hydrates asynchronously, and the deck may legitimately have been

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
-import { HeaderIcon } from './HeaderIcon';
 import { Surface } from './Surface';
 import { alpha, colors, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
@@ -10,37 +9,6 @@ import { v3 } from '../../theme/v3';
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
 const NUMERIC = { fontVariant: ['tabular-nums'] as const };
-
-/**
- * The back bar of a settings sub-page: the bare 44px arrow, then the route's
- * name as the page's h1. 64px, like the tab pages' bar, so descending into a
- * setting does not change the height of the app's chrome.
- */
-export function SettingsBackHeader({ title, onBack }: { title: string; onBack: () => void }) {
-  return (
-    <View
-      style={{
-        height: 64,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 12,
-        backgroundColor: colors.appBarGlass,
-      }}
-    >
-      <HeaderIcon icon="arrow-back" label="Go back" onPress={onBack} />
-      <AppText
-        variant="headline"
-        weight="semibold"
-        headingLevel={1}
-        numberOfLines={1}
-        style={{ letterSpacing: -0.4, flex: 1 }}
-      >
-        {title}
-      </AppText>
-    </View>
-  );
-}
 
 export type SettingsHeroStatus = {
   label: string;

@@ -26,7 +26,7 @@ import {
 } from '../../components';
 import type { MenuAction } from '../../components';
 import {
-  SettingsBackHeader,
+  PageHeader,
   SettingsChapter,
   SettingsFootnote,
   SettingsHero,
@@ -272,9 +272,7 @@ export default function AlgorithmSettingsScreen() {
       scroll
       gutter
       contentMaxWidth={v3.layout.contentMaxWidth}
-      header={
-        <SettingsBackHeader title="Algorithm" onBack={() => goBackOr(router, '/settings')} />
-      }
+      header={<PageHeader title="Algorithm" back onBack={() => goBackOr(router, '/settings')} />}
     >
       <View style={{ paddingBottom: 24 }}>
         <View style={{ gap: 28 }}>
