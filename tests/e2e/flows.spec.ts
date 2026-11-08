@@ -79,7 +79,6 @@ const openDeckOptions = async (page: Page) => {
 
 const createDeck = async (page: Page, name: string) => {
   await go(page, '/add-deck');
-  await page.getByRole('button', { name: 'Add manually' }).click();
   await expect(page.getByLabel('Name')).toBeVisible();
   await page.getByLabel('Name').fill(name);
   await page.getByRole('button', { name: 'Create deck' }).click();
@@ -176,7 +175,17 @@ const ttsCalls = async (page: Page) =>
 
 test.describe('Phase 5 — behaviour', () => {
   test('deck: create, reload, then delete with confirmation', async ({ page }) => {
-    await createDeck(page, 'Flow Created Deck');
+    await go(page, '/add-deck');
+    const create = page.getByRole('button', { name: 'Create deck' });
+    await expect(create).toBeDisabled();
+    await page.getByLabel('Name').fill(DECK);
+    await expect(page.getByText('A deck with that name already exists.')).toBeVisible();
+    await expect(create).toBeDisabled();
+    await page.getByLabel('Name').fill('Flow Created Deck');
+    await expect(create).toBeEnabled();
+    await create.click();
+    await expect(page).toHaveURL(/\/deck\/deck-\d+$/);
+    await expect(page.getByRole('heading', { name: 'Flow Created Deck' })).toBeVisible();
 
     await expect(page.getByRole('button', { name: 'Create deck' })).toHaveCount(0);
     await page.reload();

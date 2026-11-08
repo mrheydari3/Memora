@@ -62,14 +62,13 @@ These are the inputs the design pass is most likely to break; each is pinned by 
 
 ### Partially converted
 
-None. Tasks 7–9 completed Profile, the Advanced/Import/Dev settings surfaces and Discover; every remaining surface is listed below.
+None. Tasks 7–10 completed Profile, the Advanced/Import/Dev settings surfaces, Discover and Add deck; every remaining surface is listed below.
 
 ### Still on v1/v2 grammar
 
 | Surface | Size | Current imports | Specific gap |
 | --- | --- | --- | --- |
 | Quiz (`app/quiz/[deckId].tsx`) | 1,311 lines | `v2`, `GlassCard` | 156px timer ring, glass scoreboard, v2 result type; answer pads and Play again converted |
-| Add deck (`app/add-deck.tsx`) | 211 lines | base `BottomSheetModal` only | sheet is v1; no v3 header/handle/body rhythm |
 | 404 (`app/+not-found.tsx`) | 37 lines | base `EmptyState` | no v3 scene pane/action pill |
 | Shell | — | `AppSplash`, `Skeleton.tsx`, `LiquidTabBar` | splash/skeletons still sized to v2 surfaces; dock needs a v3 audit |
 
@@ -437,18 +436,22 @@ Each key is one `Pressable` ≥68px tall, `accessibilityRole="button"`, `accessi
 #### Task 10: Add-deck sheet in v3
 
 **Files:**
-- Modify: `app/add-deck.tsx` (211), `components/BottomSheetModal.tsx` (only the v3 sheet face/handle if needed)
+- Modify: `app/add-deck.tsx` (332), `components/BottomSheetModal.tsx` (only the v3 sheet face/handle if needed)
 - Test: `tests/e2e/keyboard.spec.ts`, `tests/e2e/flows.spec.ts`, `tests/e2e/visual.spec.ts` (`add-deck-320/390`)
 
 **Interfaces:**
 - Keeps the current focus trap, inert background, Escape handling and restore-to-opener.
 - Consumes `Surface`, `ActionButton`, `Field`, `AppearancePicker`.
 
-- [ ] Restyle the panel: 28px radius, `glass.sheet` face, 44×4 handle, 64px header ("New deck", close 44), 20px padding, safe-area bottom.
-- [ ] Form: name field (44), description field, icon/colour picker tiles (44), inline error, primary `Create deck` (52) + quiet `Cancel`. Keep live duplicate/empty validation.
-- [ ] Ensure the sheet body scrolls at 320×700 with the keyboard open, and the footer action stays reachable.
-- [ ] Run `npx tsc --noEmit`, `npm run check:design`, `npx playwright test tests/e2e/keyboard.spec.ts tests/e2e/flows.spec.ts --update-snapshots`, review both baselines.
-- [ ] Commit: `feat(add-deck): v3 sheet`.
+**Status (2026-11-08):** complete — `/add-deck` is one v3 form sheet with a sticky footer, live duplicate/empty validation and the existing focus contract. Committed as `feat(add-deck): v3 sheet`.
+
+- [x] Restyle the panel: 28px radius, `glass.sheet` face, 44×4 handle, 64px header ("New deck", close 44), 20px padding, safe-area bottom.
+- [x] Form: name field (44), description field, icon/colour picker tiles (44), inline error, primary `Create deck` (52) + quiet `Cancel`. Keep live duplicate/empty validation.
+- [x] Ensure the sheet body scrolls at 320×700 with the keyboard open, and the footer action stays reachable.
+- [x] Run `npx tsc --noEmit`, `npm run check:design`, `npx playwright test tests/e2e/keyboard.spec.ts tests/e2e/flows.spec.ts --update-snapshots`, review both baselines.
+- [x] Commit: `feat(add-deck): v3 sheet`.
+
+**Result (complete, 2026-11-08):** `app/add-deck.tsx` is **332 lines** and is a single form sheet; the intermediate "Add manually" hand-off and nested `BottomSheetModal` are gone. The panel is one `glass.sheet` face at 28px with a 44×4 handle, a 64px header, 20px gutters and safe-area bottom; the name/description fields sit in a `Surface` pane, and the 52px `Create deck` plus quiet `Cancel` stay pinned while the picker scrolls. Duplicate names (case-insensitive) and a cleared name show inline errors; the primary action disables for both. Runtime: 320×700 panel **658px**, body scroll **1203px / 448px**, footer unchanged after scrolling; 320×400 compact/keyboard-height panel **376px**, footer still reachable; 0 document overflow and 0 controls under 44px at 320/390. A real create persisted `V3 Sheet Deck` with its description and 0 cards. `npx tsc --noEmit` **0** · `npm run check:design` **clean (97 files)** · `npm run build:web` exported `dist/` · add-deck axe **1/1** · create/reload/delete flow **1/1** · direct-close **1/1** · keyboard focus/Escape **1/1** · visual **3/3**. Linux Chromium baselines `add-deck-320/390` were generated and reviewed; the pre-existing Darwin baselines were not regenerated in this Linux workspace. Screenshots: `qa/add-deck-v3-{320,390}.png`, `qa/add-deck-validation-v3-320.png`, `qa/add-deck-scrolled-v3-320.png`, `qa/add-deck-compact-v3-320.png`.
 
 **Acceptance:** focus is trapped on open, Escape closes, focus returns to "Add deck"; 320px screenshot reviewed; axe 0; create/validation flow reloads with the new deck.
 

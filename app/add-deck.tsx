@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDeckStore } from '../store/useDeckStore';
@@ -7,17 +15,14 @@ import { goBackOr } from '../services/navigation';
 import { FSRS_DEFAULTS } from '../data/fsrs-params';
 import { ICON_CHOICES } from '../data/appearance';
 import {
+  AppText,
   AppearancePicker,
   COLOR_CHOICES,
-  PrimaryButton,
-  GhostButton,
-  BottomSheetModal,
-  SheetPanel,
-  SheetScrollView,
-  ListRow,
   Field,
+  IconButton,
 } from '../components';
-import { alpha, heights, sheet, veil } from '../theme/tokens';
+import { ActionButton, Surface } from '../components/v3';
+import { alpha, colors, glass, iconSize, radii, sheet, veil } from '../theme/tokens';
 
 /**
  * Web focus management, typed narrowly because this file should not need the
@@ -52,13 +57,30 @@ function webDocument(): WebDocument | null {
 export default function AddDeckScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const decks = useDeckStore((state) => state.decks);
   const panelRef = useRef<React.ComponentRef<typeof View>>(null);
   const returnFocus = useRef<WebNode | null>(null);
-  const [formVisible, setFormVisible] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [icon, setIcon] = useState<string>(ICON_CHOICES[0]);
   const [color, setColor] = useState(COLOR_CHOICES[0]);
+  const [nameEdited, setNameEdited] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const trimmedName = name.trim();
+  const duplicateName =
+    trimmedName.length > 0 &&
+    decks.some((deck) => deck.name.trim().toLowerCase() === trimmedName.toLowerCase());
+  const nameError = duplicateName
+    ? 'A deck with that name already exists.'
+    : nameEdited && !trimmedName
+      ? 'Give the deck a name.'
+      : null;
+  const canCreate = trimmedName.length > 0 && !duplicateName && !creating;
+
+  const closeSheet = () => goBackOr(router, '/(tabs)/library');
 
   // The sheet owns focus while it is open. Store the trigger so closing the
   // route returns the caret to "Add deck" instead of dropping it on <body>.
@@ -70,7 +92,7 @@ export default function AddDeckScreen() {
   }, []);
 
   useEffect(() => {
-    if (Platform.OS !== 'web' || formVisible) return;
+    if (Platform.OS !== 'web') return;
     const doc = webDocument();
     const panel = panelRef.current as unknown as WebNode | null;
     if (!doc || !panel) return;
@@ -106,106 +128,205 @@ export default function AddDeckScreen() {
 
     doc.addEventListener('keydown', onKeyDown);
     return () => doc.removeEventListener('keydown', onKeyDown);
-  }, [formVisible, router]);
+  }, [router]);
 
   const createDeck = async () => {
-    if (!name.trim()) return;
+    if (!canCreate) return;
+    setCreating(true);
+    setSaveError(null);
     const id = `deck-${Date.now()}`;
-    await useDeckStore.getState().addDeck({
-      id,
-      name: name.trim(),
-      description: description.trim() || undefined,
-      icon,
-      color,
-      parentId: null,
-      algorithmPreset: 'fsrs',
-      newCardsPerDay: 20,
-      maxCardsPerDay: 80,
-      shuffleCards: true,
-      adaptiveOrdering: true,
-      learningSteps: ['12 hours', '1 day', '2 days', '3 days'],
-      masteredIntervalMultiplier: 2.5,
-      ...FSRS_DEFAULTS,
-      createdAt: Date.now(),
-    });
-    setFormVisible(false);
-    router.replace(`/deck/${id}`);
+    try {
+      await useDeckStore.getState().addDeck({
+        id,
+        name: trimmedName,
+        description: description.trim() || undefined,
+        icon,
+        color,
+        parentId: null,
+        algorithmPreset: 'fsrs',
+        newCardsPerDay: 20,
+        maxCardsPerDay: 80,
+        shuffleCards: true,
+        adaptiveOrdering: true,
+        learningSteps: ['12 hours', '1 day', '2 days', '3 days'],
+        masteredIntervalMultiplier: 2.5,
+        ...FSRS_DEFAULTS,
+        createdAt: Date.now(),
+      });
+      router.replace(`/deck/${id}`);
+    } catch {
+      setCreating(false);
+      setSaveError('This deck could not be saved. Try again.');
+    }
   };
 
+  const maxHeight =
+    windowHeight > 0 ? Math.round(windowHeight * sheet.maxHeightRatio) : undefined;
+
   return (
-    <View
-      className="flex-1 justify-end"
-      style={{ backgroundColor: alpha(veil, sheet.scrimDim) }}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{
+        flex: 1,
+        justifyContent: 'flex-end',
+        backgroundColor: alpha(veil, sheet.scrimDim),
+      }}
     >
-      {/* The canvas behind the sheet closes it, exactly like BottomSheetModal.
-          It is not a control: the sheet header owns the accessible close. */}
+      {/* The canvas behind the sheet closes it. It is not a control: the
+          sheet header owns the accessible close. */}
       <Pressable
         style={StyleSheet.absoluteFill}
-        onPress={() => goBackOr(router, '/(tabs)/library')}
+        onPress={closeSheet}
         accessible={false}
         focusable={false}
         importantForAccessibility="no"
       />
 
-      {/* Same sheet geometry as every modal: 28px top radius, opaque panel,
-          header close control, and the home-indicator inset respected. */}
       <View
         ref={panelRef}
         role="dialog"
         accessibilityLabel="New deck"
         accessibilityViewIsModal
-        style={{ width: '100%' }}
+        style={{
+          width: '100%',
+          maxHeight,
+          overflow: 'hidden',
+          borderTopLeftRadius: radii.sheet,
+          borderTopRightRadius: radii.sheet,
+          borderCurve: 'continuous',
+          backgroundColor: glass.sheet,
+        }}
       >
-        <SheetPanel
-          title="New deck"
-          subtitle="Start from scratch and write cards one by one."
-          onClose={() => goBackOr(router, '/(tabs)/library')}
-          style={{ paddingBottom: Math.max(32, insets.bottom + 16) }}
+        <View
+          style={{
+            height: 64,
+            paddingHorizontal: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}
         >
-          <View className="mt-2">
-            <ListRow
-              title="Add manually"
-              subtitle="Create a deck and write cards one by one"
-              icon="edit"
-              tile="sm"
-              density="compact"
-              gutter={0}
-              showChevron={false}
-              onPress={() => setFormVisible(true)}
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 8,
+              left: 0,
+              right: 0,
+              alignItems: 'center',
+            }}
+          >
+            <View
+              style={{
+                width: sheet.handleWidth,
+                height: sheet.handleHeight,
+                borderRadius: sheet.handleHeight / 2,
+                backgroundColor: colors.outlineVariant,
+              }}
             />
           </View>
-
-          <GhostButton
-            className="mt-4"
-            label="Cancel"
-            variant="text"
-            onPress={() => goBackOr(router, '/(tabs)/library')}
+          <AppText
+            variant="headline"
+            weight="semibold"
+            headingLevel={1}
+            numberOfLines={1}
+            style={{ flex: 1, paddingTop: 8 }}
+          >
+            New deck
+          </AppText>
+          <IconButton
+            icon="close"
+            size="sm"
+            glyphSize={iconSize.md}
+            onPress={closeSheet}
+            accessibilityLabel="Close sheet"
           />
-        </SheetPanel>
-      </View>
+        </View>
 
-      {/* New Deck form */}
-      <BottomSheetModal visible={formVisible} onClose={() => setFormVisible(false)} title="New Deck">
-        <SheetScrollView style={{ maxHeight: heights.sheetTall }} showsVerticalScrollIndicator={false}>
-          <Field label="Name" value={name} onChangeText={setName} placeholder="Deck name" />
+        <ScrollView
+          style={{ flexShrink: 1, minHeight: 0 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 16 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={{ gap: 20 }}>
+            <Surface tone="pane" radius="card" padding="md" style={{ gap: 16 }}>
+              <Field
+                label="Name"
+                value={name}
+                onChangeText={(next) => {
+                  setName(next);
+                  setNameEdited(true);
+                  setSaveError(null);
+                }}
+                placeholder="Deck name"
+              />
 
-          <Field
-            className="mt-4"
-            label="Description"
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Optional"
-            multiline
-            tall
-          />
+              {nameError && (
+                <AppText
+                  variant="caption"
+                  style={{ color: colors.error, marginTop: -8 }}
+                  accessibilityLiveRegion="polite"
+                >
+                  {nameError}
+                </AppText>
+              )}
 
-          <View className="mb-6 mt-5">
-            <AppearancePicker icon={icon} color={color} onIconChange={setIcon} onColorChange={setColor} />
+              <Field
+                label="Description"
+                value={description}
+                onChangeText={setDescription}
+                placeholder="Optional"
+                multiline
+                tall
+              />
+            </Surface>
+
+            <AppearancePicker
+              icon={icon}
+              color={color}
+              onIconChange={(next) => {
+                setIcon(next);
+                setSaveError(null);
+              }}
+              onColorChange={(next) => {
+                setColor(next);
+                setSaveError(null);
+              }}
+            />
           </View>
+        </ScrollView>
 
-          <PrimaryButton label="Create deck" onPress={createDeck} disabled={!name.trim()} />
-        </SheetScrollView>
-      </BottomSheetModal>
-    </View>
+        <View
+          style={{
+            gap: 10,
+            paddingHorizontal: 20,
+            paddingTop: 12,
+            paddingBottom: Math.max(20, insets.bottom + 12),
+            backgroundColor: glass.sheet,
+          }}
+        >
+          {saveError && (
+            <AppText
+              variant="caption"
+              style={{ color: colors.error }}
+              accessibilityLiveRegion="polite"
+            >
+              {saveError}
+            </AppText>
+          )}
+          <ActionButton
+            label="Create deck"
+            onPress={createDeck}
+            disabled={!canCreate}
+          />
+          <ActionButton
+            label="Cancel"
+            tone="quiet"
+            onPress={closeSheet}
+            disabled={creating}
+          />
+        </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
