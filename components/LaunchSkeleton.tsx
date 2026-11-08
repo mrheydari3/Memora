@@ -1,6 +1,6 @@
-import { View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GlassCard } from './GlassCard';
+import { Surface } from './v3/Surface';
 import {
   DeckCardGridSkeleton,
   DeckShelfSkeleton,
@@ -14,14 +14,13 @@ import {
 import {
   colors,
   glass,
-  glassFillAppBar,
   heights,
   iconSize,
-  layout,
   radii,
   spacing,
   tabBar,
 } from '../theme/tokens';
+import { v3 } from '../theme/v3';
 
 /**
  * What the launch screen is allowed to show while the stores hydrate.
@@ -57,9 +56,9 @@ export function launchVariant(pathname: string): LaunchVariant {
  * LaunchSkeleton — the first paint of the app, drawn as the page it will become.
  *
  * It is not a second splash: there is no wordmark moment and no progress rail.
- * The shell (app bar, content column, tab dock) is already in place, and the
- * content is the same skeleton grammar every screen uses, so the hand-off to
- * the real page is a dissolve rather than a layout jump.
+ * The shell (64px app bar, 960px content column, tab dock) is already in place,
+ * and the content is the same skeleton grammar every screen uses, so the
+ * hand-off to the real page is a dissolve rather than a layout jump.
  */
 export function LaunchSkeleton({ pathname = '/' }: { pathname?: string }) {
   const insets = useSafeAreaInsets();
@@ -82,62 +81,110 @@ export function LaunchSkeleton({ pathname = '/' }: { pathname?: string }) {
 }
 
 /**
- * The app bar without its controls. Sized and padded exactly like `TopAppBar`,
- * so the real bar lands on the same pixels when the skeleton leaves.
+ * The app bar without its controls. It uses the same 64px height, 960px
+ * content ceiling and 20px brand / 12px stack gutters as `PageHeader`, so the
+ * real bar lands on the same pixels when the skeleton leaves.
  */
 function LaunchTopBar({ variant }: { variant: LaunchVariant }) {
+  const { width } = useWindowDimensions();
   const home = variant === 'home';
   const tab = home || variant === 'library' || variant === 'settings';
-  const actionCount = home ? 1 : variant === 'library' ? 2 : 0;
+  const actionCount =
+    home || variant === 'library'
+      ? 3
+      : variant === 'settings'
+        ? 1
+        : variant === 'statistics'
+          ? 2
+          : variant === 'quiz'
+            ? 1
+            : 0;
   const titleWidth =
-    variant === 'settings' ? 76 : variant === 'library' ? 54 : variant === 'generic' ? 104 : 112;
+    variant === 'settings'
+      ? 76
+      : variant === 'library'
+        ? 48
+        : variant === 'generic'
+          ? 104
+          : variant === 'statistics'
+            ? 88
+            : variant === 'quiz'
+              ? 96
+              : 84;
 
   return (
-    <View
-      style={{
-        height: heights.appbar,
-        paddingStart: 8,
-        paddingEnd: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: glassFillAppBar.backgroundColor,
-      }}
-    >
-      {!tab && (
-        <Skeleton
-          width={heights.icon}
-          height={heights.icon}
-          radius={heights.icon / 2}
-          style={{ marginEnd: 8 }}
-        />
-      )}
+    <View style={{ backgroundColor: colors.appBarGlass }}>
+      <View
+        style={{
+          height: heights.pageHeader,
+          width: '100%',
+          maxWidth: v3.layout.contentMaxWidth,
+          alignSelf: 'center',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 4,
+          paddingHorizontal: tab ? 20 : 12,
+        }}
+      >
+        {!tab && (
+          <View
+            style={{
+              width: heights.hit,
+              height: heights.hit,
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <Skeleton width={38} height={38} radius={19} />
+          </View>
+        )}
 
-      {home ? (
-        <>
-          <Skeleton width={heights.icon} height={heights.icon} radius={radii.micro} />
-          <Skeleton width={76} height={12} radius={6} style={{ marginStart: 8 }} />
-        </>
-      ) : (
-        <Skeleton width={titleWidth} height={14} radius={7} style={{ marginStart: tab ? 8 : 0 }} />
-      )}
-
-      <View style={{ flex: 1 }} />
-
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        {Array.from({ length: actionCount }).map((_, index) => (
+        {home ? (
+          <>
+            <Skeleton width={32} height={32} radius={8} />
+            <Skeleton width={76} height={18} radius={7} style={{ marginStart: 8 }} />
+            {width >= 360 && (
+              <Skeleton width={44} height={22} radius={radii.pill} style={{ marginStart: 8 }} />
+            )}
+          </>
+        ) : (
           <Skeleton
-            key={index}
-            width={heights.icon}
-            height={heights.icon}
-            radius={heights.icon / 2}
+            width={titleWidth}
+            height={18}
+            radius={7}
+            style={{ marginStart: tab ? 0 : 4 }}
           />
-        ))}
+        )}
+
+        <View style={{ flex: 1 }} />
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+          {Array.from({ length: actionCount }).map((_, index) => (
+            <View
+              key={index}
+              style={{
+                width: heights.hit,
+                height: heights.hit,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Skeleton width={38} height={38} radius={19} />
+            </View>
+          ))}
+        </View>
       </View>
     </View>
   );
 }
 
 function LaunchBody({ variant }: { variant: LaunchVariant }) {
+  const { width } = useWindowDimensions();
+  // The 9px chapter label placeholder is a row step shorter than the real
+  // caption, so reserve that step to land each chapter pane on its final top.
+  const settingsGroupOffset = v3.spacing.page + v3.spacing.row;
+
   if (variant === 'study') {
     return (
       <View style={{ flex: 1 }}>
@@ -159,10 +206,11 @@ function LaunchBody({ variant }: { variant: LaunchVariant }) {
       style={{
         flex: 1,
         width: '100%',
-        maxWidth: layout.contentMaxWidth,
+        maxWidth: v3.layout.contentMaxWidth,
         alignSelf: 'center',
         paddingHorizontal: spacing.screen,
-        paddingTop: spacing.screen,
+        // Home's first child sits just below the Screen body's 20px top gap.
+        paddingTop: variant === 'home' ? spacing.screen + v3.spacing.group : spacing.screen,
         overflow: 'hidden',
       }}
     >
@@ -172,38 +220,40 @@ function LaunchBody({ variant }: { variant: LaunchVariant }) {
         <StatisticsSkeleton />
       ) : variant === 'profile' ? (
         <>
-          <HeroSkeleton height={190} />
-          <View style={{ marginTop: spacing.section }}>
+          <HeroSkeleton height={310} />
+          <View style={{ marginTop: v3.spacing.page }}>
             <SettingsGroupSkeleton rows={3} />
           </View>
         </>
       ) : variant === 'settings' ? (
         <>
-          <HeroSkeleton height={230} />
-          <View style={{ marginTop: spacing.section }}>
-            <SettingsGroupSkeleton rows={4} />
+          <HeroSkeleton height={width < 360 ? 230 : 210} />
+          <View style={{ marginTop: settingsGroupOffset }}>
+            <SettingsGroupSkeleton rows={2} />
           </View>
-          <View style={{ marginTop: spacing.section }}>
-            <SettingsGroupSkeleton rows={3} />
+          <View style={{ marginTop: settingsGroupOffset }}>
+            <SettingsGroupSkeleton rows={2} />
           </View>
         </>
       ) : variant === 'library' ? (
-        <HeroSkeleton height={260} />
+        <>
+          <HeroSkeleton height={300} />
+          <View style={{ marginTop: v3.spacing.page }}>
+            <DeckShelfSkeleton count={2} />
+          </View>
+        </>
       ) : variant === 'deck' ? (
         <>
-          <HeroSkeleton height={150} />
-          <View style={{ marginTop: 24 }}>
+          <HeroSkeleton height={190} />
+          <View style={{ marginTop: v3.spacing.page }}>
             <DeckCardGridSkeleton count={1} />
           </View>
         </>
       ) : (
         <>
           <HeroSkeleton />
-          <View style={{ marginTop: spacing.section }}>
-            <SectionHeaderSkeleton />
-            <View style={{ marginTop: 12 }}>
-              <DeckShelfSkeleton count={1} />
-            </View>
+          <View style={{ marginTop: v3.spacing.page }}>
+            <DeckShelfSkeleton count={1} />
           </View>
         </>
       )}
@@ -211,91 +261,87 @@ function LaunchBody({ variant }: { variant: LaunchVariant }) {
   );
 }
 
+/**
+ * The Home hero's placeholder, measured against `TodayPane`: one scene pane at
+ * 24px with 20px padding and 20px gaps, an eyebrow/status row, a 44px figure,
+ * the next-deck rail and the 52px action.
+ */
 function HomeLaunchSkeleton() {
+  const { width } = useWindowDimensions();
+  const tight = width < 360;
+
   return (
     <>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          gap: 8,
-        }}
-      >
-        <View style={{ flex: 1, paddingEnd: 12 }}>
-          <Skeleton width={84} height={9} radius={5} />
-          <Skeleton width="82%" height={26} radius={8} style={{ marginTop: 7 }} />
-        </View>
-        <Skeleton width={76} height={28} radius={radii.pill} />
-      </View>
-
-      <GlassCard tone="accent" className="mt-6">
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Skeleton width={heights.tileLg} height={heights.tileLg} radius={radii.micro} />
-          <Skeleton width={64} height={9} radius={5} />
+      <Surface tone="scene" radius="pane" padding="md" style={{ gap: v3.spacing.panel }}>
+        <View
+          style={{
+            minHeight: tight ? 32 : 25,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 10,
+          }}
+        >
+          <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+            <Skeleton width={tight ? 96 : 112} height={10} radius={5} />
+            {tight && <Skeleton width={78} height={10} radius={5} />}
+          </View>
+          <Skeleton width={96} height={22} radius={radii.pill} />
         </View>
 
-        <Skeleton width="64%" height={26} radius={8} style={{ marginTop: 10 }} />
-        <Skeleton width={132} height={10} radius={5} style={{ marginTop: 13 }} />
+        <View style={{ minHeight: 66 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
+            <Skeleton width={84} height={44} radius={v3.radii.tile} />
+            <Skeleton width={76} height={18} radius={6} />
+          </View>
+          <Skeleton width={168} height={10} radius={5} style={{ marginTop: 8 }} />
+        </View>
 
-        <View style={{ marginTop: 16 }}>
+        <View
+          style={{
+            minHeight: tight ? 77 : 63,
+            justifyContent: 'space-between',
+            gap: 8,
+            paddingTop: 4,
+          }}
+        >
           <View
             style={{
-              marginBottom: 8,
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
+              gap: 10,
             }}
           >
-            <Skeleton width={74} height={8} radius={4} />
-            <Skeleton width={64} height={8} radius={4} />
+            <Skeleton width={132} height={10} radius={5} />
+            <Skeleton width={48} height={9} radius={4} />
           </View>
-          <Skeleton height={6} radius={radii.pill} />
+          <Skeleton height={v3.rail.hero} radius={radii.pill} />
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <Skeleton width={58} height={8} radius={4} />
+            <Skeleton width={72} height={8} radius={4} />
+            <Skeleton width={62} height={8} radius={4} />
+          </View>
         </View>
 
-        <Skeleton
-          height={heights.button}
-          radius={radii.control}
-          style={{ marginTop: 20 }}
-        />
-      </GlassCard>
+        <Skeleton height={heights.button} radius={radii.pill} />
+      </Surface>
 
-      <View style={{ marginTop: spacing.section }}>
-        <SectionHeaderSkeleton />
-        <View style={{ marginTop: 12 }}>
-          <DeckShelfSkeleton count={2} />
-        </View>
+      <View style={{ marginTop: v3.spacing.page }}>
+        <DeckShelfSkeleton count={2} />
       </View>
     </>
   );
 }
 
-function SectionHeaderSkeleton() {
-  return (
-    <View style={{ height: heights.hit, flexDirection: 'row', alignItems: 'center' }}>
-      <Skeleton width={70} height={9} radius={5} />
-      <Skeleton width={102} height={9} radius={5} style={{ marginStart: 8 }} />
-      <View
-        style={{
-          marginStart: 'auto',
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 4,
-        }}
-      >
-        <Skeleton width={iconSize.xs} height={iconSize.xs} radius={3} />
-        <Skeleton width={48} height={9} radius={5} />
-      </View>
-    </View>
-  );
-}
-
 /**
- * The floating dock in its pre-tab state: the same capsule geometry, with the
- * glyphs and captions still loading. It is a static skeleton, not a second
- * navigator — nothing here is focusable.
+ * The floating dock in its pre-tab state: the same 64px capsule, 276px
+ * content width (three 88px cells plus 6px padding), 52px pill and selected
+ * lens. It is a static skeleton, not a second navigator — nothing is focusable.
  */
 function LaunchDock({ bottom }: { bottom: number }) {
+  const lensInset = 3;
+
   return (
     <View
       pointerEvents="none"
@@ -318,6 +364,18 @@ function LaunchDock({ bottom }: { bottom: number }) {
           backgroundColor: glass.tab,
         }}
       >
+        <View
+          style={{
+            position: 'absolute',
+            left: tabBar.padding + lensInset,
+            top: tabBar.padding,
+            width: tabBar.cell - lensInset * 2,
+            height: tabBar.pill,
+            borderRadius: tabBar.tileRadius,
+            backgroundColor: colors.selectionSurface,
+          }}
+        />
+
         {[0, 1, 2].map((index) => (
           <View
             key={index}

@@ -8,11 +8,17 @@
  *
  * With reduce-motion on, the blocks render flat: the shape still communicates
  * "content is coming" without any sweep.
+ *
+ * v3 geometry lives here too: the scene hero, the 22px deck rows with their
+ * 44px glyph tiles, the 64px settings lines and the study stage's 24px face.
+ * A skeleton may look quieter than the page, but it must occupy the same box.
  */
 import { useState } from 'react';
-import { Animated, View } from 'react-native';
+import { Animated, useWindowDimensions, View } from 'react-native';
 import type { DimensionValue, ViewStyle } from 'react-native';
-import { colors, fills, glassFill, heights, layout, radii, spacing } from '../theme/tokens';
+import { colors, fills, glassFill, heights, radii, spacing } from '../theme/tokens';
+import { v3 } from '../theme/v3';
+import { Surface } from './v3/Surface';
 import { useReducedMotion, useSharedShimmer } from '../motion';
 
 type SkeletonProps = {
@@ -102,15 +108,21 @@ export function SkeletonCircle({ size = 44 }: { size?: number }) {
   return <Skeleton width={size} height={size} radius={size / 2} />;
 }
 
-/** A row in a glass group: icon tile + title + one meta line. */
+/** A settings line: a 40px tile, a title and one meta line on a 64px row. */
 export function SkeletonRow({ tall = false }: { tall?: boolean }) {
   return (
     <View
-      className="flex-row items-center"
-      style={{ minHeight: tall ? heights.rowTall : heights.row, paddingHorizontal: 16 }}
+      style={{
+        minHeight: tall ? heights.pageHeader : heights.row,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+      }}
     >
-      <Skeleton width={heights.tileLg} height={heights.tileLg} radius={radii.control} />
-      <View className="ml-3 flex-1">
+      <Skeleton width={40} height={40} radius={v3.radii.tile} />
+      <View style={{ flex: 1, minWidth: 0 }}>
         <Skeleton height={12} width="58%" radius={6} />
         <Skeleton height={9} width="34%" radius={5} style={{ marginTop: 8 }} />
       </View>
@@ -122,215 +134,319 @@ export function SkeletonRow({ tall = false }: { tall?: boolean }) {
 export function DeckListSkeleton({ rows = 4 }: { rows?: number }) {
   return (
     <View
-      className="overflow-hidden rounded-xl"
-      style={glassFill}
+      style={[
+        glassFill,
+        { overflow: 'hidden', borderRadius: v3.radii.card },
+      ]}
     >
       {Array.from({ length: rows }).map((_, index) => (
         <View key={index}>
           <SkeletonRow tall />
-          {index < rows - 1 && <View className="h-1" />}
+          {index < rows - 1 && (
+            <View
+              style={{
+                height: 1,
+                backgroundColor: colors.outlineVariant,
+                marginStart: 68,
+              }}
+            />
+          )}
         </View>
       ))}
     </View>
   );
 }
 
-/** The library's deck cards: stacked panes with a tile, title and two lines. */
+/** Stacked deck cards with a glyph, title and two supporting lines. */
 export function DeckCardGridSkeleton({ count = 3 }: { count?: number }) {
   return (
     <View style={{ gap: spacing.row }}>
       {Array.from({ length: count }).map((_, index) => (
-        <View
-          key={index}
-          className="rounded-xl p-5"
-          style={glassFill}
-        >
-          <Skeleton width={heights.tileLg} height={heights.tileLg} radius={radii.control} />
+        <Surface key={index} tone="pane" radius="card" padding="sm">
+          <Skeleton width={44} height={44} radius={v3.radii.tile} />
           <Skeleton height={14} width="62%" radius={7} style={{ marginTop: 14 }} />
           <SkeletonText lines={2} style={{ marginTop: 10 }} />
-          <View className="mt-4 flex-row items-center justify-between">
+          <View
+            style={{
+              marginTop: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
             <Skeleton width={72} height={10} radius={5} />
             <Skeleton width={40} height={10} radius={5} />
           </View>
-        </View>
+        </Surface>
       ))}
     </View>
   );
 }
 
-/** The Library tree box: a node, connected leaf rows, title, meter and due count. */
+/**
+ * The Home shelf: the section header, then one 22px pane per deck. Each row
+ * reserves the final surface's 76px height (44px tile + 16px padding), with a
+ * 44px tile, a two-line name block and the due tile.
+ */
 export function DeckShelfSkeleton({ count = 2 }: { count?: number }) {
   return (
-    <View className="overflow-hidden rounded-xl" style={glassFill}>
+    <View style={{ gap: 12 }}>
       <View
         style={{
-          position: 'relative',
-          minHeight: heights.row,
+          minHeight: heights.hit,
           flexDirection: 'row',
           alignItems: 'center',
-          paddingHorizontal: spacing.gutter,
+          gap: 10,
+          paddingHorizontal: 4,
         }}
       >
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            left: spacing.gutter + 4,
-            top: heights.row / 2,
-            bottom: 0,
-            width: 1,
-            backgroundColor: fills.track,
-          }}
-        />
-        <Skeleton width={8} height={8} radius={4} />
-        <Skeleton width={92} height={11} radius={5} style={{ marginLeft: 12 }} />
+        <Skeleton width={110} height={18} radius={7} />
+        <View style={{ flex: 1 }} />
+        <Skeleton width={74} height={10} radius={5} />
       </View>
-      {Array.from({ length: count }).map((_, index) => (
-        <View
-          key={index}
-          style={{
-            position: 'relative',
-            flexDirection: 'row',
-            alignItems: 'center',
-            minHeight: heights.deckSlab,
-            paddingLeft: spacing.gutter + 20,
-            paddingRight: spacing.gutter,
-            paddingVertical: 12,
-          }}
-        >
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              left: spacing.gutter + 4,
-              top: 0,
-              bottom: index < count - 1 ? 0 : undefined,
-              height: index < count - 1 ? undefined : 34,
-              width: 1,
-              backgroundColor: fills.track,
-            }}
-          />
-          <Skeleton
-            width={16}
-            height={1}
-            radius={0}
-            style={{ position: 'absolute', left: spacing.gutter + 4, top: 34 }}
-          />
-          <Skeleton width={heights.tileLg} height={heights.tileLg} radius={radii.micro} />
-          <View className="ml-3 flex-1">
-            <Skeleton height={13} width="58%" radius={6} />
-            <Skeleton height={9} width="28%" radius={5} style={{ marginTop: 8 }} />
-            <Skeleton height={4} width="100%" radius={2} style={{ marginTop: 10 }} />
-          </View>
-          <View className="ml-3 items-end">
-            <Skeleton width={28} height={22} radius={5} />
-            <Skeleton width={18} height={8} radius={4} style={{ marginTop: 6 }} />
-          </View>
-        </View>
-      ))}
+
+      {/* The shelf's meta line, rule and group label. The real shelf puts the
+          count above the rule and the group name below it; without them the
+          loading rows sit a full group higher than the deck they become. */}
+      <View style={{ gap: 12, paddingHorizontal: 4 }}>
+        <Skeleton width={84} height={9} radius={4} />
+        <View style={{ height: 1, backgroundColor: colors.hairlineRule }} />
+        <Skeleton width={102} height={9} radius={4} />
+      </View>
+
+      <View style={{ gap: v3.spacing.row, marginTop: 12 }}>
+        {Array.from({ length: count }).map((_, index) => (
+          <Surface key={index} tone="pane" radius="card" padding="sm">
+            <View style={{ minHeight: 93, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+              <Skeleton width={44} height={44} radius={v3.radii.tile} />
+
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Skeleton height={15} width="62%" radius={7} />
+                <Skeleton height={15} width="44%" radius={7} style={{ marginTop: 4 }} />
+                <Skeleton height={10} width="36%" radius={5} style={{ marginTop: 6 }} />
+                <Skeleton height={v3.rail.deck} width="72%" radius={2} style={{ marginTop: 8 }} />
+              </View>
+
+              <Skeleton width={48} height={48} radius={v3.radii.tile} />
+            </View>
+          </Surface>
+        ))}
+      </View>
     </View>
   );
 }
 
-/** The accent hero panes (today's queue, streak, profile identity). */
+/**
+ * The scene hero shared by profile, settings, Game and deck loading. `height`
+ * is a minimum, not a fixed box: the content keeps the real pane's padding and
+ * ledger even when a route passes the compact 150px step.
+ */
 export function HeroSkeleton({ height = 196 }: { height?: number }) {
+  const { width } = useWindowDimensions();
   return (
-    <View
-      className="rounded-xl p-5"
-      style={[glassFill, { minHeight: height }]}
+    <Surface
+      tone="scene"
+      radius="pane"
+      padding="md"
+      style={{ minHeight: height, gap: 16 }}
     >
-      <Skeleton width={64} height={9} radius={5} />
-      <Skeleton width={92} height={40} radius={12} style={{ marginTop: 12 }} />
-      <Skeleton height={10} width="72%" radius={5} style={{ marginTop: 12 }} />
-      <Skeleton height={44} radius={radii.control} style={{ marginTop: 22 }} />
-    </View>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
+        <Skeleton width={82} height={10} radius={5} />
+        <Skeleton width={92} height={22} radius={radii.pill} />
+      </View>
+
+      <View>
+        <Skeleton width={94} height={30} radius={9} />
+        <Skeleton height={10} width="76%" radius={5} style={{ marginTop: 9 }} />
+        {width < 360 && (
+          <Skeleton height={10} width="52%" radius={5} style={{ marginTop: 6 }} />
+        )}
+      </View>
+
+      <View
+        style={{
+          flexDirection: 'row',
+          borderRadius: 16,
+          backgroundColor: colors.surfaceInset,
+          paddingHorizontal: 12,
+          paddingVertical: 12,
+        }}
+      >
+        {[0, 1, 2].map((cell) => (
+          <View key={cell} style={{ flex: 1, minWidth: 0, paddingHorizontal: 8 }}>
+            <Skeleton width="52%" height={8} radius={4} />
+            <Skeleton width="74%" height={16} radius={6} style={{ marginTop: 7 }} />
+          </View>
+        ))}
+      </View>
+    </Surface>
   );
 }
 
-/** Statistics: range rail, overview hero, recall pane, tiles and a second pane. */
+/**
+ * Statistics: the raised overview hero with its range control, ledger and
+ * activity plot, followed by the section/chart panes that carry recall and
+ * memory. The shapes are intentionally taller than the old glass cards — the
+ * v3 hero owns the whole first viewport on a phone.
+ */
 export function StatisticsSkeleton() {
   return (
-    <View style={{ gap: spacing.row }}>
-      <View>
-        <Skeleton width={48} height={8} radius={4} />
-        <Skeleton height={44} radius={radii.control} style={{ marginTop: 8 }} />
-      </View>
-      <HeroSkeleton height={186} />
-      <View className="rounded-xl p-5" style={glassFill}>
-        <Skeleton width={64} height={9} radius={5} />
-        <Skeleton height={28} width="34%" radius={8} style={{ marginTop: 10 }} />
-        <Skeleton height={8} width="86%" radius={4} style={{ marginTop: 10 }} />
-        <View style={{ gap: 14, marginTop: 18 }}>
-          <Skeleton height={10} width="80%" radius={5} />
-          <Skeleton height={10} width="64%" radius={5} />
-          <Skeleton height={10} width="72%" radius={5} />
+    <View style={{ gap: v3.spacing.page }}>
+      <Surface tone="scene" radius="pane" padding="md" style={{ gap: 16 }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 10,
+          }}
+        >
+          <Skeleton width={112} height={10} radius={5} />
+          <Skeleton width={86} height={22} radius={radii.pill} />
         </View>
-      </View>
-      <View className="flex-row" style={{ gap: spacing.row }}>
-        <View className="flex-1 rounded-xl p-4" style={glassFill}>
-          <Skeleton width={18} height={18} radius={6} />
-          <Skeleton height={18} width="52%" radius={7} style={{ marginTop: 12 }} />
-          <Skeleton height={8} width="38%" radius={4} style={{ marginTop: 8 }} />
+
+        <View>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+            <Skeleton width={104} height={44} radius={v3.radii.tile} />
+            <Skeleton width={92} height={16} radius={6} style={{ marginBottom: 8 }} />
+          </View>
+          <Skeleton height={10} width="88%" radius={5} style={{ marginTop: 9 }} />
         </View>
-        <View className="flex-1 rounded-xl p-4" style={glassFill}>
-          <Skeleton width={18} height={18} radius={6} />
-          <Skeleton height={18} width="52%" radius={7} style={{ marginTop: 12 }} />
-          <Skeleton height={8} width="38%" radius={4} style={{ marginTop: 8 }} />
+
+        <Skeleton height={heights.field} radius={v3.radii.control} />
+
+        <View
+          style={{
+            flexDirection: 'row',
+            borderRadius: 16,
+            backgroundColor: fills.inset,
+            paddingVertical: 12,
+            paddingHorizontal: 8,
+          }}
+        >
+          {[0, 1, 2].map((cell) => (
+            <View key={cell} style={{ flex: 1, minWidth: 0, paddingHorizontal: 8 }}>
+              <Skeleton width="54%" height={8} radius={4} />
+              <Skeleton width="70%" height={16} radius={6} style={{ marginTop: 7 }} />
+            </View>
+          ))}
         </View>
-      </View>
-      <View className="rounded-xl p-5" style={glassFill}>
-        <Skeleton width={58} height={9} radius={5} />
-        <View className="mt-4 flex-row items-center">
-          <Skeleton width={104} height={104} radius={52} />
-          <View className="ml-4 flex-1" style={{ gap: 12 }}>
-            <Skeleton height={9} width="78%" radius={5} />
-            <Skeleton height={9} width="62%" radius={5} />
-            <Skeleton height={9} width="70%" radius={5} />
-            <Skeleton height={9} width="54%" radius={5} />
+
+        <View
+          style={{
+            borderRadius: v3.radii.control,
+            backgroundColor: fills.inset,
+            padding: 12,
+          }}
+        >
+          <View style={{ height: v3.rail.activityPlot, flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+            {[32, 48, 40, 58, 44, 52, 36].map((bar, index) => (
+              <Skeleton key={index} width="100%" height={bar} radius={4} style={{ flex: 1 }} />
+            ))}
           </View>
         </View>
-      </View>
-    </View>
-  );
-}
+      </Surface>
 
-/** A settings group: a few rows inside one pane. */
-export function SettingsGroupSkeleton({ rows = 4 }: { rows?: number }) {
-  return (
-    <View className="overflow-hidden rounded-xl" style={glassFill}>
-      {Array.from({ length: rows }).map((_, index) => (
-        <View key={index}>
-          <SkeletonRow />
-          {index < rows - 1 && <View className="h-1" />}
-        </View>
-      ))}
-    </View>
-  );
-}
-
-/** The quiz board: a question pane over the 2×2 answer grid. */
-export function QuizSkeleton() {
-  return (
-    <View
-      className="w-full flex-1 self-center px-5 pb-6"
-      style={{ maxWidth: layout.contentMaxWidth }}
-    >
-      <View className="mt-4 flex-row items-center justify-between">
-        <Skeleton width={54} height={11} radius={5} />
-        <Skeleton width={38} height={18} radius={9} />
-      </View>
-      <View className="flex-1 justify-center py-4">
-        <View className="rounded-xl p-5" style={glassFill}>
-          <Skeleton width={86} height={9} radius={5} />
-          <Skeleton height={30} radius={10} style={{ marginTop: 18 }} />
-          <Skeleton height={30} width="72%" radius={10} style={{ marginTop: 10, alignSelf: 'center' }} />
-        </View>
-      </View>
       <View style={{ gap: 10 }}>
-        {[0, 1].map((row) => (
-          <View key={row} className="flex-row" style={{ gap: 10 }}>
-            <Skeleton height={64} radius={radii.pane} style={{ flex: 1 }} />
-            <Skeleton height={64} radius={radii.pane} style={{ flex: 1 }} />
+        <Skeleton width={128} height={11} radius={5} />
+        <Surface tone="pane" radius="card" padding="md" style={{ gap: 16 }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 10,
+            }}
+          >
+            <Skeleton width={82} height={10} radius={5} />
+            <Skeleton width={54} height={10} radius={5} />
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+            <Skeleton width={96} height={96} radius={48} />
+            <View style={{ flex: 1, gap: 12 }}>
+              <Skeleton height={9} width="84%" radius={5} />
+              <Skeleton height={9} width="62%" radius={5} />
+              <Skeleton height={9} width="72%" radius={5} />
+              <Skeleton height={9} width="54%" radius={5} />
+            </View>
+          </View>
+        </Surface>
+      </View>
+
+      <View style={{ gap: 10 }}>
+        <Skeleton width={94} height={11} radius={5} />
+        <Surface tone="pane" radius="card" padding="md" style={{ gap: 14 }}>
+          <Skeleton width="62%" height={10} radius={5} />
+          <Skeleton width="80%" height={8} radius={4} />
+          <Skeleton width="52%" height={8} radius={4} />
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 2 }}>
+            <Skeleton height={60} radius={v3.radii.control} style={{ flex: 1 }} />
+            <Skeleton height={60} radius={v3.radii.control} style={{ flex: 1 }} />
+          </View>
+        </Surface>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * A settings chapter: the 12px label above one pane of 64px lines. The group
+ * includes its own label so a loading Settings page does not have to invent a
+ * second skeleton primitive for the chapter heading.
+ */
+export function SettingsGroupSkeleton({ rows = 2 }: { rows?: number }) {
+  const { width } = useWindowDimensions();
+  // The real settings line is 64px when its subtitle fits on one line. At
+  // 320px the two-line subtitles make it taller, so the chapter reserves that
+  // height instead of landing 40px above the content it becomes.
+  const rowHeight = width < 360 ? 88 : 79;
+
+  return (
+    <View style={{ gap: 10 }}>
+      <Skeleton width={56} height={9} radius={4} style={{ marginStart: 4 }} />
+      <View
+        style={[
+          glassFill,
+          { overflow: 'hidden', borderRadius: v3.radii.card },
+        ]}
+      >
+        {Array.from({ length: rows }).map((_, index) => (
+          <View key={index}>
+            <View
+              style={{
+                minHeight: rowHeight,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+              }}
+            >
+              <Skeleton width={40} height={40} radius={v3.radii.tile} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Skeleton height={12} width="58%" radius={6} />
+                <Skeleton height={9} width="36%" radius={5} style={{ marginTop: 8 }} />
+                {rowHeight >= 88 && (
+                  <Skeleton height={9} width="72%" radius={5} style={{ marginTop: 6 }} />
+                )}
+              </View>
+            </View>
+            {index < rows - 1 && (
+              <View
+                style={{
+                  height: 1,
+                  backgroundColor: colors.outlineVariant,
+                  marginStart: 68,
+                }}
+              />
+            )}
           </View>
         ))}
       </View>
@@ -338,21 +454,273 @@ export function QuizSkeleton() {
   );
 }
 
-/** One study card and its footer action. */
-export function StudyCardSkeleton() {
+/**
+ * The quiz board: the three-tile HUD, the progress rail, the question stage and
+ * two rows of two answer pads. The column is 440px wide, matching the arena.
+ */
+export function QuizSkeleton() {
+  const { width } = useWindowDimensions();
+  const compact = width < 360;
+
   return (
     <View
-      className="w-full flex-1 self-center px-5"
-      style={{ maxWidth: layout.contentMaxWidth }}
+      style={{
+        flex: 1,
+        width: '100%',
+        maxWidth: v3.layout.quizMeasure,
+        alignSelf: 'center',
+        paddingHorizontal: 20,
+        paddingTop: 16,
+        paddingBottom: 12,
+      }}
     >
-      <View
-        className="flex-1 items-center justify-center rounded-2xl p-6"
-        style={glassFill}
-      >
-        <Skeleton height={26} width="76%" radius={9} />
-        <Skeleton height={16} width="48%" radius={7} style={{ marginTop: 16 }} />
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        {[0, 1, 2].map((tile) => (
+          <View
+            key={tile}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              height: v3.heights.quizHud,
+              justifyContent: 'center',
+              borderRadius: v3.radii.quizTile,
+              backgroundColor: glassFill.backgroundColor,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+            }}
+          >
+            <Skeleton width={30} height={8} radius={4} />
+            <Skeleton width={42} height={16} radius={6} style={{ marginTop: 8 }} />
+          </View>
+        ))}
       </View>
-      <Skeleton height={52} radius={radii.control} style={{ marginBottom: 24 }} />
+
+      <View
+        style={{
+          minHeight: 17,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          marginTop: 20,
+        }}
+      >
+        <Skeleton width={104} height={9} radius={4} />
+        <Skeleton height={4} radius={2} style={{ flex: 1 }} />
+      </View>
+
+      {/* The arena centres the stage in the space left above the answers; the
+          skeleton needs the same wrapper or it pulls the pads up by ~30px. */}
+      <View style={{ flex: 1, minHeight: 0, justifyContent: 'center', marginTop: 18 }}>
+        <View
+          style={{
+            flex: 1,
+            width: '100%',
+            minHeight: v3.heights.quizQuestion,
+            maxHeight: 320,
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderRadius: v3.radii.card,
+            backgroundColor: glassFill.backgroundColor,
+            paddingHorizontal: 20,
+            paddingVertical: 24,
+          }}
+        >
+          <Skeleton width={96} height={10} radius={5} />
+          <Skeleton height={30} width="82%" radius={10} style={{ marginTop: 18 }} />
+          <Skeleton height={30} width="62%" radius={10} style={{ marginTop: 10 }} />
+        </View>
+      </View>
+
+      <View style={{ gap: 10, marginTop: 14 }}>
+        {[0, 1].map((row) => (
+          <View key={row} style={{ flexDirection: 'row', gap: 10 }}>
+            <Skeleton
+              height={compact && row === 1 ? 88 : 74}
+              radius={v3.radii.quizTile}
+              style={{ flex: 1 }}
+            />
+            <Skeleton
+              height={compact && row === 1 ? 88 : 74}
+              radius={v3.radii.quizTile}
+              style={{ flex: 1 }}
+            />
+          </View>
+        ))}
+      </View>
+
+      <View
+        style={{
+          minHeight: compact ? 58 : 33,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginTop: 14,
+          paddingTop: 10,
+          borderTopWidth: 1,
+          borderTopColor: fills.track,
+        }}
+      >
+        <Skeleton width={136} height={8} radius={4} />
+        <Skeleton width={84} height={8} radius={4} />
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Study: the progress rail, the 20px-padded 760px column, one 460px/428px
+ * stage with its 24px scene face and the stacked cards behind it, the 44px
+ * utility tray and the four rating keys.
+ */
+export function StudyCardSkeleton() {
+  const { height } = useWindowDimensions();
+  const stageHeight = height < 760 ? 428 : 460;
+
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={{ height: 4, backgroundColor: fills.track }} />
+
+      <View
+        style={{
+          flex: 1,
+          width: '100%',
+          maxWidth: v3.layout.studyMeasure,
+          alignSelf: 'center',
+          paddingHorizontal: 20,
+          paddingTop: 12,
+          paddingBottom: 16,
+        }}
+      >
+        <View
+          style={{
+            width: '100%',
+            maxWidth: v3.layout.studyCard,
+            height: stageHeight,
+            alignSelf: 'center',
+            position: 'relative',
+            justifyContent: 'flex-end',
+            paddingBottom: 8,
+          }}
+        >
+          <View
+            style={{
+              position: 'absolute',
+              left: 16,
+              right: 16,
+              bottom: -4,
+              height: 20,
+              borderRadius: v3.radii.card,
+              backgroundColor: colors.surfaceContainerLowest,
+              opacity: 0.8,
+            }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              left: 8,
+              right: 8,
+              bottom: 2,
+              height: 24,
+              borderRadius: v3.radii.card,
+              backgroundColor: colors.surfaceContainerLow,
+            }}
+          />
+
+          <Surface
+            tone="scene"
+            radius="card"
+            padding="none"
+            style={{ flex: 1, minHeight: 420, overflow: 'hidden' }}
+          >
+            <View
+              style={{
+                flex: 1,
+                paddingHorizontal: 20,
+                paddingTop: 20,
+                paddingBottom: 14,
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                }}
+              >
+                <Skeleton width={92} height={28} radius={radii.pill} />
+                <Skeleton width={58} height={44} radius={radii.pill} />
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 6, marginTop: 14 }}>
+                <Skeleton width={88} height={9} radius={4} />
+                <Skeleton width={112} height={9} radius={4} />
+              </View>
+
+              <View style={{ flex: 1, justifyContent: 'center' }}>
+                <Skeleton width={54} height={9} radius={4} />
+                <Skeleton height={30} width="74%" radius={9} style={{ marginTop: 14 }} />
+                <Skeleton height={30} width="52%" radius={9} style={{ marginTop: 10 }} />
+              </View>
+
+              <View
+                style={{
+                  minHeight: 28,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                  paddingTop: 8,
+                }}
+              >
+                <Skeleton width={76} height={8} radius={4} />
+                <Skeleton width={66} height={8} radius={4} />
+              </View>
+            </View>
+          </Surface>
+        </View>
+
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: 8,
+            width: '100%',
+            maxWidth: v3.layout.studyCard,
+            alignSelf: 'center',
+            marginTop: 4,
+          }}
+        >
+          {[0, 1, 2].map((action) => (
+            <Skeleton
+              key={action}
+              height={heights.hit}
+              radius={v3.radii.control}
+              style={{ flex: 1 }}
+            />
+          ))}
+        </View>
+
+        <View
+          style={{
+            width: '100%',
+            maxWidth: v3.layout.studyCard,
+            minHeight: heights.studyFooter,
+            alignSelf: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {[0, 1, 2, 3].map((key) => (
+              <Skeleton
+                key={key}
+                height={v3.heights.ratingKey}
+                radius={v3.radii.control}
+                style={{ flex: 1, flexBasis: 0, minWidth: 44 }}
+              />
+            ))}
+          </View>
+        </View>
+      </View>
     </View>
   );
 }

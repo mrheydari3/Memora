@@ -11,7 +11,7 @@ import {
 import type { LayoutChangeEvent } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { AppText } from './AppText';
-import { colors, glass, iconSize, motion, rimColor, shadow, tabBar } from '../theme/tokens';
+import { colors, glass, iconSize, motion, shadow, tabBar } from '../theme/tokens';
 import { prefersReducedMotion, springLiquidTo } from '../motion';
 import { useRtl } from '../services/direction';
 
@@ -435,13 +435,12 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
       >
         {/*
           The material: a real blur under a tinted ink wash, exactly how a
-          native tab bar reads the content behind it. The hairline rim keeps the
-          capsule's edge defined now that it casts no shadow.
+          native tab bar reads the content behind it. v3 draws no rim: the lens
+          and the fill ladder carry the edge.
         */}
         <View pointerEvents="none" style={styles.clip}>
           <BlurView intensity={glass.blurTab} tint="dark" style={StyleSheet.absoluteFill} />
           <View style={[StyleSheet.absoluteFill, { backgroundColor: glass.tabOverlay }]} />
-          <View style={[StyleSheet.absoluteFill, styles.rim]} />
         </View>
 
         <View
@@ -450,18 +449,21 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
           }}
           style={styles.row}
         >
-          {/* The active state: a faint blur with a hairline rim, parked on the
-              selected tab's measured box. Not rendered until every tab has been
+          {/* The active state: the selection surface, parked on the selected
+              tab's measured box. Not rendered until every tab has been
               measured: an unmeasured row would flash the lens in the corner. */}
           {measured && (
             <Animated.View
               pointerEvents="none"
-              style={[styles.lens, { width: lensW, transform: [{ translateX: lensX }] }]}
-            >
-              <BlurView intensity={glass.blurLens} tint="dark" style={StyleSheet.absoluteFill} />
-              {/* The lens wash: opacity from an accent tint, not a white sheen. */}
-              <View style={[StyleSheet.absoluteFill, { backgroundColor: glass.lensWash }]} />
-            </Animated.View>
+              style={[
+                styles.lens,
+                {
+                  width: lensW,
+                  backgroundColor: colors.selectionSurface,
+                  transform: [{ translateX: lensX }],
+                },
+              ]}
+            />
           )}
 
           {state.routes.map((route, index) => {
@@ -535,11 +537,6 @@ const styles = StyleSheet.create({
   row: {
     flex: 1,
     flexDirection: 'row',
-  },
-  rim: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: rimColor,
-    borderRadius: tabBar.height / 2,
   },
   lens: {
     position: 'absolute',

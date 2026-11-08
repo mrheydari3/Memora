@@ -463,12 +463,14 @@ Each key is one `Pressable` ≥68px tall, `accessibilityRole="button"`, `accessi
 
 **Interfaces:** no new exports; visual-only changes.
 
-- [ ] 404: one scene pane, "This page moved on", `ActionButton label="Back to Game"`; no raw centring with `px-6`.
-- [ ] Splash: mark/rail use `v3`/palette tokens; exit stays opacity-only (no 1.02 scale, no 3px overflow).
-- [ ] Skeletons: match the new dimensions — `DeckShelfSkeleton` (22px row, 44 tile), `StatisticsSkeleton` (scene hero + chart panes), `QuizSkeleton` (scoreboard + 2×2 answers), `StudyCardSkeleton` (24 stage + 68 keys), `SettingsGroupSkeleton` (64 header + hero + lines).
-- [ ] Dock: verify 64px height, 300px max, 3×88 cells, 52px pill, `selectionSurface` lens, no rim; labels visible; 44px targets; active tab exposed as current. Fix only what disagrees with the token values.
-- [ ] Run `npx tsc --noEmit`, `npm run check:design`, `npm run test:boot`, `npx playwright test tests/e2e/keyboard.spec.ts`.
-- [ ] Commit: `feat(shell): v3 404, splash and skeletons`.
+- [x] 404: one scene pane, "This page moved on", `ActionButton label="Back to Game"`; no raw centring with `px-6`.
+- [x] Splash: mark/rail use `v3`/palette tokens; exit stays opacity-only (no 1.02 scale, no 3px overflow).
+- [x] Skeletons: match the new dimensions — `DeckShelfSkeleton` (22px row, 44 tile), `StatisticsSkeleton` (scene hero + chart panes), `QuizSkeleton` (scoreboard + 2×2 answers), `StudyCardSkeleton` (24 stage + 80 keys), `SettingsGroupSkeleton` (64 header + hero + lines).
+- [x] Dock: verify 64px height, 300px max, 3×88 cells, 52px pill, `selectionSurface` lens, no rim; labels visible; 44px targets; active tab exposed as current. Fix only what disagrees with the token values.
+- [x] Run `npx tsc --noEmit`, `npm run check:design`, `npm run test:boot`, `npx playwright test tests/e2e/keyboard.spec.ts`, `npx playwright test tests/e2e/a11y.spec.ts -g "not-found"`.
+- [x] Commit: `feat(shell): v3 404, splash and skeletons`.
+
+**Result (complete, 2026-11-08):** The 404 is one `Surface tone="scene"` in a 420px composer column with `PageHeader`, a 52px `ActionButton` and a 44px back target; axe is clean and neither 320 nor 390 overflows. Splash already had the v3 contract (full-viewport overlay, opacity-only exit, `overflow: hidden`, no transform); the real hand-off fix was passing `pathname` from `app/_layout.tsx` so a deep link no longer paints the Home skeleton first. Home's skeleton now matches the final surfaces: hero **329/308px** and deck row **125px** at 320/390, with the row top within **1px**. Settings hero is **230/210px**, chapter panes **177/159px** against final **179/159px**, and chapter tops within **1–2px** after reserving one row step for the caption. The Study stage stays **452px** at top 80. Quiz uses the live geometry: **17px** progress row, **367/406px** reserved above the answers, stage top **220/250px** exactly at 320/390 (and answer rows **74/88px** at 320). Dock measures **276×64** at both widths (300px max, 6px padding, 3×88px tabs, 82×52px lens), has **0 border**, uses `selectionSurface` (`rgb(35, 49, 67)`), keeps labels visible and exposes the active tab with `aria-selected="true"`. Statistics follows the plan's populated hero + chart-pane skeleton; the seeded empty 30-day range replaces it with a shorter empty scene, so that one capture is longer than final by design. `npx tsc --noEmit` **0** · `npm run check:design` **clean (97 files)** · `npm run build:web` exported `dist/` · `npm run test:boot` **3/3** under 4× CPU · keyboard **2/2** · not-found axe **1/1** · **24** Task 11 captures in `qa/task11-*.png`. Committed as `feat(shell): v3 404, splash and skeletons`.
 
 **Acceptance:** boot test shows no blank frame and no 3px overflow; dock measurements match `theme/palette.js`; skeleton screenshots at 320/390 match the final surfaces within one spacing step.
 
