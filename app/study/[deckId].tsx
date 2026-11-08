@@ -658,7 +658,7 @@ export default function StudyScreen() {
   const completionHeader = (
     <PageHeader
       title={emptyDeck ? 'Study' : 'Session Complete'}
-      maxWidth={v3.layout.studyMeasure}
+      maxWidth={v3.layout.composerMaxWidth}
       leading={
         <HeaderIcon
           icon="close"
@@ -667,34 +667,32 @@ export default function StudyScreen() {
         />
       }
       meta={
-        width >= 400 ? (
-          <View
-            style={{
-              maxWidth: 100,
-              minHeight: 28,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 6,
-              borderRadius: radii.pill,
-              borderWidth: 1,
-              borderColor: rims.soft,
-              backgroundColor: colors.surfacePane,
-              paddingHorizontal: 10,
-              paddingVertical: 6,
-            }}
+        <View
+          style={{
+            maxWidth: width < 360 ? 72 : 100,
+            minHeight: 28,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            borderRadius: radii.pill,
+            borderWidth: 1,
+            borderColor: rims.soft,
+            backgroundColor: colors.surfacePane,
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+          }}
+        >
+          <MaterialIcons name="folder" size={iconSize.xs} color={colors.primary} />
+          <AppText
+            variant="caption"
+            weight="medium"
+            tone="muted"
+            numberOfLines={1}
+            style={{ flexShrink: 1 }}
           >
-            <MaterialIcons name="folder" size={iconSize.xs} color={colors.primary} />
-            <AppText
-              variant="caption"
-              weight="medium"
-              tone="muted"
-              numberOfLines={1}
-              style={{ flexShrink: 1 }}
-            >
-              {deck.name}
-            </AppText>
-          </View>
-        ) : undefined
+            {deck.name}
+          </AppText>
+        </View>
       }
     />
   );
@@ -743,7 +741,12 @@ export default function StudyScreen() {
           }`;
 
     return (
-      <Screen header={completionHeader} scroll gutter contentMaxWidth={760}>
+      <Screen
+        header={completionHeader}
+        scroll
+        gutter
+        contentMaxWidth={v3.layout.composerMaxWidth}
+      >
         <SessionSummary
           deckName={deck.name}
           deckColor={deck.color}

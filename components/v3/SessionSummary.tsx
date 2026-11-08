@@ -93,7 +93,7 @@ export function SessionSummary({
       label: 'Total reviewed',
       value: String(reviewed),
       unit: reviewed === 1 ? 'card' : 'cards',
-      note: '100% of due cards',
+      note: 'cards rated this session',
       icon: 'done-all',
       iconColor: colors.primary,
       color: colors.onSurface,
@@ -136,7 +136,7 @@ export function SessionSummary({
   ];
 
   return (
-    <View>
+    <View testID="session-summary">
       <View
         style={{
           flexDirection: 'row',

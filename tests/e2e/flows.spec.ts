@@ -631,6 +631,12 @@ test.describe('Phase 5 — behaviour', () => {
     }
 
     await expect(page.getByText('All done')).toBeVisible();
+    await expect(page.getByTestId('session-summary')).toBeVisible();
+    await expect(page.getByText('Queue cleared')).toBeVisible();
+    await expect(page.getByText('cards rated this session')).toBeVisible();
+    await expect(page.getByText('Study Flow Deck', { exact: true })).toHaveCount(2);
+    await expect(page.getByText(/Study ahead|this week|shift/)).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Undo last review' })).toBeVisible();
     const completedReviews = await readStorage<Array<{ deckId: string }>>(
       page,
       STORAGE_KEYS.reviewLog,
@@ -646,6 +652,14 @@ test.describe('Phase 5 — behaviour', () => {
       []
     ).then((entries) => entries.filter((entry) => entry.deckId === deckId).length);
     expect(afterReload).toBe(completedReviews);
+
+    // The handoff is one phone sheet, even when the browser is wide.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.waitForTimeout(300);
+    const summaryWidth = await page
+      .getByTestId('session-summary')
+      .evaluate((element) => element.getBoundingClientRect().width);
+    expect(summaryWidth).toBeLessThanOrEqual(381);
   });
 
   test('study: an empty deck explains that there is nothing to study', async ({ page }) => {
