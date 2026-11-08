@@ -26,6 +26,8 @@ export type SessionSummaryProps = {
   durationMs: number;
   /** Again, Hard, Good, Easy. */
   ratings: readonly [number, number, number, number];
+  /** Elapsed milliseconds per rating, in the same order. */
+  ratingDurations: readonly [number, number, number, number];
   nextReview: string | null;
   onAddCards: () => void;
   onUndo: (() => void) | null;
@@ -43,6 +45,33 @@ function formatDuration(ms: number): string {
 
 function percent(count: number, total: number): number {
   return total > 0 ? Math.round((count / total) * 100) : 0;
+}
+
+/** A factual pace comparison, not a performance score. */
+function performanceInsight(
+  reviewed: number,
+  durationMs: number,
+  ratings: readonly [number, number, number, number],
+  ratingDurations: readonly [number, number, number, number]
+): string {
+  if (reviewed === 0) return '';
+  if (durationMs <= 0) return 'Timing was not recorded for this session.';
+
+  const pace = durationMs / reviewed;
+  if (ratings[0] === 0) {
+    return `No lapses this session; average pace ${formatDuration(pace)} per card.`;
+  }
+
+  const againAverage = ratingDurations[0] / ratings[0];
+  const relation =
+    againAverage > pace * 1.15
+      ? 'above'
+      : againAverage < pace * 0.85
+        ? 'below'
+        : 'in line with';
+  return `Again reviews averaged ${formatDuration(
+    againAverage
+  )}, ${relation} your ${formatDuration(pace)} per-card pace.`;
 }
 
 type Metric = {
@@ -78,6 +107,7 @@ export function SessionSummary({
   streak,
   durationMs,
   ratings,
+  ratingDurations,
   nextReview,
   onAddCards,
   onUndo,
@@ -128,12 +158,37 @@ export function SessionSummary({
     },
   ];
 
-  const ratingRows: { label: string; count: number; color: string }[] = [
-    { label: 'Easy', count: ratings[3], color: colors.primary },
-    { label: 'Good', count: ratings[2], color: colors.success },
-    { label: 'Hard', count: ratings[1], color: colors.warning },
-    { label: 'Again', count: ratings[0], color: colors.error },
-  ];
+  const ratingRows = [
+    {
+      label: 'Easy',
+      count: ratings[3],
+      color: colors.primary,
+      totalMs: ratingDurations[3],
+    },
+    {
+      label: 'Good',
+      count: ratings[2],
+      color: colors.success,
+      totalMs: ratingDurations[2],
+    },
+    {
+      label: 'Hard',
+      count: ratings[1],
+      color: colors.warning,
+      totalMs: ratingDurations[1],
+    },
+    {
+      label: 'Again',
+      count: ratings[0],
+      color: colors.error,
+      totalMs: ratingDurations[0],
+    },
+  ].map((row) => ({
+    ...row,
+    avgMs: row.count > 0 ? row.totalMs / row.count : null,
+  }));
+  const retainedPerMinute =
+    durationMs > 0 ? (ratings[2] + ratings[3]) / (durationMs / 60_000) : null;
 
   return (
     <View testID="session-summary">
@@ -331,6 +386,110 @@ export function SessionSummary({
               </Surface>
             ))}
           </View>
+
+          <Surface tone="pane" padding="md" style={{ marginTop: v3.spacing.section }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 12,
+              }}
+            >
+              <AppText
+                variant="caption"
+                weight="semibold"
+                tone="muted"
+                className="uppercase"
+                style={{ letterSpacing: 0.6 }}
+              >
+                Performance
+              </AppText>
+              <AppText
+                variant="caption"
+                tone="tertiary"
+                style={{ fontVariant: ['tabular-nums'] }}
+              >
+                {retainedPerMinute === null
+                  ? 'Timing unavailable'
+                  : `${retainedPerMinute.toFixed(1)} Good+ / min`}
+              </AppText>
+            </View>
+
+            <View style={{ gap: 10 }}>
+              {ratingRows.map((row) => {
+                const share = durationMs > 0 ? row.totalMs / durationMs : 0;
+                const average =
+                  row.count === 0 || durationMs <= 0
+                    ? '—'
+                    : `${formatDuration(row.avgMs ?? 0)} avg`;
+                return (
+                  <View
+                    key={row.label}
+                    accessible
+                    accessibilityLabel={`${row.label}: ${average}, ${Math.round(
+                      share * 100
+                    )} percent of session time`}
+                  >
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 10,
+                      }}
+                    >
+                      <View
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                      >
+                        <View
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: 4,
+                            backgroundColor: row.color,
+                          }}
+                        />
+                        <AppText variant="bodySm" weight="semibold">
+                          {row.label}
+                        </AppText>
+                      </View>
+                      <AppText
+                        variant="caption"
+                        tone="muted"
+                        style={{ fontVariant: ['tabular-nums'] }}
+                      >
+                        {average}
+                      </AppText>
+                    </View>
+                    <View
+                      accessibilityElementsHidden
+                      importantForAccessibility="no-hide-descendants"
+                      style={{
+                        height: 6,
+                        marginTop: 6,
+                        borderRadius: radii.pill,
+                        overflow: 'hidden',
+                        backgroundColor: fills.track,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: `${share * 100}%`,
+                          height: '100%',
+                          backgroundColor: row.color,
+                        }}
+                      />
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+
+            <AppText variant="caption" tone="muted" style={{ marginTop: 12 }}>
+              {performanceInsight(reviewed, durationMs, ratings, ratingDurations)}
+            </AppText>
+          </Surface>
 
           <Surface tone="pane" padding="md" style={{ marginTop: v3.spacing.section }}>
             <View

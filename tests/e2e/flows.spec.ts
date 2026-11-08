@@ -634,6 +634,10 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(page.getByTestId('session-summary')).toBeVisible();
     await expect(page.getByText('Queue cleared')).toBeVisible();
     await expect(page.getByText('cards rated this session')).toBeVisible();
+    await expect(page.getByText('Performance', { exact: true })).toBeVisible();
+    await expect(page.getByText(/Good\+ \/ min/)).toBeVisible();
+    await expect(page.getByText(/(No lapses this session|Again reviews averaged)/)).toBeVisible();
+    await expect(page.getByText(/avg/).first()).toBeVisible();
     await expect(page.getByText('Study Flow Deck', { exact: true })).toHaveCount(2);
     await expect(page.getByText(/Study ahead|this week|shift/)).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Undo last review' })).toBeVisible();

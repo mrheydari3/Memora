@@ -703,6 +703,7 @@ export default function StudyScreen() {
     }
 
     const counts: [number, number, number, number] = [0, 0, 0, 0];
+    const ratingDurations: [number, number, number, number] = [0, 0, 0, 0];
     let durationMs = 0;
     for (const entry of sessionReviews) {
       switch (entry.rating) {
@@ -719,7 +720,9 @@ export default function StudyScreen() {
           counts[3] += 1;
           break;
       }
-      durationMs += Math.max(0, entry.elapsedMs);
+      const elapsed = Math.max(0, entry.elapsedMs);
+      durationMs += elapsed;
+      ratingDurations[entry.rating - 1] += elapsed;
     }
 
     const reviewed = sessionReviews.length;
@@ -758,6 +761,7 @@ export default function StudyScreen() {
           streak={streak}
           durationMs={durationMs}
           ratings={counts}
+          ratingDurations={ratingDurations}
           nextReview={nextReview}
           onAddCards={() => pushOnce(router, `/deck/${deck.id}/add-card`)}
           onUndo={lastUndo ? undoLastReview : null}
