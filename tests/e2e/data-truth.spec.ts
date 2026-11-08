@@ -259,20 +259,47 @@ test.describe('Phase 7 — data truth', () => {
     }
   });
 
-  test('profile: XP, level, streak, badges and deck order recompute from the data', async ({ page }) => {
+  test('profile: progression and Mini Statistics recompute from the normalized log', async ({ page }) => {
     await boot(page, 'F2');
     const store = await readStore(page);
-    const activeIds = new Set(activeDecks(store).map((deck) => deck.id));
-    const log = store.log.filter((entry) => activeIds.has(entry.deckId));
+    // Canonical scope: archived decks are excluded, orphan reviews stay in the
+    // totals. The fixture has no duplicates or invalid ratings.
+    const archivedIds = new Set(
+      store.decks.filter((deck) => deck.archivedAt != null).map((deck) => deck.id)
+    );
+    const log = store.log.filter((entry) => !archivedIds.has(entry.deckId));
 
+    const now = Date.now();
     const xp = log.length * XP_PER_REVIEW;
     const level = Math.floor(xp / XP_PER_LEVEL) + 1;
     const intoLevel = xp % XP_PER_LEVEL;
     const streak = computeStreak(
       log.map((entry) => entry.reviewedAt),
-      Date.now()
+      now
     );
-    const earned = 1 + (streak >= 7 ? 1 : 0) + (log.length >= 100 ? 1 : 0);
+    const activeDays = new Set(log.map((entry) => startOfLocalDay(entry.reviewedAt))).size;
+    const rangeStart = startOfLocalDay(now) - 29 * DAY;
+    const inRange = log.filter((entry) => entry.reviewedAt >= rangeStart);
+    const rangeActiveDays = new Set(
+      inRange.map((entry) => startOfLocalDay(entry.reviewedAt))
+    ).size;
+    // Rating 1 is Again; 2–4 are passes (Hard still counts as recall).
+    const successes = inRange.filter((entry) => entry.rating !== 1).length;
+    const recall =
+      inRange.length >= 10 ? `${Math.round((successes / inRange.length) * 100)}%` : '—';
+    const nightCards = new Set(
+      log
+        .filter((entry) => {
+          const hour = new Date(entry.reviewedAt).getHours();
+          return hour >= 23 || hour < 5;
+        })
+        .map((entry) => entry.cardId)
+    );
+    const earned =
+      (log.length >= 1 ? 1 : 0) +
+      (streak >= 7 ? 1 : 0) +
+      (log.length >= 100 ? 1 : 0) +
+      (nightCards.size >= 20 ? 1 : 0);
 
     expect(log.length).toBe(33);
     expect(streak).toBe(13);
@@ -288,55 +315,23 @@ test.describe('Phase 7 — data truth', () => {
     await expect(page.getByText('First Review', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('7-Day Streak', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('100 Reviews', { exact: true }).first()).toBeVisible();
+    await expect(page.getByTestId('profile-deck')).toHaveCount(0);
+    await expect(page.getByText('My decks', { exact: true })).toHaveCount(0);
 
-    // Deck order: the four most recently active decks, then the archived
-    // record. Recompute it from the stored review log and card states rather
-    // than pinning display copy to the fixture.
-    const archivedDecks = store.decks.filter((deck) => deck.archivedAt != null);
-    const lastReviewByDeck = new Map<string, number>();
-    for (const entry of store.log) {
-      lastReviewByDeck.set(
-        entry.deckId,
-        Math.max(lastReviewByDeck.get(entry.deckId) ?? 0, entry.reviewedAt)
-      );
-    }
-    const rankedDecks = activeDecks(store)
-      .map((deck) => {
-        const cards = store.cards[deck.id] ?? [];
-        let lastStudiedAt = lastReviewByDeck.get(deck.id) ?? 0;
-        let studied = 0;
-        for (const card of cards) {
-          if (card.fsrs.last_review == null) continue;
-          studied += 1;
-          const reviewedAt = Date.parse(card.fsrs.last_review);
-          if (Number.isFinite(reviewedAt)) lastStudiedAt = Math.max(lastStudiedAt, reviewedAt);
-        }
-        return {
-          deck,
-          lastStudiedAt,
-          progress: cards.length > 0 ? studied / cards.length : 0,
-          cardCount: cards.length,
-        };
-      })
-      .sort(
-        (a, b) =>
-          b.lastStudiedAt - a.lastStudiedAt ||
-          b.progress - a.progress ||
-          b.cardCount - a.cardCount ||
-          a.deck.name.localeCompare(b.deck.name, 'en')
-      );
-    const expectedOrder = [
-      ...rankedDecks
-        .slice(0, archivedDecks.length > 0 ? 4 : 5)
-        .map((entry) => entry.deck.name),
-      ...archivedDecks.slice(0, 1).map((deck) => deck.name),
-    ];
-    const deckButtons = page.getByTestId('profile-deck');
-    await expect(deckButtons).toHaveCount(expectedOrder.length);
-    const shownOrder = await page
-      .getByTestId('profile-deck-name')
-      .evaluateAll((nodes) => nodes.map((node) => (node.textContent ?? '').trim()));
-    expect(shownOrder).toEqual(expectedOrder);
+    // Mini Statistics is the same canonical last-30-days window as Statistics.
+    await expect(page.getByTestId('profile-mini-reviews-value')).toHaveText(
+      String(inRange.length)
+    );
+    await expect(page.getByTestId('profile-mini-active-days-value')).toHaveText(
+      String(rangeActiveDays)
+    );
+    await expect(page.getByTestId('profile-mini-recall-value')).toHaveText(recall);
+    await expect(page.getByTestId('profile-activity-strip')).toBeVisible();
+    await expect(page.getByText('Last 30 days', { exact: true })).toBeVisible();
+
+    // The CTA is labelled and opens the standalone report.
+    await page.getByTestId('profile-statistics-cta').click();
+    await expect(page).toHaveURL(/\/statistics$/);
   });
 
   test('statistics: the range total and deck count recompute from the log', async ({ page }) => {

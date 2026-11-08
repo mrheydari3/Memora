@@ -1,13 +1,17 @@
 import { useEffect, useMemo } from 'react';
 import type { ComponentProps } from 'react';
-import { Pressable, useWindowDimensions, View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
-import { computeStreak, startOfLocalDay } from '../../data/streak';
-import type { Deck } from '../../data/types';
-import { dueNow } from '../../data/session';
+import {
+  buildProfileBundle,
+  type AchievementFact,
+  type LearningSummary,
+} from '../../data/profileSummary';
+import { XP_PER_LEVEL } from '../../data/progression';
+import { MIN_RECALL_SAMPLE } from '../../data/intelligence/core/constants';
 import {
   AppText,
   EmptyState,
@@ -34,116 +38,80 @@ import { v3 } from '../../theme/v3';
 import { pushOnce } from '../../services/navigation';
 
 const CONTENT_MAX = 760;
-const XP_PER_REVIEW = 10;
-const XP_PER_LEVEL = 1000;
-const MAX_DECKS = 5;
+const RANGE_DAYS = 30;
 
 type IconName = ComponentProps<typeof MaterialIcons>['name'];
 
-type Achievement = {
-  id: string;
-  name: string;
-  description: string;
+type AchievementVisual = {
+  label: string;
   icon: IconName;
   color: string;
-  earned: boolean;
-};
-
-type DeckStat = {
-  deck: Deck;
-  cardCount: number;
-  dueCount: number;
-  studiedCount: number;
-  progress: number;
-  lastStudiedAt: number | null;
-  archived: boolean;
 };
 
 /**
- * The badges the app can actually verify from the review log. Card-count
- * badges key off reviews, not imported cards, so the rack always agrees with
- * XP and the Statistics screen. Night Owl and Speed Demon stay locked because
- * the review log does not record time-of-day or answer speed yet.
+ * Presentation only. The earned flag, progress and evidence all come from
+ * `buildAchievementFacts`; this map supplies the badge's name and glyph so the
+ * data module stays free of icons and theme colours.
  */
-function buildAchievements(reviewCount: number, streak: number): Achievement[] {
-  return [
-    {
-      id: '1',
-      name: 'First Review',
-      description: 'Completed your first session',
-      icon: 'auto-awesome',
-      color: colors.success,
-      earned: reviewCount >= 1,
-    },
-    {
-      id: '2',
-      name: '7-Day Streak',
-      description: 'Studied 7 days in a row',
-      icon: 'local-fire-department',
-      color: colors.warning,
-      earned: streak >= 7,
-    },
-    {
-      id: '3',
-      name: '100 Reviews',
-      description: 'Reached 100 card evaluations',
-      icon: 'psychology',
-      color: colors.primary,
-      earned: reviewCount >= 100,
-    },
-    {
-      id: '4',
-      name: 'Night Owl',
-      description: 'Review 20 cards past 23:00',
-      icon: 'dark-mode',
-      color: colors.outline,
-      earned: false,
-    },
-    {
-      id: '5',
-      name: 'Speed Demon',
-      description: 'Clear a 60s quiz >90% acc',
-      icon: 'bolt',
-      color: colors.outline,
-      earned: false,
-    },
-  ];
-}
+const ACHIEVEMENTS: Record<AchievementFact['id'], AchievementVisual> = {
+  'first-review': {
+    label: 'First Review',
+    icon: 'auto-awesome',
+    color: colors.success,
+  },
+  'seven-day-streak': {
+    label: '7-Day Streak',
+    icon: 'local-fire-department',
+    color: colors.warning,
+  },
+  'hundred-reviews': {
+    label: '100 Reviews',
+    icon: 'psychology',
+    color: colors.primary,
+  },
+  'night-owl': {
+    label: 'Night Owl',
+    icon: 'dark-mode',
+    color: colors.info,
+  },
+  'speed-demon': {
+    label: 'Speed Demon',
+    icon: 'bolt',
+    color: colors.outline,
+  },
+};
 
 const formatCount = (value: number) => value.toLocaleString('en-US');
 
-const pluralCards = (count: number) => `${count} ${count === 1 ? 'card' : 'cards'}`;
+const plural = (count: number, one: string, many: string) =>
+  `${formatCount(count)} ${count === 1 ? one : many}`;
 
 function IdentityCard({
-  level,
-  xpIntoLevel,
-  xpProgress,
-  xp,
-  reviews,
-  streak,
-  activeDays,
+  summary,
   compact,
   wide,
 }: {
-  level: number;
-  xpIntoLevel: number;
-  xpProgress: number;
-  xp: number;
-  reviews: number;
-  streak: number;
-  activeDays: number;
+  summary: LearningSummary;
   compact: boolean;
   wide: boolean;
 }) {
+  const { allTime } = summary;
   const stats = [
-    { label: 'Reviews', value: formatCount(reviews) },
-    { label: 'XP', value: formatCount(xp) },
-    { label: 'Streak', value: `${streak}d` },
+    { label: 'Reviews', value: formatCount(allTime.reviews) },
+    { label: 'Total XP', value: formatCount(allTime.xp) },
+    { label: 'Streak', value: `${formatCount(allTime.currentStreak)}d` },
   ];
 
   return (
     <Surface tone="scene" radius="pane" padding="md">
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
         <AppText
           variant="label"
           weight="semibold"
@@ -221,13 +189,13 @@ function IdentityCard({
             <AppText
               variant="display"
               weight="bold"
-              accessibilityLabel={`Level ${level}`}
+              accessibilityLabel={`Level ${allTime.level}`}
               style={[
                 wide ? v3.type.heroWide : v3.type.hero,
                 { fontVariant: ['tabular-nums'] },
               ]}
             >
-              {level}
+              {allTime.level}
             </AppText>
           </View>
           <View
@@ -241,9 +209,15 @@ function IdentityCard({
               backgroundColor: alpha(colors.warning, 0.13),
             }}
           >
-            <MaterialIcons name="local-fire-department" size={iconSize.sm} color={colors.warning} />
+            <MaterialIcons
+              name="local-fire-department"
+              size={iconSize.sm}
+              color={colors.warning}
+            />
             <AppText variant="caption" weight="semibold" style={{ color: colors.warning }}>
-              {streak > 0 ? `${streak}-day streak` : 'No streak yet'}
+              {allTime.currentStreak > 0
+                ? `${allTime.currentStreak}-day streak`
+                : 'No streak yet'}
             </AppText>
           </View>
         </View>
@@ -259,7 +233,7 @@ function IdentityCard({
           >
             <View
               style={{
-                width: `${Math.max(0, Math.min(100, xpProgress * 100))}%`,
+                width: `${Math.max(0, Math.min(100, allTime.xpProgress * 100))}%`,
                 height: '100%',
                 borderRadius: 3,
                 backgroundColor: colors.primaryContainer,
@@ -281,7 +255,7 @@ function IdentityCard({
               numberOfLines={2}
               style={[{ flexShrink: 1 }, compact ? { fontSize: 11.5 } : null]}
             >
-              {`${xpIntoLevel} of ${XP_PER_LEVEL} XP into this level`}
+              {`${allTime.xpIntoLevel} of ${XP_PER_LEVEL} XP into this level`}
             </AppText>
             <AppText
               variant="caption"
@@ -289,7 +263,7 @@ function IdentityCard({
               tone="muted"
               style={{ fontVariant: ['tabular-nums'] }}
             >
-              {`${Math.round(xpProgress * 100)}%`}
+              {`${Math.round(allTime.xpProgress * 100)}%`}
             </AppText>
           </View>
         </View>
@@ -327,31 +301,201 @@ function IdentityCard({
         tone="tertiary"
         style={{ marginTop: 10, fontVariant: ['tabular-nums'] }}
       >
-        {`${activeDays} active day${activeDays === 1 ? '' : 's'}`}
+        {`${plural(allTime.activeDays, 'active day', 'active days')} all time`}
       </AppText>
     </Surface>
   );
 }
 
+function MiniStat({
+  label,
+  value,
+  note,
+  testID,
+}: {
+  label: string;
+  value: string;
+  note: string;
+  testID: string;
+}) {
+  return (
+    <View
+      testID={testID}
+      style={{
+        flex: 1,
+        minWidth: 0,
+        paddingHorizontal: 10,
+        paddingVertical: 10,
+        borderRadius: radii.control,
+        backgroundColor: fills.inset,
+      }}
+    >
+      <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+        {label}
+      </AppText>
+      <AppText
+        testID={`${testID}-value`}
+        variant="headline"
+        weight="semibold"
+        numberOfLines={1}
+        style={{ marginTop: 2, fontVariant: ['tabular-nums'] }}
+      >
+        {value}
+      </AppText>
+      <AppText variant="caption" tone="muted" numberOfLines={2} style={{ marginTop: 2 }}>
+        {note}
+      </AppText>
+    </View>
+  );
+}
+
+/**
+ * The 30-day preview, not a second Statistics dashboard: one bar per local day
+ * with the same normalized review counts the report uses.
+ */
+function ActivityStrip({ activity }: { activity: LearningSummary['range']['activity'] }) {
+  const max = Math.max(1, ...activity.points.map((point) => point.value));
+  const label = `${plural(activity.total, 'review', 'reviews')} across ${plural(
+    activity.activeDays,
+    'active day',
+    'active days'
+  )} in the last ${activity.days} days`;
+
+  return (
+    <View
+      testID="profile-activity-strip"
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={label}
+      style={{ marginTop: 16 }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 52 }}>
+        {activity.points.map((point) => {
+          const height =
+            point.value === 0 ? 3 : Math.max(5, Math.round((point.value / max) * 52));
+          return (
+            <View
+              key={point.dayKey}
+              style={{
+                flex: 1,
+                height,
+                borderRadius: 2,
+                backgroundColor:
+                  point.value === 0
+                    ? colors.surfaceControl
+                    : point.today
+                      ? colors.primary
+                      : alpha(colors.primary, 0.55),
+              }}
+            />
+          );
+        })}
+      </View>
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          marginTop: 6,
+        }}
+      >
+        <AppText variant="caption" tone="tertiary">
+          {activity.days === 1 ? 'Earlier today' : `${activity.days} days ago`}
+        </AppText>
+        <AppText variant="caption" tone="tertiary">
+          Today
+        </AppText>
+      </View>
+    </View>
+  );
+}
+
+function MiniStatistics({
+  summary,
+  onOpen,
+}: {
+  summary: LearningSummary;
+  onOpen: () => void;
+}) {
+  const { range } = summary;
+  const recall = range.recall;
+  const recallValue =
+    recall.successRate === null ? '—' : `${Math.round(recall.successRate * 100)}%`;
+  const recallNote =
+    recall.status === 'ok'
+      ? plural(recall.sampleSize, 'rated review', 'rated reviews')
+      : recall.status === 'empty'
+        ? 'No rated reviews yet'
+        : `${formatCount(recall.sampleSize)} of ${MIN_RECALL_SAMPLE} rated reviews`;
+
+  return (
+    <Surface tone="pane" radius="card" padding="md">
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <MiniStat
+          testID="profile-mini-reviews"
+          label="Reviews"
+          value={formatCount(range.reviews)}
+          note="recorded in this window"
+        />
+        <MiniStat
+          testID="profile-mini-recall"
+          label="Recall"
+          value={recallValue}
+          note={recallNote}
+        />
+        <MiniStat
+          testID="profile-mini-active-days"
+          label="Active days"
+          value={formatCount(range.activeDays)}
+          note={`of ${range.range.days} days`}
+        />
+      </View>
+
+      <ActivityStrip activity={range.activity} />
+
+      <View style={{ marginTop: v3.spacing.group }}>
+        <ActionButton
+          testID="profile-statistics-cta"
+          label="View detailed statistics"
+          icon="bar-chart"
+          tone="quiet"
+          onPress={onOpen}
+        />
+      </View>
+    </Surface>
+  );
+}
+
 function AchievementCard({
-  achievement,
+  fact,
   basis,
   compact,
 }: {
-  achievement: Achievement;
+  fact: AchievementFact;
   basis: string;
   compact: boolean;
 }) {
-  const statusColor = achievement.earned ? achievement.color : colors.outline;
+  const visual = ACHIEVEMENTS[fact.id];
+  const statusColor = fact.earned ? visual.color : colors.outline;
+  const status = fact.earned
+    ? 'Earned'
+    : fact.available
+      ? 'Locked'
+      : 'Not tracked yet';
+  const statusIcon: IconName = fact.earned
+    ? 'check-circle'
+    : fact.available
+      ? 'lock'
+      : 'info-outline';
 
   return (
     <Surface
+      testID={`achievement-${fact.id}`}
       tone="inset"
       radius="card"
       padding="sm"
       style={{
         flexBasis: basis,
-        minHeight: 132,
+        minHeight: 140,
         justifyContent: 'space-between',
         paddingHorizontal: compact ? v3.spacing.row : 16,
       }}
@@ -364,15 +508,15 @@ function AchievementCard({
             borderRadius: radii.control,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: achievement.earned
-              ? alpha(achievement.color, 0.14)
+            backgroundColor: fact.earned
+              ? alpha(visual.color, 0.14)
               : colors.surfaceControl,
           }}
         >
           <MaterialIcons
-            name={achievement.icon}
+            name={visual.icon}
             size={iconSize.lg}
-            color={achievement.earned ? achievement.color : colors.outline}
+            color={fact.earned ? visual.color : colors.outline}
           />
         </View>
         <AppText
@@ -381,7 +525,7 @@ function AchievementCard({
           numberOfLines={2}
           style={{ marginTop: 10 }}
         >
-          {achievement.name}
+          {visual.label}
         </AppText>
         <AppText
           variant="caption"
@@ -389,78 +533,22 @@ function AchievementCard({
           numberOfLines={3}
           style={{ marginTop: 2 }}
         >
-          {achievement.description}
+          {fact.evidence}
         </AppText>
       </View>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 }}>
-        <MaterialIcons
-          name={achievement.earned ? 'check-circle' : 'lock'}
-          size={11}
-          color={statusColor}
-        />
-        <AppText variant="caption" weight="semibold" style={{ color: statusColor }}>
-          {achievement.earned ? 'Earned' : 'Locked'}
+        <MaterialIcons name={statusIcon} size={11} color={statusColor} />
+        <AppText
+          variant="caption"
+          weight="semibold"
+          numberOfLines={2}
+          style={{ color: statusColor }}
+        >
+          {status}
         </AppText>
       </View>
     </Surface>
-  );
-}
-
-function DeckLine({ stat, onPress }: { stat: DeckStat; onPress: () => void }) {
-  const { deck, cardCount, dueCount, archived } = stat;
-
-  return (
-    <Pressable
-      testID="profile-deck"
-      onPress={onPress}
-      accessibilityRole="button"
-      style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
-    >
-      <Surface tone="inset" radius="control" padding="sm">
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: radii.control,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: colors.surfaceTile,
-              flexShrink: 0,
-            }}
-          >
-            <MaterialIcons
-              name={deck.icon as IconName}
-              size={iconSize.lg}
-              color={archived ? colors.outline : deck.color}
-            />
-          </View>
-
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <AppText variant="bodySm" weight="semibold" numberOfLines={1} testID="profile-deck-name">
-              {deck.name}
-            </AppText>
-            <AppText
-              variant="caption"
-              tone="muted"
-              numberOfLines={1}
-              style={{ marginTop: 2, fontVariant: ['tabular-nums'] }}
-            >
-              {`${pluralCards(cardCount)} · ${
-                archived ? 'Archived' : `${formatCount(dueCount)} due`
-              }`}
-            </AppText>
-          </View>
-
-          <MaterialIcons
-            name={archived ? 'inventory-2' : 'chevron-right'}
-            size={iconSize.lg}
-            color={colors.outline}
-          />
-        </View>
-      </Surface>
-    </Pressable>
   );
 }
 
@@ -469,96 +557,27 @@ export default function ProfileScreen() {
   const { width } = useWindowDimensions();
   const compact = width < 390;
   const wide = width >= 900;
-  const achievementColumns = wide ? 4 : 3;
-  const achievementBasis = achievementColumns === 4 ? '23%' : '30.5%';
+  const achievementColumns = wide ? 4 : compact ? 2 : 3;
+  const achievementBasis = wide ? '23%' : compact ? '47%' : '30.5%';
 
   const decks = useDeckStore((s) => s.decks);
-  const cardsByDeck = useDeckStore((s) => s.cardsByDeck);
-  const loaded = useDeckStore((s) => s.loaded);
+  const deckLoaded = useDeckStore((s) => s.loaded);
   const reviewLog = useReviewStore((s) => s.reviewLog);
+  const reviewLoaded = useReviewStore((s) => s.loaded);
+  const loaded = deckLoaded && reviewLoaded;
 
   useEffect(() => {
     useDeckStore.getState().load();
     useReviewStore.getState().load();
   }, []);
 
-  const activeDeckIds = useMemo(
-    () => new Set(decks.filter((deck) => !deck.archivedAt).map((deck) => deck.id)),
-    [decks]
+  // One normalization feeds both the summary and the badge facts, so XP, the
+  // streak and earned badges cannot disagree with each other.
+  const bundle = useMemo(
+    () => buildProfileBundle({ decks, reviewLog, rangeDays: RANGE_DAYS }),
+    [decks, reviewLog]
   );
-  const activeLog = useMemo(
-    () => reviewLog.filter((entry) => activeDeckIds.has(entry.deckId)),
-    [reviewLog, activeDeckIds]
-  );
-
-  const xp = activeLog.length * XP_PER_REVIEW;
-  const level = Math.floor(xp / XP_PER_LEVEL) + 1;
-  const xpIntoLevel = xp % XP_PER_LEVEL;
-  const xpProgress = xpIntoLevel / XP_PER_LEVEL;
-  const streak = useMemo(
-    () => computeStreak(activeLog.map((entry) => entry.reviewedAt)),
-    [activeLog]
-  );
-  const activeDays = useMemo(
-    () => new Set(activeLog.map((entry) => startOfLocalDay(entry.reviewedAt))).size,
-    [activeLog]
-  );
-  const achievements = useMemo(
-    () => buildAchievements(activeLog.length, streak),
-    [activeLog.length, streak]
-  );
-  const earned = achievements.filter((achievement) => achievement.earned).length;
-
-  const deckStats = useMemo(() => {
-    const lastLogByDeck = new Map<string, number>();
-    for (const entry of reviewLog) {
-      const previous = lastLogByDeck.get(entry.deckId) ?? 0;
-      if (entry.reviewedAt > previous) lastLogByDeck.set(entry.deckId, entry.reviewedAt);
-    }
-
-    return decks
-      .map<DeckStat>((deck) => {
-        const cards = cardsByDeck[deck.id] ?? [];
-        let studiedCount = 0;
-        let lastStudiedAt = lastLogByDeck.get(deck.id) ?? null;
-
-        for (const card of cards) {
-          if (card.fsrs.last_review == null) continue;
-          studiedCount += 1;
-          const timestamp = Date.parse(card.fsrs.last_review);
-          if (Number.isFinite(timestamp) && (lastStudiedAt === null || timestamp > lastStudiedAt)) {
-            lastStudiedAt = timestamp;
-          }
-        }
-
-        return {
-          deck,
-          cardCount: cards.length,
-          dueCount: dueNow(cards).length,
-          studiedCount,
-          progress: cards.length > 0 ? studiedCount / cards.length : 0,
-          lastStudiedAt,
-          archived: Boolean(deck.archivedAt),
-        };
-      })
-      .sort((a, b) => {
-        if (a.archived !== b.archived) return a.archived ? 1 : -1;
-        const aLast = a.lastStudiedAt ?? 0;
-        const bLast = b.lastStudiedAt ?? 0;
-        if (aLast !== bLast) return bLast - aLast;
-        if (a.progress !== b.progress) return b.progress - a.progress;
-        return b.cardCount - a.cardCount || a.deck.name.localeCompare(b.deck.name, 'en');
-      });
-  }, [decks, cardsByDeck, reviewLog]);
-
-  // Keep the archived record visible as the final row, as the design does,
-  // while leaving the five slots for the most recently studied active decks.
-  const deckRows = useMemo(() => {
-    const archivedDecks = deckStats.filter((stat) => stat.archived);
-    const activeDecks = deckStats.filter((stat) => !stat.archived);
-    const activeLimit = archivedDecks.length > 0 ? MAX_DECKS - 1 : MAX_DECKS;
-    return [...activeDecks.slice(0, activeLimit), ...archivedDecks.slice(0, 1)];
-  }, [deckStats]);
+  const earned = bundle.achievements.filter((fact) => fact.earned).length;
 
   // A tab root has no back stack and no Settings shortcut: Settings is its own
   // tab, and this screen owns identity and progress only.
@@ -576,33 +595,23 @@ export default function ProfileScreen() {
       ) : (
         <>
           <RevealItem index={0}>
-            <IdentityCard
-              level={level}
-              xpIntoLevel={xpIntoLevel}
-              xpProgress={xpProgress}
-              xp={xp}
-              reviews={activeLog.length}
-              streak={streak}
-              activeDays={activeDays}
-              compact={compact}
-              wide={wide}
-            />
+            <IdentityCard summary={bundle.summary} compact={compact} wide={wide} />
           </RevealItem>
 
-          {activeLog.length === 0 && deckRows.length > 0 ? (
+          {bundle.summary.allTime.reviews === 0 ? (
             <RevealItem index={1}>
               <View style={{ marginTop: v3.spacing.page }}>
                 <Surface tone="pane" radius="card" padding="md">
                   <EmptyState
                     icon="auto-awesome"
                     title="Your record starts with one card"
-                    description="Study one card to start earning XP, a streak and achievements."
+                    description="Study from Home to start earning XP, a streak and achievements."
                     action={
                       <ActionButton
-                        label="Start studying"
-                        icon="play-arrow"
+                        label="Start on Home"
+                        icon="home"
                         fullWidth={false}
-                        onPress={() => pushOnce(router, '/library')}
+                        onPress={() => pushOnce(router, '/home')}
                       />
                     }
                   />
@@ -613,19 +622,12 @@ export default function ProfileScreen() {
 
           <RevealItem index={2}>
             <View style={{ marginTop: v3.spacing.page }}>
-              <SectionHeading
-                label="Achievements"
-                hint={`${earned} of ${achievements.length}`}
-              />
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10 }}>
-                {achievements.map((achievement) => (
-                  <AchievementCard
-                    key={achievement.id}
-                    achievement={achievement}
-                    basis={achievementBasis}
-                    compact={compact}
-                  />
-                ))}
+              <SectionHeading label="Mini Statistics" hint="Last 30 days" />
+              <View style={{ marginTop: 10 }}>
+                <MiniStatistics
+                  summary={bundle.summary}
+                  onOpen={() => pushOnce(router, '/statistics')}
+                />
               </View>
             </View>
           </RevealItem>
@@ -633,36 +635,26 @@ export default function ProfileScreen() {
           <RevealItem index={3}>
             <View style={{ marginTop: v3.spacing.page }}>
               <SectionHeading
-                label="My decks"
-                hint={deckRows.length > 0 ? 'Top 5 decks by activity' : undefined}
+                label="Achievements"
+                hint={`${earned} of ${bundle.achievements.length}`}
               />
-              {deckRows.length === 0 ? (
-                <Surface tone="pane" radius="card" padding="md" style={{ marginTop: 10 }}>
-                  <EmptyState
-                    icon="library-books"
-                    title="No decks yet"
-                    description="Create a deck from Home to start building a memory."
-                    action={
-                      <ActionButton
-                        label="Browse starter decks"
-                        icon="explore"
-                        fullWidth={false}
-                        onPress={() => pushOnce(router, '/discover')}
-                      />
-                    }
+              <View
+                style={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  gap: 10,
+                  marginTop: 10,
+                }}
+              >
+                {bundle.achievements.map((fact) => (
+                  <AchievementCard
+                    key={fact.id}
+                    fact={fact}
+                    basis={achievementBasis}
+                    compact={compact}
                   />
-                </Surface>
-              ) : (
-                <View style={{ gap: 8, marginTop: 10 }}>
-                  {deckRows.map((stat) => (
-                    <DeckLine
-                      key={stat.deck.id}
-                      stat={stat}
-                      onPress={() => pushOnce(router, `/deck/${stat.deck.id}`)}
-                    />
-                  ))}
-                </View>
-              )}
+                ))}
+              </View>
             </View>
           </RevealItem>
         </>
