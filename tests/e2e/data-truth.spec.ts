@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { buildFixture, fixtureInitScript } from '../ui/fixtures';
+import { folderSubtreeCounts } from '../../data/folders';
 import { buildStudyQueue } from '../../data/session';
 import { computeStreak, startOfLocalDay } from '../../data/streak';
 import { STORAGE_KEYS as K } from '../../data/storageKeys';
@@ -15,9 +16,9 @@ import type { Deck, DeckFolder, Flashcard, GameRecord, ReviewLogEntry } from '..
  * Counting semantics this suite pins down:
  *   - Home's hero is library-wide: every active deck's `buildStudyQueue` total,
  *     and the number of those decks that actually have something waiting.
- *   - The shelf caption and a folder row count the *current level's direct*
- *     entries. A parent folder reports 0 decks when its decks live in a child
- *     folder; that is the intended direct-only rule, not a missing total.
+ *   - The shelf caption at the root covers every active deck, including decks
+ *     filed inside folders; inside a folder it covers that folder's subtree.
+ *     Folder rows roll up the same subtree and name their direct/nested split.
  *   - Archived decks are out of Home, the shelf, Game and Statistics.
  *   - XP is 10 per review on an active deck; a level is 1000 XP.
  */
@@ -113,16 +114,21 @@ const queueFor = (deck: Deck, store: Store) =>
 const activeQueues = (store: Store) =>
   activeDecks(store).map((deck) => ({ deck, queue: queueFor(deck, store) }));
 
+const dueByDeck = (store: Store) =>
+  Object.fromEntries(activeQueues(store).map(({ deck, queue }) => [deck.id, queue.total]));
+
 const plural = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
 
 const shelfCaption = (folders: number, decks: number, cards: number, due: number) =>
   [
-    plural(folders, 'folder', 'folders'),
+    folders > 0 ? plural(folders, 'folder', 'folders') : null,
     plural(decks, 'deck', 'decks'),
     `${cards.toLocaleString('en-US')} ${cards === 1 ? 'card' : 'cards'}`,
     due > 0 ? `${due} due` : 'all caught up',
-  ].join(' · ');
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
 /** The deck the hero points at, mirroring Home's own choice rule. */
 function continueDeck(store: Store) {
@@ -154,7 +160,7 @@ test.describe('Phase 7 — data truth', () => {
 
     const panel = page.getByTestId('today-panel');
     await expect(panel).toContainText(String(total));
-    await expect(panel).toContainText(`Across ${dueDecks} decks`);
+    await expect(panel).toContainText(`${dueDecks} decks · estimated`);
 
     // The New / Learning / Review rail describes the deck the button opens.
     const next = continueDeck(store);
@@ -168,64 +174,57 @@ test.describe('Phase 7 — data truth', () => {
     await expect(panel).toContainText(String(review));
   });
 
-  test('home: the shelf and folder rows count the current level only', async ({ page }) => {
+  test('home: the shelf totals and folder headers roll up each subtree', async ({ page }) => {
     await boot(page, 'F2');
     const store = await readStore(page);
     const active = activeDecks(store);
     const rootFolders = store.folders.filter((folder) => !folder.parentId);
-    const rootDecks = active.filter((deck) => !deck.folderId);
-    const rootCards = rootDecks.reduce((sum, deck) => sum + (store.cards[deck.id] ?? []).length, 0);
-    const rootDue = rootDecks.reduce((sum, deck) => sum + queueFor(deck, store).total, 0);
+    const rootCards = active.reduce((sum, deck) => sum + (store.cards[deck.id] ?? []).length, 0);
+    const rootDue = activeQueues(store).reduce((sum, entry) => sum + entry.queue.total, 0);
+    const subtrees = folderSubtreeCounts(store.folders, store.decks, dueByDeck(store));
 
     expect(rootFolders.length).toBe(4);
-    expect(rootDecks.length).toBe(2);
+    expect(active.length).toBe(5);
+    expect(rootDue).toBe(40);
     await expect(
-      page.getByText(shelfCaption(rootFolders.length, rootDecks.length, rootCards, rootDue), {
+      page.getByText(shelfCaption(rootFolders.length, active.length, rootCards, rootDue), {
         exact: true,
       })
     ).toBeVisible();
 
-    // Languages holds German, whose two decks live one level down. The direct
-    // rule means Languages itself reports no decks — and that is what we assert.
-    const languages = page.getByTestId('folder-row').filter({ hasText: 'Languages' });
-    await expect(languages).toContainText('0 decks');
-    await languages.click();
+    // Languages has no direct decks, but its German child owns two. The header
+    // must name both sides of that split rather than claiming the folder is empty.
+    const languages = page.getByTestId('folder-group').filter({ hasText: 'Languages' });
+    await expect(languages).toContainText('0 direct · 2 nested');
+    await expect(languages).toContainText('30 due');
+    // The header expands; the "folder inside" control opens the level. Only
+    // Languages has a child folder, so it is the level we can actually enter.
+    await page.getByRole('button', { name: /1 folder inside/ }).click();
+    await settle(page);
 
     const childFolders = store.folders.filter((folder) => folder.parentId === 'fold-lang');
-    const languageDecks = active.filter((deck) => deck.folderId === 'fold-lang');
-    const languageCards = languageDecks.reduce(
-      (sum, deck) => sum + (store.cards[deck.id] ?? []).length,
-      0
-    );
-    const languageDue = languageDecks.reduce(
-      (sum, deck) => sum + queueFor(deck, store).total,
-      0
-    );
+    const language = subtrees.get('fold-lang');
+    expect(language).toEqual({ decks: 2, due: 30, nestedFolders: 1 });
+    const languageCards = active
+      .filter((deck) => deck.folderId === 'fold-de')
+      .reduce((sum, deck) => sum + (store.cards[deck.id] ?? []).length, 0);
     await expect(
       page.getByText(
-        shelfCaption(childFolders.length, languageDecks.length, languageCards, languageDue),
+        shelfCaption(childFolders.length, language!.decks, languageCards, language!.due),
         { exact: true }
       )
     ).toBeVisible();
 
-    // German is where those decks actually live: two decks, 34 cards, 30 due.
-    const german = page.getByTestId('folder-row').filter({ hasText: 'German' });
+    // German is where those decks actually live: two decks, 30 due. Its leaf
+    // level is already open, so the rows sit under its header.
+    const german = page.getByTestId('folder-group').filter({ hasText: 'German' });
     await expect(german).toContainText('2 decks · 30 due');
-    await german.click();
-    const germanDecks = active.filter((deck) => deck.folderId === 'fold-de');
-    const germanCards = germanDecks.reduce(
-      (sum, deck) => sum + (store.cards[deck.id] ?? []).length,
-      0
-    );
-    const germanDue = germanDecks.reduce((sum, deck) => sum + queueFor(deck, store).total, 0);
-    await expect(
-      page.getByText(shelfCaption(0, germanDecks.length, germanCards, germanDue), {
-        exact: true,
-      })
-    ).toBeVisible();
+    await expect(german).not.toContainText('direct');
 
     // The two nested decks are the remaining per-deck totals: German and the
     // long-named deck. Their rows must agree with their own queues.
+    const germanDecks = active.filter((deck) => deck.folderId === 'fold-de');
+    expect(germanDecks.length).toBe(2);
     for (const deck of germanDecks) {
       const row = page.getByTestId('deck-row').filter({ hasText: deck.name });
       await expect(row).toBeVisible();
@@ -248,10 +247,19 @@ test.describe('Phase 7 — data truth', () => {
       const cards = store.cards[deck.id] ?? [];
       const queue = queueFor(deck, store);
       await expect(row).toContainText(plural(cards.length, 'card', 'cards'));
-      await expect(row.getByText(String(queue.total), { exact: true })).toBeVisible();
-      // Nothing in the fixture's root-level decks has been reviewed yet.
+      if (queue.total > 0) {
+        await expect(row.getByText(String(queue.total), { exact: true })).toBeVisible();
+      } else {
+        // The due tile deliberately shows a clear mark, not a misleading zero.
+        await expect(row).toContainText('clear');
+      }
+      // v3 renders the share as a percentage, and an unstarted share as an
+      // em dash rather than a v2 "Not started" label.
       const studied = cards.filter((card) => card.fsrs.last_review != null).length;
-      await expect(row).toContainText(studied === 0 ? 'Not started' : 'studied');
+      const progress = cards.length > 0 ? Math.round((studied / cards.length) * 100) : 0;
+      await expect(
+        row.getByText(studied === 0 ? '—' : `${progress}%`, { exact: true })
+      ).toBeVisible();
     }
   });
 
@@ -371,7 +379,37 @@ test.describe('Phase 7 — data truth', () => {
     await expect(page.locator('[role="main"]')).toContainText(`1 / ${queue.total}`);
   });
 
-  test('archived decks stay out of Home, Library and every due total', async ({ page }) => {
+  test('study: every rating key announces a separated name', async ({ page }) => {
+    await boot(page, 'F2');
+    await page.goto('/study/deck-german-a2b1');
+    await settle(page);
+    await page.getByRole('button', { name: 'Show answer' }).click();
+
+    const ratings = [
+      { rating: 1, label: 'Again' },
+      { rating: 2, label: 'Hard' },
+      { rating: 3, label: 'Good' },
+      { rating: 4, label: 'Easy' },
+    ];
+    for (const { rating, label } of ratings) {
+      const key = page.getByTestId(`rating-${rating}`);
+      await expect(key).toBeVisible();
+      await expect(key).toHaveAccessibleName(new RegExp(`${label} ${rating}$`));
+      expect(await key.getAttribute('aria-label')).toMatch(new RegExp(`${label} ${rating}$`));
+    }
+  });
+
+  test('study: a deck with no cards is not reported as completed', async ({ page }) => {
+    await boot(page, 'F2');
+    await page.goto('/study/deck-empty');
+    await settle(page);
+    await expect(page.getByText('No cards yet')).toBeVisible();
+    await expect(page.getByText('All done')).toHaveCount(0);
+    await expect(page.locator('[role="main"]')).not.toContainText('0 / 0');
+    await expect(page.getByRole('button', { name: 'Add cards' })).toBeVisible();
+  });
+
+  test('archived decks stay out of totals and restore from their own page', async ({ page }) => {
     await boot(page, 'F2');
     const store = await readStore(page);
     const archived = store.decks.find((deck) => deck.archivedAt != null);
@@ -394,6 +432,29 @@ test.describe('Phase 7 — data truth', () => {
     await page.goto('/library');
     await settle(page);
     await expect(page.getByText('Archived deck')).toHaveCount(0);
+
+    // P4: the deck page explains the archive, hides the due figure and offers a
+    // direct route back into study instead of a dead Start-session control.
+    await page.goto('/deck/deck-archived');
+    await settle(page);
+    const hero = page.getByTestId('deck-hero');
+    await expect(hero).toContainText('Archived');
+    await expect(hero).not.toContainText('cards due');
+    await expect(hero.getByText('cards due', { exact: true })).toHaveCount(0);
+    const restore = page.getByRole('button', { name: 'Archived — restore to study' });
+    await expect(restore).toBeEnabled();
+
+    await page.goto('/study/deck-archived');
+    await settle(page);
+    await expect(page.getByText('This deck is archived')).toBeVisible();
+
+    await page.goto('/deck/deck-archived');
+    await settle(page);
+    await page.getByRole('button', { name: 'Archived — restore to study' }).click();
+    await expect(page).toHaveURL(/\/study\/deck-archived$/);
+    await expect(page.getByRole('button', { name: 'Show answer' })).toBeVisible();
+    const restored = await readStore(page);
+    expect(restored.decks.find((deck) => deck.id === 'deck-archived')?.archivedAt ?? null).toBeNull();
   });
 
   test('deleting a deck removes its cards, reviews and game record', async ({ page }) => {
@@ -503,12 +564,12 @@ test.describe('Phase 7 — data truth', () => {
     const heroText = await panel.innerText();
     const store = await readStore(page);
     const rootFolders = store.folders.filter((folder) => !folder.parentId);
-    const rootDecks = activeDecks(store).filter((deck) => !deck.folderId);
+    const active = activeDecks(store);
     const caption = shelfCaption(
       rootFolders.length,
-      rootDecks.length,
-      rootDecks.reduce((sum, deck) => sum + (store.cards[deck.id] ?? []).length, 0),
-      rootDecks.reduce((sum, deck) => sum + queueFor(deck, store).total, 0)
+      active.length,
+      active.reduce((sum, deck) => sum + (store.cards[deck.id] ?? []).length, 0),
+      activeQueues(store).reduce((sum, entry) => sum + entry.queue.total, 0)
     );
 
     await page.reload();

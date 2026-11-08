@@ -194,6 +194,70 @@ export function folderDeckCount(decks: readonly Deck[], folderId: string): numbe
   );
 }
 
+export type FolderSubtreeCount = { decks: number; due: number; nestedFolders: number };
+
+/**
+ * Every folder's whole visible subtree: decks filed directly inside it plus
+ * everything filed in its descendants, their study-queue totals, and how many
+ * child folders its group can open onto. Archived decks are never counted.
+ *
+ * A corrupt parent cycle must not hang the shelf, so each walk stops when it
+ * reaches a folder it has already visited. The map has an entry for every
+ * folder, including empty leaves.
+ */
+export function folderSubtreeCounts(
+  folders: readonly DeckFolder[],
+  decks: readonly Deck[],
+  dueByDeck: Readonly<Record<string, number>>
+): Map<string, FolderSubtreeCount> {
+  const childrenByParent = new Map<string, DeckFolder[]>();
+  for (const folder of folders) {
+    const parentId = folderParentId(folder);
+    if (!parentId) continue;
+    const siblings = childrenByParent.get(parentId) ?? [];
+    siblings.push(folder);
+    childrenByParent.set(parentId, siblings);
+  }
+
+  const visibleDecksByFolder = new Map<string, Deck[]>();
+  for (const deck of decks) {
+    if (deck.archivedAt || !deck.folderId) continue;
+    const list = visibleDecksByFolder.get(deck.folderId) ?? [];
+    list.push(deck);
+    visibleDecksByFolder.set(deck.folderId, list);
+  }
+
+  const counts = new Map<string, FolderSubtreeCount>();
+  for (const folder of folders) {
+    const visited = new Set<string>();
+    const pending = [folder.id];
+    let deckCount = 0;
+    let due = 0;
+
+    while (pending.length > 0) {
+      const id = pending.pop()!;
+      if (visited.has(id)) continue;
+      visited.add(id);
+
+      for (const deck of visibleDecksByFolder.get(id) ?? []) {
+        deckCount += 1;
+        due += dueByDeck[deck.id] ?? 0;
+      }
+      for (const child of childrenByParent.get(id) ?? []) {
+        if (!visited.has(child.id)) pending.push(child.id);
+      }
+    }
+
+    counts.set(folder.id, {
+      decks: deckCount,
+      due,
+      nestedFolders: childrenByParent.get(folder.id)?.length ?? 0,
+    });
+  }
+
+  return counts;
+}
+
 /**
  * Pinned folders and decks float above their siblings. The order inside each
  * group stays the stored order, which is what `moveSibling` rewrites.

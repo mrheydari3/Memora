@@ -10,6 +10,7 @@ import {
   childFolders,
   folderDescendantIds,
   folderPath,
+  folderSubtreeCounts,
   sortPinned,
 } from '../../data/folders';
 import { FOLDER_DEFAULT_ICON } from '../../data/appearance';
@@ -68,8 +69,12 @@ type FolderSummary = {
   icon?: string;
   color?: string;
   pinnedAt?: number | null;
+  /** Decks anywhere in this folder's subtree. */
   decks: number;
+  /** Decks filed directly here, so the header can name the split. */
+  directDecks: number;
   due: number;
+  nestedFolders: number;
 };
 
 /** The three bodies the Folders sheet can show. */
@@ -225,24 +230,37 @@ export default function HomeScreen() {
     [folders, openFolder]
   );
 
-  // Folder rows carry what the folder itself is worth knowing: how many decks
-  // it holds directly and how many cards those decks want today.
+  // Folder rows carry the whole subtree's truth: a parent whose decks live in
+  // a child is not empty, and its due figure is the sum of what the learner
+  // will actually be shown. Direct children stay separate for the row split.
+  const dueByDeck = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const entry of deckQueues) map[entry.deck.id] = entry.total;
+    return map;
+  }, [deckQueues]);
+  const subtreeById = useMemo(
+    () => folderSubtreeCounts(folders, decks, dueByDeck),
+    [folders, decks, dueByDeck]
+  );
   const summaryById = useMemo(() => {
     const map = new Map<string, FolderSummary>();
     for (const folder of folders) {
-      const entries = deckQueues.filter((entry) => entry.deck.folderId === folder.id);
+      const directEntries = deckQueues.filter((entry) => entry.deck.folderId === folder.id);
+      const subtree = subtreeById.get(folder.id);
       map.set(folder.id, {
         id: folder.id,
         name: folder.name,
         icon: folder.icon,
         color: folder.color,
         pinnedAt: folder.pinnedAt,
-        decks: entries.length,
-        due: entries.reduce((sum, entry) => sum + entry.total, 0),
+        decks: subtree?.decks ?? 0,
+        directDecks: directEntries.length,
+        due: subtree?.due ?? 0,
+        nestedFolders: subtree?.nestedFolders ?? 0,
       });
     }
     return map;
-  }, [folders, deckQueues]);
+  }, [folders, deckQueues, subtreeById]);
 
   const visibleFolders = useMemo(
     () =>
@@ -267,13 +285,26 @@ export default function HomeScreen() {
     ];
   }, [deckQueues, openFolder, folders]);
 
-  const visibleCards = useMemo(
-    () => visibleDecks.reduce((sum, entry) => sum + entry.cardCount, 0),
-    [visibleDecks]
+  // The shelf's quiet totals describe the whole level, not only the decks
+  // printed directly under it. At the root that is every active deck, so its
+  // due total is exactly the hero's; inside a folder it is that subtree.
+  const shelfEntries = useMemo(() => {
+    if (!openFolder) return deckQueues;
+    const scope = new Set([
+      openFolder.id,
+      ...folderDescendantIds(folders, openFolder.id),
+    ]);
+    return deckQueues.filter(
+      (entry) => entry.deck.folderId && scope.has(entry.deck.folderId)
+    );
+  }, [deckQueues, openFolder, folders]);
+  const shelfCards = useMemo(
+    () => shelfEntries.reduce((sum, entry) => sum + entry.cardCount, 0),
+    [shelfEntries]
   );
-  const visibleDue = useMemo(
-    () => visibleDecks.reduce((sum, entry) => sum + entry.total, 0),
-    [visibleDecks]
+  const shelfDue = useMemo(
+    () => shelfEntries.reduce((sum, entry) => sum + entry.total, 0),
+    [shelfEntries]
   );
 
   const editingFolder = editingFolderId
@@ -404,16 +435,25 @@ export default function HomeScreen() {
     (folder) => folder.decks > 0 && folder.due === 0
   ).length;
 
-  const deckCountLabel = `${visibleDecks.length} ${
-    visibleDecks.length === 1 ? 'deck' : 'decks'
+  const shelfDeckCount = shelfEntries.length;
+  const deckCountLabel = `${shelfDeckCount} ${
+    shelfDeckCount === 1 ? 'deck' : 'decks'
   }`;
   const folderCountLabel = `${visibleFolders.length} ${
     visibleFolders.length === 1 ? 'folder' : 'folders'
   }`;
-  const dueLabel = visibleDue > 0 ? `${visibleDue} due` : 'all caught up';
-  const shelfMeta = openFolder
-    ? `${folderCountLabel} · ${visibleCards.toLocaleString('en-US')} cards · ${dueLabel}`
-    : `${deckCountLabel} · ${dueLabel}`;
+  const cardCountLabel = `${shelfCards.toLocaleString('en-US')} ${
+    shelfCards === 1 ? 'card' : 'cards'
+  }`;
+  const dueLabel = shelfDue > 0 ? `${shelfDue} due` : 'all caught up';
+  const shelfMeta = [
+    !openFolder || visibleFolders.length > 0 ? folderCountLabel : null,
+    deckCountLabel,
+    cardCountLabel,
+    dueLabel,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   const renderDeck = (entry: DeckQueue) => (
     <DeckShelfRow
@@ -485,7 +525,6 @@ export default function HomeScreen() {
 
         {visibleFolders.map((folder) => {
           const entries = decksInFolder(folder.id);
-          const nested = folders.filter((candidate) => candidate.parentId === folder.id).length;
           return (
             <FolderGroup
               key={folder.id}
@@ -493,9 +532,10 @@ export default function HomeScreen() {
               icon={folder.icon}
               color={folder.color}
               deckCount={folder.decks}
+              directDecks={folder.directDecks}
               due={folder.due}
               pinned={folder.pinnedAt != null}
-              nestedFolders={nested}
+              nestedFolders={folder.nestedFolders}
               expanded={!collapsedFolders.has(folder.id)}
               onToggle={() => toggleFolder(folder.id)}
               onOpen={() => setOpenFolderId(folder.id)}
@@ -504,7 +544,7 @@ export default function HomeScreen() {
                 entries.map(renderDeck)
               ) : (
                 <AppText variant="caption" tone="muted">
-                  No decks inside yet.
+                  No decks directly inside yet.
                 </AppText>
               )}
             </FolderGroup>

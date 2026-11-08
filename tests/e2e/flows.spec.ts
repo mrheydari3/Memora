@@ -746,7 +746,10 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(page.getByRole('button', { name: 'Show answer' })).toHaveCount(0);
 
     await go(page, `/deck/${DECK_ID}`);
-    await expect(page.getByRole('button', { name: 'Deck archived' })).toBeDisabled();
+    await expect(
+      page.getByRole('button', { name: 'Archived — restore to study' })
+    ).toBeEnabled();
+    await expect(page.getByTestId('deck-hero')).not.toContainText('cards due');
 
     await go(page, `/study/${DECK_ID}`);
     await page.getByRole('button', { name: 'Restore deck' }).click();

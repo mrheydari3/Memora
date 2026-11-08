@@ -336,6 +336,14 @@ export default function DeckDetailsScreen() {
     goBackOr(router, '/(tabs)/library');
   };
 
+  // The archived page cannot start a session, but it can put the deck back in
+  // service. Keep that promise in one action: clear `archivedAt`, then open the
+  // queue the learner was trying to reach.
+  const handleRestoreForStudy = async () => {
+    await updateDeck(deck.id, { archivedAt: null });
+    pushOnce(router, `/study/${deck.id}`);
+  };
+
   const handleExport = async () => {
     setOptionsVisible(false);
     try {
@@ -430,76 +438,88 @@ export default function DeckDetailsScreen() {
         />
       </View>
 
-      <View>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
-          <AppText
-            variant="display"
-            style={[wide ? v3.type.heroWide : v3.type.hero, NUMERIC]}
-            accessibilityLabel={`${totalDue} cards due in this deck`}
-          >
-            {totalDue}
-          </AppText>
-          <AppText variant="headline" weight="semibold" tone="tertiary" numberOfLines={1}>
-            cards due
-          </AppText>
-        </View>
-        <AppText variant="bodySm" tone="tertiary" style={{ marginTop: 2 }}>
-          {totalDue > 0 ? 'in this deck today' : 'Nothing due — you are all caught up'}
-        </AppText>
-      </View>
-
-      {/* The queue's composition, in the same inset ledger the settings hero
-          uses: three cells, one rule between neighbours, tabular figures. */}
-      <View
-        style={{
-          flexDirection: 'row',
-          backgroundColor: colors.surfaceInset,
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: alpha(colors.outlineSoft, 0.2),
-          paddingVertical: 12,
-          paddingHorizontal: 12,
-        }}
-      >
-        {ledger.map((cell, index) => (
-          <View
-            key={cell.key}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              paddingStart: index === 0 ? 0 : 10,
-              borderStartWidth: index === 0 ? 0 : 1,
-              borderStartColor: colors.outlineVariant,
-            }}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View
-                aria-hidden
-                style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: cell.color }}
-              />
-              <AppText variant="caption" tone="tertiary">
-                {cell.label}
+      {!archived && (
+        <>
+          <View>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
+              <AppText
+                variant="display"
+                style={[wide ? v3.type.heroWide : v3.type.hero, NUMERIC]}
+                accessibilityLabel={`${totalDue} cards due in this deck`}
+              >
+                {totalDue}
+              </AppText>
+              <AppText variant="headline" weight="semibold" tone="tertiary" numberOfLines={1}>
+                cards due
               </AppText>
             </View>
-            <AppText
-              variant="title"
-              weight="semibold"
-              numberOfLines={1}
-              style={[NUMERIC, { marginTop: 2 }]}
-            >
-              {cell.value}
+            <AppText variant="bodySm" tone="tertiary" style={{ marginTop: 2 }}>
+              {totalDue > 0 ? 'in this deck today' : 'Nothing due — you are all caught up'}
             </AppText>
           </View>
-        ))}
-      </View>
+
+          {/* The queue's composition, in the same inset ledger the settings hero
+              uses: three cells, one rule between neighbours, tabular figures. */}
+          <View
+            style={{
+              flexDirection: 'row',
+              backgroundColor: colors.surfaceInset,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: alpha(colors.outlineSoft, 0.2),
+              paddingVertical: 12,
+              paddingHorizontal: 12,
+            }}
+          >
+            {ledger.map((cell, index) => (
+              <View
+                key={cell.key}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  paddingStart: index === 0 ? 0 : 10,
+                  borderStartWidth: index === 0 ? 0 : 1,
+                  borderStartColor: colors.outlineVariant,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <View
+                    aria-hidden
+                    style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: cell.color }}
+                  />
+                  <AppText variant="caption" tone="tertiary">
+                    {cell.label}
+                  </AppText>
+                </View>
+                <AppText
+                  variant="title"
+                  weight="semibold"
+                  numberOfLines={1}
+                  style={[NUMERIC, { marginTop: 2 }]}
+                >
+                  {cell.value}
+                </AppText>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
 
       <ActionButton
         label={
-          archived ? 'Deck archived' : totalDue > 0 ? 'Start session' : 'Nothing due today'
+          archived
+            ? 'Archived — restore to study'
+            : totalDue > 0
+              ? 'Start session'
+              : 'Nothing due today'
         }
-        icon={archived ? 'archive' : 'arrow-forward'}
-        onPress={() => pushOnce(router, `/study/${deck.id}`)}
-        disabled={archived || totalDue === 0}
+        icon={archived ? 'unarchive' : 'arrow-forward'}
+        onPress={
+          archived
+            ? () => void handleRestoreForStudy()
+            : () => pushOnce(router, `/study/${deck.id}`)
+        }
+        disabled={!archived && totalDue === 0}
       />
     </Surface>
   );
@@ -545,7 +565,7 @@ export default function DeckDetailsScreen() {
         </View>
 
         <AppText variant="caption" tone="tertiary" numberOfLines={1} style={NUMERIC}>
-          {totalDue > 0 ? `${formatCount(totalDue)} due` : 'All caught up'}
+          {archived ? 'Archived' : totalDue > 0 ? `${formatCount(totalDue)} due` : 'All caught up'}
         </AppText>
       </View>
 

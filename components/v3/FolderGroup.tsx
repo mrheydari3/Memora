@@ -13,9 +13,11 @@ type FolderGroupProps = {
   icon?: string;
   /** The folder's own colour, washed into the header glyph. */
   color?: string;
-  /** Decks directly inside this folder. */
+  /** Decks anywhere in this folder's subtree. */
   deckCount: number;
-  /** Cards those decks want today. */
+  /** Decks filed directly in this folder, not in a child folder. */
+  directDecks?: number;
+  /** Cards those decks want today, rolled through the subtree. */
   due: number;
   pinned?: boolean;
   /** Folders nested one level below, still reachable by opening the folder. */
@@ -33,8 +35,10 @@ type FolderGroupProps = {
  *   header px-3 py-2 rounded-xl on surface-inset, folder glyph 20 in the accent;
  *   name 15/600; the count pill is 12/600 uppercase on surface-control and turns
  *   green only when the folder has nothing due; pin 16 and a 20px chevron that
- *   rotates rather than swapping glyphs. Children sit ml-2 pl-1.5 inside a 15%
- *   the token guide line, 10px apart.
+ *   rotates rather than swapping glyphs. A parent with a direct/nested split
+ *   puts the count under the name and moves due into its own chip, so neither
+ *   the name nor the split is clipped at 320. Children sit ml-2 pl-1.5 inside a
+ *   15% the token guide line, 10px apart.
  *
  * The header is a control, not a pane, so containment reads as structure rather
  * than as another deck.
@@ -44,6 +48,7 @@ export function FolderGroup({
   icon,
   color,
   deckCount,
+  directDecks = deckCount,
   due,
   pinned = false,
   nestedFolders = 0,
@@ -60,7 +65,14 @@ export function FolderGroup({
 
   const caughtUp = due === 0;
   const deckLabel = deckCount === 1 ? 'deck' : 'decks';
+  const nestedDecks = Math.max(0, deckCount - directDecks);
   const countLabel = `${deckCount} ${deckLabel} · ${due} due`;
+  // A parent with no direct decks is not empty: name what it actually holds.
+  // The due figure moves to its own line so the direct/nested split stays
+  // readable at 320 without pushing the folder name out of the row.
+  const splitLabel =
+    nestedDecks > 0 ? `${directDecks} direct · ${nestedDecks} nested` : countLabel;
+  const accessibleLabel = `${name}, ${splitLabel}${nestedDecks > 0 ? `, ${due} due` : ''}`;
 
   return (
     <View>
@@ -71,7 +83,7 @@ export function FolderGroup({
         accessibilityRole="button"
         accessibilityState={{ expanded }}
         {...webExpanded}
-        accessibilityLabel={`${name}, ${countLabel}`}
+        accessibilityLabel={accessibleLabel}
         style={{
           minHeight: 48,
           flexDirection: 'row',
@@ -84,41 +96,108 @@ export function FolderGroup({
           backgroundColor: colors.surfaceInset,
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            flexShrink: 1,
+            minWidth: 0,
+          }}
+        >
           <MaterialIcons
             name={(icon ?? 'folder') as IconName}
             size={iconSize.lg}
             color={color ?? colors.primary}
           />
-          <AppText
-            variant="body"
-            weight="semibold"
-            numberOfLines={1}
-            style={{ flexShrink: 1, letterSpacing: -0.1 }}
-          >
-            {name}
-          </AppText>
-          <View
-            style={{
-              paddingHorizontal: 8,
-              paddingVertical: 2,
-              borderRadius: radii.pill,
-              backgroundColor: colors.surfaceControl,
-            }}
-          >
-            <AppText
-              variant="caption"
-              weight="semibold"
-              tone={caughtUp ? 'success' : 'accent'}
-              className="uppercase"
-              style={{ letterSpacing: 0.5 }}
-            >
-              {countLabel}
-            </AppText>
-          </View>
+          {nestedDecks > 0 ? (
+            <View style={{ minWidth: 0, flexShrink: 1 }}>
+              <AppText
+                variant="body"
+                weight="semibold"
+                numberOfLines={1}
+                style={{ flexShrink: 1, letterSpacing: -0.1 }}
+              >
+                {name}
+              </AppText>
+              <View
+                style={{
+                  alignSelf: 'flex-start',
+                  maxWidth: '100%',
+                  marginTop: 2,
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: radii.pill,
+                  backgroundColor: colors.surfaceControl,
+                }}
+              >
+                <AppText
+                  variant="caption"
+                  weight="semibold"
+                  tone={caughtUp ? 'success' : 'accent'}
+                  className="uppercase"
+                  numberOfLines={2}
+                  style={{ letterSpacing: 0.5 }}
+                >
+                  {splitLabel}
+                </AppText>
+              </View>
+            </View>
+          ) : (
+            <>
+              <AppText
+                variant="body"
+                weight="semibold"
+                numberOfLines={1}
+                style={{ flexShrink: 1, letterSpacing: -0.1 }}
+              >
+                {name}
+              </AppText>
+              <View
+                style={{
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: radii.pill,
+                  backgroundColor: colors.surfaceControl,
+                }}
+              >
+                <AppText
+                  variant="caption"
+                  weight="semibold"
+                  tone={caughtUp ? 'success' : 'accent'}
+                  className="uppercase"
+                  numberOfLines={1}
+                  style={{ letterSpacing: 0.5 }}
+                >
+                  {countLabel}
+                </AppText>
+              </View>
+            </>
+          )}
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          {nestedDecks > 0 && (
+            <View
+              style={{
+                minWidth: 36,
+                paddingHorizontal: 6,
+                paddingVertical: 2,
+                borderRadius: 10,
+                backgroundColor: colors.surfaceControl,
+              }}
+            >
+              <AppText
+                variant="caption"
+                weight="semibold"
+                tone={caughtUp ? 'success' : 'accent'}
+                style={{ textAlign: 'center', lineHeight: 14, fontVariant: ['tabular-nums'] }}
+              >
+                {due}
+                {'\n'}due
+              </AppText>
+            </View>
+          )}
           {pinned && <MaterialIcons name="push-pin" size={iconSize.sm} color={colors.outline} />}
           <View style={{ transform: [{ rotate: expanded ? '0deg' : '-90deg' }] }}>
             <MaterialIcons name="expand-more" size={iconSize.lg} color={colors.outline} />

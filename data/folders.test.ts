@@ -11,6 +11,7 @@ import {
   folderDeckCount,
   folderDescendantIds,
   folderPath,
+  folderSubtreeCounts,
   groupDecksByFolder,
   moveSibling,
   normalizeFolderName,
@@ -199,6 +200,53 @@ test('counts ignore archived decks', () => {
   ];
   assert.equal(folderDeckCount(decks, 'f1'), 1);
   assert.equal(folderDeckCount(decks, 'nope'), 0);
+});
+
+test('subtree counts roll decks and due up through child folders', () => {
+  const folders = [
+    folder('f1', 'Languages'),
+    { ...folder('f2', 'German'), parentId: 'f1' } as DeckFolder,
+    { ...folder('f3', 'Verbs'), parentId: 'f2' } as DeckFolder,
+  ];
+  const decks = [
+    deck('a', { folderId: 'f2' }),
+    deck('b', { folderId: 'f3' }),
+    deck('archived', { folderId: 'f3', archivedAt: 5 }),
+  ];
+
+  const counts = folderSubtreeCounts(folders, decks, { a: 2, b: 3, archived: 99 });
+  assert.deepEqual(counts.get('f1'), { decks: 2, due: 5, nestedFolders: 1 });
+  assert.deepEqual(counts.get('f2'), { decks: 2, due: 5, nestedFolders: 1 });
+  assert.deepEqual(counts.get('f3'), { decks: 1, due: 3, nestedFolders: 0 });
+});
+
+test('a folder with no direct decks still reports its nested decks', () => {
+  const folders = [
+    folder('f1', 'Languages'),
+    { ...folder('f2', 'German'), parentId: 'f1' } as DeckFolder,
+  ];
+  const decks = [
+    deck('a', { folderId: 'f2' }),
+    deck('b', { folderId: 'f2' }),
+  ];
+
+  const counts = folderSubtreeCounts(folders, decks, { a: 4, b: 6 });
+  assert.deepEqual(counts.get('f1'), { decks: 2, due: 10, nestedFolders: 1 });
+});
+
+test('subtree counting stops at a parent cycle', () => {
+  const folders = [
+    { ...folder('f1', 'One'), parentId: 'f2' } as DeckFolder,
+    { ...folder('f2', 'Two'), parentId: 'f1' } as DeckFolder,
+  ];
+  const decks = [
+    deck('a', { folderId: 'f1' }),
+    deck('b', { folderId: 'f2' }),
+  ];
+
+  const counts = folderSubtreeCounts(folders, decks, { a: 1, b: 2 });
+  assert.deepEqual(counts.get('f1'), { decks: 2, due: 3, nestedFolders: 1 });
+  assert.deepEqual(counts.get('f2'), { decks: 2, due: 3, nestedFolders: 1 });
 });
 
 test('grouping keeps folder order and puts unfiled decks last', () => {

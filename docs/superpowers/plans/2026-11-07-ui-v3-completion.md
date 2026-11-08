@@ -495,12 +495,14 @@ export function folderSubtreeCounts(
 ```
 Pure, no storage, no store dependency.
 
-- [ ] Add `folderSubtreeCounts` and unit tests: a folder with 0 direct decks but 2 nested decks reports `{ decks: 2, nestedFolders: 1 }`; due sums through the subtree; a cycle cannot recurse forever; archived decks stay excluded.
-- [ ] Home folder headers use the subtree count and say `0 direct · 2 nested` when both are true; the shelf meta and the hero total must agree with each other (P5).
-- [ ] Deck page: while `archivedAt` is set, replace Start session with "Archived — restore to study" and hide the due figure (P4).
-- [ ] Verify P7 (rating names) and P8 (empty deck) in the browser, not only in code.
-- [ ] Run `npm test`, `npx tsc --noEmit`, `npx playwright test tests/e2e/data-truth.spec.ts`.
-- [ ] Commit: `fix(ui): honest folder counts and archived decks`.
+- [x] Add `folderSubtreeCounts` and unit tests: a folder with 0 direct decks but 2 nested decks reports `{ decks: 2, nestedFolders: 1 }`; due sums through the subtree; a cycle cannot recurse forever; archived decks stay excluded.
+- [x] Home folder headers use the subtree count and say `0 direct · 2 nested` when both are true; the shelf meta and the hero total must agree with each other (P5).
+- [x] Deck page: while `archivedAt` is set, replace Start session with "Archived — restore to study" and hide the due figure (P4).
+- [x] Verify P7 (rating names) and P8 (empty deck) in the browser, not only in code.
+- [x] Run `npm test`, `npx tsc --noEmit`, `npx playwright test tests/e2e/data-truth.spec.ts`.
+- [x] Commit: `fix(ui): honest folder counts and archived decks`.
+
+**Result (complete, 2026-11-08):** `folderSubtreeCounts` is pure, maps every folder to its active subtree's `{ decks, due, nestedFolders }`, and terminates on parent cycles; the helper tests cover 0-direct/2-nested, due roll-up, archived exclusion and a cycle. Home now uses it for both folder headers and shelf totals: root meta counts all **5 active decks** and **40 due**, matching the hero's **40**, while Languages reports **0 direct · 2 nested** with 30 due; opening it gives **1 folder · 2 decks · 34 cards · 30 due** and the two deck rows. Nested headers keep the full folder name and split readable at 320/390 with **0** document overflow and **0** clipped count text. The archived deck page hides the due figure and ledger and its enabled CTA reads "Archived — restore to study"; it clears `archivedAt` and opens the queue, while `/study/deck-archived` keeps the existing archive explanation. Browser P7/P8 checks verify all four rating accessible names end in a separated `Again|Hard|Good|Easy` + number, and `/study/deck-empty` says "No cards yet"/"Add cards", never "All done" or `0 / 0`. `npm test` **164/164** · `npx tsc --noEmit` **0** · `npm run check:design` **clean (97 files)** · `npm run build:web` exported `dist/` · `data-truth.spec.ts` **13/13** · archived flow **1/1**. This supersedes Task 11's disabled archived-deck action. Committed as `fix(ui): honest folder counts and archived decks`.
 
 **Acceptance:** the fixture's Languages → German tree shows 2 decks at the parent; Home's two totals reconcile; `/study/deck-archived` explains the archive; the new unit tests fail before the helper and pass after.
 
