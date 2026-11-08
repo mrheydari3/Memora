@@ -72,7 +72,6 @@ export function FolderGroup({
   // readable at 320 without pushing the folder name out of the row.
   const splitLabel =
     nestedDecks > 0 ? `${directDecks} direct · ${nestedDecks} nested` : countLabel;
-  const accessibleLabel = `${name}, ${splitLabel}${nestedDecks > 0 ? `, ${due} due` : ''}`;
 
   return (
     <View>
@@ -83,7 +82,6 @@ export function FolderGroup({
         accessibilityRole="button"
         accessibilityState={{ expanded }}
         {...webExpanded}
-        accessibilityLabel={accessibleLabel}
         style={{
           minHeight: 48,
           flexDirection: 'row',

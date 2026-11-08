@@ -1154,6 +1154,7 @@ function StudyHabitsCard({
             <View key={day} style={{ flex: 1, alignItems: 'center', gap: 6 }}>
               <View
                 accessible
+                accessibilityRole="img"
                 accessibilityLabel={`${WEEKDAY_LONG[day]}${isToday ? ', today' : ''}: ${
                   point?.reviews ?? 0
                 } reviews`}

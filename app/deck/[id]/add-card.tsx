@@ -198,7 +198,8 @@ export default function AddCardScreen() {
     borderRadius: 12,
     backgroundColor: colors.surfaceControl,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    // The 44px input fills the field, so vertical padding would grow the box.
+    paddingVertical: 0,
     justifyContent: 'center' as const,
   };
 
@@ -733,13 +734,13 @@ export default function AddCardScreen() {
               </AppText>
               <View style={fieldStyle}>
                 <TextInput
-                  className="w-full text-body font-inter-regular text-on-surface"
+                  className="composer-input w-full text-body font-inter-regular text-on-surface"
                   placeholder="An example sentence"
                   placeholderTextColor={colors.outline}
                   value={example}
                   onChangeText={setExample}
                   accessibilityLabel="Example"
-                  style={{ outlineWidth: 0, paddingVertical: 0 }}
+                  style={{ minHeight: 44, paddingVertical: 0 }}
                 />
               </View>
             </View>
@@ -755,13 +756,13 @@ export default function AddCardScreen() {
               </AppText>
               <View style={fieldStyle}>
                 <TextInput
-                  className="w-full text-body font-inter-regular text-on-surface"
+                  className="composer-input w-full text-body font-inter-regular text-on-surface"
                   placeholder="Synonyms"
                   placeholderTextColor={colors.outline}
                   value={synonyms}
                   onChangeText={setSynonyms}
                   accessibilityLabel="Synonyms"
-                  style={{ outlineWidth: 0, paddingVertical: 0 }}
+                  style={{ minHeight: 44, paddingVertical: 0 }}
                 />
               </View>
             </View>

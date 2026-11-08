@@ -48,8 +48,8 @@ function RowOptions({ label, onPress }: { label: string; onPress: () => void }) 
 /**
  * ArchivedRow — a retired deck, exactly as the mockup draws it:
  *
- *   pane at 60% with a 30% outline border and 75% opacity, p-4; glyph tile 44
- *   on surface-control at 70%; name 17/500 in the muted ink with a 12px
+ *   pane at 60% with a 30% outline border, p-4; glyph tile 44 on
+ *   surface-control at 70%; name 17/500 in the muted ink with a 12px
  *   "Archived" chip; meta 13 outline; and a "0 due" chip on 40% surface-control
  *   instead of a live figure, because an archived deck cannot ask for anything.
  */
@@ -63,8 +63,10 @@ export function ArchivedRow({ name, cardCount, onPress, onOptions, optionsMenu }
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
+        // No row-level opacity: dimming the whole pane dropped the 12–13px
+        // tertiary text to 3.7–4.1:1. The retired state is carried by the
+        // pane wash, the outline glyph and the Archived chip instead.
         backgroundColor: alpha(colors.surfacePane, 0.6),
-        opacity: 0.75,
       }}
     >
       <HintPressable

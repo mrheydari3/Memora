@@ -111,6 +111,7 @@ function ModeSwitch({ mode, onChange }: ModeSwitchProps) {
             onPress={() => onChange(option.key)}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
+            aria-selected={active}
             style={{
               flex: 1,
               minHeight: 44,

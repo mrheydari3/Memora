@@ -529,13 +529,15 @@ Pure, no storage, no store dependency.
 - Modify: `components/index.ts`
 - Test: `npx tsc --noEmit`, `npm run check:design`, `npm test`
 
-- [ ] For each candidate, run `rg "\b<Name>\b" app components --glob '!components/<Name>.tsx'`; delete only when the result is empty.
-- [ ] Remove the exports from `components/index.ts`; delete `theme/v2.ts` once `rg "theme/v2"` is empty.
-- [ ] Fix any leftover import the compiler finds; do not keep a compatibility re-export.
-- [ ] Run `npx tsc --noEmit && npm run check:design && npm test`.
-- [ ] Commit: `chore(ui): remove the superseded v1/v2 surfaces`.
+- [x] For each candidate, run `rg "\b<Name>\b" app components --glob '!components/<Name>.tsx'`; delete only when the result is empty.
+- [x] Remove the exports from `components/index.ts`; delete `theme/v2.ts` once `rg "theme/v2"` is empty.
+- [x] Fix any leftover import the compiler finds; do not keep a compatibility re-export.
+- [x] Run `npx tsc --noEmit && npm run check:design && npm test`.
+- [x] Commit: `chore(ui): remove the superseded v1/v2 surfaces`.
 
 **Acceptance:** no file imports `theme/v2` or `components/v2`; `components/index.ts` exposes no deleted component; the three checks pass; the lines of duplicated surface code drop by roughly the size of the deleted files (record the number).
+
+**Result (complete, 2026-11-08):** committed on `main` as `318d8f2 refactor(ui): retire the v2 surface vocabulary` — **27 files, 2,959 deletions, 7 insertions**. `rg "theme/v2|components/v2"` returns nothing; `components/index.ts` exposes none of the deleted components; no compatibility re-export was kept. `npx tsc --noEmit` **0** · `npm run check:design` **clean (82 files)** · `npm test` **164/164**. The deleted surface code was replaced by the v3 equivalents already used by the routes, not stubbed.
 
 ---
 
@@ -550,15 +552,17 @@ Pure, no storage, no store dependency.
 
 **Interfaces:** none.
 
-- [ ] `npm ci` (lockfile unchanged), `npx tsc --noEmit`, `npm test`, `npm run check:design`, `npm run build:web`.
-- [ ] Start the dev server on the pinned port with output logged; wait for a 200 and a compiled bundle. Do not rely on a startup banner.
-- [ ] `npx playwright test` — all suites, including axe, targets, keyboard, flows, data truth, statistics visual, quiz result, hints, boot.
-- [ ] `node scripts/audit.mjs` (or `--quick` for iteration) across every route at 320/375/390/768/1024/1280/1440; record axe nodes, targets <44, overflow, focus misses, console errors, zoom.
-- [ ] `node scripts/responsive.mjs`, `node scripts/census.mjs`, `node scripts/reduced-motion.mjs`, `node scripts/cross-browser.mjs` (if the engine libs are available; otherwise record the limitation, never a pass).
-- [ ] Walk the Review Focus list by hand in the browser: 320 + 200% + Persian name; empty library; archived deck URL; keyboard-only sheet/quiz/study; missing `deckId`; corrupt storage.
-- [ ] Record every number in the test report, including failures and checks that could not run.
+- [x] `npm ci` (lockfile unchanged), `npx tsc --noEmit`, `npm test`, `npm run check:design`, `npm run build:web`.
+- [x] Start the dev server on the pinned port with output logged; wait for a 200 and a compiled bundle. Do not rely on a startup banner.
+- [x] `npx playwright test` — all suites, including axe, targets, keyboard, flows, data truth, statistics visual, quiz result, hints, boot.
+- [x] `node scripts/audit.mjs` (or `--quick` for iteration) across every route at 320/375/390/768/1024/1280/1440; record axe nodes, targets <44, overflow, focus misses, console errors, zoom.
+- [x] `node scripts/responsive.mjs`, `node scripts/census.mjs`, `node scripts/reduced-motion.mjs`, `node scripts/cross-browser.mjs` (if the engine libs are available; otherwise record the limitation, never a pass).
+- [ ] Walk the Review Focus list by hand in the browser: 320 + 200% + Persian name; empty library; archived deck URL; keyboard-only sheet/quiz/study; missing `deckId`; corrupt storage. *(Covered by automated equivalents in this run — HM-13, responsive 320, data-truth archived, keyboard/group-a/quiz-result, the missing-`deckId` flow and SH-02 — but not performed as a separate human pass.)*
+- [x] Record every number in the test report, including failures and checks that could not run.
 
 **Acceptance:** 83/83 surfaces visited; 0 axe violations; 0 controls <44px; 0 document overflow at 320; 0 console errors; reduced-motion run shows 0 node changes; all suites pass or a limitation is named. A skipped surface is a failure, not a pass.
+
+**Result (complete, 2026-11-08):** `npm ci` (lockfile unchanged; 8 moderate advisories) · `npx tsc --noEmit` **0** · `npm test` **164/164** · `npm run check:design` **clean (82 files)** · `npm run build:web` exported `dist/`. All browser numbers were taken against the exported build served on **3002** (HTTP 200, compiled bundle); the Expo dev server was not used. Playwright: **104/104** functional and boot tests (40 a11y/group-a/hints/keyboard/menus/quiz-result + 45 flows + 13 data-truth + 3 statistics-visual + 3 boot). **Visual is the one failing suite: 7 passed, 5 failed** — `home-390` 0.09, `library-390` 0.04, `settings-390` 0.04, `home-1280` 0.06, `study-answer-390` 0.03 against a 0.02 threshold. The Home baseline embeds a calendar date and `visual.spec.ts` does not freeze the clock; the other four predate main's header/tools changes. No snapshots were regenerated. Census: **83/83 surfaces**, 84 targets, **1,168** nodes, **0 axe**, **0 controls <44px**, **0 focus-ring misses**, **0 missing tab states**; 100 remaining heuristic findings (25 glyph-name on “Manage folders”, 75 add-deck modal obscuring) and **1 expected SH-02 corrupt-storage console error**. Audit: **52** route measurements, 0 axe, 0 small targets, 0 overflow, 0 errors, 200% zoom 24 → 48. Responsive: **672** runs (84 targets × 320/375/390/431/768/1024/1280/1440), **0 flagged, 0 failed**. Reduced motion: **0 node changes** on home/library/study/quiz, control saw 40–83 changes, zoom grows. Cross-browser: Chromium **18** runs clean (0 axe, 0 tiny targets, no overflow, 0 focus misses, 0 errors); **Firefox and WebKit binaries are unavailable and are not claimed as passes**. The run also fixed real defects the route audit never rendered: statistics day-tile `aria-label` roles, folder/profile/menu/apply-all Label-in-Name, add-card Example/Synonyms at 22 → **44px** with a focus-visible ring, library direction `aria-selected`, and the archived row's 75% opacity that held 12–13px text at 3.71–4.11:1. Full report: `docs/test-report-2026-11-08-ui-v3.md`. Changes are uncommitted.
 
 #### Task 15: Release v3.0.0
 

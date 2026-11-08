@@ -331,15 +331,12 @@ test.describe('Phase 7 — data truth', () => {
         .map((entry) => entry.deck.name),
       ...archivedDecks.slice(0, 1).map((deck) => deck.name),
     ];
-    const deckButtons = page.getByRole('button', { name: /^Open / });
+    const deckButtons = page.getByTestId('profile-deck');
     await expect(deckButtons).toHaveCount(expectedOrder.length);
-    expect(
-      await deckButtons.evaluateAll((buttons) =>
-        buttons.map((button) =>
-          (button.getAttribute('aria-label') ?? '').replace(/^Open /, '')
-        )
-      )
-    ).toEqual(expectedOrder);
+    const shownOrder = await page
+      .getByTestId('profile-deck-name')
+      .evaluateAll((nodes) => nodes.map((node) => (node.textContent ?? '').trim()));
+    expect(shownOrder).toEqual(expectedOrder);
   });
 
   test('statistics: the range total and deck count recompute from the log', async ({ page }) => {

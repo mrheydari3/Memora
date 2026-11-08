@@ -115,7 +115,7 @@ test.describe('anchored menus', () => {
     const menu = page.getByRole('menu', { name: `Options for deck ${DECK}` });
     await expect(menu).toBeVisible();
 
-    await menu.getByRole('menuitem', { name: /^(Pin deck|Unpin deck)$/ }).click();
+    await menu.getByRole('menuitem', { name: /^(Pin deck|Unpin deck)/ }).click();
     await expect(menu).toBeVisible();
     await menu.getByRole('menuitem', { name: 'Move down' }).click();
     await expect(menu).toBeVisible();

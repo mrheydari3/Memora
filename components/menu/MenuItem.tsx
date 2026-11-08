@@ -175,7 +175,7 @@ export function MenuItem({
         onBlur={() => setFocused(false)}
         disabled={disabled}
         focusable={!disabled}
-        accessibilityLabel={accessibilityLabel ?? label}
+        accessibilityLabel={accessibilityLabel}
         accessibilityState={state}
         {...(selected === undefined ? {} : sheet ? { 'aria-pressed': selected } : { 'aria-checked': selected })}
         {...(disabled ? { 'aria-disabled': true } : {})}

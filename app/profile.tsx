@@ -414,9 +414,9 @@ function DeckLine({ stat, onPress }: { stat: DeckStat; onPress: () => void }) {
 
   return (
     <Pressable
+      testID="profile-deck"
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Open ${deck.name}`}
       style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
     >
       <Surface tone="inset" radius="control" padding="sm">
@@ -440,7 +440,7 @@ function DeckLine({ stat, onPress }: { stat: DeckStat; onPress: () => void }) {
           </View>
 
           <View style={{ flex: 1, minWidth: 0 }}>
-            <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
+            <AppText variant="bodySm" weight="semibold" numberOfLines={1} testID="profile-deck-name">
               {deck.name}
             </AppText>
             <AppText

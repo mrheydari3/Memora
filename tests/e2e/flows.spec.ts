@@ -1234,7 +1234,7 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(page.getByRole('dialog')).toBeHidden();
     await expect(picker).toBeFocused();
 
-    const applyAll = page.getByRole('button', { name: 'Apply to all decks', exact: true });
+    const applyAll = page.getByRole('button', { name: /^Apply to all decks/ });
     await applyAll.click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Close sheet' })).toBeFocused();

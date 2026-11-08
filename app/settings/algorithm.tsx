@@ -452,7 +452,6 @@ export default function AlgorithmSettingsScreen() {
                   icon="copy-all"
                   title="Apply to all decks"
                   subtitle="Copy this scheduler, its parameters and daily limits everywhere"
-                  accessibilityLabel="Apply to all decks"
                   onPress={() => setSheet('applyAll')}
                   last
                 />
