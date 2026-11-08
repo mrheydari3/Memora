@@ -31,6 +31,7 @@ const ROUTES = [
   { label: 'add-deck', path: '/add-deck' },
   { label: 'profile', path: '/profile' },
   { label: 'statistics', path: '/statistics' },
+  { label: 'not-found', path: '/this-route-does-not-exist' },
 ];
 
 const settle = async (page: import('@playwright/test').Page) => {

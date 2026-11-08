@@ -182,6 +182,7 @@ export default function RootLayout() {
       {!splashDone && !loadFailed && (
         <AppSplash
           ready={splashReady}
+          pathname={pathname}
           onContentReady={handleContentReady}
           onDone={handleSplashDone}
         />
