@@ -23,7 +23,6 @@ import {
   EmptyState,
   Field,
   GhostButton,
-  GlassCard,
   HeroSkeleton,
   IconButton,
   ListRow,
@@ -44,10 +43,10 @@ import {
   PageHeader,
   SectionHeading,
   ShelfHeader,
+  Surface,
   TodayPane,
 } from '../../components/v3';
 import { colors, fills, heights, iconSize, radii } from '../../theme/tokens';
-import { v2 } from '../../theme/v2';
 import { v3 } from '../../theme/v3';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -595,25 +594,25 @@ export default function HomeScreen() {
       scroll
       gutter
       tabClearance
-      contentMaxWidth={v2.layout.contentMaxWidth}
+      contentMaxWidth={v3.layout.contentMaxWidth}
       header={header}
     >
       {!ready ? (
         <>
           <RevealItem index={0}>
-            <View style={{ marginTop: v2.spacing.section }}>
+            <View style={{ marginTop: v3.spacing.page }}>
               <HeroSkeleton />
             </View>
           </RevealItem>
           <RevealItem index={1}>
-            <View style={{ marginTop: v2.spacing.section }}>
+            <View style={{ marginTop: v3.spacing.page }}>
               <DeckShelfSkeleton count={2} />
             </View>
           </RevealItem>
         </>
       ) : deckQueues.length === 0 ? (
         <RevealItem index={0}>
-          <GlassCard>
+          <Surface tone="pane">
             <EmptyState
               icon="library-books"
               title="No decks yet"
@@ -629,7 +628,7 @@ export default function HomeScreen() {
                 </View>
               }
             />
-          </GlassCard>
+          </Surface>
         </RevealItem>
       ) : continueEntry ? (
         <View>
