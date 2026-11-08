@@ -1099,12 +1099,37 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(page).toHaveURL(/\/home$/);
 
     await go(page, '/statistics');
+    await expect(page.getByRole('button', { name: 'Share statistics' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open profile' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Go back' }).click();
-    await expect(page).toHaveURL(/\/settings$/);
+    await expect(page).toHaveURL(/\/profile$/);
 
     await go(page, '/add-deck');
     await page.getByRole('button', { name: 'Close sheet' }).click();
     await expect(page).toHaveURL(/\/library$/);
+  });
+
+  test('navigation: Statistics is a Profile drill-down', async ({ page }) => {
+    await go(page, '/profile');
+    await page.getByTestId('profile-statistics-cta').click();
+    await expect(page).toHaveURL(/\/statistics$/);
+    await expect(page.getByRole('button', { name: 'Share statistics' })).toBeVisible();
+    await page.getByRole('button', { name: 'Go back' }).click();
+    await expect(page).toHaveURL(/\/profile$/);
+  });
+
+  test('navigation: Statistics empty range starts on Home', async ({ page }) => {
+    await go(page, '/statistics');
+    await expect(page.getByRole('button', { name: 'Start a session' })).toBeVisible();
+    await page.getByRole('button', { name: 'Start a session' }).click();
+    await expect(page).toHaveURL(/\/home$/);
+  });
+
+  test('statistics: sharing reports a snapshot', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await go(page, '/statistics');
+    await page.getByRole('button', { name: 'Share statistics' }).click();
+    await expect(page.getByRole('alert')).toContainText('Statistics snapshot');
   });
 
   test('navigation: unknown route and browser forward recover', async ({ page }) => {

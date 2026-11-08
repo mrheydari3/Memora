@@ -16,12 +16,12 @@ const settle = async (page: import('@playwright/test').Page) => {
 };
 
 test.describe('Group A navigation', () => {
-  test('a direct-loaded settings screen falls back to Settings', async ({ page }) => {
+  test('a direct-loaded Statistics screen falls back to Profile', async ({ page }) => {
     await page.goto('/statistics');
     await settle(page);
 
     await page.getByRole('button', { name: 'Go back' }).click();
-    await expect(page).toHaveURL(/\/settings$/);
+    await expect(page).toHaveURL(/\/profile$/);
   });
 
   test('a direct-loaded add-deck sheet closes to the Library', async ({ page }) => {

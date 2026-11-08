@@ -24,7 +24,7 @@ import {
 import {
   ActionButton,
   HeaderIcon,
-  HeaderProfileButton,
+  PageHeader,
   SectionHeading,
   Surface,
 } from '../components/v3';
@@ -289,61 +289,6 @@ function ShareToast({ message }: { message: string }) {
   );
 }
 
-function StatisticsHeader({
-  onBack,
-  onShare,
-  onProfile,
-  notice,
-}: {
-  onBack: () => void;
-  onShare: () => void;
-  onProfile: () => void;
-  notice?: ShareNotice | null;
-}) {
-  return (
-    <View style={{ backgroundColor: colors.appBarGlass, zIndex: 20 }}>
-      <View
-        style={{
-          height: heights.pageHeader,
-          width: '100%',
-          maxWidth: CONTENT_MAX,
-          alignSelf: 'center',
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 4,
-          paddingHorizontal: 12,
-        }}
-      >
-        <HeaderIcon icon="arrow-back" label="Go back" onPress={onBack} />
-        <View
-          style={{
-            flex: 1,
-            minWidth: 0,
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingHorizontal: 4,
-          }}
-        >
-          <AppText
-            variant="headline"
-            weight="semibold"
-            headingLevel={1}
-            numberOfLines={1}
-            style={{ letterSpacing: -0.4 }}
-          >
-            Statistics
-          </AppText>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-          <HeaderIcon icon="share" label="Share statistics" onPress={onShare} />
-          <HeaderProfileButton onPress={onProfile} />
-        </View>
-      </View>
-      {notice ? <ShareToast key={notice.id} message={notice.message} /> : null}
-    </View>
-  );
-}
-
 type VolumeBar = {
   label: string;
   value: number;
@@ -469,14 +414,27 @@ function HeroRangeControl({
 
 function HeroLedger({ report }: { report: IntelligenceReport }) {
   const due = report.forecast.workload.overdue + report.forecast.workload.dueToday;
-  const cells: { label: string; value: string; ariaLabel?: string }[] = [
+  const cells: { label: string; value: string; note: string; ariaLabel: string }[] = [
     {
       label: 'Reviews',
       value: formatCount(report.overview.totalReviews),
-      ariaLabel: `${formatCount(report.overview.totalReviews)} reviews`,
+      note: report.range.label,
+      ariaLabel: `${formatCount(
+        report.overview.totalReviews
+      )} reviews in ${report.range.label.toLowerCase()}`,
     },
-    { label: 'Streak', value: `${formatCount(report.overview.streak)}d` },
-    { label: 'Due', value: formatCount(due) },
+    {
+      label: 'Streak',
+      value: `${formatCount(report.overview.streak)}d`,
+      note: 'All time',
+      ariaLabel: `${formatCount(report.overview.streak)} day streak, all time`,
+    },
+    {
+      label: 'Due',
+      value: formatCount(due),
+      note: 'Now',
+      ariaLabel: `${formatCount(due)} cards due now`,
+    },
   ];
 
   return (
@@ -510,6 +468,9 @@ function HeroLedger({ report }: { report: IntelligenceReport }) {
             style={{ marginTop: 2, fontVariant: ['tabular-nums'] }}
           >
             {cell.value}
+          </AppText>
+          <AppText variant="caption" tone="tertiary" numberOfLines={3} style={{ marginTop: 2 }}>
+            {cell.note}
           </AppText>
         </View>
       ))}
@@ -768,7 +729,9 @@ function RecallCard({ report }: { report: IntelligenceReport }) {
             {pct1(recall.successRate)}
           </AppText>
           <AppText variant="bodySm" tone="muted" style={{ marginTop: 2 }}>
-            Successful recall rate
+            {`Successful recall rate · ${report.range.label} · ${formatCount(
+              recall.sampleSize
+            )} rated`}
           </AppText>
         </View>
         <View
@@ -1579,12 +1542,16 @@ export default function StatisticsScreen() {
   };
 
   const header = (
-    <StatisticsHeader
-      onBack={() => goBackOr(router, '/settings')}
-      onShare={handleShare}
-      onProfile={() => pushOnce(router, '/profile')}
-      notice={shareNotice}
-    />
+    <View style={{ zIndex: 20 }}>
+      <PageHeader
+        title="Statistics"
+        back
+        onBack={() => goBackOr(router, '/profile')}
+        maxWidth={CONTENT_MAX}
+        actions={<HeaderIcon icon="share" label="Share statistics" onPress={handleShare} />}
+      />
+      {shareNotice ? <ShareToast key={shareNotice.id} message={shareNotice.message} /> : null}
+    </View>
   );
 
   return (
@@ -1606,7 +1573,7 @@ export default function StatisticsScreen() {
           rangeDays={rangeDays}
           wide={wide}
           onRangeChange={setRangeDays}
-          onStart={() => pushOnce(router, '/library')}
+          onStart={() => pushOnce(router, '/home')}
         />
       ) : (
         <>
@@ -1617,14 +1584,7 @@ export default function StatisticsScreen() {
             onRangeChange={setRangeDays}
           />
 
-          <StatsSection
-            title="Recall performance"
-            hint={
-              report.performance.recall.sampleSize > 0
-                ? `${formatCount(report.performance.recall.sampleSize)} rated`
-                : undefined
-            }
-          >
+          <StatsSection title="Recall rate">
             <RecallCard report={report} />
           </StatsSection>
 

@@ -348,9 +348,20 @@ test.describe('Phase 7 — data truth', () => {
 
     await page.goto('/statistics');
     await settle(page);
-    await expect(page.locator(`[aria-label="${inRange.length} reviews"]`)).toBeVisible();
+    await expect(
+      page.locator(`[aria-label="${inRange.length} reviews in last 30 days"]`)
+    ).toBeVisible();
     await expect(
       page.getByText(`${activeDecks(store).length} decks`, { exact: false }).first()
+    ).toBeVisible();
+    await expect(page.getByText('All time', { exact: true })).toBeVisible();
+    await expect(page.getByText('Last 30 days', { exact: true }).first()).toBeVisible();
+
+    // A range change must relabel the reviews ledger and recall, not just the chart.
+    await page.getByRole('button', { name: '7 days' }).click();
+    await expect(page.getByText('Last 7 days', { exact: true }).first()).toBeVisible();
+    await expect(
+      page.getByText('Successful recall rate · Last 7 days', { exact: false })
     ).toBeVisible();
   });
 
