@@ -5,5 +5,3 @@ export { TodayRail } from './TodayRail';
 export type { TodayRailSegment } from './TodayRail';
 export { DeckRow } from './DeckRow';
 export { FolderRow } from './FolderRow';
-export { StartButton } from './StartButton';
-export { StudyRatings } from './StudyRatings';

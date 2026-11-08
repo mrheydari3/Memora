@@ -29,6 +29,10 @@ export const v3 = {
     headlineMd: { fontSize: 24, lineHeight: 30, letterSpacing: -0.5 },
     /** The composer's prompt: the card's front, written on the card itself. */
     composerFront: { fontSize: 30, lineHeight: 36, letterSpacing: -0.7 },
+    /** The quiz's live score. */
+    score: { fontSize: 44, lineHeight: 48, letterSpacing: -1.6 },
+    /** The quiz's final score. */
+    result: { fontSize: 64, lineHeight: 68, letterSpacing: -2.24 },
   },
 
   spacing: {
@@ -40,6 +44,8 @@ export const v3 = {
     group: 10,
     /** Between two deck rows. */
     row: 8,
+    /** Between major page regions. */
+    page: 28,
   },
 
   radii: {
@@ -51,6 +57,8 @@ export const v3 = {
     card: 22,
     /** The hero pane. */
     pane: 24,
+    /** A compact quiz HUD tile. */
+    quizTile: 16,
   },
 
   rail: {
@@ -60,6 +68,19 @@ export const v3 = {
     deck: 4,
   },
 
+  heights: {
+    /** One study rating key. */
+    ratingKey: 80,
+    /** One quiz answer pad. */
+    answer: 64,
+    /** The quiz arena's compact answer pad. */
+    quizAnswer: 72,
+    /** The quiz question stage. */
+    quizQuestion: 190,
+    /** The quiz's three-tile HUD. */
+    quizHud: 72,
+  },
+
   layout: {
     /** The reading column on a wide canvas. */
     contentMaxWidth: 960,
@@ -67,5 +88,11 @@ export const v3 = {
     composerMaxWidth: 420,
     /** A deck row's studied rail stops here, so its % never sits under the due tile. */
     deckRail: 220,
+    /** The study stage and summary column. */
+    studyMeasure: 760,
+    /** The quiz session column. */
+    quizMeasure: 440,
+    /** One study card; the reference stays narrower than the page column. */
+    studyCard: 448,
   },
 } as const;

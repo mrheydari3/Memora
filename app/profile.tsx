@@ -114,17 +114,17 @@ const formatCount = (value: number) => value.toLocaleString('en-US');
 
 const pluralCards = (count: number) => `${count} ${count === 1 ? 'card' : 'cards'}`;
 
-function lastStudiedLabel(at: number | null): string {
+function lastStudiedLabel(at: number | null, compact = false): string {
   if (at === null) return 'Never studied';
   const now = Date.now();
   const elapsed = Math.max(0, now - at);
   const days = Math.round((startOfLocalDay(now) - startOfLocalDay(at)) / 86_400_000);
   if (days <= 0) {
     const hours = Math.max(1, Math.round(elapsed / 3_600_000));
-    return `Last studied ${hours}h ago`;
+    return compact ? `${hours}h ago` : `Last studied ${hours}h ago`;
   }
-  if (days === 1) return 'Last studied yesterday';
-  return `Last studied ${days}d ago`;
+  if (days === 1) return compact ? 'Yesterday' : 'Last studied yesterday';
+  return compact ? `${days}d ago` : `Last studied ${days}d ago`;
 }
 
 function IdentityCard({
@@ -135,6 +135,7 @@ function IdentityCard({
   reviews,
   streak,
   activeDays,
+  compact,
 }: {
   level: number;
   xpIntoLevel: number;
@@ -143,6 +144,7 @@ function IdentityCard({
   reviews: number;
   streak: number;
   activeDays: number;
+  compact: boolean;
 }) {
   const stats = [
     { label: 'Total XP', value: formatCount(xp) },
@@ -289,8 +291,8 @@ function IdentityCard({
             <AppText
               variant="caption"
               tone="muted"
-              numberOfLines={1}
-              style={{ flexShrink: 1 }}
+              numberOfLines={2}
+              style={[{ flexShrink: 1 }, compact ? { fontSize: 11.5 } : null]}
             >
               {`${xpIntoLevel} of ${XP_PER_LEVEL} XP into this level`}
             </AppText>
@@ -394,13 +396,13 @@ function AchievementCard({
       </View>
 
       <View style={{ marginTop: 12 }}>
-        <AppText variant="body" weight="semibold" numberOfLines={1}>
+        <AppText variant="body" weight="semibold" numberOfLines={2}>
           {achievement.name}
         </AppText>
         <AppText
           variant="caption"
           tone="muted"
-          numberOfLines={2}
+          numberOfLines={3}
           style={{ marginTop: 2 }}
         >
           {achievement.description}
@@ -410,7 +412,15 @@ function AchievementCard({
   );
 }
 
-function DeckCard({ stat, onPress }: { stat: DeckStat; onPress: () => void }) {
+function DeckCard({
+  stat,
+  onPress,
+  compact,
+}: {
+  stat: DeckStat;
+  onPress: () => void;
+  compact: boolean;
+}) {
   const { deck, cardCount, studiedCount, progress, lastStudiedAt, archived } = stat;
   const percent = Math.round(progress * 100);
   const complete = percent >= 100;
@@ -452,12 +462,12 @@ function DeckCard({ stat, onPress }: { stat: DeckStat; onPress: () => void }) {
               <AppText
                 variant="bodyLg"
                 weight="semibold"
-                numberOfLines={1}
+                numberOfLines={compact ? 2 : 1}
                 style={{ flexShrink: 1 }}
               >
                 {deck.name}
               </AppText>
-              {archived ? (
+              {archived && !compact ? (
                 <View
                   style={{
                     paddingHorizontal: 6,
@@ -473,10 +483,15 @@ function DeckCard({ stat, onPress }: { stat: DeckStat; onPress: () => void }) {
                 </View>
               ) : null}
             </View>
-            <AppText variant="bodySm" tone="muted" numberOfLines={1} style={{ marginTop: 2 }}>
+            <AppText
+              variant="bodySm"
+              tone="muted"
+              numberOfLines={compact ? 2 : 1}
+              style={{ marginTop: 2 }}
+            >
               {archived
                 ? `${pluralCards(cardCount)} · Archived`
-                : `${pluralCards(cardCount)} · ${lastStudiedLabel(lastStudiedAt)}`}
+                : `${pluralCards(cardCount)} · ${lastStudiedLabel(lastStudiedAt, compact)}`}
             </AppText>
           </View>
 
@@ -529,6 +544,7 @@ function DeckCard({ stat, onPress }: { stat: DeckStat; onPress: () => void }) {
 export default function ProfileScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const compact = width < 390;
   const achievementColumns = width >= 700 ? 3 : 2;
   const achievementBasis = achievementColumns === 3 ? '31.5%' : '48%';
 
@@ -661,6 +677,7 @@ export default function ProfileScreen() {
               reviews={activeLog.length}
               streak={streak}
               activeDays={activeDays}
+              compact={compact}
             />
           </RevealItem>
 
@@ -688,7 +705,7 @@ export default function ProfileScreen() {
             <View style={{ marginTop: v2.spacing.section }}>
               <SectionHeading
                 label="My decks"
-                hint="Top 5 decks by activity"
+                hint={deckRows.length > 0 ? 'Top 5 decks by activity' : undefined}
                 rule={false}
                 className="mb-3"
               />
@@ -711,6 +728,7 @@ export default function ProfileScreen() {
                     <DeckCard
                       key={stat.deck.id}
                       stat={stat}
+                      compact={compact}
                       onPress={() => pushOnce(router, `/deck/${stat.deck.id}`)}
                     />
                   ))}

@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Animated, Pressable, Platform, useWindowDimensions } from 'react-native';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { View, Animated, Platform, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { goBackOr, pushOnce } from '../../services/navigation';
 import { MaterialIcons } from '../../components/Icon';
@@ -11,33 +11,61 @@ import { buildStudyQueue } from '../../data/session';
 import { computeStreak } from '../../data/streak';
 import { buildLearningEngine } from '../../data/intelligence';
 import type { LearningEngineResult } from '../../data/intelligence';
-import { FlashcardView } from '../../components/Flashcard';
-import { AppText, Screen, IconButton, EmptyState, TopAppBar } from '../../components';
-import { StartButton, StudyRatings, TodayRail } from '../../components/v2';
-import { HeaderIcon } from '../../components/v3/HeaderIcon';
+import { resolveFsrsParams } from '../../data/fsrs-params';
+import {
+  AppText,
+  BottomSheetModal,
+  Field,
+  Screen,
+  IconButton,
+  EmptyState,
+  TopAppBar,
+} from '../../components';
+import { ActionButton, HeaderIcon, RatingKeys, StudyCard, StudyTray, Surface } from '../../components/v3';
 import { SessionSummary } from '../../components/v3/SessionSummary';
 import {
-  alpha,
   colors,
   fills,
-  glassFill,
   heights,
   iconSize,
   motion,
   radii,
   rims,
-  spacing,
-  stateColors,
 } from '../../theme/tokens';
-import { v2 } from '../../theme/v2';
-import { EASE, REVEAL_OPACITY_FLOOR, timingTo, useReveal } from '../../motion';
+import { v3 } from '../../theme/v3';
+import { EASE, REVEAL_OPACITY_FLOOR, timingTo } from '../../motion';
 import { speakCard, speak, stopSpeaking } from '../../services/tts';
 import type { Flashcard, FSRSLogSnapshot, Rating, RatingButtonLabel } from '../../data/types';
 
-type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
-
 /** Profile and Settings count ten XP per review; a session earns the same. */
 const XP_PER_REVIEW = 10;
+
+const RATING_NAMES: Record<Rating, string> = {
+  1: 'Again',
+  2: 'Hard',
+  3: 'Good',
+  4: 'Easy',
+};
+
+/** The TTS settings' language codes, named for the card's language line. */
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
+  de: 'German',
+  fr: 'French',
+  es: 'Spanish',
+  fa: 'Persian',
+  ja: 'Japanese',
+};
+
+/** A real creation timestamp, not a mocked "studied ago" label. */
+function formatAddedAgo(createdAt: number): string {
+  const minutes = Math.max(0, Math.floor((Date.now() - createdAt) / 60_000));
+  if (minutes < 60) return `Added ${Math.max(1, minutes)}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Added ${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `Added ${days}d ago`;
+}
 
 /** Format a stability value (in days) for the memory-state chip. */
 function formatStability(days: number): string {
@@ -45,11 +73,6 @@ function formatStability(days: number): string {
   const minutes = Math.round(days * 24 * 60);
   if (minutes >= 60) return `${(minutes / 60).toFixed(1)}h`;
   return `${Math.max(1, minutes)}m`;
-}
-
-/** 1811 → "1,811" without depending on Intl. */
-function formatCount(value: number): string {
-  return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 /** 75_000 → "in 1m 15s"; 8_000 → "in 8s". */
@@ -72,8 +95,7 @@ export default function StudyScreen() {
   const { deckId } = useLocalSearchParams<{ deckId: string }>();
   const router = useRouter();
   const deckFallback = `/deck/${deckId}` as Href;
-  const { width } = useWindowDimensions();
-  const wide = width >= 900;
+  const { width, height } = useWindowDimensions();
 
   const decks = useDeckStore((s) => s.decks);
   const deck = decks.find((d) => d.id === deckId);
@@ -126,14 +148,22 @@ export default function StudyScreen() {
   // the countdown honest; `studyNowId` lets the learner skip the wait once.
   const [clock, setClock] = useState(() => Date.now());
   const [studyNowId, setStudyNowId] = useState<string | null>(null);
+  // The utility tray's two sheets: the card's note and the session's options.
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [noteDraft, setNoteDraft] = useState('');
 
   const currentCard = queue[index];
-  const currentDecision = currentCard
-    ? (learning?.decisionsByCard[currentCard.id] ?? null)
-    : null;
-  const adaptiveActive = Boolean(
-    deck && deck.algorithmPreset === 'fsrs' && deck.adaptiveOrdering && learning
+
+  // The queue keeps the card as it was when the session was built, so a mark or
+  // a note written during the session has to be read back from the store. That
+  // also means a reloaded session shows the flag it persisted.
+  const storedCard = useDeckStore((s) =>
+    currentCard
+      ? s.cardsByDeck[currentCard.deckId]?.find((card) => card.id === currentCard.id)
+      : undefined
   );
+  const marked = storedCard?.marked === true;
 
   const dueAtMs = currentCard ? new Date(currentCard.fsrs.due).getTime() : 0;
   const waitingMs =
@@ -168,10 +198,8 @@ export default function StudyScreen() {
     setCardShownAt(Date.now());
   }, [currentCard?.id, waiting]);
 
-  // The memory chip and the footer each settle in once per reveal.
-  const memoryReveal = useReveal(showAnswer, { duration: motion.base, distance: 6 });
-
   const scheduler = useMemo(() => (deck ? getSchedulerForDeck(deck) : null), [deck]);
+  const fsrsParams = useMemo(() => (deck ? resolveFsrsParams(deck) : null), [deck]);
 
   // The completion pane only speaks about this visit: reviews from before this
   // mount, including a session restored by a reload, are deliberately excluded.
@@ -197,9 +225,10 @@ export default function StudyScreen() {
     [reviewLog, activeDeckIds]
   );
 
-  // Build session queue on mount. The intelligence engine only ranks cards the
+  // Build the session queue. The intelligence engine only ranks cards the
   // existing capped queue already selected; FSRS still owns every due date.
-  useEffect(() => {
+  // The tray's restart runs this same builder and returns to the first card.
+  const startSession = useCallback(() => {
     if (!deck) return;
     const cards = useDeckStore.getState().getCards(deck.id);
     const log = useReviewStore.getState().reviewLog;
@@ -252,7 +281,17 @@ export default function StudyScreen() {
     setQueue(next);
     setSessionTotal(next.length);
     setQueueBuilt(true);
+    setIndex(0);
+    setShowAnswer(false);
+    setLastUndo(null);
+    setStudyNowId(null);
+    setClock(Date.now());
+    setCardShownAt(Date.now());
   }, [deck]);
+
+  useEffect(() => {
+    startSession();
+  }, [startSession]);
 
   // Compute interval previews for the current card. `now` is pinned to when the
   // card appeared: FSRS fuzz is seeded from the review instant, so recomputing
@@ -263,6 +302,35 @@ export default function StudyScreen() {
     if (!currentCard || !scheduler) return [];
     return scheduler.getIntervalPreviews(currentCard, previewNow);
   }, [currentCard, scheduler, previewNow]);
+
+  const ratingKeys = useMemo(
+    () =>
+      previews.map((preview) => ({
+        rating: preview.rating,
+        label: RATING_NAMES[preview.rating],
+        interval: preview.label,
+      })),
+    [previews]
+  );
+
+  const learningSteps = fsrsParams?.fsrsLearningSteps ?? [];
+  const learningStep =
+    currentCard &&
+    learningSteps.length > 0 &&
+    (currentCard.fsrs.state === 'Learning' || currentCard.fsrs.state === 'Relearning')
+      ? `Step ${Math.min((currentCard.fsrs.learning_steps ?? 0) + 1, learningSteps.length)}/${learningSteps.length}`
+      : null;
+  const frontLanguageCode = settings.ttsFrontVoiceLang;
+  const frontLanguage =
+    LANGUAGE_NAMES[frontLanguageCode.split('-')[0] ?? ''] ?? frontLanguageCode;
+  const audioLanguageCode = showAnswer ? settings.ttsBackVoiceLang : frontLanguageCode;
+  const targetRetention = Math.round((fsrsParams?.requestRetention ?? 0.9) * 100);
+  const dueLabel = currentCard
+    ? new Date(currentCard.fsrs.due).getTime() <= Date.now()
+      ? 'Due today'
+      : `Due ${formatNextDue(new Date(currentCard.fsrs.due).getTime() - Date.now())}`
+    : '';
+  const addedLabel = currentCard ? formatAddedAgo(currentCard.createdAt) : '';
 
   // Memory state (stability / difficulty / retrievability) before this review.
   const memoryState = useMemo(() => {
@@ -441,6 +509,29 @@ export default function StudyScreen() {
     }
   };
 
+  const toggleMarked = () => {
+    if (!currentCard) return;
+    void updateCard(currentCard.id, { marked: !(storedCard?.marked === true) }).catch((e) => {
+      console.error('Failed to mark card:', e);
+    });
+  };
+
+  const openNoteEditor = () => {
+    setNoteDraft(storedCard?.note ?? '');
+    setNoteOpen(true);
+  };
+
+  const saveNote = async () => {
+    if (!currentCard) return;
+    const note = noteDraft.trim();
+    try {
+      await updateCard(currentCard.id, { note: note ? note : undefined });
+      setNoteOpen(false);
+    } catch (e) {
+      console.error('Failed to save note:', e);
+    }
+  };
+
   if (!deck) {
     return (
       <Screen header={<TopAppBar title="Study" back backFallback={deckFallback} />}>
@@ -466,30 +557,30 @@ export default function StudyScreen() {
             accessibilityLabel="Close session"
           />
           <AppText
-            variant="bodyLg"
+            variant="headline"
             weight="semibold"
             headingLevel={1}
             numberOfLines={1}
             style={{ flexShrink: 1 }}
           >
-            Study
+            Study Session
           </AppText>
-        </View>
-      }
-      rightContent={
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginEnd: 4 }}>
           <View
             style={{
               borderRadius: radii.pill,
               backgroundColor: fills.inset,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
+              paddingHorizontal: 9,
+              paddingVertical: 4,
             }}
           >
-            <AppText variant="bodySm" weight="semibold" tone="muted">
+            <AppText variant="label" weight="semibold" tone="muted">
               {Math.min(index + 1, sessionTotal)} / {sessionTotal}
             </AppText>
           </View>
+        </View>
+      }
+      rightContent={
+        <View style={{ marginEnd: 4 }}>
           <IconButton
             icon="undo"
             onPress={undoLastReview}
@@ -638,208 +729,8 @@ export default function StudyScreen() {
     );
   }
 
-  const remaining = Math.max(0, queue.length - index);
-  const newCount = queue.filter((card) => card.fsrs.state === 'New').length;
-  const learningCount = queue.filter(
-    (card) => card.fsrs.state === 'Learning' || card.fsrs.state === 'Relearning'
-  ).length;
-  const reviewCount = queue.length - newCount - learningCount;
-
-  const sidePanel = (
-    <View
-      style={[
-        glassFill,
-        {
-          borderRadius: v2.radii.pane,
-          borderTopWidth: 1,
-          borderTopColor: rims.soft,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.outlineVariant,
-          padding: v2.spacing.panel,
-        },
-      ]}
-    >
-      <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
-        Today’s session
-      </AppText>
-
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 }}>
-        <View
-          style={{
-            width: heights.tileLg,
-            height: heights.tileLg,
-            borderRadius: v2.radii.card,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: alpha(deck.color, 0.16),
-          }}
-        >
-          <MaterialIcons name={deck.icon as IconName} size={iconSize.lg} color={deck.color} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <AppText variant="title" headingLevel={2} style={v2.type.headline} numberOfLines={2}>
-            {deck.name}
-          </AppText>
-          <AppText variant="caption" tone="muted" className="mt-1">
-            {formatCount(deckCards.length)} cards
-          </AppText>
-        </View>
-      </View>
-
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'flex-end',
-          columnGap: 10,
-          marginTop: 20,
-        }}
-      >
-        <AppText variant="display" style={v2.type.display}>
-          {remaining}
-        </AppText>
-        <AppText variant="bodyLg" tone="muted" style={{ paddingBottom: 9 }}>
-          cards left
-        </AppText>
-      </View>
-      <AppText variant="bodySm" tone="muted">
-        in this session
-      </AppText>
-
-      <View style={{ marginTop: 20 }}>
-        <TodayRail
-          segments={[
-            { label: 'New', value: newCount, color: stateColors.New },
-            { label: 'Learning', value: learningCount, color: stateColors.Learning },
-            { label: 'Review', value: reviewCount, color: stateColors.Review },
-          ]}
-        />
-      </View>
-
-      {adaptiveActive && learning ? (
-        <View style={{ marginTop: 16 }}>
-          <AppText variant="caption" tone="muted" className="uppercase">
-            Adaptive order
-          </AppText>
-          <AppText variant="bodySm" tone="muted" className="mt-1">
-            {learning.session.projectedMinutes !== null
-              ? `~${Math.max(1, Math.round(learning.session.projectedMinutes))} min at your median pace.`
-              : 'Priority order is on.'}{' '}
-            Due dates are unchanged.
-          </AppText>
-          {learning.session.atRiskCards > 0 ? (
-            <AppText variant="caption" tone="tertiary" className="mt-1">
-              At session start, {learning.session.atRiskCards} review
-              {learning.session.atRiskCards === 1 ? ' was' : 's were'} below the estimated
-              retention target.
-            </AppText>
-          ) : null}
-          {learning.session.breakSuggestion ? (
-            <AppText variant="caption" tone="tertiary" className="mt-1">
-              A break at{' '}
-              {learning.session.breakSuggestion.afterReviews} reviews is suggested by your
-              session history.
-            </AppText>
-          ) : null}
-        </View>
-      ) : null}
-
-      <View
-        style={{
-          marginTop: 20,
-          paddingTop: 12,
-          borderTopWidth: 1,
-          borderTopColor: colors.outlineVariant,
-        }}
-      >
-        <Pressable
-          onPress={() => goBackOr(router, deckFallback)}
-          accessibilityRole="button"
-          accessibilityLabel="End session"
-          style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 }}
-        >
-          <MaterialIcons name="logout" size={iconSize.md} color={colors.primary} />
-          <AppText variant="bodySm" weight="semibold" tone="accent">
-            End session
-          </AppText>
-        </Pressable>
-      </View>
-    </View>
-  );
-
-  const compactContext = (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        marginBottom: 8,
-      }}
-    >
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: radii.control,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: alpha(deck.color, 0.16),
-        }}
-      >
-        <MaterialIcons name={deck.icon as IconName} size={iconSize.md} color={deck.color} />
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <AppText variant="bodySm" weight="semibold" headingLevel={2} numberOfLines={1}>
-          {deck.name}
-        </AppText>
-        <AppText variant="caption" tone="muted">
-          {formatCount(deckCards.length)} cards
-          {adaptiveActive ? ' · priority order' : ''}
-        </AppText>
-      </View>
-    </View>
-  );
-
   const cardStage = (
     <View style={{ flex: 1, minWidth: 0 }}>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 8,
-          paddingHorizontal: 4,
-          marginBottom: 6,
-        }}
-      >
-        {adaptiveActive && currentDecision ? (
-          <View
-            accessible
-            accessibilityLabel={currentDecision.reasons.join(' ')}
-            style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 4 }}
-          >
-            <MaterialIcons name="bolt" size={iconSize.xs} color={colors.primary} />
-            <AppText variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-              {currentDecision.shortReason}
-            </AppText>
-          </View>
-        ) : (
-          <View style={{ flex: 1 }} />
-        )}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <View
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: stateColors[currentCard.fsrs.state],
-            }}
-          />
-          <AppText variant="caption" tone="muted">
-            {currentCard.fsrs.state}
-          </AppText>
-        </View>
-      </View>
-
       {waiting && (
         <View
           style={{
@@ -857,7 +748,7 @@ export default function StudyScreen() {
             This card is in its learning steps. Wait for the interval, or study it now.
           </AppText>
           <View style={{ marginTop: 20, width: '100%', maxWidth: 260 }}>
-            <StartButton
+            <ActionButton
               label="Study now"
               onPress={() => {
                 setStudyNowId(currentCard.id);
@@ -871,8 +762,6 @@ export default function StudyScreen() {
       {!waiting && (
       <Animated.View
         style={{
-          flex: 1,
-          marginHorizontal: -spacing.screen,
           opacity: cardExit.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
           transform: [
             {
@@ -885,42 +774,40 @@ export default function StudyScreen() {
           ],
         }}
       >
-        <FlashcardView
+        <StudyCard
           card={currentCard}
           showAnswer={showAnswer}
-          full
-          onSpeak={speakCurrentSide}
+          stateLabel={currentCard.fsrs.state}
+          stepLabel={learningStep}
+          language={frontLanguage}
+          languageCode={audioLanguageCode.split('-')[0]?.toUpperCase() ?? audioLanguageCode}
+          targetRetention={targetRetention}
+          dueLabel={dueLabel}
+          addedLabel={addedLabel}
+          memoryState={showAnswer ? memoryState : null}
+          note={storedCard?.note}
+          height={height < 760 ? 428 : 460}
+          onSpeak={settings.ttsEnabled ? speakCurrentSide : undefined}
           speakLabel={showAnswer ? 'Read answer aloud' : 'Read card aloud'}
         />
       </Animated.View>
       )}
 
-      {showAnswer && memoryState && (
-        <Animated.View style={memoryReveal.style}>
-          <View style={{ alignItems: 'center', paddingTop: 8 }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
-                borderRadius: radii.pill,
-                paddingHorizontal: 12,
-                paddingVertical: 4,
-                backgroundColor: fills.inset,
-              }}
-            >
-              <MaterialIcons name="memory" size={iconSize.xs} color={colors.outline} />
-              <AppText variant="caption" weight="medium" tone="muted">
-                S {memoryState.stability} · D {memoryState.difficulty} · R {memoryState.retrievability}
-              </AppText>
-            </View>
-          </View>
-        </Animated.View>
+      {!waiting && (
+        <StudyTray
+          marked={marked}
+          onToggleMark={toggleMarked}
+          onEditNote={openNoteEditor}
+          onOptions={() => setOptionsOpen(true)}
+        />
       )}
 
       {!waiting && (
       <View
         style={{
+          width: '100%',
+          maxWidth: v3.layout.studyCard,
+          alignSelf: 'center',
           minHeight: heights.studyFooter,
           justifyContent: 'center',
           paddingVertical: 6,
@@ -943,7 +830,11 @@ export default function StudyScreen() {
               ],
             }}
           >
-            <StartButton label="Show answer" onPress={() => setShowAnswer(true)} />
+            <ActionButton
+              label="Show answer"
+              icon="visibility"
+              onPress={() => setShowAnswer(true)}
+            />
             {Platform.OS === 'web' && (
               <AppText variant="caption" tone="tertiary" align="center" className="mt-2">
                 Space or Enter to reveal
@@ -952,11 +843,10 @@ export default function StudyScreen() {
           </Animated.View>
         ) : (
           <View>
-            <StudyRatings
-              labels={previews}
+            <RatingKeys
+              keys={ratingKeys}
               onRate={handleRate}
               disabled={advancing}
-              narrow={width < 360}
             />
             {Platform.OS === 'web' && (
               <AppText variant="caption" tone="tertiary" align="center" className="mt-2">
@@ -971,7 +861,8 @@ export default function StudyScreen() {
   );
 
   return (
-    <Screen header={header}>
+    <>
+      <Screen header={header}>
       <View style={{ height: 4, backgroundColor: fills.track }}>
         <Animated.View
           style={{
@@ -988,25 +879,95 @@ export default function StudyScreen() {
         style={{
           flex: 1,
           width: '100%',
-          maxWidth: v2.layout.contentMaxWidth,
+          maxWidth: v3.layout.studyMeasure,
           alignSelf: 'center',
           paddingHorizontal: 20,
-          paddingTop: 16,
+          paddingTop: 12,
           paddingBottom: 16,
         }}
       >
-        {wide ? (
-          <View style={{ flex: 1, flexDirection: 'row', gap: 24 }}>
-            <View style={{ width: 300 }}>{sidePanel}</View>
-            <View style={{ flex: 1, minWidth: 0 }}>{cardStage}</View>
-          </View>
-        ) : (
-          <View style={{ flex: 1 }}>
-            {compactContext}
-            {cardStage}
-          </View>
-        )}
+        {cardStage}
       </View>
     </Screen>
+
+    <BottomSheetModal
+      visible={noteOpen}
+      onClose={() => setNoteOpen(false)}
+      title="Edit note"
+      subtitle={currentCard.front.text}
+    >
+      <Field
+        label="Note"
+        value={noteDraft}
+        onChangeText={setNoteDraft}
+        placeholder="A mnemonic, an example, anything worth keeping"
+        multiline
+        tall
+        minHeight={132}
+        maxLength={500}
+        accessibilityLabel="Card note"
+      />
+      <View
+        style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 8 }}
+      >
+        <AppText variant="caption" tone="tertiary">
+          {noteDraft.length} / 500
+        </AppText>
+        <AppText variant="caption" tone="tertiary">
+          Shown with the answer
+        </AppText>
+      </View>
+      <View style={{ marginTop: 16 }}>
+        <ActionButton label="Save note" onPress={() => void saveNote()} />
+      </View>
+    </BottomSheetModal>
+
+    <BottomSheetModal
+      visible={optionsOpen}
+      onClose={() => setOptionsOpen(false)}
+      title="Options"
+      subtitle={deck.name}
+    >
+      <Surface tone="inset" radius="control" padding="sm">
+        <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
+          {currentCard.front.text}
+        </AppText>
+        <AppText variant="caption" tone="muted" numberOfLines={1} style={{ marginTop: 2 }}>
+          {currentCard.back.text}
+        </AppText>
+        <AppText variant="caption" tone="tertiary" style={{ marginTop: 6 }}>
+          {currentCard.fsrs.state} · {dueLabel} · {currentCard.fsrs.reps} reps ·{' '}
+          {currentCard.fsrs.lapses} lapses
+        </AppText>
+      </Surface>
+      <View style={{ marginTop: 16, gap: 8 }}>
+        <ActionButton
+          label="Undo last review"
+          tone="quiet"
+          disabled={!lastUndo}
+          onPress={() => {
+            setOptionsOpen(false);
+            void undoLastReview();
+          }}
+        />
+        <ActionButton
+          label="Restart session"
+          tone="quiet"
+          onPress={() => {
+            setOptionsOpen(false);
+            startSession();
+          }}
+        />
+        <ActionButton
+          label="Back to deck"
+          tone="quiet"
+          onPress={() => {
+            setOptionsOpen(false);
+            goBackOr(router, deckFallback);
+          }}
+        />
+      </View>
+    </BottomSheetModal>
+  </>
   );
 }

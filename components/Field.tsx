@@ -10,6 +10,8 @@ type FieldProps = {
   multiline?: boolean;
   /** Long-form entry gets a 64px writing area instead of a single 44px line. */
   tall?: boolean;
+  /** Overrides the writing area's height; only meaningful for multiline entry. */
+  minHeight?: number;
   maxLength?: number;
   autoFocus?: boolean;
   accessibilityLabel?: string;
@@ -27,6 +29,7 @@ export function Field({
   placeholder,
   multiline = false,
   tall = false,
+  minHeight,
   maxLength,
   autoFocus = false,
   accessibilityLabel,
@@ -44,7 +47,7 @@ export function Field({
         style={{
           backgroundColor: fills.control,
           borderRadius: radii.control,
-          minHeight: tall ? 64 : heights.field,
+          minHeight: minHeight ?? (tall ? 64 : heights.field),
           paddingVertical: multiline ? 12 : undefined,
           textAlignVertical: multiline ? 'top' : 'center',
         }}

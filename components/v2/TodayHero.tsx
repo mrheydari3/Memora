@@ -1,6 +1,6 @@
 import { AppText } from '../AppText';
 import { HeroPane } from '../HeroPane';
-import { StartButton } from './StartButton';
+import { ActionButton } from '../v3/ActionButton';
 import { TodayRail } from './TodayRail';
 import { stateColors } from '../../theme/tokens';
 
@@ -64,7 +64,7 @@ export function TodayHero({
           ? `Across ${deckCount} ${deckCount === 1 ? 'deck' : 'decks'} · about ${minutes} minutes`
           : 'Nothing waiting — you are all caught up'
       }
-      action={<StartButton label={label} disabled={disabled} onPress={onStart} />}
+      action={<ActionButton label={label} disabled={disabled} onPress={onStart} />}
       actionMaxWidth={360}
       note={
         <AppText variant="caption" tone="muted">

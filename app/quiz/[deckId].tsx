@@ -3,6 +3,7 @@ import {
   Animated,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
   useWindowDimensions,
@@ -35,31 +36,19 @@ import {
   type RoundState,
 } from '../../data/quiz';
 import type { Flashcard } from '../../data/types';
-import {
-  AppText,
-  EmptyState,
-  GhostButton,
-  GlassCard,
-  IconButton,
-  Pill,
-  QuizSkeleton,
-  Screen,
-} from '../../components';
-import { StartButton } from '../../components/v2';
+import { AppText, EmptyState, QuizSkeleton, Screen } from '../../components';
+import { ActionButton, MetricGrid, Surface } from '../../components/v3';
 import {
   alpha,
   colors,
   fills,
-  glassFill,
-  glassFillAppBar,
   heights,
   iconSize,
-  layout,
   motion,
   radii,
   rims,
 } from '../../theme/tokens';
-import { v2 } from '../../theme/v2';
+import { v3 } from '../../theme/v3';
 import {
   springToAsync,
   timingTo,
@@ -78,9 +67,17 @@ const FOCUSABLE =
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
-function formatClock(ms: number): string {
+function formatTimer(ms: number): string {
   const total = Math.ceil(ms / 1000);
+  if (total < 60) return `${total}s`;
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
+
+/** Split the card's optional bracket annotation from its prompt. */
+function splitPrompt(front: string): { main: string; bracket: string | null } {
+  const match = front.match(/^(.*?)(\[[^\]]+\])$/s);
+  if (!match) return { main: front, bracket: null };
+  return { main: match[1].trimEnd(), bracket: match[2] };
 }
 
 /** Fisher-Yates: one uniform order per round, decided once. */
@@ -204,6 +201,8 @@ function ArenaAnswer({
   const exit = useRef(new Animated.Value(0)).current;
   const tint = state === 'correct' || state === 'wrong' ? ARENA_TINT[state] : null;
   const dimmed = state === 'dimmed';
+  const key = String(Math.min(4, Math.max(1, position)));
+  const chipColor = tint?.glyph ?? colors.outline;
 
   useEffect(() => {
     if (state !== 'correct' && state !== 'wrong') return;
@@ -241,6 +240,26 @@ function ArenaAnswer({
             transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [1, 1.018] }) }],
           }}
         >
+        <Surface
+          tone="pane"
+          radius="pane"
+          padding="none"
+          style={{
+            flex: 1,
+            minHeight: v3.heights.quizAnswer,
+            overflow: 'hidden',
+            borderWidth: 1,
+            borderColor: rims.soft,
+            opacity: dimmed ? 0.42 : 1,
+            ...(tint ? { backgroundColor: tint.fill } : {}),
+          }}
+        >
+        {/*
+          The numeral and the state badge sit in the pad's gutters as overlays,
+          not inside it. The pad's own text has to stay exactly the answer: the
+          quiz flow finds the correct option by comparing that text with the
+          card's back, and an inline keycap would prefix every match.
+        */}
         <Pressable
           onPress={onPress}
           onPressIn={disabled ? undefined : press.onPressIn}
@@ -248,126 +267,161 @@ function ArenaAnswer({
           disabled={disabled}
           accessibilityRole="button"
           testID={`answer-${position}`}
+          accessibilityLabel={`Answer ${position}: ${text}`}
           accessibilityState={{ disabled, selected: state === 'correct' }}
           style={{
             flex: 1,
-            minHeight: heights.quizAnswer + 6,
-            borderRadius: v2.radii.card,
-            backgroundColor: tint?.fill ?? fills.tile,
-            opacity: dimmed ? 0.42 : 1,
-            overflow: 'hidden',
-            borderTopWidth: 1,
-            borderTopColor: rims.tile,
-            paddingHorizontal: 14,
-            paddingVertical: 12,
+            minHeight: v3.heights.quizAnswer,
+            paddingLeft: 48,
+            paddingRight: tint ? 44 : 12,
+            paddingVertical: 10,
             justifyContent: 'center',
           }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <AppText
-              variant="body"
-              weight="semibold"
-              numberOfLines={4}
-              language={direction === 'rtl' ? 'fa' : undefined}
+          <AppText
+            variant="body"
+            weight="semibold"
+            numberOfLines={4}
+            language={direction === 'rtl' ? 'fa' : undefined}
+            style={{
+              writingDirection: direction,
+              textAlign: direction === 'rtl' ? 'right' : 'left',
+            }}
+          >
+            {text}
+          </AppText>
+        </Pressable>
+
+        <View
+          aria-hidden
+          accessible={false}
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            { left: 10, right: undefined, alignItems: 'flex-start', justifyContent: 'center' },
+          ]}
+        >
+          <View
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: v3.radii.control,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: colors.surfaceControl,
+              borderWidth: 1,
+              borderColor: rims.soft,
+            }}
+          >
+            <AppText variant="caption" weight="semibold" style={{ color: chipColor }}>
+              {key}
+            </AppText>
+          </View>
+        </View>
+
+        {tint && (
+          <View
+            aria-hidden
+            accessible={false}
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                left: undefined,
+                right: 10,
+                alignItems: 'flex-end',
+                justifyContent: 'center',
+              },
+            ]}
+          >
+            <View
               style={{
-                flex: 1,
-                writingDirection: direction,
-                textAlign: direction === 'rtl' ? 'right' : 'left',
+                width: 26,
+                height: 26,
+                borderRadius: radii.pill,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: alpha(tint.glyph, 0.16),
               }}
             >
-              {text}
-            </AppText>
-
-            {tint && (
-              <View
-                aria-hidden
-                accessible={false}
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: radii.pill,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: alpha(tint.glyph, 0.16),
-                }}
-              >
-                <MaterialIcons
-                  name={state === 'correct' ? 'check' : 'close'}
-                  size={iconSize.sm}
-                  color={tint.glyph}
-                />
-              </View>
-            )}
+              <MaterialIcons
+                name={state === 'correct' ? 'check' : 'close'}
+                size={iconSize.sm}
+                color={tint.glyph}
+              />
+            </View>
           </View>
-          </Pressable>
+        )}
+        </Surface>
         </Animated.View>
       </Animated.View>
     </Animated.View>
   );
 }
 
-function RoundStat({ label, value }: { label: string; value: string }) {
-  return (
-    <View
-      style={{
-        flex: 1,
-        borderRadius: radii.control,
-        backgroundColor: fills.inset,
-        paddingHorizontal: 10,
-        paddingVertical: 9,
-        borderTopWidth: 1,
-        borderTopColor: rims.tile,
-      }}
-    >
-      <AppText variant="caption" tone="muted">
-        {label}
-      </AppText>
-      <AppText variant="headline" style={{ fontVariant: ['tabular-nums'] }}>
-        {value}
-      </AppText>
-    </View>
-  );
-}
+type HeaderControlProps = {
+  icon: IconName;
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+};
 
-function ResultRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
+/**
+ * The quiz app bar's control: the mockup's 40px tile on a 44px target. The tile
+ * keeps its resting hairline and only takes a fill on hover, so the bar reads as
+ * a header rather than a row of buttons.
+ */
+function HeaderControl({ icon, label, onPress, disabled = false }: HeaderControlProps) {
+  const [hovered, setHovered] = useState(false);
+
   return (
-    <View
+    <Pressable
+      onPress={onPress}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
       style={{
-        flexDirection: 'row',
+        width: heights.hit,
+        height: heights.hit,
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 10,
-        borderBottomWidth: last ? 0 : 1,
-        borderBottomColor: fills.track,
+        justifyContent: 'center',
+        opacity: disabled ? 0.45 : 1,
       }}
     >
-      <AppText variant="bodySm" tone="muted" style={{ flex: 1 }}>
-        {label}
-      </AppText>
-      <AppText
-        variant="bodySm"
-        weight="semibold"
-        style={{ marginLeft: 12, fontVariant: ['tabular-nums'] }}
+      <View
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: v3.radii.tile,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 1,
+          borderColor: hovered ? colors.outlineSoft : rims.soft,
+          backgroundColor: hovered ? colors.surfaceControl : 'transparent',
+        }}
       >
-        {value}
-      </AppText>
-    </View>
+        <MaterialIcons name={icon} size={iconSize.lg} color={colors.onSurface} />
+      </View>
+    </Pressable>
   );
 }
 
 /**
  * Quiz — the 60-second arena.
  *
- * The round's clock is a ring, the score and streak live on a scoreboard, the
- * question sits on a lit stage, and the four answers are game pads. The real
- * round logic is intact: every answer is scheduled through the deck's
- * scheduler and written to the review log, and the round is submitted once.
+ * One centred session column: three HUD tiles, a progress rail, the question
+ * stage, four numbered answer pads and a one-line footer. The round's real
+ * logic is intact: every answer is scheduled through the deck's scheduler and
+ * written to the review log, the round is submitted once, and pausing stops the
+ * clock instead of only hiding it.
  */
 export default function QuizScreen() {
   const { deckId, mode: modeParam } = useLocalSearchParams<{ deckId: string; mode?: string }>();
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const wide = width >= 900;
   const mode: QuizMode = modeParam === 'reverse' ? 'reverse' : 'forward';
 
   const deck = useDeckStore((s) => s.decks.find((d) => d.id === deckId));
@@ -388,6 +442,8 @@ export default function QuizScreen() {
   const [picked, setPicked] = useState<string | null>(null);
   const [exitingWrongId, setExitingWrongId] = useState<string | null>(null);
   const [newBest, setNewBest] = useState(false);
+  const [scoreGain, setScoreGain] = useState(0);
+  const [paused, setPaused] = useState(false);
   /** The round's result in words, for the polite live region below. */
   const [announcement, setAnnouncement] = useState('');
 
@@ -490,6 +546,8 @@ export default function QuizScreen() {
     setIndex(0);
     setPicked(null);
     setNewBest(false);
+    setScoreGain(0);
+    setPaused(false);
     lockedRef.current = false;
     submittedRef.current = false;
     shownAtRef.current = Date.now();
@@ -548,7 +606,7 @@ export default function QuizScreen() {
   // real elapsed time: a throttled tab can fire this interval far less often
   // than 100ms, and a fixed decrement would then hand out a longer round.
   useEffect(() => {
-    if (phase !== 'playing') return;
+    if (phase !== 'playing' || paused) return;
     lastTickRef.current = Date.now();
     const id = setInterval(() => {
       const now = Date.now();
@@ -561,7 +619,7 @@ export default function QuizScreen() {
       if (next.finished) endRoundRef.current(next, false);
     }, TICK_MS);
     return () => clearInterval(id);
-  }, [phase]);
+  }, [phase, paused]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -663,14 +721,16 @@ export default function QuizScreen() {
 
   const answer = useCallback(
     (option: QuizOption) => {
-      if (phase !== 'playing' || !question || lockedRef.current) return;
+      if (phase !== 'playing' || !question || lockedRef.current || paused) return;
       lockedRef.current = true;
       setPicked(option.id);
 
       const at = Date.now();
+      const previousScore = roundRef.current.score;
       const next = applyAnswer(roundRef.current, option.correct);
       roundRef.current = next;
       setRound(next);
+      setScoreGain(Math.max(0, next.score - previousScore));
 
       if (option.correct) {
         playSfx(next.combo >= 3 ? comboSound : correctSound);
@@ -752,13 +812,14 @@ export default function QuizScreen() {
       persistAnswer,
       endRound,
       mode,
+      paused,
     ]
   );
 
   // Web shortcut: the four answer pads are also keys 1–4. The pads stay the
   // primary control; this only mirrors their action and ignores form fields.
   useEffect(() => {
-    if (Platform.OS !== 'web' || phase !== 'playing' || !question) return;
+    if (Platform.OS !== 'web' || phase !== 'playing' || paused || !question) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
@@ -778,7 +839,7 @@ export default function QuizScreen() {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [phase, question, answer]);
+  }, [phase, question, answer, paused]);
 
   const questionReveal = useReveal(question?.cardId ?? 'none', {
     duration: motion.base,
@@ -788,37 +849,110 @@ export default function QuizScreen() {
   const comboReveal = useReveal(round.combo, { duration: motion.fast, distance: 0, scale: 0.8 });
   const resultReveal = useReveal(phase === 'over', { duration: motion.base, distance: 12 });
 
+  const pauseRef = useRef<React.ComponentRef<typeof Animated.View> | null>(null);
+  const pauseReturnRef = useRef<HTMLElement | null>(null);
+
+  // Pausing is a dialog, not a dead control: focus moves to it, Tab stays
+  // between its two actions, and Escape is the same as Resume. The shell behind
+  // it is inert, so nothing else is reachable while the clock is stopped.
+  useEffect(() => {
+    if (!paused || Platform.OS !== 'web') return;
+    const panel = pauseRef.current as unknown as HTMLElement | null;
+    if (!panel) return;
+    const doc = document;
+    panel.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setPaused(false);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && doc.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && doc.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    doc.addEventListener('keydown', onKeyDown);
+    return () => doc.removeEventListener('keydown', onKeyDown);
+  }, [paused]);
+
+  // The shell was inert while paused, so the browser dropped focus. Put it back
+  // on the control that opened the overlay once the overlay is gone.
+  useEffect(() => {
+    if (paused || Platform.OS !== 'web') return;
+    const target = pauseReturnRef.current;
+    if (!target) return;
+    pauseReturnRef.current = null;
+    if (target.isConnected) target.focus();
+  }, [paused]);
+
   const lowTime = round.timeLeftMs <= 10_000;
   const accuracyValue = accuracy(round);
-  const frontType = (question?.front.length ?? 0) > 34 ? 'title' : 'display';
   const timerProgress = round.timeLeftMs / ROUND_MS;
-  const timerLabel = formatClock(round.timeLeftMs);
+  const timerLabel = formatTimer(round.timeLeftMs);
+  const combo = Math.min(round.combo, COMBO_CAP);
   const deckIcon = (deck?.icon ?? 'style') as IconName;
-
-  // Two columns at 320px leave roughly 50px for an answer, so a long Persian or
-  // German translation is cut after three lines. Below 380px the pads stack
-  // instead, and every option keeps its whole sentence.
-  const answerColumns = width < 380 ? 1 : 2;
+  // Three tiles at 320px leave 88px each: the ring alone keeps the clock legible,
+  // while a label column beside it would only crowd the digits.
+  const roomyHud = width >= 380;
+  // The card's trailing bracket ("[Akk]") is the only annotation it carries; it
+  // is set on its own line in the accent, and no grammar note is invented.
+  const prompt = question ? splitPrompt(question.front) : { main: '', bracket: null };
+  const promptVariant = (question?.front.length ?? 0) > 34 ? 'title' : 'display';
+  const progress = order.length > 0 ? Math.min(1, (index + 1) / order.length) : 0;
 
   const header = (
-    <View
-      className="flex-row items-center px-2"
-      style={[glassFillAppBar, { height: heights.appbar }]}
-    >
-      <IconButton
-        icon="close"
-        onPress={() => goBackOr(router, '/(tabs)/library')}
-        accessibilityLabel="Close quiz"
-      />
-      <View className="flex-1 items-center px-2">
-        <AppText variant="bodySm" weight="semibold" numberOfLines={1} headingLevel={1}>
-          {deck?.name ?? 'Quiz'}
-        </AppText>
-        <AppText variant="caption" weight="medium" tone="muted">
-          {phase === 'playing' && question ? `${index + 1} / ${order.length}` : '60s quiz'}
-        </AppText>
+    <View style={{ backgroundColor: colors.appBarGlass }}>
+      <View style={styles.header}>
+        <HeaderControl
+          icon="arrow-back"
+          label="Close quiz"
+          onPress={() => goBackOr(router, '/(tabs)/library')}
+        />
+        <View style={{ flex: 1, minWidth: 0, alignItems: 'center' }}>
+          <AppText
+            variant="label"
+            weight="semibold"
+            tone="muted"
+            numberOfLines={1}
+            style={{ letterSpacing: 1.6 }}
+          >
+            ACTIVE SESSION
+          </AppText>
+          <AppText
+            variant="bodySm"
+            weight="semibold"
+            headingLevel={1}
+            numberOfLines={1}
+            style={{ marginTop: 1 }}
+          >
+            {deck?.name ?? 'Quiz'}
+          </AppText>
+        </View>
+        <HeaderControl
+          icon="pause"
+          label="Pause quiz"
+          disabled={phase !== 'playing'}
+          onPress={() => {
+            if (Platform.OS === 'web' && typeof document !== 'undefined') {
+              const active = document.activeElement;
+              pauseReturnRef.current =
+                active instanceof HTMLElement && active !== document.body ? active : null;
+            }
+            setPaused(true);
+          }}
+        />
       </View>
-      <View style={{ width: heights.icon, height: heights.icon }} />
     </View>
   );
 
@@ -836,16 +970,16 @@ export default function QuizScreen() {
   if (!deck) {
     return (
       <Screen edges={['top', 'bottom']} header={header}>
-        <View className="flex-1 items-center justify-center px-8">
+        <View style={styles.centered}>
           <EmptyState
             icon="search-off"
             title="Deck not found"
             titleVariant="headline"
             description="It may have been deleted. Go back to Game to pick another deck."
             action={
-              <GhostButton
+              <ActionButton
                 label="Back to Game"
-                className="px-6"
+                fullWidth={false}
                 onPress={() => router.replace('/(tabs)/library')}
               />
             }
@@ -858,7 +992,7 @@ export default function QuizScreen() {
   if (!cards || !isDeckPlayable(cards, mode)) {
     return (
       <Screen edges={['top', 'bottom']} header={header}>
-        <View className="flex-1 items-center justify-center px-8">
+        <View style={styles.centered}>
           <EmptyState
             icon="quiz"
             title="Not enough cards"
@@ -869,9 +1003,9 @@ export default function QuizScreen() {
                 : 'The quiz needs at least four cards with both sides filled in and four distinct meanings to choose from.'
             }
             action={
-              <GhostButton
+              <ActionButton
                 label="Back to deck"
-                className="px-6"
+                fullWidth={false}
                 onPress={() => router.replace(`/deck/${deck.id}`)}
               />
             }
@@ -889,299 +1023,311 @@ export default function QuizScreen() {
     );
   }
 
-  const scoreboard = (
-    <View
-      style={[
-        glassFill,
-        {
-          // The row stretches both panels to the arena height; the board has to
-          // opt into that height for its own middle band to be distributed.
-          flex: 1,
-          minHeight: 0,
-          borderRadius: v2.radii.pane,
-          borderTopWidth: 1,
-          borderTopColor: rims.soft,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.outlineVariant,
-        },
-      ]}
-    >
-      <View style={{ padding: v2.spacing.panel, flex: 1, minHeight: 0 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <AppText variant="caption" weight="semibold" tone="accent" className="uppercase">
-            Round
-          </AppText>
-          {round.combo > 0 && (
-            <Animated.View style={comboReveal.style}>
-              <Pill label={`×${Math.min(round.combo, COMBO_CAP)}`} tone="accent" />
-            </Animated.View>
-          )}
-        </View>
-
-        {/* Both panels fill the arena, so the clock and score take the middle
-            of the column instead of ending the board two thirds down it. */}
-        <View style={{ flex: 1, justifyContent: 'center', minHeight: 0 }}>
-          <View style={{ alignItems: 'center', marginTop: 6 }}>
-            <TimerRing size={156} progress={timerProgress} low={lowTime} label={timerLabel} />
-          </View>
-
-          <View style={{ alignItems: 'center', marginTop: 12 }}>
-            <AppText variant="caption" tone="muted" className="uppercase">
-              Score
-            </AppText>
-            <Animated.View style={scoreReveal.style}>
-              <AppText
-                variant="display"
-                style={[v2.type.score, { fontVariant: ['tabular-nums'] }]}
-              >
-                {round.score.toLocaleString('en-US')}
-              </AppText>
-            </Animated.View>
-          </View>
-        </View>
-
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
-          <RoundStat label="Streak" value={`×${Math.min(round.combo, COMBO_CAP)}`} />
-          <RoundStat label="Correct" value={String(round.correct)} />
-        </View>
-
+  const hud = (
+    <View style={{ flexDirection: 'row', gap: 10 }}>
+      <Surface
+        tone="pane"
+        radius="card"
+        padding="none"
+        style={[styles.hudTile, { borderRadius: v3.radii.quizTile }]}
+      >
         <View
           style={{
-            marginTop: 16,
-            borderTopWidth: 1,
-            borderTopColor: fills.track,
-            paddingTop: 14,
-            gap: 10,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: roomyHud ? 10 : 0,
+            justifyContent: roomyHud ? 'flex-start' : 'center',
           }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: radii.micro,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: alpha(deck.color, 0.16),
-              }}
+          <TimerRing
+            size={roomyHud ? 48 : 42}
+            progress={timerProgress}
+            low={lowTime}
+            label={timerLabel}
+          />
+          {roomyHud && (
+            <AppText
+              variant="caption"
+              tone="muted"
+              numberOfLines={1}
+              style={[styles.hudLabel, { flex: 1, minWidth: 0 }]}
             >
-              <MaterialIcons name={deckIcon} size={iconSize.md} color={deck.color} />
-            </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
-                {deck.name}
-              </AppText>
-              <AppText variant="caption" tone="muted">
-                Question {index + 1} of {order.length}
-              </AppText>
-            </View>
-          </View>
-
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <MaterialIcons name="track-changes" size={iconSize.sm} color={colors.outline} />
-            <AppText variant="caption" tone="muted" style={{ flex: 1 }}>
-              {accuracyValue === null
-                ? 'Accuracy appears after the first answer'
-                : `${Math.round(accuracyValue * 100)}% accuracy`}
-            </AppText>
-          </View>
-        </View>
-      </View>
-    </View>
-  );
-
-  const mobileHud = (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        borderRadius: v2.radii.card,
-        backgroundColor: fills.inset,
-        borderTopWidth: 1,
-        borderTopColor: rims.tile,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-      }}
-    >
-      <TimerRing size={56} progress={timerProgress} low={lowTime} label={timerLabel} />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <AppText variant="caption" tone="muted" className="uppercase">
-          Score
-        </AppText>
-        <AppText
-          variant="headline"
-          style={[v2.type.headline, { fontVariant: ['tabular-nums'] }]}
-        >
-          {round.score.toLocaleString('en-US')}
-        </AppText>
-      </View>
-      <View style={{ alignItems: 'flex-end' }}>
-        <AppText variant="caption" tone="muted" className="uppercase">
-          Streak
-        </AppText>
-        <Pill
-          label={`×${Math.min(round.combo, COMBO_CAP)}`}
-          tone={round.combo > 0 ? 'accent' : 'neutral'}
-        />
-      </View>
-    </View>
-  );
-
-  const stage = (
-    <View
-      style={[
-        glassFill,
-        {
-          flex: 1,
-          borderRadius: v2.radii.pane,
-          borderTopWidth: 1,
-          borderTopColor: rims.soft,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.outlineVariant,
-          overflow: 'hidden',
-          padding: v2.spacing.panel,
-        },
-      ]}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View>
-          <AppText
-            variant="caption"
-            weight="semibold"
-            tone="accent"
-            className="uppercase"
-            headingLevel={2}
-          >
-            Question {String(index + 1).padStart(2, '0')}
-          </AppText>
-          <AppText variant="caption" tone="muted">
-            {mode === 'reverse' ? 'Pick the matching word' : 'Pick the correct translation'}
-          </AppText>
-        </View>
-      </View>
-
-      {/* The stage owns the leftover height, so the question sits in the middle
-          of it and the pads stay on the bottom edge. Without this flex the
-          panel kept a dead strip under the footer on a tall desktop window. */}
-      <View style={{ flex: 1, justifyContent: 'center', paddingVertical: 24 }}>
-        <Animated.View style={questionReveal.style}>
-          <AppText
-            variant={frontType}
-            weight="bold"
-            align="center"
-            numberOfLines={4}
-            style={{ writingDirection: question.direction }}
-          >
-            {question.front}
-          </AppText>
-        </Animated.View>
-      </View>
-
-      <View style={{ gap: 10 }}>
-        {Array.from(
-          { length: Math.ceil(question.options.length / answerColumns) },
-          (_, row) => question.options.slice(row * answerColumns, (row + 1) * answerColumns)
-        ).map((rowOptions, row) => (
-          <View key={row} style={{ flexDirection: 'row', gap: 10 }}>
-            {rowOptions.map((option, offset) => {
-              const state: ArenaAnswerState =
-                picked === null
-                  ? 'idle'
-                  : option.correct
-                    ? 'correct'
-                    : picked === option.id
-                      ? 'wrong'
-                      : 'dimmed';
-              return (
-                <ArenaAnswer
-                  key={option.id}
-                  text={option.text}
-                  state={state}
-                  disabled={picked !== null}
-                  exiting={option.id === exitingWrongId}
-                  onPress={() => answer(option)}
-                  position={row * answerColumns + offset + 1}
-                  direction={answerDirections.get(option.id) ?? 'ltr'}
-                />
-              );
-            })}
-          </View>
-        ))}
-      </View>
-
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          marginTop: 14,
-          paddingTop: 12,
-          borderTopWidth: 1,
-          borderTopColor: fills.track,
-        }}
-      >
-        <View style={{ flex: 1 }}>
-          <AppText
-            variant="caption"
-            weight="semibold"
-            tone={lowTime ? 'warning' : 'accent'}
-            align="right"
-          >
-            {lowTime ? 'Hurry — under 10s' : 'Correct answers buy +3s'}
-          </AppText>
-          {Platform.OS === 'web' && (
-            <AppText variant="caption" tone="tertiary" align="right" className="mt-1">
-              Press 1–4 to answer
+              TIME
             </AppText>
           )}
         </View>
-      </View>
+      </Surface>
+
+      <Surface
+        tone="pane"
+        radius="card"
+        padding="none"
+        style={[styles.hudTile, { borderRadius: v3.radii.quizTile }]}
+      >
+        <View style={styles.hudTop}>
+          <AppText variant="caption" tone="muted" numberOfLines={1} style={styles.hudLabel}>
+            SCORE
+          </AppText>
+          <MaterialIcons name="star" size={iconSize.xs} color={colors.outline} />
+        </View>
+        <View style={styles.hudValueRow}>
+          <Animated.View style={scoreReveal.style}>
+            <AppText
+              variant={roomyHud ? 'headline' : 'bodyLg'}
+              weight="bold"
+              numberOfLines={1}
+              style={{ fontVariant: ['tabular-nums'], letterSpacing: -0.6, flexShrink: 1 }}
+            >
+              {round.score.toLocaleString('en-US')}
+            </AppText>
+          </Animated.View>
+          {scoreGain > 0 && (
+            <AppText
+              variant="caption"
+              weight="semibold"
+              tone="success"
+              numberOfLines={1}
+              style={{ fontVariant: ['tabular-nums'] }}
+            >
+              +{scoreGain}
+            </AppText>
+          )}
+        </View>
+      </Surface>
+
+      <Surface
+        tone="pane"
+        radius="card"
+        padding="none"
+        style={[styles.hudTile, { borderRadius: v3.radii.quizTile }]}
+      >
+        <View style={styles.hudTop}>
+          <AppText variant="caption" tone="muted" numberOfLines={1} style={styles.hudLabel}>
+            COMBO
+          </AppText>
+          <MaterialIcons name="local-fire-department" size={iconSize.xs} color={colors.outline} />
+        </View>
+        <Animated.View style={[{ alignSelf: 'flex-start' }, styles.hudValueRow, comboReveal.style]}>
+          <View
+            style={{
+              maxWidth: '100%',
+              borderRadius: radii.pill,
+              borderWidth: 1,
+              borderColor: combo > 0 ? alpha(colors.warning, 0.4) : rims.soft,
+              backgroundColor: combo > 0 ? alpha(colors.warning, 0.12) : fills.control,
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+            }}
+          >
+            <AppText
+              variant="caption"
+              weight="semibold"
+              tone={combo > 0 ? 'warning' : 'muted'}
+              numberOfLines={1}
+              style={{ fontVariant: ['tabular-nums'] }}
+            >
+              Streak ×{combo}
+            </AppText>
+          </View>
+        </Animated.View>
+      </Surface>
     </View>
   );
+
+  const isRtl = question.direction === 'rtl';
 
   return (
     <>
       <Screen
         edges={['top', 'bottom']}
         header={header}
-        backgroundInert={phase === 'over'}
+        backgroundInert={phase === 'over' || paused}
       >
-      {/*
-        One polite channel for the round: whether the pad was right, the score
-        and the combo, in a sentence. The scoreboard stays visual so nothing is
-        announced twice, and the region is mounted for the whole round so the
-        next message replaces the last one instead of arriving on mount.
-      */}
-      <View
-        role="status"
-        aria-live="polite"
-        aria-atomic
-        style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }}
-      >
-        <AppText variant="bodySm">{announcement}</AppText>
-      </View>
-
-      <View
-        className="w-full flex-1 self-center px-5 pb-6"
-        style={{ maxWidth: v2.layout.contentMaxWidth }}
-      >
-        <View style={{ flex: 1, marginTop: 16 }}>
-          {wide ? (
-            <View style={{ flexDirection: 'row', gap: 20, flex: 1 }}>
-              <View style={{ width: 300, flexShrink: 0 }}>{scoreboard}</View>
-              <View style={{ flex: 1, minWidth: 0 }}>{stage}</View>
-            </View>
-          ) : (
-            <View style={{ flex: 1, gap: 12 }}>
-              {mobileHud}
-              {stage}
-            </View>
-          )}
+        {/*
+          One polite channel for the round: whether the pad was right, the score
+          and the combo, in a sentence. The HUD stays visual so nothing is
+          announced twice, and the region is mounted for the whole round so the
+          next message replaces the last one instead of arriving on mount.
+        */}
+        <View role="status" aria-live="polite" aria-atomic style={styles.liveRegion}>
+          <AppText variant="bodySm">{announcement}</AppText>
         </View>
-      </View>
+
+        <View style={styles.column}>
+          {hud}
+
+          <View style={styles.progressRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+              <View aria-hidden accessible={false} style={styles.progressDot} />
+              <AppText
+                variant="caption"
+                weight="semibold"
+                tone="muted"
+                numberOfLines={1}
+                style={{ letterSpacing: 1.2 }}
+              >
+                {`QUESTION ${String(index + 1).padStart(2, '0')} / ${String(order.length).padStart(2, '0')}`}
+              </AppText>
+            </View>
+            <View aria-hidden accessible={false} style={styles.rail}>
+              <View style={[styles.railFill, { width: `${Math.round(progress * 100)}%` }]} />
+            </View>
+          </View>
+
+          <View style={{ flex: 1, minHeight: 0, justifyContent: 'center', marginTop: 18 }}>
+            <Surface tone="pane" radius="pane" padding="none" style={styles.stage}>
+              <View style={styles.scenePill}>
+                <MaterialIcons name="translate" size={iconSize.sm} color={colors.outline} />
+                <AppText
+                  variant="caption"
+                  weight="medium"
+                  tone="muted"
+                  numberOfLines={1}
+                  style={{ flexShrink: 1 }}
+                >
+                  {mode === 'reverse' ? 'Pick the matching word' : 'Pick the correct translation'}
+                </AppText>
+              </View>
+
+              <Animated.View
+                style={[{ width: '100%', marginTop: 18 }, questionReveal.style]}
+              >
+                <AppText
+                  variant={promptVariant}
+                  weight="bold"
+                  align="center"
+                  numberOfLines={4}
+                  language={isRtl ? 'fa' : undefined}
+                  style={{ writingDirection: question.direction }}
+                >
+                  {prompt.main}
+                </AppText>
+                {prompt.bracket && (
+                  <AppText
+                    variant="headline"
+                    weight="bold"
+                    tone="accent"
+                    align="center"
+                    numberOfLines={1}
+                    language={isRtl ? 'fa' : undefined}
+                    style={{ marginTop: 2, writingDirection: question.direction }}
+                  >
+                    {prompt.bracket}
+                  </AppText>
+                )}
+              </Animated.View>
+            </Surface>
+          </View>
+
+          <View style={styles.answers}>
+            {Array.from(
+              { length: Math.ceil(question.options.length / 2) },
+              (_, row) => question.options.slice(row * 2, row * 2 + 2)
+            ).map((rowOptions, row) => (
+              <View key={row} style={styles.answerRow}>
+                {rowOptions.map((option, offset) => {
+                  const state: ArenaAnswerState =
+                    picked === null
+                      ? 'idle'
+                      : option.correct
+                        ? 'correct'
+                        : picked === option.id
+                          ? 'wrong'
+                          : 'dimmed';
+                  return (
+                    <ArenaAnswer
+                      key={option.id}
+                      text={option.text}
+                      state={state}
+                      disabled={picked !== null}
+                      exiting={option.id === exitingWrongId}
+                      onPress={() => answer(option)}
+                      position={row * 2 + offset + 1}
+                      direction={answerDirections.get(option.id) ?? 'ltr'}
+                    />
+                  );
+                })}
+                {rowOptions.length < 2 && <View style={{ flex: 1 }} />}
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.footer}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
+              <MaterialIcons
+                name={lowTime ? 'schedule' : 'add-circle'}
+                size={iconSize.sm}
+                color={lowTime ? colors.warning : colors.success}
+              />
+              <AppText
+                variant="caption"
+                weight="semibold"
+                tone={lowTime ? 'warning' : 'success'}
+                numberOfLines={1}
+                style={{ flexShrink: 1 }}
+              >
+                {lowTime ? 'Hurry — under 10s' : 'Correct answers buy +3s'}
+              </AppText>
+            </View>
+            {Platform.OS === 'web' && (
+              <AppText
+                variant="caption"
+                tone="tertiary"
+                numberOfLines={1}
+                style={{ marginLeft: 'auto' }}
+              >
+                Press 1–4 to answer
+              </AppText>
+            )}
+          </View>
+        </View>
       </Screen>
+
+      {paused && phase === 'playing' && (
+        <Animated.View
+          ref={pauseRef}
+          tabIndex={-1}
+          role="dialog"
+          aria-modal
+          accessibilityViewIsModal
+          accessibilityLabel="Quiz paused"
+          aria-label="Quiz paused"
+          style={styles.scrim}
+        >
+          <Surface tone="scene" radius="pane" padding="none" style={styles.pausePanel}>
+            <View style={styles.pauseIcon}>
+              <MaterialIcons name="pause" size={iconSize.lg} color={colors.primary} />
+            </View>
+            <AppText
+              variant="headline"
+              weight="semibold"
+              align="center"
+              headingLevel={2}
+              style={{ marginTop: 14 }}
+            >
+              Paused
+            </AppText>
+            <AppText variant="bodySm" tone="muted" align="center" style={{ marginTop: 6 }}>
+              The clock is stopped. Your round picks up where it left off.
+            </AppText>
+            <View style={{ width: '100%', marginTop: 20 }}>
+              <ActionButton label="Resume round" icon="play-arrow" onPress={() => setPaused(false)} />
+            </View>
+            <View style={{ width: '100%', marginTop: 8 }}>
+              <ActionButton
+                label="Back to Game"
+                tone="quiet"
+                onPress={() => router.replace('/(tabs)/library')}
+              />
+            </View>
+            {Platform.OS === 'web' && (
+              <AppText variant="caption" tone="tertiary" align="center" style={{ marginTop: 12 }}>
+                Escape to resume
+              </AppText>
+            )}
+          </Surface>
+        </Animated.View>
+      )}
 
       {phase === 'over' && (
         <Animated.View
@@ -1194,76 +1340,89 @@ export default function QuizScreen() {
           aria-label={`Round result: ${round.score} points`}
           style={[styles.result, resultReveal.style]}
         >
-          <View
-            className="w-full items-center px-5"
-            style={{ maxWidth: layout.resultMaxWidth }}
+          <ScrollView
+            style={{ flex: 1, width: '100%' }}
+            contentContainerStyle={styles.resultContent}
+            showsVerticalScrollIndicator={false}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <View
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: radii.micro,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: alpha(deck.color, 0.16),
-                }}
+            <Surface tone="scene" radius="pane" padding="none" style={styles.resultPanel}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={[styles.deckTile, { backgroundColor: alpha(deck.color, 0.16) }]}>
+                  <MaterialIcons name={deckIcon} size={iconSize.md} color={deck.color} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <AppText variant="caption" tone="muted" className="uppercase">
+                    Round complete
+                  </AppText>
+                  <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
+                    {deck.name}
+                  </AppText>
+                </View>
+              </View>
+
+              <AppText
+                variant="label"
+                weight="semibold"
+                tone="accent"
+                className="uppercase"
+                style={{ marginTop: 18 }}
               >
-                <MaterialIcons name={deckIcon} size={iconSize.md} color={deck.color} />
-              </View>
-              <View>
-                <AppText variant="caption" tone="muted" className="uppercase">
-                  Round complete
-                </AppText>
-                <AppText variant="bodySm" weight="semibold">
-                  {deck.name}
-                </AppText>
-              </View>
-            </View>
-
-            <AppText variant="label" weight="semibold" tone="accent" className="uppercase">
-              {round.cleared ? 'Deck cleared' : "Time's up"}
-            </AppText>
-            <AppText
-              variant="display"
-              className="mt-2"
-              style={[v2.type.result, { fontVariant: ['tabular-nums'] }]}
-            >
-              {round.score.toLocaleString('en-US')}
-            </AppText>
-            <AppText variant="bodySm" tone="muted">
-              points
-            </AppText>
-            {round.cleared && (
-              <AppText variant="caption" weight="medium" tone="success" className="mt-1">
-                Includes the +250 deck-cleared bonus
+                {round.cleared ? 'Deck cleared' : "Time's up"}
               </AppText>
-            )}
-            {newBest && (
-              <View className="mt-3">
-                <Pill label="New best" tone="accent" />
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 2 }}>
+                <AppText
+                  variant="display"
+                  style={{
+                    fontVariant: ['tabular-nums'],
+                    fontSize: v3.type.result.fontSize,
+                    lineHeight: v3.type.result.lineHeight,
+                    letterSpacing: v3.type.result.letterSpacing,
+                  }}
+                >
+                  {round.score.toLocaleString('en-US')}
+                </AppText>
+                <AppText variant="bodySm" tone="muted">
+                  points
+                </AppText>
               </View>
-            )}
+              {round.cleared && (
+                <AppText variant="caption" weight="medium" tone="success" style={{ marginTop: 2 }}>
+                  Includes the +250 deck-cleared bonus
+                </AppText>
+              )}
+              {newBest && (
+                <View style={styles.bestChip}>
+                  <MaterialIcons name="emoji-events" size={iconSize.xs} color={colors.primary} />
+                  <AppText variant="caption" weight="semibold" tone="accent">
+                    New best
+                  </AppText>
+                </View>
+              )}
 
-            <GlassCard className="mt-6 w-full" padding="sm">
-              <ResultRow label="Correct" value={String(round.correct)} />
-              <ResultRow label="Wrong" value={String(round.wrong)} />
-              <ResultRow
-                label="Accuracy"
-                value={accuracyValue === null ? '—' : `${Math.round(accuracyValue * 100)}%`}
+              <MetricGrid
+                columns={2}
+                style={{ marginTop: 20 }}
+                items={[
+                  { label: 'Correct', value: String(round.correct) },
+                  { label: 'Wrong', value: String(round.wrong) },
+                  {
+                    label: 'Accuracy',
+                    value: accuracyValue === null ? '—' : `${Math.round(accuracyValue * 100)}%`,
+                  },
+                  { label: 'Best combo', value: `×${round.bestCombo}` },
+                ]}
               />
-              <ResultRow label="Best combo" value={`×${round.bestCombo}`} last />
-            </GlassCard>
 
-            <View style={{ marginTop: 24, width: '100%' }}>
-              <StartButton label="Play again" onPress={beginRound} />
-            </View>
-            <GhostButton
-              className="mt-3"
-              label="Back to Game"
-              onPress={() => router.replace('/(tabs)/library')}
-            />
-          </View>
+              <View style={{ marginTop: 20, gap: 8 }}>
+                <ActionButton label="Play again" icon="replay" onPress={beginRound} />
+                <ActionButton
+                  label="Back to Game"
+                  tone="quiet"
+                  onPress={() => router.replace('/(tabs)/library')}
+                />
+              </View>
+            </Surface>
+          </ScrollView>
         </Animated.View>
       )}
     </>
@@ -1271,6 +1430,180 @@ export default function QuizScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    height: heights.pageHeader,
+    width: '100%',
+    maxWidth: v3.layout.quizMeasure,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  liveRegion: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    opacity: 0,
+  },
+  column: {
+    flex: 1,
+    width: '100%',
+    maxWidth: v3.layout.quizMeasure,
+    alignSelf: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
+  hudTile: {
+    flex: 1,
+    minWidth: 0,
+    height: v3.heights.quizHud,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  hudTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 4,
+  },
+  hudLabel: {
+    letterSpacing: 1.1,
+    flexShrink: 1,
+  },
+  hudValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+    marginTop: 4,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 20,
+  },
+  progressDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+  },
+  rail: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: fills.track,
+    overflow: 'hidden',
+  },
+  railFill: {
+    height: '100%',
+    minWidth: 6,
+    borderRadius: 2,
+    backgroundColor: colors.primary,
+  },
+  stage: {
+    flex: 1,
+    width: '100%',
+    minHeight: v3.heights.quizQuestion,
+    // A short prompt would otherwise stretch the pane to half the canvas on a
+    // desktop window; the wrapper centres it in the space that is left over.
+    maxHeight: 320,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    borderWidth: 1,
+    borderColor: rims.soft,
+    overflow: 'hidden',
+  },
+  scenePill: {
+    maxWidth: '100%',
+    minHeight: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: rims.soft,
+    backgroundColor: fills.inset,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  answers: {
+    gap: 10,
+    marginTop: 14,
+  },
+  answerRow: {
+    flexDirection: 'row',
+    gap: 10,
+    minHeight: v3.heights.quizAnswer,
+  },
+  footer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginTop: 14,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: fills.track,
+  },
+  scrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: alpha(colors.background, 0.9),
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    zIndex: 20,
+  },
+  pausePanel: {
+    width: '100%',
+    maxWidth: 380,
+    alignItems: 'center',
+    padding: 20,
+  },
+  pauseIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: alpha(colors.primary, 0.14),
+  },
+  bestChip: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 12,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: alpha(colors.primary, 0.4),
+    backgroundColor: alpha(colors.primary, 0.12),
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  deckTile: {
+    width: 38,
+    height: 38,
+    borderRadius: v3.radii.tile,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   result: {
     position: 'absolute',
     top: 0,
@@ -1282,4 +1615,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 10,
   },
+  resultContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+  },
+  resultPanel: {
+    width: '100%',
+    maxWidth: v3.layout.quizMeasure,
+    padding: 20,
+  },
 });
+

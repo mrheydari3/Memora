@@ -4,7 +4,7 @@
 
 **Goal:** Finish the v3 redesign of Memora's web UI so every route — not only Home, Game, Settings, Deck, the composer and the settings sub-pages — speaks one Nocturne Focus language, with one primitive set, no v1/v2 leftovers, and the existing accessibility/data-truth guarantees still measured green.
 
-**Architecture:** v3 is already defined by `theme/v3.ts` (type steps, spacing, radii, rails, widths) plus eight components in `components/v3/`. The work is a **systematic rollout**, not a new design: extract the repeated grammar (scene pane, page header, section label, action pill, metric grid, rating keys) into primitives, then convert the remaining six surfaces (Study, Quiz, Statistics, Profile, Discover, Add deck) plus the settings stragglers (Advanced, Import) and the shell (404, splash, skeletons, dock). Every conversion consumes tokens; no screen invents a value.
+**Architecture:** v3 is already defined by `theme/v3.ts` (type steps, spacing, radii, rails, widths) plus fourteen components in `components/v3/`. The work is a **systematic rollout**, not a new design: extract the repeated grammar (scene pane, page header, section label, action pill, metric grid, rating keys) into primitives, then finish the remaining surfaces (Study, Quiz, Statistics, Profile, Discover, Add deck) plus the settings stragglers (Advanced, Import) and the shell (404, splash, skeletons, dock). Every conversion consumes tokens; no screen invents a value.
 
 **Tech Stack:** Expo SDK 58 (`expo ~58.0.22`), React Native 0.88, React 19.3, TypeScript, Expo Router, react-native-web, NativeWind, Zustand, `ts-fsrs`. Tests: `node:test` for data, Playwright + axe-core for UI. Web only (`app.json` → `platforms: ["web"]`).
 
@@ -17,7 +17,7 @@
 - **Expo SDK 58 only.** Read `https://docs.expo.dev/versions/v58.0.0/` before touching Expo APIs. SDK 57 references do not describe this app.
 - **Web only.** No native project, no iOS/Android verification claimed, no store build.
 - **No new dependencies.** Everything needed is already in `package.json`.
-- **One token source.** Raw `hex`/`rgba` is forbidden outside `theme/`; `npm run check:design` must stay clean (currently 91 files).
+- **One token source.** Raw `hex`/`rgba` is forbidden outside `theme/`; `npm run check:design` must stay clean (currently 95 files).
 - **One text primitive.** All text is `AppText`; no raw `Text` from `react-native`.
 - **Tokens, not literals.** Spacing, radii, heights, icon sizes and type steps come from `theme/` or `theme/v3.ts`. New steps are added to `theme/v3.ts`, never inlined.
 - **Touch targets ≥ 44×44 CSS px**, including icon-only controls. Colour is never the only signal.
@@ -57,20 +57,25 @@ These are the inputs the design pass is most likely to break; each is pinned by 
 | Settings sub-pages (`algorithm`, `tts`, `offline`) | `SettingsBackHeader`, `SettingsHero`, chapters |
 | Study summary (`components/v3/SessionSummary.tsx`) | hero, metric grid, rating rail |
 
-`components/v3/` is 8 files / 1,809 lines. `theme/v3.ts` owns hero/stat/deck-name/headline/composer type, panel/section/group/row spacing, 12/14/22/24 radii, 6/4 rails, 960/420/220 widths.
+`components/v3/` is now 14 files / 2,370 lines; `components/v2/` is four files / 466 lines. `theme/v3.ts` owns hero/stat/deck-name/headline/composer type, panel/section/group/row spacing, 12/14/22/24 radii, 6/4 rails, 960/420/220 widths, plus the Task 3 `score`, `result`, `page`, `studyMeasure`, `ratingKey`, and `answer` steps.
+
+### Partially converted (Tasks 6–7)
+
+| Surface | Size | Current imports | Remaining gap |
+| --- | --- | --- | --- |
+| Statistics (`app/statistics.tsx`) | 1,741 lines | `Surface`, `HeaderIcon`, `HeaderProfileButton`; `theme/v2` | All card shells are `Surface`, but the page still uses a local `StatsSection`, two `tone="pane"` heroes (not one scene pane), no `SectionHeading`/`ActionButton`, and `theme/v2` for type/spacing. Task 6 is **partial**. |
+| Profile (`app/profile.tsx`) | 743 lines | `PageHeader`, `SectionHeading`, `Surface`; `theme/v2` | Identity card, achievement grid, and deck rows are converted; the identity card is `tone="pane"` not scene, the grid is 2 columns below 700 and 3 above (not 3/4), the empty deck state has no study action, and `theme/v2` spacing/score remain. Task 7 is **partial**. |
 
 ### Still on v1/v2 grammar
 
 | Surface | Size | Current imports | Specific gap |
 | --- | --- | --- | --- |
-| Study session (`app/study/[deckId].tsx`) | 957 lines | `components/v2`: `StartButton`, `StudyRatings`, `TodayRail`; `v2.radii/spacing/type` | v1 app bar, glass card stage, old rating tiles; summary converted, session body not |
-| Quiz (`app/quiz/[deckId].tsx`) | 1,285 lines | `v2` ×10, `StartButton` | 156px timer ring, glass scoreboard, v2 result type |
-| Statistics (`app/statistics.tsx`) | 842 lines | `HeroPane`, `GlassCard`, `SectionHeader`, `v2` | v2 left-to-right heavy dashboard; no single scene hero |
-| Profile (`app/profile.tsx`) | 248 lines | `HeroPane`, `SectionHeader`, `GlassCard`, `v2` | achievement rail overflows the viewport (test report P10) |
-| Discover index (`app/discover/index.tsx`) | 123 lines | `ListRow`, `SectionHeader`, `v2` | v2 list page; advertised `cardCount` lies (P11) |
-| Discover preview (`app/discover/[id].tsx`) | 173 lines | `GlassCard`, `SectionHeader`, `v2` | v1 preview, inline colour, 18/22/30 spacing |
+| Study session (`app/study/[deckId].tsx`) | 1,032 lines | `TodayRail` from `components/v2`; `v2` | v1 app bar, glass card stage, `TodayRail` still v2; rating keys and action pills converted; session body not |
+| Quiz (`app/quiz/[deckId].tsx`) | 1,311 lines | `v2`, `GlassCard` | 156px timer ring, glass scoreboard, v2 result type; answer pads and Play again converted |
+| Discover index (`app/discover/index.tsx`) | 123 lines | `GlassCard`, `ListRow`, `SectionHeading`, `v2` | catalogue rows still v2; `SectionHeading` conversion started; task 9 remains open |
+| Discover preview (`app/discover/[id].tsx`) | 177 lines | `SectionHeading`, `v2` | v1 preview, inline colour, 18/22/30 spacing |
 | Add deck (`app/add-deck.tsx`) | 211 lines | base `BottomSheetModal` only | sheet is v1; no v3 header/handle/body rhythm |
-| Advanced algorithm (`app/settings/algorithm-advanced.tsx`) | 503 lines | `SettingsPlate`, `SettingsSection`, `v2` | last settings page on the old plate; missing-param copy is misleading (P9) |
+| Advanced algorithm (`app/settings/algorithm-advanced.tsx`) | 517 lines | `PageHeader`, `SettingsPlate`, `SettingsSection`, `v2` | header converted, but still the old plate/chapters; missing-param copy is misleading (P9) |
 | Import (`app/mass-import.tsx`) | 111 lines | `SettingsPlate`, `SettingsSection`, `v2` | honest stub, but on the old plate grammar |
 | Dev (`app/dev.tsx`) | 208 lines | `SettingsPlate`, `v2` | internal route, visually inconsistent |
 | 404 (`app/+not-found.tsx`) | 37 lines | base `EmptyState` | no v3 scene pane/action pill |
@@ -78,11 +83,11 @@ These are the inputs the design pass is most likely to break; each is pinned by 
 
 ### Guards and leftovers
 
-- `npx tsc --noEmit` and the test suite were **not run in this planning pass** because `node_modules` is absent (dependencies are not auto-installed). Run `npm ci` first and record the baseline before Task 1.
-- `npm run check:design` → clean (91 files).
-- `skills/design-drift-audit` scanner currently reports: 9 off-grid spacing values, 4 literal font sizes, 4 `Screen` shells without standard switches, 1 direct `Animated.timing` in `app/(tabs)/library.tsx:44`, and 179 deliberate micro-spacings. These are Phase 0/1 clean-up, not a redesign.
-- Dead or single-consumer components after this plan: `components/v2/*` (only Study and Quiz import them), `QuizStartCard` (0 imports), `DeckCard`, `DeckLibrary`, `DeckListItem`, `DeckProgressCard`, `HeroPane` (Statistics/Profile only), `SectionHeader` (6 files), `SettingsPlate`/`SettingsRow`/`SettingsSection`/`SettingsNote` (Dev/Advanced/Import only). All retire in Task 13.
-- `theme/v2.ts` is imported by Study, Quiz, Statistics, Profile, Discover ×2, Mass import, Advanced, Dev. It retires with the last of them.
+- `node_modules` is installed in this workspace, so the planned baseline has been run: `npx tsc --noEmit` is clean, `npm test` is 161/161, `npm run test:surfaces` covers 83 surfaces, `npm run test:fixtures` is 14/14, and `npm run build:web` exports `dist/`. Playwright cannot launch Chromium here (`libnspr4.so` is missing), so the visual/axe/keyboard gates remain **blocked**, not passed.
+- `npm run check:design` → clean (95 files).
+- The planning-time `skills/design-drift-audit` scan reported 9 off-grid spacing values, 4 literal font sizes, 4 `Screen` shells without standard switches, 1 direct `Animated.timing` in `app/(tabs)/library.tsx:44`, and 179 deliberate micro-spacings. These are Phase 0/1 clean-up, not a redesign, and this list has not been re-measured after Tasks 1–7.
+- Retirement candidates are still live: `components/v2/*` (four files / 466 lines; Study imports `TodayRail`), `QuizStartCard`, `DeckCard`, `DeckLibrary`, `DeckListItem`, `DeckProgressCard`, `HeroPane`, `SectionHeader`, `SettingsPlate`, `SettingsRow`, `SettingsSection`, and `SettingsNote`. Task 13 must verify each with `rg` before deleting; do not treat the current list as an inventory of confirmed dead files.
+- `theme/v2.ts` is imported by ten app files — Study, Quiz, Statistics, Profile, Home, Discover ×2, Mass import, Advanced, and Dev — plus `HeroPane`, `TopAppBar`, and `components/v2/{DeckRow,FolderRow,TodayRail}`. It retires with the last of them.
 
 ---
 
@@ -274,16 +279,19 @@ export function RatingKeys(props: {
   disabled?: boolean;
 }): JSX.Element;
 ```
-Each key is one `Pressable` ≥68px tall, `accessibilityRole="button"`, `accessibilityLabel={`${label} — ${interval}`}` (an explicit `aria-label` on web), colour wash + glyph + text so colour is never the only signal.
+Each key is one `Pressable` ≥68px tall, `accessibilityRole="button"`, `accessibilityLabel={`${label} — ${interval}`}`, colour wash + text so colour is never the only signal.
 
-- [ ] Add `score`/`result`/`page`/`studyMeasure`/`ratingKey`/`answer` to `theme/v3.ts`.
-- [ ] Implement `RatingKeys` and use it in Study in place of `StudyRatings`.
-- [ ] Restyle `QuizAnswer` to `Surface tone="control"`, radius 14, 64px, letter chip A–D, success/error washes and check/cross; keep the current state machine.
-- [ ] Replace every `StartButton` with `ActionButton`.
-- [ ] Run `npx tsc --noEmit`, `npm run check:design`, `npm test`, `npx playwright test tests/e2e/flows.spec.ts tests/e2e/quiz-result.spec.ts`.
+- [x] Add `score`/`result`/`page`/`studyMeasure`/`ratingKey`/`answer` to `theme/v3.ts`.
+- [x] Implement `RatingKeys` and use it in Study in place of `StudyRatings`.
+- [x] Restyle `QuizAnswer` to `Surface tone="control"`, radius 14, 64px, letter chip A–D, success/error washes and check/cross; keep the current state machine.
+- [x] Replace every `StartButton` with `ActionButton`.
+- [x] Run `npx tsc --noEmit`, `npm run check:design`, `npm test`, and `npm run build:web`; all pass.
+- [ ] Run `npx playwright test tests/e2e/flows.spec.ts tests/e2e/quiz-result.spec.ts`; blocked by the missing Chromium system library.
 - [ ] Commit: `feat(ui): v3 rating keys and answer tiles`.
 
-**Acceptance:** rating buttons expose names like `Again — 1m` (P7 fixed), all four are ≥68px and ≥44px wide at 320; study and quiz flows still log one review per answer; no `components/v2` import remains in these two screens.
+**Result (2026-11-07):** `npx tsc --noEmit` **0** · `npm run check:design` **clean (95 files)** · `npm test` **161/161** · `npm run build:web` exported `dist/`. Added the Task 3 tokens, the 14px/68px `RatingKeys` with names like `Again — 1m`, v3 action pills in Study and Quiz, and the v3 control answer pad (64px, A–D chip, state wash and glyph). `StartButton` and `StudyRatings` were deleted; `TodayHero` now uses `ActionButton`. Playwright flows/quiz-result remain blocked (`libnspr4.so` missing). Study still imports `TodayRail` from v2; Task 4 removes it.
+
+**Acceptance:** rating buttons expose names like `Again — 1m`; study and quiz flows still log one review per answer; no `StartButton`/`StudyRatings` import remains in these two screens. The four-key 320px geometry and axe checks remain unmeasured because Playwright cannot launch; `TodayRail` remains in Study until Task 4.
 
 ---
 
@@ -292,7 +300,7 @@ Each key is one `Pressable` ≥68px tall, `accessibilityRole="button"`, `accessi
 #### Task 4: Study session in v3
 
 **Files:**
-- Modify: `app/study/[deckId].tsx` (957 lines), `components/v3/SessionSummary.tsx`, `components/Flashcard.tsx` (only if the stage needs a v3 `full` frame)
+- Modify: `app/study/[deckId].tsx` (1,032 lines), `components/v3/SessionSummary.tsx`, `components/Flashcard.tsx` (only if the stage needs a v3 `full` frame)
 - Test: `tests/e2e/flows.spec.ts`, `tests/e2e/visual.spec.ts`, `tests/e2e/data-truth.spec.ts`
 
 **Interfaces:**
@@ -313,7 +321,7 @@ Each key is one `Pressable` ≥68px tall, `accessibilityRole="button"`, `accessi
 #### Task 5: Quiz arena and result in v3
 
 **Files:**
-- Modify: `app/quiz/[deckId].tsx` (1,285 lines), `components/QuizAnswer.tsx`
+- Modify: `app/quiz/[deckId].tsx` (1,311 lines), `components/QuizAnswer.tsx`
 - Test: `tests/e2e/quiz-result.spec.ts`, `tests/e2e/flows.spec.ts`, `tests/e2e/visual.spec.ts`
 
 **Interfaces:**
@@ -338,12 +346,14 @@ Each key is one `Pressable` ≥68px tall, `accessibilityRole="button"`, `accessi
 #### Task 6: Statistics in v3
 
 **Files:**
-- Modify: `app/statistics.tsx` (842 lines)
+- Modify: `app/statistics.tsx` (1,741 lines)
 - Test: `tests/e2e/statistics-visual.spec.ts` (6 baselines × 3 widths), `tests/e2e/data-truth.spec.ts`
 
 **Interfaces:**
 - Consumes `PageHeader`, `Surface`, `SectionHeading`, `ActionButton`, `EmptyState`, `DonutChart`, `TrendChart`, `MiniBarChart`, `MetricGrid`.
 - Preserves every `data/intelligence.ts` computation and the range selector values (`RANGE_OPTIONS`).
+
+**Status (2026-11-07):** partial — card shells are on `Surface`, but the scene hero, section grammar, empty-state action, and Playwright gate remain open.
 
 - [ ] Replace `HeroPane` with one `Surface tone="scene"`: eyebrow "Intelligence", status pill (`FSRS-6` / `Not enough data`), the page's one hero figure (recall % when `MIN_RECALL_SAMPLE` is met, otherwise the review count — label it explicitly), the range `SegmentedControl`, and a 3-cell ledger (reviews, streak, due). Remove the two stacked `GlassCard` fallbacks.
 - [ ] Replace every `SectionHeader` with `SectionHeading` (uppercase 12/600, count chip, no `mt-7` classes).
@@ -353,31 +363,37 @@ Each key is one `Pressable` ≥68px tall, `accessibilityRole="button"`, `accessi
 - [ ] Run `npx tsc --noEmit`, `npm run check:design`, `npm test`, `npx playwright test tests/e2e/statistics-visual.spec.ts --update-snapshots`, then `tests/e2e/data-truth.spec.ts`.
 - [ ] Commit: `feat(statistics): v3 intelligence desk`.
 
+**Result (partial, 2026-11-07):** `app/statistics.tsx` is 1,741 lines. `StatsCard`/`EmptyRangeHero` now use `Surface`, and the header actions/share toast are v3. The page still uses a local `StatsSection` rather than `SectionHeading`, `OverviewHero`/`EmptyRangeHero` are `tone="pane"` accent panes rather than one `tone="scene"` hero, the zero-review state has no `ActionButton`, and `theme/v2` supplies spacing and type. `tsc`, `check:design`, and `build:web` passed before this audit; Playwright/axe remain blocked. Task 6 is not acceptance-complete.
+
 **Acceptance:** 18 statistics baselines regenerated and reviewed; every displayed number still matches the recomputed fixture; 320px has 0 document overflow; one scene pane; axe 0.
 
 #### Task 7: Profile in v3
 
 **Files:**
-- Modify: `app/profile.tsx` (248 lines)
+- Modify: `app/profile.tsx` (743 lines)
 - Test: `tests/e2e/a11y.spec.ts`, `tests/e2e/visual.spec.ts`
 
 **Interfaces:**
 - Consumes `PageHeader`, `Surface`, `SectionHeading`, `MetricGrid`, `ActionButton`, `EmptyState`.
 - Preserves the review-log-derived XP/streak/achievement logic.
 
+**Status (2026-11-07):** partial — the rail is gone and real identity/deck data is in place, but the scene pane, empty-state action, responsive-spec reconciliation, and axe gate are still open.
+
 - [ ] Replace `HeroPane` with one `Surface tone="scene"`: level figure, XP rail, streak status, and a ledger (reviews, XP, streak).
-- [ ] Replace the horizontal achievement rail with a **3-column grid at 320 and 4 at ≥900**, so nothing sits outside the viewport (P10); locked badges keep a visible lock glyph and "Locked" name suffix.
+- [ ] Replace the horizontal achievement rail with a responsive grid; the implementation currently uses **2 columns below 700 and 3 at ≥700**, so reconcile this with the original 3-at-320/4-at-900 target before checking it off. Locked badges keep a visible lock glyph and "Locked" name suffix.
 - [ ] Replace the deck `GlassCard` list with inset lines (name, card count, due) using `SectionHeading`; no `SectionHeader`.
 - [ ] Empty state: no reviews yet → "Your record starts with one card" + `ActionButton` to study.
 - [ ] Run `npx tsc --noEmit`, `npm run check:design`, `npx playwright test tests/e2e/a11y.spec.ts`; screenshot 320/390/1280.
 - [ ] Commit: `feat(profile): v3 record and badge grid`.
+
+**Result (partial, 2026-11-07):** `app/profile.tsx` is 743 lines. `PageHeader`, `SectionHeading`, and `Surface` replaced `HeroPane`/the horizontal rail; the identity card, achievements, and deck rows use real review-log data. The implemented grid is 2 columns below 700 and 3 above, the identity card is `tone="pane"` rather than scene, the empty deck state has no study action, and `theme/v2` remains for `v2.type.score`/`v2.spacing.section`. 320/360/390 inspections showed no horizontal overflow; `tsc`, `check:design`, and `build:web` passed; axe has not run because Playwright cannot launch.
 
 **Acceptance:** 0 horizontal overflow at 320 (the P10 badge rail is gone); badge names include state; one scene pane; axe 0.
 
 #### Task 8: Advanced, Import and Dev on the v3 settings grammar
 
 **Files:**
-- Modify: `app/settings/algorithm-advanced.tsx` (503), `app/mass-import.tsx` (111), `app/dev.tsx` (208)
+- Modify: `app/settings/algorithm-advanced.tsx` (517), `app/mass-import.tsx` (111), `app/dev.tsx` (208)
 - Test: `tests/e2e/a11y.spec.ts`, `tests/e2e/flows.spec.ts`
 
 **Interfaces:**
@@ -400,7 +416,7 @@ Each key is one `Pressable` ≥68px tall, `accessibilityRole="button"`, `accessi
 #### Task 9: Discover index and preview in v3
 
 **Files:**
-- Modify: `app/discover/index.tsx` (123), `app/discover/[id].tsx` (173), `data/starterDecks.json` (only the false `cardCount` values)
+- Modify: `app/discover/index.tsx` (123), `app/discover/[id].tsx` (177), `data/starterDecks.json` (only the false `cardCount` values)
 - Test: `tests/e2e/flows.spec.ts` (import flow), `tests/e2e/a11y.spec.ts`
 
 **Interfaces:**
@@ -546,12 +562,12 @@ Pure, no storage, no store dependency.
 | `/deck/[id]/add-card` | v3 | 1–2 |
 | `/study/[deckId]` | v1/v2 | 3–4, 12 |
 | `/quiz/[deckId]` | v1/v2 | 3, 5 |
-| `/statistics` | v1/v2 | 2, 6 |
-| `/profile` | v1/v2 | 2, 7 |
-| `/discover`, `/discover/[id]` | v1/v2 | 2, 9 |
+| `/statistics` | v3 partial | 2, 6 |
+| `/profile` | v3 partial | 2, 7 |
+| `/discover`, `/discover/[id]` | v2 + v3 section | 2, 9 |
 | `/add-deck` | v1 sheet | 10 |
 | `/settings/algorithm`, `/tts`, `/offline` | v3 | 1–2, 8 |
-| `/settings/algorithm-advanced` | v1 plate | 2, 8 |
+| `/settings/algorithm-advanced` | v3 header + v1 plate | 2, 8 |
 | `/mass-import` | v1 plate | 8 |
 | `/dev` | v1 plate | 8 |
 | `+not-found`, splash, skeletons, dock | mixed | 11 |

@@ -677,6 +677,53 @@ test.describe('Phase 5 — behaviour', () => {
     expect(after.some((call) => call.lang === 'fa-IR')).toBe(true);
   });
 
+  test('study: Marked and a note are card data that survive reload', async ({ page }) => {
+    const deckId = await createDeck(page, 'Study Tray Deck');
+    await addCardToDeck(page, deckId, 'Tray front', 'Tray back');
+    await go(page, `/study/${deckId}`);
+
+    const marked = page.getByRole('button', { name: 'Marked' });
+    await expect(marked).toHaveAttribute('aria-pressed', 'false');
+    await marked.click();
+    await expect(marked).toHaveAttribute('aria-pressed', 'true');
+
+    await page.getByRole('button', { name: 'Edit note' }).click();
+    const noteSheet = page.getByRole('dialog', { name: 'Edit note' });
+    await expect(noteSheet).toBeVisible();
+    await noteSheet.getByLabel('Card note').fill('Remember the tray.');
+    await noteSheet.getByRole('button', { name: 'Save note' }).click();
+    await expect(page.getByRole('dialog')).toBeHidden();
+
+    await page.getByRole('button', { name: 'Show answer' }).click();
+    await expect(page.getByText('Remember the tray.')).toBeVisible();
+
+    const stored = (
+      await readStorage<Record<string, Array<{ marked?: boolean; note?: string }>>>(
+        page,
+        STORAGE_KEYS.allCards,
+        {}
+      )
+    )[deckId]?.[0];
+    expect(stored?.marked).toBe(true);
+    expect(stored?.note).toBe('Remember the tray.');
+
+    await page.reload();
+    await settle(page);
+    await expect(page.getByRole('button', { name: 'Marked' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    await page.getByRole('button', { name: 'Show answer' }).click();
+    await expect(page.getByText('Remember the tray.')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Options' }).click();
+    const options = page.getByRole('dialog', { name: 'Options' });
+    await expect(options.getByText('Tray front')).toBeVisible();
+    await options.getByRole('button', { name: 'Restart session' }).click();
+    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Show answer' })).toBeVisible();
+  });
+
   test('quiz: a wrong answer reveals the correct one and records the miss', async ({ page }) => {
     const deckId = await createQuizDeck(page);
     await go(page, `/quiz/${deckId}`);

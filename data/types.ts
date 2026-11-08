@@ -45,6 +45,16 @@ export type Flashcard = {
   example?: string;
   synonyms?: string;
   /**
+   * The learner's own note for this card. Optional: cards saved before notes
+   * existed simply have none. Written from Study and shown with the answer.
+   */
+  note?: string;
+  /**
+   * Bookmark toggled from the Study tray. Optional so a card saved before
+   * marking existed reads as unmarked instead of needing a migration.
+   */
+  marked?: boolean;
+  /**
    * The card's own tint, from the palette (a user choice, not a design colour).
    * It washes the card face so a deck can be read in blocks; absent means the
    * card keeps the plain glass face.
