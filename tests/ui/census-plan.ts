@@ -128,8 +128,12 @@ function actionsFor(surface: Surface): CensusAction[] {
     case 'ST-09':
       return [click('Go back')];
     case 'DS-03':
+      return [click('Add to library')];
     case 'DS-04':
-      return [click('Add deck')];
+      // Importing happens on Discover, then Home is a different route; the
+      // census has no navigation action, so this state stays not-automated
+      // rather than clicking an unrelated control on Home.
+      return [];
     case 'TX-04':
       return [scroll('Memory')];
     case 'TX-05':

@@ -130,7 +130,7 @@ export function PageHeader({
  */
 export function HeaderProfileButton({
   onPress,
-  label = 'Profile',
+  label = 'Open profile',
 }: {
   onPress: () => void;
   label?: string;

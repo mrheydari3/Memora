@@ -21,6 +21,8 @@ type DeckShelfRowProps = {
   progress: number;
   pinned?: boolean;
   onOptions?: () => void;
+  /** An ActionMenu node, rendered instead of the built-in options control. */
+  optionsMenu?: React.ReactNode;
   onPress?: () => void;
 };
 
@@ -77,6 +79,7 @@ export function DeckShelfRow({
   progress,
   pinned = false,
   onOptions,
+  optionsMenu,
   onPress,
 }: DeckShelfRowProps) {
   const press = usePressFeedback({ scale: 0.985 });
@@ -212,9 +215,8 @@ export function DeckShelfRow({
             {line}
           </HintPressable>
 
-          {onOptions && (
-            <RowOptions label={`Options for deck ${name}`} onPress={onOptions} />
-          )}
+          {optionsMenu ??
+            (onOptions && <RowOptions label={`Options for deck ${name}`} onPress={onOptions} />)}
         </View>
       </Surface>
     </Animated.View>

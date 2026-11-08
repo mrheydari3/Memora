@@ -1,5 +1,17 @@
 # UI v3 "Nocturne Focus" Completion — Implementation Plan
 
+> **Final status (2026-11-08 audit): completed and verified.** Section 1 below is
+> the planning-time snapshot; it is kept as history and is no longer true. The
+> shipped tree has zero imports of `theme/v2`, `components/v2`, `GlassCard`,
+> `HeroPane`, `TopAppBar`, `SectionHeader`, `DeckCard`, `DeckLibrary`,
+> `DeckListItem`, `DeckProgressCard`, `SettingsPlate`, `SettingsRow`,
+> `SettingsSection` or `SettingsNote`; those files were deleted in `318d8f2`.
+> `theme/v3.ts` is the only v3 step source and its display figures are rem-based
+> on web. Verified with `tsc` **0**, `npm test` **161/161**,
+> `check:design` **clean (82 files)**, responsive **592 runs / 0 flagged** at
+> 320/375/390/431/768/1024/1280, axe **22/22**, reduced motion **4/4 routes**.
+> The final engineering report records the per-gate evidence.
+
 > **For agentic workers:** execute this plan phase by phase, in order. Steps use checkbox (`- [ ]`) syntax for tracking. A task is not done until its acceptance line has been measured and recorded here or in the final report. Do not "finish" a screen by eye: every task ends with `tsc`, `check:design`, and the listed browser check.
 
 **Goal:** Finish the v3 redesign of Memora's web UI so every route — not only Home, Game, Settings, Deck, the composer and the settings sub-pages — speaks one Nocturne Focus language, with one primitive set, no v1/v2 leftovers, and the existing accessibility/data-truth guarantees still measured green.
@@ -64,7 +76,11 @@ These are the inputs the design pass is most likely to break; each is pinned by 
 
 None. Tasks 7–10 completed Profile, the Advanced/Import/Dev settings surfaces, Discover and Add deck; every remaining surface is listed below.
 
-### Still on v1/v2 grammar
+### Still on v1/v2 grammar (planning snapshot — now resolved)
+
+> This table described 2026-11-07. Quiz, 404 and the shell were finished by
+> `7279f77` and the 2026-11-08 audit; the v2 cluster was deleted in `318d8f2`.
+> Kept only so the original plan's reasoning remains readable.
 
 | Surface | Size | Current imports | Specific gap |
 | --- | --- | --- | --- |
@@ -502,7 +518,7 @@ Pure, no storage, no store dependency.
 - [x] Run `npm test`, `npx tsc --noEmit`, `npx playwright test tests/e2e/data-truth.spec.ts`.
 - [x] Commit: `fix(ui): honest folder counts and archived decks`.
 
-**Result (complete, 2026-11-08):** `folderSubtreeCounts` is pure, maps every folder to its active subtree's `{ decks, due, nestedFolders }`, and terminates on parent cycles; the helper tests cover 0-direct/2-nested, due roll-up, archived exclusion and a cycle. Home now uses it for both folder headers and shelf totals: root meta counts all **5 active decks** and **40 due**, matching the hero's **40**, while Languages reports **0 direct · 2 nested** with 30 due; opening it gives **1 folder · 2 decks · 34 cards · 30 due** and the two deck rows. Nested headers keep the full folder name and split readable at 320/390 with **0** document overflow and **0** clipped count text. The archived deck page hides the due figure and ledger and its enabled CTA reads "Archived — restore to study"; it clears `archivedAt` and opens the queue, while `/study/deck-archived` keeps the existing archive explanation. Browser P7/P8 checks verify all four rating accessible names end in a separated `Again|Hard|Good|Easy` + number, and `/study/deck-empty` says "No cards yet"/"Add cards", never "All done" or `0 / 0`. `npm test` **164/164** · `npx tsc --noEmit` **0** · `npm run check:design` **clean (97 files)** · `npm run build:web` exported `dist/` · `data-truth.spec.ts` **13/13** · archived flow **1/1**. This supersedes Task 11's disabled archived-deck action. Committed as `fix(ui): honest folder counts and archived decks`.
+**Result (complete, 2026-11-08):** `folderSubtreeCounts` is pure, maps every folder to its active subtree's `{ decks, due, nestedFolders }`, and terminates on parent cycles; the helper tests cover 0-direct/2-nested, due roll-up, archived exclusion and a cycle. Home now uses it for both folder headers and shelf totals: root meta reads **5 decks · 40 due**, matching the hero's **40**, while Languages reports **0 direct · 2 nested** with 30 due; opening it gives **1 folder · 34 cards · 30 due**, a **2-deck** count chip, and the two deck rows. Nested headers keep the full folder name and split readable at 320/390 with **0** document overflow and **0** clipped count text. The archived deck page hides the due figure and ledger and its enabled CTA reads "Archived — restore to study"; it clears `archivedAt` and opens the queue, while `/study/deck-archived` keeps the existing archive explanation. Browser P7/P8 checks verify all four rating accessible names end in a separated `Again|Hard|Good|Easy` + number, and `/study/deck-empty` says "No cards yet"/"Add cards", never "All done" or `0 / 0`. `npm test` **164/164** · `npx tsc --noEmit` **0** · `npm run check:design` **clean (97 files)** · `npm run build:web` exported `dist/` · `data-truth.spec.ts` **13/13** · archived flow **1/1**. This supersedes Task 11's disabled archived-deck action. Committed as `fix(ui): honest folder counts and archived decks`.
 
 **Acceptance:** the fixture's Languages → German tree shows 2 decks at the parent; Home's two totals reconcile; `/study/deck-archived` explains the archive; the new unit tests fail before the helper and pass after.
 

@@ -10,6 +10,9 @@ type HeaderIconProps = {
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  /** Disclosure state for a bar control that opens a menu. */
+  ariaExpanded?: boolean;
+  ariaHasPopup?: 'menu' | 'dialog';
 };
 
 /**
@@ -17,7 +20,14 @@ type HeaderIconProps = {
  * hover tile on web. It draws no resting fill, so the bar stays a header rather
  * than a row of buttons.
  */
-export function HeaderIcon({ icon, label, onPress, disabled = false }: HeaderIconProps) {
+export function HeaderIcon({
+  icon,
+  label,
+  onPress,
+  disabled = false,
+  ariaExpanded,
+  ariaHasPopup,
+}: HeaderIconProps) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -28,7 +38,9 @@ export function HeaderIcon({ icon, label, onPress, disabled = false }: HeaderIco
       onHoverOut={() => setHovered(false)}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled }}
+      accessibilityState={{ disabled, ...(ariaExpanded === undefined ? {} : { expanded: ariaExpanded }) }}
+      {...(ariaExpanded === undefined ? {} : { 'aria-expanded': ariaExpanded })}
+      {...(ariaHasPopup ? { 'aria-haspopup': ariaHasPopup } : {})}
       style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
     >
       <View

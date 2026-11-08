@@ -239,7 +239,12 @@ function measureLayout() {
   // full-height containers that merely intersect the band are not counted.
   const tabOverlap = [];
   let tabTop = null;
-  const tablist = document.querySelector('[role="tablist"]');
+  const tablist =
+    document.querySelector('[role="tablist"][aria-label="Primary tabs"]') ??
+    [
+      ...document.querySelectorAll('[role="tablist"]'),
+    ].sort((a, b) => b.getBoundingClientRect().top - a.getBoundingClientRect().top)[0] ??
+    null;
   const dialogOpen = document.querySelectorAll('[role="dialog"]').length > 0;
   if (tablist && visible(tablist) && !dialogOpen) {
     const tabRect = tablist.getBoundingClientRect();

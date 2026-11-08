@@ -120,15 +120,15 @@ const dueByDeck = (store: Store) =>
 const plural = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
 
-const shelfCaption = (folders: number, decks: number, cards: number, due: number) =>
+const shelfDeckCaption = (decks: number, due: number) =>
+  `${plural(decks, 'deck', 'decks')} · ${due > 0 ? `${due} due` : 'all caught up'}`;
+
+const shelfFolderCaption = (folders: number, cards: number, due: number) =>
   [
-    folders > 0 ? plural(folders, 'folder', 'folders') : null,
-    plural(decks, 'deck', 'decks'),
+    plural(folders, 'folder', 'folders'),
     `${cards.toLocaleString('en-US')} ${cards === 1 ? 'card' : 'cards'}`,
     due > 0 ? `${due} due` : 'all caught up',
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  ].join(' · ');
 
 /** The deck the hero points at, mirroring Home's own choice rule. */
 function continueDeck(store: Store) {
@@ -179,7 +179,6 @@ test.describe('Phase 7 — data truth', () => {
     const store = await readStore(page);
     const active = activeDecks(store);
     const rootFolders = store.folders.filter((folder) => !folder.parentId);
-    const rootCards = active.reduce((sum, deck) => sum + (store.cards[deck.id] ?? []).length, 0);
     const rootDue = activeQueues(store).reduce((sum, entry) => sum + entry.queue.total, 0);
     const subtrees = folderSubtreeCounts(store.folders, store.decks, dueByDeck(store));
 
@@ -187,9 +186,7 @@ test.describe('Phase 7 — data truth', () => {
     expect(active.length).toBe(5);
     expect(rootDue).toBe(40);
     await expect(
-      page.getByText(shelfCaption(rootFolders.length, active.length, rootCards, rootDue), {
-        exact: true,
-      })
+      page.getByText(shelfDeckCaption(active.length, rootDue), { exact: true })
     ).toBeVisible();
 
     // Languages has no direct decks, but its German child owns two. The header
@@ -209,10 +206,9 @@ test.describe('Phase 7 — data truth', () => {
       .filter((deck) => deck.folderId === 'fold-de')
       .reduce((sum, deck) => sum + (store.cards[deck.id] ?? []).length, 0);
     await expect(
-      page.getByText(
-        shelfCaption(childFolders.length, language!.decks, languageCards, language!.due),
-        { exact: true }
-      )
+      page.getByText(shelfFolderCaption(childFolders.length, languageCards, language!.due), {
+        exact: true,
+      })
     ).toBeVisible();
 
     // German is where those decks actually live: two decks, 30 due. Its leaf
@@ -563,12 +559,9 @@ test.describe('Phase 7 — data truth', () => {
     // separator between adjacent lines; compare it verbatim, not normalised.
     const heroText = await panel.innerText();
     const store = await readStore(page);
-    const rootFolders = store.folders.filter((folder) => !folder.parentId);
     const active = activeDecks(store);
-    const caption = shelfCaption(
-      rootFolders.length,
+    const caption = shelfDeckCaption(
       active.length,
-      active.reduce((sum, deck) => sum + (store.cards[deck.id] ?? []).length, 0),
       activeQueues(store).reduce((sum, entry) => sum + entry.queue.total, 0)
     );
 

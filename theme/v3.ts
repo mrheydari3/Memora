@@ -1,11 +1,11 @@
 /**
  * Memora Design v3 — "Nocturne Focus".
  *
- * Only the steps v3 introduces live here; colours still come from
- * `theme/palette.js`. The direction keeps v2's "today first" order but makes the
- * page read as one quiet desk: a single hero pane that states the day and its
- * one action, then a shelf where folders are collapsible groups and a deck row
- * answers name, studied share and due count in one line.
+ * Colours still come from `theme/palette.js`. The direction keeps the
+ * "today first" order but makes the page read as one quiet desk: a single hero
+ * pane that states the day and its one action, then a shelf where folders are
+ * collapsible groups and a deck row answers name, studied share and due count
+ * in one line.
  *
  *   - the due figure is 40px on a phone and 56px from 900px up
  *   - the hero pane carries a live scheduler status and the next deck's rail
@@ -15,24 +15,37 @@
  * v1/v2 screens do not import this module, so they are untouched.
  */
 
+import { Platform } from 'react-native';
+
+/**
+ * Type steps inherit the browser's text size.
+ *
+ * AppText's scale is rem-based through Tailwind, but the v3 display figures are
+ * inline styles. In px they ignored a 200% browser text zoom (the audit caught
+ * the Game hero's "60" staying at 40px). On web the step is emitted in rem so
+ * the user's preference really doubles it; native keeps logical pixels.
+ */
+const size = (px: number): number =>
+  Platform.OS === 'web' ? ((`${px / 16}rem` as unknown) as number) : px;
+
 export const v3 = {
   type: {
     /** The page's one display figure on a phone. */
-    hero: { fontSize: 40, lineHeight: 44, letterSpacing: -1.4 },
+    hero: { fontSize: size(40), lineHeight: size(44), letterSpacing: -1.4 },
     /** The same figure on a wide canvas (≥ 900px). */
-    heroWide: { fontSize: 56, lineHeight: 58, letterSpacing: -2 },
+    heroWide: { fontSize: size(56), lineHeight: size(58), letterSpacing: -2 },
     /** A deck's due count. */
-    stat: { fontSize: 28, lineHeight: 30, letterSpacing: -0.6 },
+    stat: { fontSize: size(28), lineHeight: size(30), letterSpacing: -0.6 },
     /** Deck names sit one step above body and one below the section title. */
-    deckName: { fontSize: 17, lineHeight: 24, letterSpacing: 0 },
+    deckName: { fontSize: size(17), lineHeight: size(24), letterSpacing: 0 },
     /** A section-opening line, e.g. the Game hero's "Beat the clock.". */
-    headlineMd: { fontSize: 24, lineHeight: 30, letterSpacing: -0.5 },
+    headlineMd: { fontSize: size(24), lineHeight: size(30), letterSpacing: -0.5 },
     /** The composer's prompt: the card's front, written on the card itself. */
-    composerFront: { fontSize: 30, lineHeight: 36, letterSpacing: -0.7 },
+    composerFront: { fontSize: size(30), lineHeight: size(36), letterSpacing: -0.7 },
     /** The quiz's live score. */
-    score: { fontSize: 44, lineHeight: 48, letterSpacing: -1.6 },
+    score: { fontSize: size(44), lineHeight: size(48), letterSpacing: -1.6 },
     /** The quiz's final score. */
-    result: { fontSize: 64, lineHeight: 68, letterSpacing: -2.24 },
+    result: { fontSize: size(64), lineHeight: size(68), letterSpacing: -2.24 },
   },
 
   spacing: {

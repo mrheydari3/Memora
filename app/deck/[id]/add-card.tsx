@@ -577,9 +577,9 @@ export default function AddCardScreen() {
           accessibilityLabel="Card colour"
           style={{
             flexDirection: 'row',
+            flexWrap: 'wrap',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 4,
+            gap: 8,
           }}
         >
           <Pressable

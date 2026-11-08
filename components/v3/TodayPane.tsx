@@ -152,19 +152,25 @@ export function TodayPane({
                 overflow: 'hidden',
               }}
             >
-              {segments.map((segment, index) => (
-                <View
-                  key={segment.label}
-                  style={{
-                    flex: segment.value,
-                    backgroundColor: segment.color,
-                    borderTopStartRadius: index === 0 ? radii.pill : 0,
-                    borderBottomStartRadius: index === 0 ? radii.pill : 0,
-                    borderTopEndRadius: index === segments.length - 1 ? radii.pill : 0,
-                    borderBottomEndRadius: index === segments.length - 1 ? radii.pill : 0,
-                  }}
-                />
-              ))}
+              {segments.map((segment, index) => {
+                // Destructured on purpose: `.value` inside a JSX style object
+                // trips Reanimated's babel heuristic, which cannot tell data
+                // from a shared value.
+                const { value, color } = segment;
+                return (
+                  <View
+                    key={segment.label}
+                    style={{
+                      flex: value,
+                      backgroundColor: color,
+                      borderTopStartRadius: index === 0 ? radii.pill : 0,
+                      borderBottomStartRadius: index === 0 ? radii.pill : 0,
+                      borderTopEndRadius: index === segments.length - 1 ? radii.pill : 0,
+                      borderBottomEndRadius: index === segments.length - 1 ? radii.pill : 0,
+                    }}
+                  />
+                );
+              })}
             </View>
 
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 4 }}>

@@ -4,11 +4,7 @@ export type { AppTextProps, TextTone, TextVariant, TextWeight } from './AppText'
 
 // Layout and surfaces
 export { Screen } from './Screen';
-export { GlassCard } from './GlassCard';
-export { HeroPane } from './HeroPane';
-export { SectionHeader } from './SectionHeader';
 export { ListRow } from './ListRow';
-export { TopAppBar } from './TopAppBar';
 export { LiquidTabBar } from './LiquidTabBar';
 
 // Controls
@@ -24,41 +20,23 @@ export { Chip } from './Chip';
 export { SegmentedControl } from './SegmentedControl';
 export type { Segment } from './SegmentedControl';
 export { BottomSheetModal, SheetPanel, SheetScrollView } from './BottomSheetModal';
+export { Menu, MenuItem, MenuGroup, MenuSeparator, MenuLabel, MenuActionList, ActionMenu, Select, ContextMenu } from './menu';
+export type { MenuProps, MenuItemProps, MenuAction, SelectOption } from './menu';
 export { Stepper } from './Stepper';
 export { Field } from './Field';
 export { Pill } from './Pill';
 
 // Content
-export { SettingsRow, SettingsCard, SettingsSection } from './SettingsRow';
-export { SettingsPlate } from './SettingsPlate';
-export type { LedgerEntry } from './SettingsPlate';
-export { SettingsNote } from './SettingsNote';
 export { AnimatedIcon } from './AnimatedIcon';
-export { DeckCard } from './DeckCard';
-export { DeckLibrary } from './DeckLibrary';
-export type { DeckLibraryEntry } from './DeckLibrary';
-export { DeckListItem } from './DeckListItem';
-export { DeckProgressCard, ProgressRail } from './DeckProgressCard';
-export { StatPill } from './StatPill';
 export { FlashcardView } from './Flashcard';
 export { CardStack } from './CardStack';
 export { SegmentedProgressBar } from './SegmentedProgressBar';
-export { RatingButtonRow } from './RatingButtonRow';
 export { RadioOptionCard } from './RadioOptionCard';
 export { LearningStepRow } from './LearningStepRow';
-export { AchievementBadge } from './AchievementBadge';
 export { QuizAnswer } from './QuizAnswer';
 export type { QuizAnswerState } from './QuizAnswer';
-export { QuizStartCard } from './QuizStartCard';
-export type { QuizDeckOption } from './QuizStartCard';
-export { DonutChart } from './DonutChart';
 export { MiniBarChart } from './MiniBarChart';
-export { TrendChart } from './TrendChart';
-export type { TrendPoint } from './TrendChart';
-export { MetricTile } from './MetricTile';
-export { DistributionList } from './DistributionList';
-export type { DistributionItem } from './DistributionList';
-export { InsightCard, RecommendationCard } from './InsightCard';
+export { DonutChart } from './DonutChart';
 export { EmptyState } from './EmptyState';
 
 // Motion: entrance and state cross-fade primitives

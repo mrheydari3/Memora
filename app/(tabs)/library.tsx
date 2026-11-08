@@ -18,7 +18,7 @@ import {
   PageHeader,
   Surface,
 } from '../../components/v3';
-import { usePressFeedback } from '../../motion';
+import { prefersReducedMotion, usePressFeedback } from '../../motion';
 import { alpha, colors, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import type { Deck, GameRecord } from '../../data/types';
@@ -47,6 +47,12 @@ function ModeSwitch({ mode, onChange }: ModeSwitchProps) {
   const slide = useRef(new Animated.Value(mode === 'reverse' ? 1 : 0)).current;
 
   useEffect(() => {
+    // The pill still moves to the new half; it just arrives immediately when
+    // the OS asks for less motion.
+    if (prefersReducedMotion()) {
+      slide.setValue(mode === 'reverse' ? 1 : 0);
+      return;
+    }
     const animation = Animated.timing(slide, {
       toValue: mode === 'reverse' ? 1 : 0,
       duration: 250,
@@ -63,6 +69,8 @@ function ModeSwitch({ mode, onChange }: ModeSwitchProps) {
 
   return (
     <View
+      role="tablist"
+      aria-label="Quiz direction"
       style={{
         backgroundColor: colors.surfaceControl,
         borderRadius: 12,
@@ -105,7 +113,7 @@ function ModeSwitch({ mode, onChange }: ModeSwitchProps) {
             accessibilityState={{ selected: active }}
             style={{
               flex: 1,
-              minHeight: 36,
+              minHeight: 44,
               paddingVertical: 8,
               paddingHorizontal: 12,
               alignItems: 'center',
@@ -160,6 +168,7 @@ function GameDeckRow({
         onPressOut={press.onPressOut}
         accessibilityRole="radio"
         accessibilityState={{ checked: selected }}
+        aria-checked={selected}
         accessibilityLabel={`${deck.name}, ${meta}${bestScore ? `, best ${formatCount(bestScore)}` : ''}`}
         style={{
           minHeight: 64,
@@ -505,7 +514,7 @@ export default function GameScreen() {
         pointerEvents="none"
         width={224}
         height={224}
-        style={{ position: 'absolute', right: -64, top: -64 }}
+        style={{ position: 'absolute', right: -8, top: -64 }}
       >
         <Defs>
           <RadialGradient id="game-glow" cx="50%" cy="50%" r="50%">

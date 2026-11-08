@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Animated, View, Pressable, useWindowDimensions } from 'react-native';
 import { MaterialIcons } from './Icon';
 import { AnimatedIcon } from './AnimatedIcon';
@@ -153,6 +154,26 @@ export function ListRow({
   const press = usePressFeedback({ scale: 0.985 });
   const { width } = useWindowDimensions();
 
+  // Interpolated outside JSX on purpose: Reanimated's babel heuristic flags any
+  // `.value` it sees inside an inline style, even when the value belongs to the
+  // core Animated API as it does here. Precomputing keeps the dev console clean.
+  const pressValue = press.value;
+  const iconPressStyle = useMemo(
+    () => ({
+      transform: [
+        { scale: pressValue.interpolate({ inputRange: [0, 1], outputRange: [1, 0.88] }) },
+        { rotate: pressValue.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-6deg'] }) },
+      ],
+    }),
+    [pressValue]
+  );
+  const veilPressStyle = useMemo(
+    () => ({
+      opacity: pressValue.interpolate({ inputRange: [0, 1], outputRange: [0, 0.05] }),
+    }),
+    [pressValue]
+  );
+
   // A settings row with a value reads as title + value on one line, so a
   // two-line subtitle never squeezes the value into a narrow column. Below
   // 380px that line has no room left: the value moves under the title instead
@@ -182,22 +203,7 @@ export function ListRow({
             {animatedIcon ? (
               <Animated.View
                 pointerEvents="none"
-                style={{
-                  transform: [
-                    {
-                      scale: press.value.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [1, 0.88],
-                      }),
-                    },
-                    {
-                      rotate: press.value.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['0deg', '-6deg'],
-                      }),
-                    },
-                  ],
-                }}
+                style={iconPressStyle}
               >
                 <AnimatedIcon
                   name={icon}
@@ -346,12 +352,7 @@ export function ListRow({
               bottom: 0,
               backgroundColor: veil,
             },
-            {
-              opacity: press.value.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 0.05],
-              }),
-            },
+            veilPressStyle,
           ]}
         />
         {content}

@@ -239,7 +239,7 @@ test.describe('Phase 5 — behaviour', () => {
     await editor.getByRole('button', { name: 'Save folder' }).click();
     await closeSheet(page);
 
-    await expect(page.getByTestId('folder-row').filter({ hasText: 'Flow Folder Edited' })).toBeVisible();
+    await expect(page.getByTestId('folder-group').filter({ hasText: 'Flow Folder Edited' })).toBeVisible();
     const folders = await readStorage<Array<{ name: string; icon?: string; color?: string; pinnedAt?: number | null }>>(
       page,
       STORAGE_KEYS.folders,
@@ -253,7 +253,7 @@ test.describe('Phase 5 — behaviour', () => {
 
     await page.reload();
     await settle(page);
-    await expect(page.getByTestId('folder-row').filter({ hasText: 'Flow Folder Edited' })).toBeVisible();
+    await expect(page.getByTestId('folder-group').filter({ hasText: 'Flow Folder Edited' })).toBeVisible();
 
     // Delete from the same editor; its decks move up one level.
     await page.getByRole('button', { name: 'Manage folders' }).click();
@@ -261,7 +261,7 @@ test.describe('Phase 5 — behaviour', () => {
     await list.getByRole('button', { name: 'Options for folder Flow Folder Edited' }).click();
     const deleteEditor = page.getByRole('dialog').filter({ hasText: 'Delete folder' });
     await deleteEditor.getByRole('button', { name: 'Delete folder' }).click();
-    await expect(page.getByTestId('folder-row').filter({ hasText: 'Flow Folder Edited' })).toHaveCount(0);
+    await expect(page.getByTestId('folder-group').filter({ hasText: 'Flow Folder Edited' })).toHaveCount(0);
   });
 
   test('folder move: a deck filed away returns when its folder is deleted', async ({ page }) => {
@@ -277,9 +277,8 @@ test.describe('Phase 5 — behaviour', () => {
     await move.getByRole('button', { name: 'Move Folder' }).click();
 
     await go(page, '/home');
-    const folderRow = page.getByTestId('folder-row').filter({ hasText: 'Move Folder' });
+    const folderRow = page.getByTestId('folder-group').filter({ hasText: 'Move Folder' });
     await expect(folderRow).toBeVisible();
-    await folderRow.click();
     await expect(page.getByTestId('deck-row').filter({ hasText: DECK })).toBeVisible();
 
     await page.getByRole('button', { name: 'Manage folders' }).click();
@@ -288,7 +287,7 @@ test.describe('Phase 5 — behaviour', () => {
     const editor = page.getByRole('dialog').filter({ hasText: 'Delete folder' });
     await editor.getByRole('button', { name: 'Delete folder' }).click();
 
-    await expect(page.getByTestId('folder-row').filter({ hasText: 'Move Folder' })).toHaveCount(0);
+    await expect(page.getByTestId('folder-group').filter({ hasText: 'Move Folder' })).toHaveCount(0);
     await expect(page.getByTestId('deck-row').filter({ hasText: DECK })).toBeVisible();
     await page.reload();
     await settle(page);
@@ -322,11 +321,15 @@ test.describe('Phase 5 — behaviour', () => {
 
     await page.reload();
     await settle(page);
-    await page.getByTestId('folder-row').filter({ hasText: 'Nest Parent' }).click();
-    await expect(page.getByTestId('folder-row').filter({ hasText: 'Nest Child' })).toBeVisible();
+    const parentGroup = page.getByTestId('folder-group').filter({ hasText: 'Nest Parent' });
+    await expect(parentGroup).toBeVisible();
+    await page.getByRole('button', { name: /1 folder inside/ }).click();
+    await expect(page.getByTestId('folder-group').filter({ hasText: 'Nest Child' })).toBeVisible();
 
     // Re-parent the child back to the root; the parent must not disappear.
-    await page.getByRole('button', { name: 'Options for folder Nest Child' }).click();
+    await page.getByRole('button', { name: 'Manage folders' }).click();
+    const manager = page.getByRole('dialog').filter({ hasText: 'New folder' });
+    await manager.getByRole('button', { name: 'Options for folder Nest Child' }).click();
     const reparent = page.getByRole('dialog').filter({ hasText: 'Save folder' });
     await reparent.getByRole('button', { name: /Location/ }).click();
     const root = page.getByRole('dialog').filter({ hasText: 'Choose the folder' });
@@ -340,7 +343,7 @@ test.describe('Phase 5 — behaviour', () => {
       (folder) => folder.name === 'Nest Child'
     );
     expect(reparented?.parentId).toBeNull();
-    await expect(page.getByTestId('folder-row').filter({ hasText: 'Nest Child' })).toBeVisible();
+    await expect(page.getByTestId('folder-group').filter({ hasText: 'Nest Child' })).toBeVisible();
   });
 
   test('deck: pin, duplicate, archive and reload', async ({ page }) => {
@@ -428,7 +431,7 @@ test.describe('Phase 5 — behaviour', () => {
     const folders = await readStorage<Folder[]>(page, STORAGE_KEYS.folders, []);
     expect(folders.find((folder) => folder.name === 'Tree Parent')).toBeUndefined();
     expect(folders.find((folder) => folder.name === 'Tree Child')?.parentId ?? null).toBeNull();
-    await expect(page.getByTestId('folder-row').filter({ hasText: 'Tree Child' })).toBeVisible();
+    await expect(page.getByTestId('folder-group').filter({ hasText: 'Tree Child' })).toBeVisible();
   });
 
   test('folder: move up and down rewrites sibling order', async ({ page }) => {

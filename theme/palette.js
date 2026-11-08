@@ -159,12 +159,14 @@ const glass = {
   saturateStrong: 100,
 };
 
-/** Radii by role: controls 14, panes 24, sheets 28, pills full. */
+/** Radii by role: controls 14, menus 16, panes 24, sheets 28, pills full. */
 const radii = {
   /** The inner track of a 14px control. */
   micro: 10,
   sm: 6,
   control: 14,
+  /** A floating menu sits between a control and a pane. */
+  menu: 16,
   pane: 24,
   sheet: 28,
   pill: 9999,
@@ -361,6 +363,37 @@ const motion = {
  * high, so the glyphs sit in a 52px pill instead of being squeezed by a wide,
  * shallow bar.
  */
+/**
+ * Menu geometry — one set of measurements for every dropdown, popover and
+ * action menu, so a menu never guesses its own width, gutter or offset.
+ *
+ * The anchored panel is deliberately narrow: a menu is a list of short choices,
+ * not a second page. Long lists scroll inside `maxHeight` instead of growing
+ * past the viewport, and the sheet fallback keeps the same item rhythm.
+ */
+const menu = {
+  /** The comfortable width for a short action list. */
+  width: 288,
+  minWidth: 220,
+  maxWidth: 340,
+  /** The scroll ceiling for a long option list (voices, decks, folders). */
+  maxHeight: 420,
+  /** Panel padding around the item column. */
+  padding: 6,
+  /** Between two neighbouring items. */
+  itemGap: 2,
+  /** The gap between a trigger and its anchored panel. */
+  anchorOffset: 8,
+  /** The minimum breathing room between a panel and the viewport edge. */
+  viewportMargin: 12,
+  /** A submenu opens beside its parent item at this width. */
+  submenuWidth: 264,
+  /** The overlap that keeps a submenu connected to its parent panel. */
+  submenuOffset: 6,
+  /** Icon-to-label gap inside an item. */
+  iconGap: 10,
+};
+
 const tabBar = {
   /**
    * The dock is sized by its content, not by the viewport: three fixed cells
@@ -401,5 +434,6 @@ module.exports = {
   layout,
   sheet,
   motion,
+  menu,
   tabBar,
 };

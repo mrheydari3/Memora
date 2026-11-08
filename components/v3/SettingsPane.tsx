@@ -229,6 +229,9 @@ type LineProps = {
   last?: boolean;
   /** Replaces the composed name when a flow queries an exact label. */
   accessibilityLabel?: string;
+  /** Disclosure state for a row that opens a menu or a dialog. */
+  ariaExpanded?: boolean;
+  ariaHasPopup?: 'menu' | 'dialog';
 };
 
 /**
@@ -249,6 +252,8 @@ export function SettingsLine({
   trailing,
   last = false,
   accessibilityLabel,
+  ariaExpanded,
+  ariaHasPopup,
 }: LineProps) {
   const [hovered, setHovered] = useState(false);
 
@@ -320,6 +325,9 @@ export function SettingsLine({
           onHoverOut={() => setHovered(false)}
           accessibilityRole="button"
           accessibilityLabel={accessibilityLabel}
+          accessibilityState={ariaExpanded === undefined ? undefined : { expanded: ariaExpanded }}
+          {...(ariaExpanded === undefined ? {} : { 'aria-expanded': ariaExpanded })}
+          {...(ariaHasPopup ? { 'aria-haspopup': ariaHasPopup } : {})}
           style={[baseStyle, hovered ? { backgroundColor: alpha(colors.surfaceTile, 0.5) } : null]}
         >
           {content}

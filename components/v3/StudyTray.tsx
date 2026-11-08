@@ -12,6 +12,8 @@ type StudyTrayProps = {
   onToggleMark: () => void;
   onEditNote: () => void;
   onOptions: () => void;
+  /** Anchors the session options menu to the control that opens it. */
+  optionsRef?: React.RefObject<React.ComponentRef<typeof View> | null>;
   disabled?: boolean;
 };
 
@@ -98,6 +100,7 @@ export function StudyTray({
   onToggleMark,
   onEditNote,
   onOptions,
+  optionsRef,
   disabled = false,
 }: StudyTrayProps) {
   const { width } = useWindowDimensions();
@@ -130,13 +133,15 @@ export function StudyTray({
         disabled={disabled}
         showIcon={showIcon}
       />
-      <TrayAction
-        icon="tune"
-        label="Options"
-        onPress={onOptions}
-        disabled={disabled}
-        showIcon={showIcon}
-      />
+      <View ref={optionsRef} collapsable={false} style={{ flex: 1 }}>
+        <TrayAction
+          icon="tune"
+          label="Options"
+          onPress={onOptions}
+          disabled={disabled}
+          showIcon={showIcon}
+        />
+      </View>
     </View>
   );
 }

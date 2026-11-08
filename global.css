@@ -35,16 +35,25 @@ body {
   overscroll-behavior-y: none;
 }
 
-/* Scroll panes: one behaviour everywhere. Momentum stays with the pane that
-   was touched instead of chaining the gesture to the page behind it, and a
-   programmatic scroll (a list reopening at a saved offset) glides into place
-   rather than snapping. RN-web renders every ScrollView as its own overflow
-   div, so this reaches all of them without a per-component prop. The
-   reduced-motion block below turns this back off. */
+/* Smooth programmatic scrolls: a list reopening at a saved offset glides into
+   place rather than snapping. The reduced-motion block below turns this back
+   off. RN-web renders every ScrollView as its own overflow div, so this
+   reaches all of them without a per-component prop.
+
+   `overscroll-behavior` is deliberately NOT global. Chromium treats every
+   `overflow: hidden` box as a scroll container and latches wheel input onto
+   it; with `contain` on everything, a decorative clip box (the Today hero, a
+   card, the tab capsule) swallowed the wheel instead of letting it reach the
+   page's ScrollView. Containment is scoped to sheet bodies below, where a
+   gesture reaching the end of a sheet must not move the page behind it. */
 * {
   scroll-behavior: smooth;
-  overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+}
+
+/* A sheet owns the gesture; at its end the page behind stays put. */
+[role='dialog'] [class*='r-WebkitOverflowScrolling'] {
+  overscroll-behavior: contain;
 }
 
 /* Only suppress the pointer-click ring; keyboard focus keeps one. Written with
@@ -85,6 +94,17 @@ body {
   }
 
   /*
+   * Inline clip boxes are scroll containers too. RN styles such as the Today
+   * hero's `overflow: 'hidden'` stay inline, so the utility-class rule above
+   * never reached them and Chromium latched the wheel onto the whole card.
+   * They are decoration, never scrolled: `clip` keeps the gesture moving to
+   * the page's ScrollView.
+   */
+  [style*='overflow: hidden'] {
+    overflow: clip !important;
+  }
+
+  /*
    * Ellipsized labels are scroll containers too: React Native Web renders every
    * single-line label as a box with `overflow: hidden` + `text-overflow:
    * ellipsis`, and a wheel landing on one of those labels was swallowed exactly
@@ -122,6 +142,39 @@ body {
 .defer-render {
   content-visibility: auto;
   contain-intrinsic-size: auto 64px;
+}
+
+/*
+ * Menu scrollbars.
+ *
+ * A long menu scrolls inside its own panel, so the scrollbar must read as part
+ * of the surface: thin, outline-toned, and only present while the list really
+ * overflows. `color-scheme: dark` already handles the track; this refines the
+ * thumb so it never looks like a browser default pasted onto the menu.
+ */
+.menu-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: theme('colors.outline-soft') transparent;
+}
+
+.menu-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.menu-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.menu-scroll::-webkit-scrollbar-thumb {
+  background-color: theme('colors.outline-soft');
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.menu-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: theme('colors.outline');
 }
 
 /* A single global fallback for CSS-driven motion. The JS motion helpers already
