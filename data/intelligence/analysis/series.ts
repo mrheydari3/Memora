@@ -13,14 +13,16 @@ import type { DayPoint, NormalizedReview, Series } from '../core/types';
 export function buildDailyValues(
   reviews: readonly NormalizedReview[],
   start: number,
-  end: number
+  end: number,
+  /** Fixed clock for deterministic callers; defaults to now. */
+  now: number = Date.now()
 ): { values: number[]; points: DayPoint[]; activeDays: number; total: number } {
   const counts = new Map<number, number>();
   for (const review of reviews) {
     counts.set(review.dayStart, (counts.get(review.dayStart) ?? 0) + 1);
   }
 
-  const today = startOfDay();
+  const today = startOfDay(now);
   const days = eachDay(start, end);
   const values = days.map((day) => counts.get(day) ?? 0);
   const points: DayPoint[] = days.map((day, index) => ({
@@ -42,9 +44,11 @@ export function buildDailyValues(
 export function buildSeries(
   reviews: readonly NormalizedReview[],
   start: number,
-  end: number
+  end: number,
+  /** Fixed clock for deterministic callers; defaults to now. */
+  now: number = Date.now()
 ): Series {
-  const { points, activeDays, total } = buildDailyValues(reviews, start, end);
+  const { points, activeDays, total } = buildDailyValues(reviews, start, end, now);
   return {
     points,
     start: startOfDay(start),
