@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/mrheydari3/Memora/releases">Release notes</a>
+  <a href="CHANGELOG.md">Changelog</a>
   &nbsp;·&nbsp;
   <a href="docs/design-language.md">Design language</a>
   &nbsp;·&nbsp;
