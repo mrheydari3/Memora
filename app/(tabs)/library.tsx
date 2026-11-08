@@ -18,7 +18,7 @@ import {
   PageHeader,
   Surface,
 } from '../../components/v3';
-import { usePressFeedback } from '../../motion';
+import { prefersReducedMotion, usePressFeedback } from '../../motion';
 import { alpha, colors, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import type { Deck, GameRecord } from '../../data/types';
@@ -47,6 +47,12 @@ function ModeSwitch({ mode, onChange }: ModeSwitchProps) {
   const slide = useRef(new Animated.Value(mode === 'reverse' ? 1 : 0)).current;
 
   useEffect(() => {
+    // The pill still moves to the new half; it just arrives immediately when
+    // the OS asks for less motion.
+    if (prefersReducedMotion()) {
+      slide.setValue(mode === 'reverse' ? 1 : 0);
+      return;
+    }
     const animation = Animated.timing(slide, {
       toValue: mode === 'reverse' ? 1 : 0,
       duration: 250,

@@ -28,6 +28,7 @@ import {
   SectionHeading,
   Surface,
 } from '../components/v3';
+import { prefersReducedMotion } from '../motion';
 import {
   alpha,
   colors,
@@ -221,6 +222,10 @@ function ShareToast({ message }: { message: string }) {
   const reveal = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (prefersReducedMotion()) {
+      reveal.setValue(1);
+      return;
+    }
     Animated.timing(reveal, {
       toValue: 1,
       duration: motion.fast,
