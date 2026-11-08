@@ -12,6 +12,8 @@ type ArchivedRowProps = {
   cardCount: number;
   onPress?: () => void;
   onOptions?: () => void;
+  /** An ActionMenu node, rendered instead of the built-in options control. */
+  optionsMenu?: React.ReactNode;
 };
 
 /** A bare 40px glyph on the mockup's 44px target. */
@@ -51,7 +53,7 @@ function RowOptions({ label, onPress }: { label: string; onPress: () => void }) 
  *   "Archived" chip; meta 13 outline; and a "0 due" chip on 40% surface-control
  *   instead of a live figure, because an archived deck cannot ask for anything.
  */
-export function ArchivedRow({ name, cardCount, onPress, onOptions }: ArchivedRowProps) {
+export function ArchivedRow({ name, cardCount, onPress, onOptions, optionsMenu }: ArchivedRowProps) {
   return (
     <Surface
       tone="scene"
@@ -133,7 +135,8 @@ export function ArchivedRow({ name, cardCount, onPress, onOptions }: ArchivedRow
         </AppText>
       </View>
 
-      {onOptions && <RowOptions label={`Options for deck ${name}`} onPress={onOptions} />}
+      {optionsMenu ??
+        (onOptions && <RowOptions label={`Options for deck ${name}`} onPress={onOptions} />)}
     </Surface>
   );
 }

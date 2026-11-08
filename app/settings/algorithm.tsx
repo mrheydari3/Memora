@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { goBackOr, pushOnce } from '../../services/navigation';
 import { MaterialIcons } from '../../components/Icon';
@@ -16,7 +16,7 @@ import {
 import {
   AppText,
   BottomSheetModal,
-  ListRow,
+  Menu,
   PrimaryButton,
   RadioOptionCard,
   RevealItem,
@@ -24,6 +24,7 @@ import {
   Stepper,
   ToggleSwitch,
 } from '../../components';
+import type { MenuAction } from '../../components';
 import {
   SettingsBackHeader,
   SettingsChapter,
@@ -107,6 +108,8 @@ export default function AlgorithmSettingsScreen() {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [draft, setDraft] = useState<Tuning | null>(null);
   const [retentionDraft, setRetentionDraft] = useState<number | null>(null);
+  const deckAnchorRef = useRef<React.ComponentRef<typeof View>>(null);
+  const intervalAnchorRef = useRef<React.ComponentRef<typeof View>>(null);
 
   // Decks load asynchronously; keep a valid selection as the library changes.
   useEffect(() => {
@@ -246,6 +249,24 @@ export default function AlgorithmSettingsScreen() {
         })
     : undefined;
 
+  const deckActions: MenuAction[] = decks.map((entry) => ({
+    key: entry.id,
+    label: entry.name,
+    selected: entry.id === deck?.id,
+    onPress: () => {
+      setSelectedDeckId(entry.id);
+      setDraft(null);
+      setSheet(null);
+    },
+  }));
+
+  const intervalActions: MenuAction[] = MAX_INTERVAL_OPTIONS.map((days) => ({
+    key: String(days),
+    label: formatMaxInterval(days),
+    selected: view.maximumInterval === days,
+    onPress: () => tune({ maximumInterval: days }),
+  }));
+
   return (
     <Screen
       scroll
@@ -271,15 +292,19 @@ export default function AlgorithmSettingsScreen() {
           {decks.length > 1 && (
             <RevealItem index={1}>
               <SettingsChapter label="Deck">
-                <SettingsLine
-                  icon="style"
-                  tone={colors.info}
-                  title="Current deck"
-                  subtitle={deck?.name ?? 'No deck yet'}
-                  value="Change"
-                  onPress={() => setSheet('deck')}
-                  last
-                />
+                <View ref={deckAnchorRef} collapsable={false}>
+                  <SettingsLine
+                    icon="style"
+                    tone={colors.info}
+                    title="Current deck"
+                    subtitle={deck?.name ?? 'No deck yet'}
+                    value="Change"
+                    onPress={() => setSheet('deck')}
+                    ariaExpanded={sheet === 'deck'}
+                    ariaHasPopup="menu"
+                    last
+                  />
+                </View>
               </SettingsChapter>
             </RevealItem>
           )}
@@ -311,13 +336,17 @@ export default function AlgorithmSettingsScreen() {
                   value={`${retention}%`}
                   onPress={openRetention}
                 />
-                <SettingsLine
-                  icon="timeline"
-                  title="Maximum interval"
-                  subtitle="Longest gap FSRS may schedule"
-                  value={formatMaxInterval(view.maximumInterval)}
-                  onPress={() => setSheet('interval')}
-                />
+                <View ref={intervalAnchorRef} collapsable={false}>
+                  <SettingsLine
+                    icon="timeline"
+                    title="Maximum interval"
+                    subtitle="Longest gap FSRS may schedule"
+                    value={formatMaxInterval(view.maximumInterval)}
+                    onPress={() => setSheet('interval')}
+                    ariaExpanded={sheet === 'interval'}
+                    ariaHasPopup="menu"
+                  />
+                </View>
                 <SettingsLine
                   icon="shuffle"
                   title="Fuzz intervals"
@@ -440,40 +469,15 @@ export default function AlgorithmSettingsScreen() {
         </View>
       </View>
 
-      <BottomSheetModal
-        visible={sheet === 'deck'}
+      <Menu
+        open={sheet === 'deck'}
         onClose={() => setSheet(null)}
+        anchorRef={deckAnchorRef}
+        label="Choose a deck"
         title="Choose a deck"
         subtitle="Scheduler settings follow the selected deck."
-      >
-        <ScrollView
-          style={{ maxHeight: heights.sheetTall }}
-          showsVerticalScrollIndicator={false}
-        >
-          {decks.map((entry) => (
-            <ListRow
-              key={entry.id}
-              title={entry.name}
-              tile="none"
-              density="compact"
-              gutter={0}
-              showChevron={false}
-              highlighted={entry.id === deck?.id}
-              trailing={
-                entry.id === deck?.id ? (
-                  <MaterialIcons name="check" size={iconSize.lg} color={colors.primary} />
-                ) : undefined
-              }
-              onPress={() => {
-                setSelectedDeckId(entry.id);
-                setDraft(null);
-                setSheet(null);
-              }}
-              accessibilityLabel={entry.name}
-            />
-          ))}
-        </ScrollView>
-      </BottomSheetModal>
+        actions={deckActions}
+      />
 
       <BottomSheetModal
         visible={sheet === 'retention'}
@@ -501,36 +505,15 @@ export default function AlgorithmSettingsScreen() {
         <PrimaryButton label="Done" onPress={closeRetention} />
       </BottomSheetModal>
 
-      <BottomSheetModal
-        visible={sheet === 'interval'}
+      <Menu
+        open={sheet === 'interval'}
         onClose={() => setSheet(null)}
+        anchorRef={intervalAnchorRef}
+        label="Maximum interval"
         title="Maximum interval"
         subtitle="Caps how far into the future a card can be scheduled."
-      >
-        <View>
-          {MAX_INTERVAL_OPTIONS.map((days) => (
-            <ListRow
-              key={days}
-              title={formatMaxInterval(days)}
-              tile="none"
-              density="compact"
-              gutter={0}
-              showChevron={false}
-              highlighted={view.maximumInterval === days}
-              trailing={
-                view.maximumInterval === days ? (
-                  <MaterialIcons name="check" size={iconSize.lg} color={colors.primary} />
-                ) : undefined
-              }
-              onPress={() => tune({ maximumInterval: days })}
-              accessibilityLabel={formatMaxInterval(days)}
-            />
-          ))}
-        </View>
-        <View className="mt-4">
-          <PrimaryButton label="Done" onPress={() => setSheet(null)} />
-        </View>
-      </BottomSheetModal>
+        actions={intervalActions}
+      />
 
       <BottomSheetModal
         visible={sheet === 'new' || sheet === 'max'}

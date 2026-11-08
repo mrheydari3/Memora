@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import type { LayoutChangeEvent, ScrollViewProps, ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from './AppText';
 import { IconButton } from './IconButton';
 import { glass, glassFillStrong, iconSize, motion, radii, sheet, veil } from '../theme/tokens';
@@ -84,7 +85,7 @@ export function SheetPanel({
         <View className="flex-row items-start">
           <View className="flex-1 pr-2">
             {title && (
-              <AppText variant="headline" weight="semibold" numberOfLines={1} headingLevel={1}>
+              <AppText variant="headline" weight="semibold" numberOfLines={2} headingLevel={1}>
                 {title}
               </AppText>
             )}
@@ -136,6 +137,16 @@ type BottomSheetModalProps = {
    * page behind the scrim and out of the dialog.
    */
   focusKey?: string | number;
+  /**
+   * Escape can step back one nested level instead of dismissing the whole
+   * sheet; the scrim and close control still close everything.
+   */
+  onEscape?: () => void;
+  /**
+   * A short action or option list: the sheet may stop at its content instead of
+   * reserving nearly half the viewport. Forms keep the default tall surface.
+   */
+  compact?: boolean;
   children: React.ReactNode;
 };
 
@@ -160,7 +171,7 @@ type WebDocument = {
 };
 
 const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"]:not([aria-disabled="true"]), [role="radio"]:not([aria-disabled="true"]), [role="switch"]:not([aria-disabled="true"]), [role="checkbox"]:not([aria-disabled="true"]), [role="tab"]:not([aria-disabled="true"]), [tabindex]:not([tabindex="-1"])';
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"]:not([aria-disabled="true"]), [role="menuitem"]:not([aria-disabled="true"]), [role="menuitemradio"]:not([aria-disabled="true"]), [role="menuitemcheckbox"]:not([aria-disabled="true"]), [role="radio"]:not([aria-disabled="true"]), [role="switch"]:not([aria-disabled="true"]), [role="checkbox"]:not([aria-disabled="true"]), [role="tab"]:not([aria-disabled="true"]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * BottomSheetModal — the standard sheet: a dimmed canvas behind, an opaque panel
@@ -178,10 +189,13 @@ export function BottomSheetModal({
   title,
   subtitle,
   focusKey,
+  onEscape,
+  compact = false,
   children,
 }: BottomSheetModalProps) {
   const { mounted, value } = usePresence(visible, { duration: motion.base });
   const { height: measuredHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   /**
    * A browser can report no window height at all — a PWA restored in the
    * background, a phone rotating on open, an embedded webview before layout.
@@ -191,10 +205,14 @@ export function BottomSheetModal({
   const windowHeight =
     Number.isFinite(measuredHeight) && measuredHeight > 0 ? measuredHeight : 0;
   const maxHeight =
-    windowHeight > 0 ? Math.round(windowHeight * sheet.maxHeightRatio) : undefined;
+    windowHeight > 0
+      ? Math.round(windowHeight * (compact ? 0.82 : sheet.maxHeightRatio))
+      : undefined;
 
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const onEscapeRef = useRef(onEscape);
+  onEscapeRef.current = onEscape;
   const panelRef = useRef<React.ComponentRef<typeof View>>(null);
   const returnFocusRef = useRef<WebElement | null>(null);
   const wasMountedRef = useRef(false);
@@ -275,7 +293,7 @@ export function BottomSheetModal({
     if (!doc) return;
 
     const onKeyDown = (event: WebKeyEvent) => {
-      if (event.key === 'Escape') onCloseRef.current();
+      if (event.key === 'Escape') (onEscapeRef.current ?? onCloseRef.current)();
     };
 
     doc.addEventListener('keydown', onKeyDown);
@@ -300,7 +318,10 @@ export function BottomSheetModal({
       visible
       transparent
       animationType="none"
-      onRequestClose={onClose}
+      // Web's ModalContent dismisses on Escape keyup, which would bypass a
+      // nested sheet's level-aware handler. Web uses the keydown listener
+      // below; native keeps the hardware back button.
+      onRequestClose={Platform.OS === 'web' ? undefined : onClose}
       statusBarTranslucent
       accessibilityLabel={title ?? 'Options'}
     >
@@ -327,9 +348,10 @@ export function BottomSheetModal({
             styles.panel,
             {
               maxHeight,
-              // A short sheet still reads as a surface rather than a strip.
+              // A short sheet still reads as a surface rather than a strip,
+              // unless it is a compact menu: those size to their own content.
               minHeight:
-                windowHeight > 0
+                !compact && windowHeight > 0
                   ? Math.round(windowHeight * sheet.minHeightRatio)
                   : undefined,
               opacity: panelOpacity,
@@ -338,7 +360,17 @@ export function BottomSheetModal({
           ]}
         >
           <View ref={panelRef} tabIndex={-1}>
-            <SheetPanel title={title} subtitle={subtitle} onClose={onClose}>
+            <SheetPanel
+              title={title}
+              subtitle={subtitle}
+              onClose={onClose}
+              style={{
+                paddingBottom: Math.max(
+                  compact ? 20 : 32,
+                  insets.bottom + (compact ? 12 : 16)
+                ),
+              }}
+            >
               {children}
             </SheetPanel>
           </View>
@@ -356,8 +388,13 @@ const styles = StyleSheet.create({
   panel: {
     zIndex: 1,
     overflow: 'hidden',
-    // Full-bleed and docked to the bottom edge: only the top corners are round,
-    // so the sheet reads as the surface the page slides under.
+    // Full-bleed on a phone, a centred surface on a wide canvas: a sheet that
+    // stretched to 1280px would read as a second page, not as a sheet.
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
+    // Docked to the bottom edge: only the top corners are round, so the sheet
+    // reads as the surface the page slides under.
     borderTopLeftRadius: radii.sheet,
     borderTopRightRadius: radii.sheet,
     borderCurve: 'continuous',

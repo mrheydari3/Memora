@@ -89,7 +89,7 @@ type Palette = {
     saturate: number;
     saturateStrong: number;
   };
-  radii: Record<'micro' | 'sm' | 'control' | 'pane' | 'sheet' | 'pill', number>;
+  radii: Record<'micro' | 'sm' | 'control' | 'menu' | 'pane' | 'sheet' | 'pill', number>;
   heights: Record<
     | 'appbar'
     | 'pageHeader'
@@ -176,6 +176,19 @@ type Palette = {
     handleActiveWidth: number;
     handleHeight: number;
   };
+  menu: {
+    width: number;
+    minWidth: number;
+    maxWidth: number;
+    maxHeight: number;
+    padding: number;
+    itemGap: number;
+    anchorOffset: number;
+    viewportMargin: number;
+    submenuWidth: number;
+    submenuOffset: number;
+    iconGap: number;
+  };
   tabBar: {
     cell: number;
     height: number;
@@ -205,6 +218,7 @@ export const spacing = palette.spacing;
 export const layout = palette.layout;
 export const motion = palette.motion;
 export const sheet = palette.sheet;
+export const menu = palette.menu;
 export const tabBar = palette.tabBar;
 
 /** Depth by role. */

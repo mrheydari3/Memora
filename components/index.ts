@@ -24,6 +24,8 @@ export { Chip } from './Chip';
 export { SegmentedControl } from './SegmentedControl';
 export type { Segment } from './SegmentedControl';
 export { BottomSheetModal, SheetPanel, SheetScrollView } from './BottomSheetModal';
+export { Menu, MenuItem, MenuGroup, MenuSeparator, MenuLabel, MenuActionList, ActionMenu, Select, ContextMenu } from './menu';
+export type { MenuProps, MenuItemProps, MenuAction, SelectOption } from './menu';
 export { Stepper } from './Stepper';
 export { Field } from './Field';
 export { Pill } from './Pill';
