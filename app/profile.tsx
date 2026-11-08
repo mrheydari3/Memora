@@ -7,6 +7,7 @@ import { useDeckStore } from '../store/useDeckStore';
 import { useReviewStore } from '../store/useReviewStore';
 import { computeStreak, startOfLocalDay } from '../data/streak';
 import type { Deck } from '../data/types';
+import { dueNow } from '../data/session';
 import {
   AppText,
   EmptyState,
@@ -16,6 +17,7 @@ import {
   SettingsGroupSkeleton,
 } from '../components';
 import {
+  ActionButton,
   HeaderIcon,
   HeaderProfileButton,
   PageHeader,
@@ -29,9 +31,8 @@ import {
   heights,
   iconSize,
   radii,
-  rims,
 } from '../theme/tokens';
-import { v2 } from '../theme/v2';
+import { v3 } from '../theme/v3';
 import { goBackOr, pushOnce } from '../services/navigation';
 
 const CONTENT_MAX = 760;
@@ -53,6 +54,7 @@ type Achievement = {
 type DeckStat = {
   deck: Deck;
   cardCount: number;
+  dueCount: number;
   studiedCount: number;
   progress: number;
   lastStudiedAt: number | null;
@@ -78,7 +80,7 @@ function buildAchievements(reviewCount: number, streak: number): Achievement[] {
     {
       id: '2',
       name: '7-Day Streak',
-      description: 'Studied 7 consecutive days',
+      description: 'Studied 7 days in a row',
       icon: 'local-fire-department',
       color: colors.warning,
       earned: streak >= 7,
@@ -114,19 +116,6 @@ const formatCount = (value: number) => value.toLocaleString('en-US');
 
 const pluralCards = (count: number) => `${count} ${count === 1 ? 'card' : 'cards'}`;
 
-function lastStudiedLabel(at: number | null, compact = false): string {
-  if (at === null) return 'Never studied';
-  const now = Date.now();
-  const elapsed = Math.max(0, now - at);
-  const days = Math.round((startOfLocalDay(now) - startOfLocalDay(at)) / 86_400_000);
-  if (days <= 0) {
-    const hours = Math.max(1, Math.round(elapsed / 3_600_000));
-    return compact ? `${hours}h ago` : `Last studied ${hours}h ago`;
-  }
-  if (days === 1) return compact ? 'Yesterday' : 'Last studied yesterday';
-  return compact ? `${days}d ago` : `Last studied ${days}d ago`;
-}
-
 function IdentityCard({
   level,
   xpIntoLevel,
@@ -136,6 +125,7 @@ function IdentityCard({
   streak,
   activeDays,
   compact,
+  wide,
 }: {
   level: number;
   xpIntoLevel: number;
@@ -145,20 +135,16 @@ function IdentityCard({
   streak: number;
   activeDays: number;
   compact: boolean;
+  wide: boolean;
 }) {
   const stats = [
-    { label: 'Total XP', value: formatCount(xp) },
     { label: 'Reviews', value: formatCount(reviews) },
-    { label: 'Cadence', value: `${activeDays}d` },
+    { label: 'XP', value: formatCount(xp) },
+    { label: 'Streak', value: `${streak}d` },
   ];
 
   return (
-    <Surface
-      tone="pane"
-      radius="pane"
-      padding="md"
-      style={{ borderWidth: 1, borderColor: rims.soft }}
-    >
+    <Surface tone="scene" radius="pane" padding="md">
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <AppText
           variant="label"
@@ -238,7 +224,10 @@ function IdentityCard({
               variant="display"
               weight="bold"
               accessibilityLabel={`Level ${level}`}
-              style={[v2.type.score, { fontVariant: ['tabular-nums'], letterSpacing: -1 }]}
+              style={[
+                wide ? v3.type.heroWide : v3.type.hero,
+                { fontVariant: ['tabular-nums'] },
+              ]}
             >
               {level}
             </AppText>
@@ -335,6 +324,13 @@ function IdentityCard({
           </View>
         ))}
       </View>
+      <AppText
+        variant="caption"
+        tone="tertiary"
+        style={{ marginTop: 10, fontVariant: ['tabular-nums'] }}
+      >
+        {`${activeDays} active day${activeDays === 1 ? '' : 's'}`}
+      </AppText>
     </Surface>
   );
 }
@@ -342,32 +338,27 @@ function IdentityCard({
 function AchievementCard({
   achievement,
   basis,
+  compact,
 }: {
   achievement: Achievement;
   basis: string;
+  compact: boolean;
 }) {
   const statusColor = achievement.earned ? achievement.color : colors.outline;
 
   return (
     <Surface
-      tone="pane"
+      tone="inset"
       radius="card"
       padding="sm"
       style={{
         flexBasis: basis,
         minHeight: 132,
-        borderWidth: 1,
-        borderColor: rims.soft,
+        justifyContent: 'space-between',
+        paddingHorizontal: compact ? v3.spacing.row : 16,
       }}
     >
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 8,
-        }}
-      >
+      <View>
         <View
           style={{
             width: 36,
@@ -387,16 +378,11 @@ function AchievementCard({
           />
         </View>
         <AppText
-          variant="caption"
+          variant="bodySm"
           weight="semibold"
-          style={{ color: statusColor, flexShrink: 0 }}
+          numberOfLines={2}
+          style={{ marginTop: 10 }}
         >
-          {achievement.earned ? 'Done' : 'Locked'}
-        </AppText>
-      </View>
-
-      <View style={{ marginTop: 12 }}>
-        <AppText variant="body" weight="semibold" numberOfLines={2}>
           {achievement.name}
         </AppText>
         <AppText
@@ -408,22 +394,23 @@ function AchievementCard({
           {achievement.description}
         </AppText>
       </View>
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 }}>
+        <MaterialIcons
+          name={achievement.earned ? 'check-circle' : 'lock'}
+          size={11}
+          color={statusColor}
+        />
+        <AppText variant="caption" weight="semibold" style={{ color: statusColor }}>
+          {achievement.earned ? 'Earned' : 'Locked'}
+        </AppText>
+      </View>
     </Surface>
   );
 }
 
-function DeckCard({
-  stat,
-  onPress,
-  compact,
-}: {
-  stat: DeckStat;
-  onPress: () => void;
-  compact: boolean;
-}) {
-  const { deck, cardCount, studiedCount, progress, lastStudiedAt, archived } = stat;
-  const percent = Math.round(progress * 100);
-  const complete = percent >= 100;
+function DeckLine({ stat, onPress }: { stat: DeckStat; onPress: () => void }) {
+  const { deck, cardCount, dueCount, archived } = stat;
 
   return (
     <Pressable
@@ -432,12 +419,7 @@ function DeckCard({
       accessibilityLabel={`Open ${deck.name}`}
       style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
     >
-      <Surface
-        tone="pane"
-        radius="card"
-        padding="sm"
-        style={{ borderWidth: 1, borderColor: rims.soft }}
-      >
+      <Surface tone="inset" radius="control" padding="sm">
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View
             style={{
@@ -458,40 +440,18 @@ function DeckCard({
           </View>
 
           <View style={{ flex: 1, minWidth: 0 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <AppText
-                variant="bodyLg"
-                weight="semibold"
-                numberOfLines={compact ? 2 : 1}
-                style={{ flexShrink: 1 }}
-              >
-                {deck.name}
-              </AppText>
-              {archived && !compact ? (
-                <View
-                  style={{
-                    paddingHorizontal: 6,
-                    paddingVertical: 2,
-                    borderRadius: radii.pill,
-                    backgroundColor: colors.surfaceControl,
-                    flexShrink: 0,
-                  }}
-                >
-                  <AppText variant="caption" tone="muted" style={{ fontSize: 10 }}>
-                    Archived
-                  </AppText>
-                </View>
-              ) : null}
-            </View>
+            <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
+              {deck.name}
+            </AppText>
             <AppText
-              variant="bodySm"
+              variant="caption"
               tone="muted"
-              numberOfLines={compact ? 2 : 1}
-              style={{ marginTop: 2 }}
+              numberOfLines={1}
+              style={{ marginTop: 2, fontVariant: ['tabular-nums'] }}
             >
-              {archived
-                ? `${pluralCards(cardCount)} · Archived`
-                : `${pluralCards(cardCount)} · ${lastStudiedLabel(lastStudiedAt, compact)}`}
+              {`${pluralCards(cardCount)} · ${
+                archived ? 'Archived' : `${formatCount(dueCount)} due`
+              }`}
             </AppText>
           </View>
 
@@ -501,41 +461,6 @@ function DeckCard({
             color={colors.outline}
           />
         </View>
-
-        {!archived ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 }}>
-            <View
-              accessibilityRole="progressbar"
-              accessibilityValue={{ min: 0, max: 100, now: percent }}
-              style={{
-                flex: 1,
-                height: 4,
-                overflow: 'hidden',
-                borderRadius: 2,
-                backgroundColor: colors.surfaceControl,
-              }}
-            >
-              <View
-                style={{
-                  width: `${percent}%`,
-                  height: '100%',
-                  borderRadius: 2,
-                  backgroundColor: complete ? colors.success : colors.primaryContainer,
-                }}
-              />
-            </View>
-            <AppText
-              variant="caption"
-              weight={complete ? 'semibold' : 'regular'}
-              style={{
-                color: complete ? colors.success : colors.outline,
-                fontVariant: ['tabular-nums'],
-              }}
-            >
-              {`${percent}% studied`}
-            </AppText>
-          </View>
-        ) : null}
       </Surface>
     </Pressable>
   );
@@ -545,8 +470,9 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const compact = width < 390;
-  const achievementColumns = width >= 700 ? 3 : 2;
-  const achievementBasis = achievementColumns === 3 ? '31.5%' : '48%';
+  const wide = width >= 900;
+  const achievementColumns = wide ? 4 : 3;
+  const achievementBasis = achievementColumns === 4 ? '23%' : '30.5%';
 
   const decks = useDeckStore((s) => s.decks);
   const cardsByDeck = useDeckStore((s) => s.cardsByDeck);
@@ -610,6 +536,7 @@ export default function ProfileScreen() {
         return {
           deck,
           cardCount: cards.length,
+          dueCount: dueNow(cards).length,
           studiedCount,
           progress: cards.length > 0 ? studiedCount / cards.length : 0,
           lastStudiedAt,
@@ -662,7 +589,7 @@ export default function ProfileScreen() {
       {!loaded ? (
         <>
           <HeroSkeleton height={310} />
-          <View style={{ marginTop: v2.spacing.section }}>
+          <View style={{ marginTop: v3.spacing.page }}>
             <SettingsGroupSkeleton rows={3} />
           </View>
         </>
@@ -678,57 +605,79 @@ export default function ProfileScreen() {
               streak={streak}
               activeDays={activeDays}
               compact={compact}
+              wide={wide}
             />
           </RevealItem>
 
-          <RevealItem index={1}>
-            <View style={{ marginTop: v2.spacing.section }}>
+          {activeLog.length === 0 && deckRows.length > 0 ? (
+            <RevealItem index={1}>
+              <View style={{ marginTop: v3.spacing.page }}>
+                <Surface tone="pane" radius="card" padding="md">
+                  <EmptyState
+                    icon="auto-awesome"
+                    title="Your record starts with one card"
+                    description="Study one card to start earning XP, a streak and achievements."
+                    action={
+                      <ActionButton
+                        label="Start studying"
+                        icon="play-arrow"
+                        fullWidth={false}
+                        onPress={() => pushOnce(router, '/library')}
+                      />
+                    }
+                  />
+                </Surface>
+              </View>
+            </RevealItem>
+          ) : null}
+
+          <RevealItem index={2}>
+            <View style={{ marginTop: v3.spacing.page }}>
               <SectionHeading
                 label="Achievements"
                 hint={`${earned} of ${achievements.length}`}
-                rule={false}
-                className="mb-3"
               />
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10 }}>
                 {achievements.map((achievement) => (
                   <AchievementCard
                     key={achievement.id}
                     achievement={achievement}
                     basis={achievementBasis}
+                    compact={compact}
                   />
                 ))}
               </View>
             </View>
           </RevealItem>
 
-          <RevealItem index={2}>
-            <View style={{ marginTop: v2.spacing.section }}>
+          <RevealItem index={3}>
+            <View style={{ marginTop: v3.spacing.page }}>
               <SectionHeading
                 label="My decks"
                 hint={deckRows.length > 0 ? 'Top 5 decks by activity' : undefined}
-                rule={false}
-                className="mb-3"
               />
               {deckRows.length === 0 ? (
-                <Surface
-                  tone="pane"
-                  radius="card"
-                  padding="md"
-                  style={{ borderWidth: 1, borderColor: rims.soft }}
-                >
+                <Surface tone="pane" radius="card" padding="md" style={{ marginTop: 10 }}>
                   <EmptyState
                     icon="library-books"
                     title="No decks yet"
                     description="Create a deck from Home to start building a memory."
+                    action={
+                      <ActionButton
+                        label="Browse starter decks"
+                        icon="explore"
+                        fullWidth={false}
+                        onPress={() => pushOnce(router, '/discover')}
+                      />
+                    }
                   />
                 </Surface>
               ) : (
-                <View style={{ gap: 10 }}>
+                <View style={{ gap: 8, marginTop: 10 }}>
                   {deckRows.map((stat) => (
-                    <DeckCard
+                    <DeckLine
                       key={stat.deck.id}
                       stat={stat}
-                      compact={compact}
                       onPress={() => pushOnce(router, `/deck/${stat.deck.id}`)}
                     />
                   ))}
