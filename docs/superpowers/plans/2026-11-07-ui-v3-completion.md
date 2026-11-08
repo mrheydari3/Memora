@@ -60,11 +60,10 @@ These are the inputs the design pass is most likely to break; each is pinned by 
 
 `components/v3/` is now 16 files / 2,984 lines; `components/v2/` is four files / 466 lines. `theme/v3.ts` owns hero/stat/deck-name/headline/composer type, panel/section/group/row spacing, 12/14/22/24 radii, 6/4 rails, 960/420/220 widths, plus the Task 3 `score`, `result`, `page`, `studyMeasure`, `ratingKey`, and `answer` steps.
 
-### Partially converted (Tasks 6–7)
+### Partially converted (Task 7)
 
 | Surface | Size | Current imports | Remaining gap |
 | --- | --- | --- | --- |
-| Statistics (`app/statistics.tsx`) | 1,741 lines | `Surface`, `HeaderIcon`, `HeaderProfileButton`; `theme/v2` | All card shells are `Surface`, but the page still uses a local `StatsSection`, two `tone="pane"` heroes (not one scene pane), no `SectionHeading`/`ActionButton`, and `theme/v2` for type/spacing. Task 6 is **partial**. |
 | Profile (`app/profile.tsx`) | 743 lines | `PageHeader`, `SectionHeading`, `Surface`; `theme/v2` | Identity card, achievement grid, and deck rows are converted; the identity card is `tone="pane"` not scene, the grid is 2 columns below 700 and 3 above (not 3/4), the empty deck state has no study action, and `theme/v2` spacing/score remain. Task 7 is **partial**. |
 
 ### Still on v1/v2 grammar
@@ -84,10 +83,10 @@ These are the inputs the design pass is most likely to break; each is pinned by 
 ### Guards and leftovers
 
 - `node_modules` is installed in this workspace, so the planned baseline has been run: `npx tsc --noEmit` is clean, `npm test` is 161/161, `npm run test:surfaces` covers 83 surfaces, `npm run test:fixtures` is 14/14, and `npm run build:web` exports `dist/`. Playwright launches here with the browser dependencies staged under `.playwright-deps/`; the Study visual, axe and keyboard gates were measured in Task 4, and the remaining suites are run per task.
-- `npm run check:design` → clean (95 files).
+- `npm run check:design` → clean (97 files).
 - The planning-time `skills/design-drift-audit` scan reported 9 off-grid spacing values, 4 literal font sizes, 4 `Screen` shells without standard switches, 1 direct `Animated.timing` in `app/(tabs)/library.tsx:44`, and 179 deliberate micro-spacings. These are Phase 0/1 clean-up, not a redesign, and this list has not been re-measured after Tasks 1–7.
 - Retirement candidates are still live: `components/v2/*` (four files / 466 lines), `QuizStartCard`, `DeckCard`, `DeckLibrary`, `DeckListItem`, `DeckProgressCard`, `HeroPane`, `SectionHeader`, `SettingsPlate`, `SettingsRow`, `SettingsSection`, and `SettingsNote`. Task 13 must verify each with `rg` before deleting; do not treat the current list as an inventory of confirmed dead files.
-- `theme/v2.ts` is imported by eight app files — Statistics, Profile, Home, Discover ×2, Mass import, Advanced, and Dev — plus `HeroPane`, `TopAppBar`, and `components/v2/{DeckRow,FolderRow,TodayRail}`. It retires with the last of them.
+- `theme/v2.ts` is imported by seven app files — Profile, Home, Discover ×2, Mass import, Advanced, and Dev — plus `HeroPane`, `TopAppBar`, and `components/v2/{DeckRow,FolderRow,TodayRail}`. It retires with the last of them.
 
 ---
 
@@ -348,24 +347,24 @@ Each key is one `Pressable` ≥68px tall, `accessibilityRole="button"`, `accessi
 #### Task 6: Statistics in v3
 
 **Files:**
-- Modify: `app/statistics.tsx` (1,741 lines)
+- Modify: `app/statistics.tsx` (1,744 lines)
 - Test: `tests/e2e/statistics-visual.spec.ts` (6 baselines × 3 widths), `tests/e2e/data-truth.spec.ts`
 
 **Interfaces:**
 - Consumes `PageHeader`, `Surface`, `SectionHeading`, `ActionButton`, `EmptyState`, `DonutChart`, `TrendChart`, `MiniBarChart`, `MetricGrid`.
 - Preserves every `data/intelligence.ts` computation and the range selector values (`RANGE_OPTIONS`).
 
-**Status (2026-11-07):** partial — card shells are on `Surface`, but the scene hero, section grammar, empty-state action, and Playwright gate remain open.
+**Status (2026-11-08):** complete — one scene hero, `SectionHeading` sections, a scene empty state with the start action, and the Playwright gate. Left uncommitted for review.
 
-- [ ] Replace `HeroPane` with one `Surface tone="scene"`: eyebrow "Intelligence", status pill (`FSRS-6` / `Not enough data`), the page's one hero figure (recall % when `MIN_RECALL_SAMPLE` is met, otherwise the review count — label it explicitly), the range `SegmentedControl`, and a 3-cell ledger (reviews, streak, due). Remove the two stacked `GlassCard` fallbacks.
-- [ ] Replace every `SectionHeader` with `SectionHeading` (uppercase 12/600, count chip, no `mt-7` classes).
-- [ ] Convert every `GlassCard` to `Surface` (`pane` for chart cards, `inset` for nested tables/notes); delete `className="mt-3"` in favour of `v3.spacing.page`.
-- [ ] Keep all numbers tabular; ensure forecast/habits bars use `v3.rail` or token heights, not literals.
-- [ ] Empty state (`0` reviews): one scene pane explaining which sample is missing, with `ActionButton label="Start a session"`.
-- [ ] Run `npx tsc --noEmit`, `npm run check:design`, `npm test`, `npx playwright test tests/e2e/statistics-visual.spec.ts --update-snapshots`, then `tests/e2e/data-truth.spec.ts`.
+- [x] Replace `HeroPane` with one `Surface tone="scene"`: eyebrow "Intelligence", status pill (`FSRS-6` / `Not enough data`), the page's one hero figure (recall % when `MIN_RECALL_SAMPLE` is met, otherwise the review count — label it explicitly), the range `SegmentedControl`, and a 3-cell ledger (reviews, streak, due). Remove the two stacked `GlassCard` fallbacks.
+- [x] Replace every `SectionHeader` with `SectionHeading` (uppercase 12/600, count chip, no `mt-7` classes).
+- [x] Convert every `GlassCard` to `Surface` (`pane` for chart cards, `inset` for nested tables/notes); delete `className="mt-3"` in favour of `v3.spacing.page`.
+- [x] Keep all numbers tabular; ensure forecast/habits bars use `v3.rail` or token heights, not literals.
+- [x] Empty state (`0` reviews): one scene pane explaining which sample is missing, with `ActionButton label="Start a session"`.
+- [x] Run `npx tsc --noEmit`, `npm run check:design`, `npm test`, `npx playwright test tests/e2e/statistics-visual.spec.ts --update-snapshots`, then `tests/e2e/data-truth.spec.ts`.
 - [ ] Commit: `feat(statistics): v3 intelligence desk`.
 
-**Result (partial, 2026-11-07):** `app/statistics.tsx` is 1,741 lines. `StatsCard`/`EmptyRangeHero` now use `Surface`, and the header actions/share toast are v3. The page still uses a local `StatsSection` rather than `SectionHeading`, `OverviewHero`/`EmptyRangeHero` are `tone="pane"` accent panes rather than one `tone="scene"` hero, the zero-review state has no `ActionButton`, and `theme/v2` supplies spacing and type. `tsc`, `check:design`, and `build:web` passed before this audit; Playwright/axe remain blocked. Task 6 is not acceptance-complete.
+**Result (2026-11-08):** `app/statistics.tsx` is **1,744 lines** and no longer imports `theme/v2`. One `Surface tone="scene"` hero carries the range eyebrow, FSRS-6 / Not-enough-data pill, the page's one figure (recall when the sample clears `MIN_RECALL_SAMPLE`, otherwise the review count), the `SegmentedControl` ranges, a Reviews/Streak/Due ledger and the activity bars. Every section is `SectionHeading` through a thin `StatsSection`; the zero-review range is one scene pane explaining the missing sample, with `Start a session`. New `v3.rail` tokens own the activity, habit and forecast heights. `npx tsc --noEmit` **0** · `npm run check:design` **clean (97 files)** · `npm test` **161/161** · `npm run build:web` exported `dist/` · 18 `statistics-visual` baselines regenerated and verified · the 320/390 empty-state baselines regenerated · axe **0** · statistics data-truth **1/1** · 0 document overflow and 0 controls under 44px at 320/390/1280. The section baselines now align each heading to the top of the scroller, and the 320px habit/memory labels were shortened to fit. The macOS `visual.spec` baselines were not refreshed in this Linux workspace; the obsolete second empty-state snapshot was removed and Linux empty-state baselines were added.
 
 **Acceptance:** 18 statistics baselines regenerated and reviewed; every displayed number still matches the recomputed fixture; 320px has 0 document overflow; one scene pane; axe 0.
 

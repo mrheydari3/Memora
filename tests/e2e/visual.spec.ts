@@ -82,20 +82,15 @@ test.describe('changed surfaces', () => {
       await expect(page).toHaveScreenshot(`study-answer-${width}.png`);
     });
 
-    test(`statistics empty states at ${width}px`, async ({ page }) => {
+    test(`statistics empty state at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height });
       await page.goto('/statistics');
       await page.waitForSelector('[role="main"]');
       await page.waitForTimeout(700);
 
-      await expect(page.getByText('No reviews in the last 7 days.')).toBeVisible();
+      await expect(page.getByText(/No reviews in the last 30 days\./)).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Start a session' })).toBeVisible();
       await expect(page).toHaveScreenshot(`statistics-${width}.png`);
-
-      const upcoming = page.getByText('Nothing due in the next 7 days.');
-      await expect(upcoming).toBeAttached();
-      await upcoming.scrollIntoViewIfNeeded();
-      await page.waitForTimeout(300);
-      await expect(page).toHaveScreenshot(`statistics-empty-${width}.png`);
     });
   }
 });

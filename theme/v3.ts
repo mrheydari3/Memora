@@ -66,6 +66,18 @@ export const v3 = {
     hero: 6,
     /** A deck row's studied share. */
     deck: 4,
+    /** The Statistics activity chart's tallest bar. */
+    activity: 64,
+    /** Its 92px plot, including the value and label rows. */
+    activityPlot: 92,
+    /** The shortest visible activity bar. */
+    activityMin: 4,
+    /** A Study habits weekday cell. */
+    habit: 38,
+    /** The Next 7 days chart on a phone. */
+    forecast: 84,
+    /** …and on a wide canvas. */
+    forecastWide: 96,
   },
 
   heights: {

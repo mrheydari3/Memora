@@ -3,7 +3,6 @@ import type { ComponentProps } from 'react';
 import {
   Animated,
   Platform,
-  Pressable,
   Share,
   useWindowDimensions,
   View,
@@ -19,9 +18,16 @@ import {
   EmptyState,
   MiniBarChart,
   Screen,
+  SegmentedControl,
   StatisticsSkeleton,
 } from '../components';
-import { HeaderIcon, HeaderProfileButton, Surface } from '../components/v3';
+import {
+  ActionButton,
+  HeaderIcon,
+  HeaderProfileButton,
+  SectionHeading,
+  Surface,
+} from '../components/v3';
 import {
   alpha,
   colors,
@@ -29,12 +35,11 @@ import {
   heights,
   iconSize,
   motion,
-  over,
   radii,
   rims,
   stateColors,
 } from '../theme/tokens';
-import { v2 } from '../theme/v2';
+import { v3 } from '../theme/v3';
 import {
   buildIntelligence,
   MIN_RECALL_SAMPLE,
@@ -148,55 +153,17 @@ async function copyOrShare(text: string): Promise<'copied' | 'shared'> {
 
 type StatsSectionProps = {
   title: string;
-  icon?: IconName;
-  badge?: string;
+  count?: string;
   hint?: string;
   children: React.ReactNode;
   style?: ViewStyle | ViewStyle[];
 };
 
-function StatsSection({
-  title,
-  icon,
-  badge,
-  hint,
-  children,
-  style,
-}: StatsSectionProps) {
+function StatsSection({ title, count, hint, children, style }: StatsSectionProps) {
   return (
-    <View style={[{ marginTop: v2.spacing.section }, style]}>
-      <View
-        style={{
-          minHeight: 28,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 8,
-          marginBottom: 10,
-        }}
-      >
-        {icon ? <MaterialIcons name={icon} size={iconSize.md} color={colors.primary} /> : null}
-        <AppText
-          variant="headline"
-          weight="semibold"
-          headingLevel={2}
-          numberOfLines={1}
-          style={{ letterSpacing: -0.3, flexShrink: 1 }}
-        >
-          {title}
-        </AppText>
-        {badge ? <TinyPill label={badge} accent /> : null}
-        {hint ? (
-          <AppText
-            variant="caption"
-            tone="tertiary"
-            numberOfLines={1}
-            style={{ marginStart: 'auto', flexShrink: 1, textAlign: 'right' }}
-          >
-            {hint}
-          </AppText>
-        ) : null}
-      </View>
-      {children}
+    <View style={[{ marginTop: v3.spacing.page }, style]}>
+      <SectionHeading label={title} count={count} hint={hint} />
+      <View style={{ marginTop: 10 }}>{children}</View>
     </View>
   );
 }
@@ -372,60 +339,6 @@ function StatisticsHeader({
   );
 }
 
-function RangeTabs({
-  value,
-  onChange,
-}: {
-  value: number;
-  onChange: (days: number) => void;
-}) {
-  return (
-    <View
-      style={{
-        alignSelf: 'center',
-        flexDirection: 'row',
-        gap: 2,
-        padding: 4,
-        borderRadius: radii.pill,
-        borderWidth: 1,
-        borderColor: rims.soft,
-        backgroundColor: colors.surfacePane,
-      }}
-    >
-      {RANGE_OPTIONS.map((days) => {
-        const active = value === days;
-        return (
-          <Pressable
-            key={days}
-            onPress={() => onChange(days)}
-            accessibilityRole="button"
-            accessibilityLabel={`${days} days`}
-            accessibilityState={{ selected: active }}
-            style={({ pressed }) => ({
-              minWidth: 76,
-              minHeight: 44,
-              paddingHorizontal: 14,
-              borderRadius: radii.pill,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: active ? alpha(colors.primary, 0.14) : 'transparent',
-              opacity: pressed ? 0.72 : 1,
-            })}
-          >
-            <AppText
-              variant="bodySm"
-              weight={active ? 'semibold' : 'medium'}
-              tone={active ? 'accent' : 'muted'}
-            >
-              {days} days
-            </AppText>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
 type VolumeBar = {
   label: string;
   value: number;
@@ -471,7 +384,14 @@ function VolumeBars({ bars, total }: { bars: VolumeBar[]; total: number }) {
       accessibilityRole="img"
       accessibilityLabel={`${formatCount(total)} reviews across ${bars.length} intervals`}
     >
-      <View style={{ height: 92, flexDirection: 'row', alignItems: 'flex-end', gap: 6 }}>
+      <View
+        style={{
+          height: v3.rail.activityPlot,
+          flexDirection: 'row',
+          alignItems: 'flex-end',
+          gap: 6,
+        }}
+      >
         {bars.map((bar, index) => (
           <View
             key={`${bar.label}-${index}`}
@@ -493,7 +413,10 @@ function VolumeBars({ bars, total }: { bars: VolumeBar[]; total: number }) {
               style={{
                 width: '100%',
                 maxWidth: 40,
-                height: Math.max(4, Math.round((bar.value / max) * 64)),
+                height: Math.max(
+                  v3.rail.activityMin,
+                  Math.round((bar.value / max) * v3.rail.activity)
+                ),
                 borderRadius: 6,
                 backgroundColor: bar.highlight
                   ? colors.primaryContainer
@@ -520,96 +443,153 @@ function VolumeBars({ bars, total }: { bars: VolumeBar[]; total: number }) {
   );
 }
 
+function HeroRangeControl({
+  rangeDays,
+  onChange,
+}: {
+  rangeDays: number;
+  onChange: (days: number) => void;
+}) {
+  return (
+    <SegmentedControl
+      segments={RANGE_OPTIONS.map((days) => ({
+        key: String(days),
+        label: `${days} days`,
+        active: rangeDays === days,
+        onPress: () => onChange(days),
+      }))}
+    />
+  );
+}
+
+function HeroLedger({ report }: { report: IntelligenceReport }) {
+  const due = report.forecast.workload.overdue + report.forecast.workload.dueToday;
+  const cells: { label: string; value: string; ariaLabel?: string }[] = [
+    {
+      label: 'Reviews',
+      value: formatCount(report.overview.totalReviews),
+      ariaLabel: `${formatCount(report.overview.totalReviews)} reviews`,
+    },
+    { label: 'Streak', value: `${formatCount(report.overview.streak)}d` },
+    { label: 'Due', value: formatCount(due) },
+  ];
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        marginTop: 16,
+        paddingVertical: 12,
+        borderRadius: radii.control,
+        backgroundColor: fills.inset,
+      }}
+    >
+      {cells.map((cell, index) => (
+        <View
+          key={cell.label}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            paddingHorizontal: 8,
+            borderStartWidth: index === 0 ? 0 : 1,
+            borderStartColor: rims.soft,
+          }}
+        >
+          <AppText variant="caption" tone="muted" className="uppercase" numberOfLines={1}>
+            {cell.label}
+          </AppText>
+          <AppText
+            accessibilityLabel={cell.ariaLabel}
+            variant="title"
+            numberOfLines={1}
+            style={{ marginTop: 2, fontVariant: ['tabular-nums'] }}
+          >
+            {cell.value}
+          </AppText>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function OverviewHero({
   report,
   rangeDays,
+  wide,
+  onRangeChange,
 }: {
   report: IntelligenceReport;
   rangeDays: number;
+  wide: boolean;
+  onRangeChange: (days: number) => void;
 }) {
   const { overview, performance } = report;
   const bars = buildVolumeBars(performance.activity.points, rangeDays);
-  const activeDays = overview.activeDays;
-  const perActiveDay = activeDays > 0 ? overview.studyTimeMs / activeDays : 0;
-  const recall = performance.recall.successRate;
+  const recall = performance.recall;
+  const hasRecall = recall.successRate !== null;
+  const heroType = wide ? v3.type.heroWide : v3.type.hero;
 
   return (
-    <Surface
-      tone="pane"
-      radius="pane"
-      padding="md"
-      style={{
-        backgroundColor: over(colors.surfacePane, colors.primaryContainer, 0.16),
-        borderWidth: 1,
-        borderColor: alpha(colors.primary, 0.3),
-      }}
-    >
+    <Surface tone="scene" radius="pane" padding="md">
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <AppText
-            variant="caption"
-            weight="semibold"
-            tone="accent"
-            style={{ letterSpacing: 1.4, textTransform: 'uppercase' }}
-          >
-            {`${report.range.label} · intelligence`}
-          </AppText>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'flex-end',
-              gap: 8,
-              marginTop: 8,
-            }}
-          >
-            <AppText
-              variant="display"
-              weight="semibold"
-              accessibilityLabel={`${overview.totalReviews} reviews`}
-              style={{ letterSpacing: -2, fontVariant: ['tabular-nums'] }}
-            >
-              {formatCount(overview.totalReviews)}
-            </AppText>
-            <AppText variant="bodyLg" tone="muted" style={{ paddingBottom: 8 }}>
-              reviews
-            </AppText>
-          </View>
-        </View>
-        <TinyPill label={`${overview.deckCount} decks`} />
+        <AppText
+          variant="caption"
+          weight="semibold"
+          tone="accent"
+          className="uppercase"
+          style={{ flex: 1, letterSpacing: 1.4 }}
+        >
+          {`${report.range.label} · intelligence`}
+        </AppText>
+        <TinyPill label={hasRecall ? 'FSRS-6' : 'Not enough data'} accent={hasRecall} />
       </View>
 
       <View
         style={{
-          marginTop: 6,
           flexDirection: 'row',
-          alignItems: 'center',
+          alignItems: 'flex-end',
           flexWrap: 'wrap',
-          gap: 4,
+          columnGap: 8,
+          rowGap: 2,
+          marginTop: 8,
         }}
       >
-        <AppText variant="bodySm" tone="muted">
-          {`${activeDays} active day${activeDays === 1 ? '' : 's'} · ${formatDuration(
-            perActiveDay
-          )} / day · `}
-        </AppText>
         <AppText
-          variant="bodySm"
-          weight="semibold"
-          tone={recall === null ? 'muted' : 'success'}
+          accessibilityLabel={
+            hasRecall
+              ? `${pct1(recall.successRate)} successful recall`
+              : `${formatCount(overview.totalReviews)} reviews`
+          }
+          style={[heroType, { fontVariant: ['tabular-nums'] }]}
         >
-          {recall === null
-            ? `${performance.recall.sampleSize} rated so far`
-            : `${pct1(recall)} successful recall`}
+          {hasRecall ? pct1(recall.successRate) : formatCount(overview.totalReviews)}
+        </AppText>
+        <AppText variant="bodyLg" tone="muted" style={{ paddingBottom: 8 }}>
+          {hasRecall ? 'successful recall' : 'reviews'}
         </AppText>
       </View>
+
+      <AppText variant="bodySm" tone="muted" style={{ marginTop: 4 }}>
+        {hasRecall
+          ? `${formatCount(recall.sampleSize)} rated reviews · ${formatCount(
+              overview.deckCount
+            )} decks · ${formatCount(overview.activeDays)} active days · ${formatDuration(
+              overview.studyTimeMs
+            )} studied`
+          : `Recall appears after ${MIN_RECALL_SAMPLE} rated reviews — this range has ${recall.sampleSize}.`}
+      </AppText>
+
+      <View style={{ marginTop: 16 }}>
+        <HeroRangeControl rangeDays={rangeDays} onChange={onRangeChange} />
+      </View>
+
+      <HeroLedger report={report} />
 
       <View
         style={{
           marginTop: 16,
           padding: 12,
           borderRadius: radii.control,
-          borderWidth: 1,
-          borderColor: rims.soft,
           backgroundColor: fills.inset,
         }}
       >
@@ -619,76 +599,74 @@ function OverviewHero({
   );
 }
 
-function EmptyRangeHero({
+function EmptyRangeScene({
   report,
   rangeDays,
+  wide,
+  onRangeChange,
+  onStart,
 }: {
   report: IntelligenceReport;
   rangeDays: number;
+  wide: boolean;
+  onRangeChange: (days: number) => void;
+  onStart: () => void;
 }) {
+  const heroType = wide ? v3.type.heroWide : v3.type.hero;
+
   return (
-    <Surface
-      tone="pane"
-      radius="pane"
-      padding="md"
-      style={{
-        marginTop: 20,
-        backgroundColor: over(colors.surfacePane, colors.primaryContainer, 0.16),
-        borderWidth: 1,
-        borderColor: alpha(colors.primary, 0.3),
-      }}
-    >
+    <Surface tone="scene" radius="pane" padding="md" style={{ marginTop: 16 }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <AppText
-            variant="caption"
-            weight="semibold"
-            tone="accent"
-            style={{ letterSpacing: 1.4, textTransform: 'uppercase' }}
-          >
-            {`${report.range.label} · no reviews`}
-          </AppText>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'flex-end',
-              gap: 8,
-              marginTop: 8,
-            }}
-          >
-            <AppText
-              variant="display"
-              weight="semibold"
-              accessibilityLabel="0 reviews"
-              style={{ letterSpacing: -2, fontVariant: ['tabular-nums'] }}
-            >
-              0
-            </AppText>
-            <AppText variant="bodyLg" tone="muted" style={{ paddingBottom: 8 }}>
-              reviews
-            </AppText>
-          </View>
-        </View>
-        <TinyPill label={`${report.overview.deckCount} decks`} />
+        <AppText
+          variant="caption"
+          weight="semibold"
+          tone="accent"
+          className="uppercase"
+          style={{ flex: 1, letterSpacing: 1.4 }}
+        >
+          {`${report.range.label} · no reviews`}
+        </AppText>
+        <TinyPill label="Not enough data" />
       </View>
-      <AppText variant="bodySm" tone="muted" style={{ marginTop: 6 }}>
-        {`No reviews in the last ${rangeDays} days.`}
-      </AppText>
+
       <View
         style={{
-          marginTop: 16,
-          padding: 12,
-          borderRadius: radii.control,
-          borderWidth: 1,
-          borderColor: rims.soft,
-          backgroundColor: fills.inset,
+          flexDirection: 'row',
+          alignItems: 'flex-end',
+          gap: 8,
+          marginTop: 8,
         }}
       >
-        <AppText variant="caption" tone="tertiary">
-          Study a few cards and this page will report recall, memory and workload from
-          your own review log.
+        <AppText
+          accessibilityLabel="0 reviews"
+          style={[heroType, { fontVariant: ['tabular-nums'] }]}
+        >
+          0
+        </AppText>
+        <AppText variant="bodyLg" tone="muted" style={{ paddingBottom: 8 }}>
+          reviews
         </AppText>
       </View>
+
+      <AppText variant="bodySm" tone="muted" style={{ marginTop: 4 }}>
+        {`No reviews in the last ${rangeDays} days. Recall needs ${MIN_RECALL_SAMPLE} rated reviews, and memory and workload need review history in this range; a longer range may already contain it.`}
+      </AppText>
+
+      <View style={{ marginTop: 16 }}>
+        <HeroRangeControl rangeDays={rangeDays} onChange={onRangeChange} />
+      </View>
+
+      <View style={{ marginTop: 20 }}>
+        <ActionButton label="Start a session" icon="play-arrow" onPress={onStart} />
+      </View>
+
+      {report.coverage.archivedDecks > 0 ? (
+        <AppText variant="caption" tone="tertiary" style={{ marginTop: 12 }}>
+          {`${report.coverage.archivedDecks} archived deck${
+            report.coverage.archivedDecks === 1 ? ' is' : 's are'
+          } excluded from this analysis.`}
+        </AppText>
+      ) : null}
     </Surface>
   );
 }
@@ -780,7 +758,7 @@ function RecallCard({ report }: { report: IntelligenceReport }) {
           <AppText
             variant="display"
             weight="bold"
-            style={[v2.type.stat, { letterSpacing: -0.8, fontVariant: ['tabular-nums'] }]}
+            style={[v3.type.stat, { letterSpacing: -0.8, fontVariant: ['tabular-nums'] }]}
           >
             {pct1(recall.successRate)}
           </AppText>
@@ -1068,27 +1046,31 @@ function MemoryCard({
         }}
       >
         <MemorySubMetric
-          label={narrow ? 'Predicted' : 'Predicted library'}
+          label="Predicted"
           value={pct1(memory.retention.meanRetrievability)}
           note="Now"
           color={colors.success}
         />
         <MemorySubMetric
           divider
-          label="Below target"
+          label={narrow ? 'At risk' : 'Below target'}
           value={formatCount(memory.retention.atRisk)}
-          note={`target ${pct1(memory.retention.threshold)}`}
+          note={
+            narrow
+              ? pct1(memory.retention.threshold)
+              : `target ${pct1(memory.retention.threshold)}`
+          }
           color={memory.retention.atRisk > 0 ? colors.warning : colors.onSurface}
         />
         <MemorySubMetric
           divider
-          label={narrow ? 'Stability' : 'Stability median'}
+          label="Stability"
           value={
             memory.stability.median === null
               ? '—'
               : `${num(memory.stability.median)}d`
           }
-          note="Half-life span"
+          note={narrow ? 'Half-life' : 'Half-life span'}
           color={colors.primary}
         />
       </View>
@@ -1133,10 +1115,14 @@ function StudyHabitsCard({
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
-            {streak > 0 ? `${streak}-day active streak` : 'No active streak'}
+            {streak > 0
+              ? `${streak}-day ${narrow ? 'streak' : 'active streak'}`
+              : narrow
+                ? 'No streak'
+                : 'No active streak'}
           </AppText>
           <AppText variant="caption" tone="muted" numberOfLines={1}>
-            Current cadence
+            {narrow ? 'Cadence' : 'Current cadence'}
           </AppText>
         </View>
         <View style={{ alignItems: 'flex-end', maxWidth: narrow ? 92 : 130 }}>
@@ -1149,7 +1135,7 @@ function StudyHabitsCard({
             {bestHour}
           </AppText>
           <AppText variant="caption" tone="muted" numberOfLines={1}>
-            Peak study hour
+            {narrow ? 'Peak hour' : 'Peak study hour'}
           </AppText>
         </View>
       </View>
@@ -1168,7 +1154,7 @@ function StudyHabitsCard({
                 } reviews`}
                 style={{
                   width: '100%',
-                  height: 38,
+                  height: v3.rail.habit,
                   borderRadius: 10,
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1201,7 +1187,11 @@ function StudyHabitsCard({
         })}
       </View>
 
-      <AppText variant="caption" tone="muted" style={{ marginTop: 12 }}>
+      <AppText
+        variant="caption"
+        tone="muted"
+        style={{ marginTop: 12, fontVariant: ['tabular-nums'] }}
+      >
         {`${report.performance.volume.activeDays} of ${report.range.days} days active · today starred.`}
       </AppText>
     </StatsCard>
@@ -1258,10 +1248,18 @@ function DeckCard({ deck }: { deck: DeckIntelligence }) {
               marginTop: 4,
             }}
           >
-            <AppText variant="caption" tone="muted">
+            <AppText
+              variant="caption"
+              tone="muted"
+              style={{ fontVariant: ['tabular-nums'] }}
+            >
               {`${formatCount(deck.reviews)} reviews · `}
             </AppText>
-            <AppText variant="caption" weight="medium" style={{ color: statusColor }}>
+            <AppText
+              variant="caption"
+              weight="medium"
+              style={{ color: statusColor, fontVariant: ['tabular-nums'] }}
+            >
               {status}
             </AppText>
           </View>
@@ -1303,7 +1301,7 @@ function ForecastCard({
     <StatsCard>
       <MiniBarChart
         data={daily}
-        height={narrow ? 84 : 96}
+        height={narrow ? v3.rail.forecast : v3.rail.forecastWide}
         showValues
         emptyLabel="Nothing scheduled in the next 7 days."
       />
@@ -1428,11 +1426,19 @@ function ReportsCard({ report }: { report: IntelligenceReport }) {
             <AppText variant="bodySm" weight="semibold">
               {period.label}
             </AppText>
-            <AppText variant="bodySm" tone="muted">
+            <AppText
+              variant="bodySm"
+              tone="muted"
+              style={{ fontVariant: ['tabular-nums'] }}
+            >
               {`${formatCount(period.reviews)} reviews`}
             </AppText>
           </View>
-          <AppText variant="caption" tone="muted" style={{ marginTop: 2 }}>
+          <AppText
+            variant="caption"
+            tone="muted"
+            style={{ marginTop: 2, fontVariant: ['tabular-nums'] }}
+          >
             {`${period.activeDays} active day${period.activeDays === 1 ? '' : 's'} · ${formatDuration(
               period.studyTimeMs
             )} · ${
@@ -1442,7 +1448,11 @@ function ReportsCard({ report }: { report: IntelligenceReport }) {
             }`}
           </AppText>
           {period.topDeck ? (
-            <AppText variant="caption" tone="tertiary" style={{ marginTop: 2 }}>
+            <AppText
+              variant="caption"
+              tone="tertiary"
+              style={{ marginTop: 2, fontVariant: ['tabular-nums'] }}
+            >
               {`Top deck: ${period.topDeck.name} (${period.topDeck.reviews})`}
             </AppText>
           ) : null}
@@ -1455,6 +1465,7 @@ function ReportsCard({ report }: { report: IntelligenceReport }) {
 export default function StatisticsScreen() {
   const { width } = useWindowDimensions();
   const narrow = width < 380;
+  const wide = width >= 900;
   const router = useRouter();
   const decks = useDeckStore((state) => state.decks);
   const cardsByDeck = useDeckStore((state) => state.cardsByDeck);
@@ -1584,29 +1595,21 @@ export default function StatisticsScreen() {
           />
         </StatsCard>
       ) : report.performance.status === 'empty' ? (
-        <>
-          <RangeTabs value={rangeDays} onChange={setRangeDays} />
-          <EmptyRangeHero report={report} rangeDays={rangeDays} />
-          <StatsCard style={{ marginTop: 16 }}>
-            <EmptyState
-              icon="insights"
-              title="No reviews in this range"
-              description="Study a few cards and this page will report recall, memory, workload and trends from your own review log. A longer range may already contain history."
-              titleVariant="headline"
-            />
-          </StatsCard>
-          {report.coverage.archivedDecks > 0 ? (
-            <AppText variant="caption" tone="tertiary" style={{ marginTop: 12 }}>
-              {`${report.coverage.archivedDecks} archived deck${
-                report.coverage.archivedDecks === 1 ? ' is' : 's are'
-              } excluded from this analysis.`}
-            </AppText>
-          ) : null}
-        </>
+        <EmptyRangeScene
+          report={report}
+          rangeDays={rangeDays}
+          wide={wide}
+          onRangeChange={setRangeDays}
+          onStart={() => pushOnce(router, '/library')}
+        />
       ) : (
         <>
-          <RangeTabs value={rangeDays} onChange={setRangeDays} />
-          <OverviewHero report={report} rangeDays={rangeDays} />
+          <OverviewHero
+            report={report}
+            rangeDays={rangeDays}
+            wide={wide}
+            onRangeChange={setRangeDays}
+          />
 
           <StatsSection
             title="Recall performance"
@@ -1620,7 +1623,7 @@ export default function StatisticsScreen() {
           </StatsSection>
 
           {report.memory.coverage.fsrsCards > 0 ? (
-            <StatsSection title="Memory" badge="FSRS-6">
+            <StatsSection title="Memory" count="FSRS-6">
               <MemoryCard report={report} narrow={narrow} />
             </StatsSection>
           ) : null}
@@ -1651,7 +1654,7 @@ export default function StatisticsScreen() {
             <ForecastCard report={report} narrow={narrow} />
           </StatsSection>
 
-          <StatsSection title="What stands out" icon="lightbulb-outline">
+          <StatsSection title="What stands out">
             {report.insights.status === 'ok' && standoutItems.length > 0 ? (
               <View style={{ gap: 10 }}>
                 {standoutItems.map((item) => (

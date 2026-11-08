@@ -353,7 +353,9 @@ test.describe('Phase 7 — data truth', () => {
     await page.goto('/statistics');
     await settle(page);
     await expect(page.locator(`[aria-label="${inRange.length} reviews"]`)).toBeVisible();
-    await expect(page.getByText('5 decks', { exact: true }).first()).toBeVisible();
+    await expect(
+      page.getByText(`${activeDecks(store).length} decks`, { exact: false }).first()
+    ).toBeVisible();
   });
 
   test('study: the header denominator is exactly the queue total', async ({ page }) => {

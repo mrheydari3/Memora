@@ -87,7 +87,10 @@ test.describe('statistics populated', () => {
 
       for (const section of SECTIONS) {
         if (section.anchor) {
-          await page.getByText(section.anchor, { exact: true }).first().scrollIntoViewIfNeeded();
+          await page
+            .getByText(section.anchor, { exact: true })
+            .first()
+            .evaluate((element) => element.scrollIntoView({ block: 'start' }));
           await page.clock.runFor(700);
         }
 
