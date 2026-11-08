@@ -25,6 +25,8 @@ const ROUTES = [
   { label: 'tts', path: '/settings/tts' },
   { label: 'offline', path: '/settings/offline' },
   { label: 'import', path: '/mass-import' },
+  { label: 'discover', path: '/discover' },
+  { label: 'discover-preview', path: '/discover/discover-french-basics' },
   { label: 'dev', path: '/dev' },
   { label: 'add-deck', path: '/add-deck' },
   { label: 'profile', path: '/profile' },

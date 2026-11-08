@@ -4,7 +4,7 @@
     "name": "French Basics",
     "icon": "language",
     "color": "#9DCAFF",
-    "cardCount": 120,
+    "cardCount": 4,
     "rating": 4.7,
     "description": "Essential French vocabulary and phrases for absolute beginners.",
     "sampleCards": [
@@ -23,7 +23,7 @@
     "name": "Spanish Verbs",
     "icon": "translate",
     "color": "#FFD54F",
-    "cardCount": 85,
+    "cardCount": 4,
     "rating": 4.5,
     "description": "The most common Spanish verbs with conjugations and examples.",
     "sampleCards": [
@@ -42,7 +42,7 @@
     "name": "Japanese Kana",
     "icon": "translate",
     "color": "#E57373",
-    "cardCount": 92,
+    "cardCount": 4,
     "rating": 4.9,
     "description": "Hiragana and Katakana characters with stroke order.",
     "sampleCards": [
@@ -61,7 +61,7 @@
     "name": "Medical Terms",
     "icon": "medical-services",
     "color": "#81C784",
-    "cardCount": 200,
+    "cardCount": 4,
     "rating": 4.8,
     "description": "Essential medical terminology for healthcare students.",
     "sampleCards": [

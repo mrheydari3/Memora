@@ -62,15 +62,13 @@ These are the inputs the design pass is most likely to break; each is pinned by 
 
 ### Partially converted
 
-None. Tasks 7 and 8 completed Profile and the Advanced, Import and Dev settings surfaces; every remaining surface is listed below.
+None. Tasks 7–9 completed Profile, the Advanced/Import/Dev settings surfaces and Discover; every remaining surface is listed below.
 
 ### Still on v1/v2 grammar
 
 | Surface | Size | Current imports | Specific gap |
 | --- | --- | --- | --- |
 | Quiz (`app/quiz/[deckId].tsx`) | 1,311 lines | `v2`, `GlassCard` | 156px timer ring, glass scoreboard, v2 result type; answer pads and Play again converted |
-| Discover index (`app/discover/index.tsx`) | 123 lines | `GlassCard`, `ListRow`, `SectionHeading`, `v2` | catalogue rows still v2; `SectionHeading` conversion started; task 9 remains open |
-| Discover preview (`app/discover/[id].tsx`) | 177 lines | `SectionHeading`, `v2` | v1 preview, inline colour, 18/22/30 spacing |
 | Add deck (`app/add-deck.tsx`) | 211 lines | base `BottomSheetModal` only | sheet is v1; no v3 header/handle/body rhythm |
 | 404 (`app/+not-found.tsx`) | 37 lines | base `EmptyState` | no v3 scene pane/action pill |
 | Shell | — | `AppSplash`, `Skeleton.tsx`, `LiquidTabBar` | splash/skeletons still sized to v2 surfaces; dock needs a v3 audit |
@@ -79,9 +77,9 @@ None. Tasks 7 and 8 completed Profile and the Advanced, Import and Dev settings 
 
 - `node_modules` is installed in this workspace, so the planned baseline has been run: `npx tsc --noEmit` is clean, `npm test` is 161/161, `npm run test:surfaces` covers 83 surfaces, `npm run test:fixtures` is 14/14, and `npm run build:web` exports `dist/`. Playwright launches here with the browser dependencies staged under `.playwright-deps/`; the Study visual, axe and keyboard gates were measured in Task 4, and the remaining suites are run per task.
 - `npm run check:design` → clean (97 files).
-- The planning-time `skills/design-drift-audit` scan reported 9 off-grid spacing values, 4 literal font sizes, 4 `Screen` shells without standard switches, 1 direct `Animated.timing` in `app/(tabs)/library.tsx:44`, and 179 deliberate micro-spacings. These are Phase 0/1 clean-up, not a redesign, and this list has not been re-measured after Tasks 1–8.
+- The planning-time `skills/design-drift-audit` scan reported 9 off-grid spacing values, 4 literal font sizes, 4 `Screen` shells without standard switches, 1 direct `Animated.timing` in `app/(tabs)/library.tsx:44`, and 179 deliberate micro-spacings. These are Phase 0/1 clean-up, not a redesign, and this list has not been re-measured after Tasks 1–9.
 - Retirement candidates are still live: `components/v2/*` (four files / 466 lines), `QuizStartCard`, `DeckCard`, `DeckLibrary`, `DeckListItem`, `DeckProgressCard`, `HeroPane`, `SectionHeader`, `SettingsPlate`, `SettingsRow`, `SettingsSection`, and `SettingsNote`. Task 13 must verify each with `rg` before deleting; do not treat the current list as an inventory of confirmed dead files.
-- `theme/v2.ts` is imported by three app files — Home and Discover ×2 — plus `HeroPane`, `TopAppBar`, and `components/v2/{DeckRow,FolderRow,TodayRail}`. It retires with the last of them.
+- `theme/v2.ts` is imported by one app file — Home — plus `HeroPane`, `TopAppBar`, and `components/v2/{DeckRow,FolderRow,TodayRail}`. It retires with the last of them.
 
 ---
 
@@ -416,19 +414,23 @@ Each key is one `Pressable` ≥68px tall, `accessibilityRole="button"`, `accessi
 #### Task 9: Discover index and preview in v3
 
 **Files:**
-- Modify: `app/discover/index.tsx` (123), `app/discover/[id].tsx` (177), `data/starterDecks.json` (only the false `cardCount` values)
+- Modify: `app/discover/index.tsx` (294), `app/discover/[id].tsx` (385), `data/starterDecks.json` (the four false `cardCount` values)
 - Test: `tests/e2e/flows.spec.ts` (import flow), `tests/e2e/a11y.spec.ts`
 
 **Interfaces:**
-- Consumes `PageHeader`, `Surface`, `SectionHeading`, `ActionButton`, `ListRow`-equivalent v3 inset lines, `EmptyState`.
+- Consumes `PageHeader`, `Surface`, `SectionHeading`, `ActionButton`, v3 inset catalogue rows, `EmptyState`.
 - Keeps `services/discovery.ts` (`fetchFeaturedDecks`, `importDeck`) untouched.
 
-- [ ] Index: 64px back header "Discover", one scene hero ("Starter decks" + count + one sentence), then one pane of catalogue rows: name, level/language, and **the number of cards that will actually import** (`sampleCards.length`), never the advertised `cardCount` (P11).
-- [ ] Preview: scene hero with the deck name, description, sample count and level; a pane of sample cards (front → back, inset rows, RTL respected); a fixed footer `ActionButton label="Add to library"` with importing/disabled state and an inline error.
-- [ ] Correct or remove `cardCount` in `data/starterDecks.json` so no surface can show a number that the import does not create.
-- [ ] Loading: `SkeletonRow`/`Skeleton` matched to the new row/hero dimensions; error: scene pane with Retry.
-- [ ] Run `npx tsc --noEmit`, `npm run check:design`, `npx playwright test tests/e2e/flows.spec.ts`, screenshot index + preview at 320/1280.
-- [ ] Commit: `feat(discover): v3 catalogue and honest sample counts`.
+**Status (2026-11-08):** complete — both Discover routes use the v3 hero/row grammar, every visible count is the four-card import, and the import flow persists exactly four cards. Left uncommitted for review.
+
+- [x] Index: 64px back header "Discover", one scene hero ("Starter decks" + count + one sentence), then one pane of catalogue rows: name, level/language, and **the number of cards that will actually import** (`sampleCards.length`), never the advertised `cardCount` (P11).
+- [x] Preview: scene hero with the deck name, description, sample count and level; a pane of sample cards (front → back, inset rows, RTL respected); a fixed footer `ActionButton label="Add to library"` with importing/disabled state and an inline error.
+- [x] Correct or remove `cardCount` in `data/starterDecks.json` so no surface can show a number that the import does not create.
+- [x] Loading: `SkeletonRow`/`Skeleton` matched to the new row/hero dimensions; error: scene pane with Retry.
+- [x] Run `npx tsc --noEmit`, `npm run check:design`, `npx playwright test tests/e2e/flows.spec.ts`, screenshot index + preview at 320/1280.
+- [ ] Commit: `feat(discover): v3 catalogue and honest sample counts` — left uncommitted for review.
+
+**Result (complete, 2026-11-08):** `app/discover/index.tsx` is **294 lines** and `app/discover/[id].tsx` **385**. The index opens with one `Discover` scene hero (`4 decks`, one sentence) above a catalogue pane; each row carries the deck colour/icon, its description and `4 cards · preview` under the copy, so names stay readable at 320. The preview has a scene hero with `4 cards`, Level/Source/Import, four front → back sample rows with `textDirection`, and a fixed `Add to library` footer; loading uses the new row/hero dimensions and both routes have scene-pane Retry/Back states. `data/starterDecks.json` now says `cardCount: 4` on all four decks, matching `sampleCards.length`; a real import persisted a French Basics deck with exactly **4 cards**. `npx tsc --noEmit` **0** · `npm run check:design` **clean (97 files)** · `npm run build:web` exported `dist/` · Discover import flow **1/1** · Discover index/preview axe **2/2** · 0 document overflow and 0 controls under 44px at 320/390/1280; the fixed footer kept the same viewport position after scrolling. Screenshots: `qa/discover-v3-{320,390,1280}.png` and `qa/discover-preview-v3-{320,390,1280}.png`. The full flow file timed out after **29/45** tests (24 passed, 5 unrelated folder/navigation failures, 16 not run); the Discover test in that run passed. App `theme/v2` importers are down from three to one (Home).
 
 **Acceptance:** `/discover` is reachable from Home and lists all four starter decks; preview → Add imports exactly the advertised number; 0 overflow; axe 0.
 

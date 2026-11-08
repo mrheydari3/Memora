@@ -854,12 +854,28 @@ test.describe('Phase 5 — behaviour', () => {
   test('discover: import a starter deck and find it on Home after reload', async ({ page }) => {
     await go(page, '/discover');
     await expect(page.getByRole('heading', { name: 'Starter decks' })).toBeVisible();
-    await page.getByRole('button', { name: /French Basics/ }).first().click();
+    const french = page.getByRole('button', { name: /French Basics/ }).first();
+    await expect(french).toContainText('4 cards');
+    await french.click();
     await expect(page).toHaveURL(/\/discover\/discover-french-basics$/);
+    await expect(
+      page.getByTestId('discover-preview-hero').getByText('4 cards', { exact: true })
+    ).toBeVisible();
 
-    await page.getByRole('button', { name: 'Add deck' }).click();
+    await page.getByRole('button', { name: 'Add to library' }).click();
     await expect(page).toHaveURL(/\/deck\/deck-\d+$/);
     await expect(page.getByRole('heading', { name: 'French Basics' })).toBeVisible();
+
+    type ImportedDeck = { id: string; name: string };
+    const importedDecks = await readStorage<ImportedDeck[]>(page, STORAGE_KEYS.decks, []);
+    const imported = importedDecks.find((candidate) => candidate.name === 'French Basics');
+    expect(imported).toBeDefined();
+    const importedCards = await readStorage<Record<string, unknown[]>>(
+      page,
+      STORAGE_KEYS.allCards,
+      {}
+    );
+    expect(importedCards[imported!.id]).toHaveLength(4);
 
     await go(page, '/home');
     await expect(page.getByTestId('deck-row').filter({ hasText: 'French Basics' })).toBeVisible();
