@@ -63,6 +63,8 @@ function ModeSwitch({ mode, onChange }: ModeSwitchProps) {
 
   return (
     <View
+      role="tablist"
+      aria-label="Quiz direction"
       style={{
         backgroundColor: colors.surfaceControl,
         borderRadius: 12,
@@ -105,7 +107,7 @@ function ModeSwitch({ mode, onChange }: ModeSwitchProps) {
             accessibilityState={{ selected: active }}
             style={{
               flex: 1,
-              minHeight: 36,
+              minHeight: 44,
               paddingVertical: 8,
               paddingHorizontal: 12,
               alignItems: 'center',
@@ -160,6 +162,7 @@ function GameDeckRow({
         onPressOut={press.onPressOut}
         accessibilityRole="radio"
         accessibilityState={{ checked: selected }}
+        aria-checked={selected}
         accessibilityLabel={`${deck.name}, ${meta}${bestScore ? `, best ${formatCount(bestScore)}` : ''}`}
         style={{
           minHeight: 64,
