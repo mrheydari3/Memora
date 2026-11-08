@@ -240,6 +240,7 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
   // type from the package root, and only the web keyboard code reads them.
   const barRef = useRef<unknown>(null);
   const tabRefs = useRef<unknown[]>([]);
+  const keyboardFocusIndex = useRef<number | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
 
   const dragging = useRef(false);
@@ -377,14 +378,37 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
       const route = routesRef.current[next];
       if (!route) return;
 
+      keyboardFocusIndex.current = next;
       navigateRef.current(route.key);
-      const target = tabRefs.current[next] as HTMLElement | null;
-      target?.focus?.();
     };
 
     node.addEventListener('keydown', onKeyDown);
     return () => node.removeEventListener('keydown', onKeyDown);
   }, []);
+
+  // The route change remounts the row, so focus the destination only after the
+  // navigator commits the new selected index; focusing inside the key event
+  // targets the outgoing node and the browser drops it.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const next = keyboardFocusIndex.current;
+    if (next === null || state.index !== next) return;
+
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => {
+        if (keyboardFocusIndex.current !== next) return;
+        keyboardFocusIndex.current = null;
+        const target = tabRefs.current[next] as HTMLElement | null;
+        target?.focus?.();
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(first);
+      if (second) cancelAnimationFrame(second);
+    };
+  }, [state.index]);
 
   // Preserve the old bar's "hide on keyboard" behaviour on native.
   useEffect(() => {

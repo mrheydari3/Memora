@@ -1,7 +1,7 @@
 /**
  * Phase 4 node census.
  *
- *   npm run census:dry        # no browser: prove all 83 rows resolve
+ *   npm run census:dry        # no browser: prove all 84 rows resolve
  *   npm run census            # walk every surface in Chromium
  *   npm run census -- --surface=HM-08
  *   npm run census -- --strict

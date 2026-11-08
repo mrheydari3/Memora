@@ -1,5 +1,5 @@
 /**
- * Bottom tab bar + list page verification on the running web app.
+ * Four-tab bottom bar + Home page verification on the running web app.
  *
  *   node scripts/verify-tab-bar.mjs
  *
@@ -14,6 +14,10 @@ import { mkdirSync } from 'node:fs';
 const BASE = process.env.BASE_URL ?? 'http://localhost:8082';
 const OUT = 'screenshots/audit';
 const GUTTER = 12;
+const TAB_LABELS = ['Home', 'Game', 'Profile', 'Settings'];
+const tabsInOrder = (tabs) =>
+  tabs.length === TAB_LABELS.length &&
+  tabs.every((tab, index) => tab.name === TAB_LABELS[index]);
 
 const results = [];
 const check = (name, ok, detail = '') => {
@@ -133,13 +137,13 @@ function contrast() {
   return out;
 }
 
-const openPage = async (width, height, base = {}) => {
-  const context = await browser.newContext({ viewport: { width, height }, colorScheme: 'dark', ...base });
+const openPage = async (width, height, path = '/home') => {
+  const context = await browser.newContext({ viewport: { width, height }, colorScheme: 'dark' });
   const page = await context.newPage();
   const errors = [];
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text().slice(0, 120)));
   page.on('pageerror', (e) => errors.push(String(e).slice(0, 120)));
-  await page.goto(`${BASE}/home`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('[role="main"]');
   await page.waitForTimeout(1800);
   return { context, page, errors };
@@ -157,6 +161,12 @@ for (const { w, h } of [
   const colors = await page.evaluate(contrast);
 
   check(`${w}px: bar clears the bottom edge`, state.barGap === GUTTER, `${state.barGap}px (want ${GUTTER})`);
+  check(
+    `${w}px: exactly four tabs in order`,
+    tabsInOrder(state.tabs),
+    state.tabs.map((t) => t.name).join(' → ')
+  );
+  check(`${w}px: Home is selected`, state.selected?.name === 'Home', state.selected?.name ?? 'none');
   check(
     `${w}px: lens sits on the selected tab`,
     !!state.lens && !!state.selected && Math.abs(state.lens.x - (state.selected.box.x + 3)) <= 2 &&
@@ -185,6 +195,21 @@ for (const { w, h } of [
   await context.close();
 }
 
+// ── 1b. Profile is the third slot; Statistics is not a tab ─────────────────
+{
+  const { context, page, errors } = await openPage(390, 844, '/profile');
+  const state = await page.evaluate(audit);
+  check('390px /profile: exactly four tabs in order', tabsInOrder(state.tabs), state.tabs.map((t) => t.name).join(' → '));
+  check('390px /profile: Profile tab is selected', state.selected?.name === 'Profile', state.selected?.name ?? 'none');
+  check(
+    '390px /profile: Statistics is not a tab',
+    !state.tabs.some((tab) => tab.name === 'Statistics'),
+    state.tabs.map((t) => t.name).join(' · ')
+  );
+  check('390px /profile: console clean', errors.length === 0, errors.join(' ; '));
+  await context.close();
+}
+
 // ── 2. RTL: the lens must follow the mirrored row ──────────────────────────
 {
   const { context, page } = await openPage(390, 844);
@@ -193,6 +218,7 @@ for (const { w, h } of [
   const rtl = await page.evaluate(audit);
   const mirrored = rtl.dir === 'rtl' && rtl.tabs[0].box.x > rtl.tabs[rtl.tabs.length - 1].box.x;
   check('RTL: the row mirrors', mirrored, rtl.tabs.map((t) => `${t.name}@${t.box.x}`).join(' '));
+  check('RTL: the four tabs keep their order', tabsInOrder(rtl.tabs), rtl.tabs.map((t) => t.name).join(' → '));
   check(
     'RTL: lens stays on the selected tab',
     !!rtl.lens && !!rtl.selected && Math.abs(rtl.lens.x - (rtl.selected.box.x + 3)) <= 2,
@@ -211,6 +237,7 @@ for (const { w, h } of [
   });
   await page.waitForTimeout(700);
   const zoom = await page.evaluate(audit);
+  check('200% text: four tabs stay in order', tabsInOrder(zoom.tabs), zoom.tabs.map((t) => t.name).join(' → '));
   check(
     '200% text: no caption is clipped',
     zoom.tabs.every((t) => t.caption && t.captionClip === 0),
@@ -247,7 +274,10 @@ for (const { w, h } of [
   await context.close();
 }
 
-// ── 5. 200% text: the hero deck title must stay whole ─────────────────────
+// ── 5. 200% text: the Today hero must stay readable and inside the page ────
+// v3 deliberately ellipsizes the single-line "Next up · deck" row, so this
+// check targets the due figure and the hero/page boxes rather than asserting
+// that a designed truncation is whole.
 for (const { w, h } of [
   { w: 320, h: 700 },
   { w: 390, h: 844 },
@@ -261,28 +291,30 @@ for (const { w, h } of [
   await page.waitForTimeout(700);
 
   const hero = await page.evaluate(() => {
-    const upNext = [...document.querySelectorAll('div')].find(
-      (el) => el.children.length === 0 && /^up next$/i.test((el.textContent ?? '').trim())
+    const due = [...document.querySelectorAll('[aria-label]')].find((el) =>
+      /^\d+ cards due today$/.test(el.getAttribute('aria-label') ?? '')
     );
-    const card = upNext ? upNext.closest('[class*="overflow"]') : null;
-    const title = card ? card.querySelector('[role="heading"]') : null;
-    if (!title || !card) return null;
-    const style = getComputedStyle(title);
+    const card = document.querySelector('[data-testid="today-panel"]');
+    if (!due || !card) return null;
+    const style = getComputedStyle(due);
+    const pane = card.getBoundingClientRect();
+    const clipped =
+      (style.overflowX !== 'visible' || style.overflowY !== 'visible') &&
+      (due.scrollHeight - due.clientHeight > 1 || due.scrollWidth - due.clientWidth > 1);
     return {
-      text: (title.textContent ?? '').trim(),
-      clipped: title.scrollHeight - title.clientHeight > 1 || title.scrollWidth - title.clientWidth > 1,
-      clamp: style.webkitLineClamp,
-      cardOverflowX: card.scrollWidth - card.clientWidth,
+      text: (due.textContent ?? '').trim(),
+      clipped,
+      paneFits: pane.left >= 0 && pane.right <= window.innerWidth,
       pageOverflowX: document.documentElement.scrollWidth - window.innerWidth,
     };
   });
 
   check(
-    `${w}px @200%: deck title is complete, not ellipsized`,
-    !!hero && hero.clipped === false && hero.clamp === 'none' && hero.text.length > 0,
-    hero ? `clamp ${hero.clamp} · clipped ${hero.clipped} · "${hero.text}"` : 'no hero title'
+    `${w}px @200%: hero due figure is complete`,
+    !!hero && hero.clipped === false && hero.text.length > 0,
+    hero ? `clipped ${hero.clipped} · "${hero.text}"` : 'no due figure'
   );
-  check(`${w}px @200%: hero card does not overflow`, !!hero && hero.cardOverflowX <= 1, hero ? `${hero.cardOverflowX}px` : 'unknown');
+  check(`${w}px @200%: hero pane stays inside the viewport`, !!hero && hero.paneFits, hero ? `${hero.paneFits}` : 'unknown');
   check(`${w}px @200%: no sideways overflow`, !!hero && hero.pageOverflowX <= 1, hero ? `${hero.pageOverflowX}px` : 'unknown');
 
   await page.screenshot({ path: `${OUT}/tab-${w}-zoom200.png` });

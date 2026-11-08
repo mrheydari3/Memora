@@ -28,7 +28,7 @@ npm test                         # data-layer unit tests (node:test)
 npm run check:design             # no raw hex/rgba in components
 npm run test:e2e                 # Playwright suite
 node scripts/verify-list-surface.mjs   # flat canvas, list scrolling, contrast
-node scripts/verify-mydecks-box.mjs    # My decks tree, Known group, 320px layout
+node scripts/verify-tab-bar.mjs        # four tabs, lens, contrast, 200% text
 ```
 
 The two `verify-*` scripts drive the running dev server (default

@@ -6,7 +6,7 @@
  *   npm run responsive -- --mode=zoom
  *   npm run responsive -- --mode=summary
  *
- * Every mode reuses the Phase 4 census plan: the same 84 targets, fixtures and
+ * Every mode reuses the Phase 4 census plan: the same 85 targets, fixtures and
  * trigger actions, so a surface measured here is the surface the census walked.
  *
  * Measurements per target and width:

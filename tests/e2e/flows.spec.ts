@@ -1095,6 +1095,7 @@ test.describe('Phase 5 — behaviour', () => {
         .getByRole('tab')
         .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('aria-label')))
     ).toEqual(['Home', 'Game', 'Profile', 'Settings']);
+    await expect(page.getByRole('tab', { name: 'Statistics' })).toHaveCount(0);
 
     await page.getByRole('tab', { name: 'Profile' }).click();
     await expect(page).toHaveURL(/\/profile$/);
@@ -1106,6 +1107,10 @@ test.describe('Phase 5 — behaviour', () => {
 
     await page.getByRole('tab', { name: 'Game' }).click();
     await expect(page).toHaveURL(/\/library$/);
+    await expect(page.getByRole('tab', { name: 'Game' })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
     await page.getByRole('tab', { name: 'Settings' }).click();
     await expect(page).toHaveURL(/\/settings$/);
     await page.getByRole('tab', { name: 'Home' }).click();
@@ -1129,6 +1134,51 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(page.getByRole('button', { name: 'Share statistics' })).toBeVisible();
     await page.getByRole('button', { name: 'Go back' }).click();
     await expect(page).toHaveURL(/\/profile$/);
+  });
+
+  test('navigation: tab and Statistics routes survive refresh', async ({ page }) => {
+    const tabRoutes: Array<[string, string]> = [
+      ['/home', 'Home'],
+      ['/library', 'Game'],
+      ['/profile', 'Profile'],
+      ['/settings', 'Settings'],
+    ];
+    for (const [path, label] of tabRoutes) {
+      await go(page, path);
+      await page.reload();
+      await settle(page);
+      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      await expect(page.getByRole('tab', { name: label, exact: true })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+    }
+
+    await go(page, '/statistics');
+    await page.reload();
+    await settle(page);
+    await expect(page).toHaveURL(/\/statistics$/);
+    await expect(page.getByRole('button', { name: 'Share statistics' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Statistics' })).toHaveCount(0);
+  });
+
+  test('navigation: browser history moves between Profile and Statistics', async ({ page }) => {
+    await go(page, '/profile');
+    await page.getByTestId('profile-statistics-cta').click();
+    await expect(page).toHaveURL(/\/statistics$/);
+
+    await page.goBack();
+    await settle(page);
+    await expect(page).toHaveURL(/\/profile$/);
+    await expect(page.getByRole('tab', { name: 'Profile' })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+
+    await page.goForward();
+    await settle(page);
+    await expect(page).toHaveURL(/\/statistics$/);
+    await expect(page.getByRole('button', { name: 'Share statistics' })).toBeVisible();
   });
 
   test('navigation: Statistics empty range starts on Home', async ({ page }) => {

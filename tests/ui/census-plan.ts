@@ -1,5 +1,5 @@
 /**
- * Census plan — turns the 83 manifest rows into concrete browser targets.
+ * Census plan — turns the 84 manifest rows into concrete browser targets.
  *
  * The manifest names route patterns and triggers. The census needs a URL and a
  * fixture for each row, plus the smallest set of actions that opens an overlay.
@@ -134,6 +134,8 @@ function actionsFor(surface: Surface): CensusAction[] {
       // census has no navigation action, so this state stays not-automated
       // rather than clicking an unrelated control on Home.
       return [];
+    case 'PR-04':
+      return [scroll('Mini Statistics')];
     case 'TX-04':
       return [scroll('Memory')];
     case 'TX-05':

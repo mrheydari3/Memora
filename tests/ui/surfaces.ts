@@ -7,8 +7,9 @@
  * names a route that no file defines, or when an entry has no fixture.
  *
  * The plan started at 82 surfaces. Route parity found `app/add-deck.tsx` had no
- * entry, so AD-01 was added and the denominator became 83. Change this number
- * only together with the manifest.
+ * entry, so AD-01 was added (83). Phase 7 split Profile's Mini Statistics and
+ * Statistics CTA into its own state, PR-04, for a denominator of 84. Change
+ * this number only together with the manifest.
  */
 
 export const ALL_GATES = [
@@ -32,7 +33,7 @@ export const FIXTURES = ['F0', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6'] as const;
 
 export type FixtureId = (typeof FIXTURES)[number];
 
-export const EXPECTED_SURFACE_COUNT = 83;
+export const EXPECTED_SURFACE_COUNT = 84;
 
 export const ROUTE_PATTERNS = [
   '/',
@@ -92,8 +93,8 @@ export const SURFACES: readonly Surface[] = [
   s('SH-02', 'Storage read failure and corrupt JSON', '/', ['F5', 'F6'], FAILURE, {
     trigger: 'throw on memory:decks, or write invalid JSON into it',
   }),
-  s('SH-03', 'Tab capsule (active lens and drag)', '/home', ['F2'], CHROME, {
-    trigger: 'every tabbed route at 320',
+  s('SH-03', 'Four-tab capsule (active lens and drag)', '/home', ['F2'], CHROME, {
+    trigger: 'every tabbed route at 320: Home, Game, Profile, Settings in order',
   }),
   s('SH-04', 'Unknown route', '*', ['F0']),
   s('SH-05', 'Document head and PWA shell', '/', ['F0'], SHELL),
@@ -141,7 +142,7 @@ export const SURFACES: readonly Surface[] = [
   s('LB-04', 'Deck under four cards', '/library', ['F2']),
 
   // ---- Settings --------------------------------------------------------------
-  s('ST-01', 'Settings index', '/settings', ['F0']),
+  s('ST-01', 'Settings index: configuration only, no progress', '/settings', ['F0']),
   s('ST-02', 'Study chapter: algorithm and TTS rows', '/settings', ['F0']),
   s('ST-03', 'Game toggles: sound and haptics', '/settings', ['F0']),
   s('ST-04', 'Data chapter', '/settings', ['F0']),
@@ -209,7 +210,7 @@ export const SURFACES: readonly Surface[] = [
 
   // ---- Statistics ------------------------------------------------------------
   s('TX-01', 'Statistics empty', '/statistics', ['F1']),
-  s('TX-02', 'Statistics populated', '/statistics', ['F3']),
+  s('TX-02', 'Statistics populated from the Profile CTA', '/statistics', ['F3']),
   s('TX-03', 'Range switch', '/statistics', ['F3']),
   s('TX-04', 'Top section', '/statistics', ['F3']),
   s('TX-05', 'Memory section', '/statistics', ['F3']),
@@ -219,9 +220,10 @@ export const SURFACES: readonly Surface[] = [
   s('TX-09', 'Reports section', '/statistics', ['F3']),
 
   // ---- Profile ---------------------------------------------------------------
-  s('PR-01', 'Profile with no reviews', '/profile', ['F1']),
-  s('PR-02', 'Profile populated', '/profile', ['F3']),
-  s('PR-03', 'Badge rail at 320', '/profile', ['F3']),
+  s('PR-01', 'Profile empty: no reviews, Start on Home CTA', '/profile', ['F1']),
+  s('PR-02', 'Profile populated: Mini Statistics and Statistics CTA', '/profile', ['F3']),
+  s('PR-03', 'Badge rail and Mini Statistics at 320', '/profile', ['F3']),
+  s('PR-04', 'Mini Statistics: 30-day preview and Statistics CTA', '/profile', ['F3']),
 
   // ---- Discover --------------------------------------------------------------
   s('DS-01', 'Discover catalogue', '/discover', ['F0']),

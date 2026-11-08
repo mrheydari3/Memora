@@ -96,6 +96,32 @@ test('page shell is dark, English and landmarked', async ({ page }) => {
   expect(shell.headings).toBeGreaterThan(0);
 });
 
+test('four-tab navigation and Profile drill-down are named', async ({ page }) => {
+  await page.goto('/profile');
+  await settle(page);
+
+  const tabs = page.getByRole('tab');
+  await expect(tabs).toHaveCount(4);
+  for (const [index, name] of ['Home', 'Game', 'Profile', 'Settings'].entries()) {
+    await expect(tabs.nth(index)).toHaveAccessibleName(name);
+  }
+  await expect(tabs.nth(2)).toHaveAttribute('aria-selected', 'true');
+
+  await expect(page.getByTestId('profile-statistics-cta')).toHaveAccessibleName(
+    'View detailed statistics'
+  );
+  const achievement = page.getByTestId('achievement-first-review');
+  await expect(achievement).toBeVisible();
+  await expect(achievement).toContainText('First Review');
+  await expect(achievement).toContainText('Locked');
+
+  await page.getByTestId('profile-statistics-cta').click();
+  await settle(page);
+  await expect(page.getByRole('button', { name: 'Go back' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Share statistics' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Statistics' })).toHaveCount(0);
+});
+
 test('every interactive control is at least 44x44 CSS px', async ({ page }) => {
   for (const route of ROUTES) {
     await page.goto(route.path);
