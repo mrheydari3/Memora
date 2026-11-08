@@ -88,11 +88,9 @@ const plural = (count: number, one: string, many: string) =>
 
 function IdentityCard({
   summary,
-  compact,
   wide,
 }: {
   summary: LearningSummary;
-  compact: boolean;
   wide: boolean;
 }) {
   const { allTime } = summary;
@@ -253,7 +251,7 @@ function IdentityCard({
               variant="caption"
               tone="muted"
               numberOfLines={2}
-              style={[{ flexShrink: 1 }, compact ? { fontSize: 11.5 } : null]}
+              style={{ flexShrink: 1 }}
             >
               {`${allTime.xpIntoLevel} of ${XP_PER_LEVEL} XP into this level`}
             </AppText>
@@ -595,7 +593,7 @@ export default function ProfileScreen() {
       ) : (
         <>
           <RevealItem index={0}>
-            <IdentityCard summary={bundle.summary} compact={compact} wide={wide} />
+            <IdentityCard summary={bundle.summary} wide={wide} />
           </RevealItem>
 
           {bundle.summary.allTime.reviews === 0 ? (

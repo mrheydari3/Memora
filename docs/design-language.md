@@ -84,7 +84,7 @@ theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌
 | `body` | ۱۵ / ۲۲ | ۴۰۰ | متن پیش‌فرض |
 | `bodySm` | ۱۳ / ۲۰ | ۴۰۰ | توضیح، متادیتا |
 | `label` | ۱۲ / ۱۶ | ۶۰۰ | برچسب کوچک، شمارنده |
-| `caption` | ۱۱ / ۱۵ | ۵۰۰ | ریزترین لایه |
+| `caption` | ۱۲ / ۱۷ | ۵۰۰ | ریزترین لایه |
 
 `tone`: `default` · `muted` · `tertiary` · `accent` · `onAccent` · `danger` · `success` · `warning`.
 وزن را با کلاس `font-inter-*` عوض نکنید مگر واقعاً لازم باشد؛ `variant` وزن درست را دارد.

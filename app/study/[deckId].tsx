@@ -104,7 +104,7 @@ export default function StudyScreen() {
   const { deckId } = useLocalSearchParams<{ deckId: string }>();
   const router = useRouter();
   const deckFallback = `/deck/${deckId}` as Href;
-  const { width, height } = useWindowDimensions();
+  const { width } = useWindowDimensions();
 
   const decks = useDeckStore((s) => s.decks);
   const deck = decks.find((d) => d.id === deckId);
@@ -805,6 +805,8 @@ export default function StudyScreen() {
       <Animated.View
         style={{
           opacity: cardExit.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+          flex: 1,
+          minHeight: 0,
           transform: [
             {
               translateX: cardExit.interpolate({
@@ -828,21 +830,10 @@ export default function StudyScreen() {
           addedLabel={addedLabel}
           memoryState={showAnswer ? memoryState : null}
           note={storedCard?.note}
-          height={height < 760 ? 428 : 460}
           onSpeak={settings.ttsEnabled ? speakCurrentSide : undefined}
           speakLabel={showAnswer ? 'Read answer aloud' : 'Read card aloud'}
         />
       </Animated.View>
-      )}
-
-      {!waiting && (
-        <StudyTray
-          marked={marked}
-          onToggleMark={toggleMarked}
-          onEditNote={openNoteEditor}
-          onOptions={() => setOptionsOpen(true)}
-          optionsRef={optionsAnchorRef}
-        />
       )}
 
       {!waiting && (
@@ -899,6 +890,16 @@ export default function StudyScreen() {
           </View>
         )}
       </View>
+      )}
+
+      {!waiting && (
+        <StudyTray
+          marked={marked}
+          onToggleMark={toggleMarked}
+          onEditNote={openNoteEditor}
+          onOptions={() => setOptionsOpen(true)}
+          optionsRef={optionsAnchorRef}
+        />
       )}
     </View>
   );

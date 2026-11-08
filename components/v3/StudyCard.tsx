@@ -26,8 +26,6 @@ type StudyCardProps = {
   memoryState: MemoryState | null;
   /** The learner's own note; shown with the answer, never before it. */
   note?: string;
-  /** The stage height; Study shortens it when the tray needs the room. */
-  height?: number;
   onSpeak?: () => void;
   speakLabel?: string;
 };
@@ -55,7 +53,6 @@ export function StudyCard({
   addedLabel,
   memoryState,
   note,
-  height,
   onSpeak,
   speakLabel = 'Read card aloud',
 }: StudyCardProps) {
@@ -75,7 +72,7 @@ export function StudyCard({
   };
 
   return (
-    <View style={[styles.stage, height ? { height } : null]}>
+    <View style={[styles.stage, styles.stageFill]}>
       <View style={[styles.stack, styles.stackFar]} />
       <View style={[styles.stack, styles.stackNear]} />
 
@@ -304,11 +301,14 @@ const styles = StyleSheet.create({
   stage: {
     width: '100%',
     maxWidth: v3.layout.studyCard,
-    height: 460,
     alignSelf: 'center',
     position: 'relative',
     justifyContent: 'flex-end',
     paddingBottom: 8,
+  },
+  stageFill: {
+    flex: 1,
+    minHeight: 0,
   },
   stack: {
     position: 'absolute',
@@ -331,7 +331,9 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    minHeight: 420,
+    // The stage owns the height; on a short screen the card shrinks with it so
+    // the tray and rating keys stay on screen, and its body scrolls instead.
+    minHeight: 0,
     overflow: 'hidden',
   },
   inner: {

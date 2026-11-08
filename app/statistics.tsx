@@ -183,7 +183,7 @@ function TinyPill({ label, accent = false }: { label: string; accent?: boolean }
         variant="caption"
         weight="medium"
         tone={accent ? 'accent' : 'muted'}
-        style={{ fontSize: 11, letterSpacing: 0.2 }}
+        style={{ letterSpacing: 0.2 }}
       >
         {label}
       </AppText>
@@ -1364,8 +1364,6 @@ function InsightTile({ item }: { item: StandoutItem }) {
                 weight="semibold"
                 style={{
                   color: item.color,
-                  fontSize: 10,
-                  letterSpacing: 0.4,
                   textTransform: 'uppercase',
                 }}
               >
