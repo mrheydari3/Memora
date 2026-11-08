@@ -144,7 +144,7 @@ export const SURFACES: readonly Surface[] = [
   s('ST-01', 'Settings index', '/settings', ['F0']),
   s('ST-02', 'Study chapter: algorithm and TTS rows', '/settings', ['F0']),
   s('ST-03', 'Game toggles: sound and haptics', '/settings', ['F0']),
-  s('ST-04', 'Progress and data chapters', '/settings', ['F0']),
+  s('ST-04', 'Data chapter', '/settings', ['F0']),
   s('ST-05', 'Algorithm settings', '/settings/algorithm', ['F2']),
   s('ST-06', 'Algorithm advanced with and without deckId', '/settings/algorithm-advanced', ['F2']),
   s('ST-07', 'Text-to-Speech settings', '/settings/tts', ['F0']),

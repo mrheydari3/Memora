@@ -4,26 +4,22 @@ import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { pushOnce } from '../../services/navigation';
 import { useDeckStore } from '../../store/useDeckStore';
-import { useReviewStore } from '../../store/useReviewStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
-import { computeStreak } from '../../data/streak';
+import { loadReviewLog } from '../../data/repository';
 import { exportJson } from '../../services/export';
 import { MaterialIcons } from '../../components/Icon';
 import { AppText, RevealItem, Screen, ToggleSwitch } from '../../components';
 import {
-  HeaderProfileButton,
   PageHeader,
   SettingsChapter as Chapter,
+  SettingsHero,
   SettingsLine,
-  Surface,
 } from '../../components/v3';
-import { alpha, colors, iconSize } from '../../theme/tokens';
+import { colors, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import type { Deck } from '../../data/types';
 
 const APP_VERSION = Constants.expoConfig?.version ?? '1.2.0';
-const XP_PER_REVIEW = 10;
-const XP_PER_LEVEL = 1000;
 
 const PRESET_LABELS: Record<Deck['algorithmPreset'], string> = {
   fsrs: 'FSRS-6',
@@ -32,26 +28,25 @@ const PRESET_LABELS: Record<Deck['algorithmPreset'], string> = {
 };
 
 const formatCount = (value: number) => value.toLocaleString('en-US');
-const NUMERIC = { fontVariant: ['tabular-nums'] as const };
 
 /**
  * Settings — v3 "Nocturne Focus".
  *
- * The index keeps its old content and behaviour, but the page now opens with
- * the same raised pane as Game: an eyebrow, the room's name, a status and a
- * three-cell ledger (cards, decks, scheduler). Below it each chapter is one
- * 22px pane of 64px lines, so the settings read as a desk drawer rather than a
- * form.
+ * Configuration only: the page opens with the shared SettingsHero — an eyebrow,
+ * the room's name, a status and a three-cell ledger (cards, decks, scheduler).
+ * Below it each chapter is one 22px pane of 64px lines, so the settings read as
+ * a desk drawer rather than a form. Progress and Statistics live on Profile;
+ * Settings never duplicates them.
  *
- * Every route and switch is unchanged: the quiz sound and haptics switches keep
- * their exact accessible names, which the persistence flow relies on.
+ * Every remaining route and switch is unchanged: the quiz sound and haptics
+ * switches keep their exact accessible names, which the persistence flow
+ * relies on.
  */
 export default function SettingsScreen() {
   const router = useRouter();
 
   const decks = useDeckStore((s) => s.decks);
   const cardsByDeck = useDeckStore((s) => s.cardsByDeck);
-  const reviewLog = useReviewStore((s) => s.reviewLog);
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.update);
 
@@ -69,18 +64,11 @@ export default function SettingsScreen() {
     return shared ? PRESET_LABELS[first.algorithmPreset] : 'Per deck';
   }, [activeDecks]);
 
-  const activeDeckIds = useMemo(() => new Set(activeDecks.map((deck) => deck.id)), [activeDecks]);
-  const activeLog = useMemo(
-    () => reviewLog.filter((entry) => activeDeckIds.has(entry.deckId)),
-    [reviewLog, activeDeckIds]
-  );
-
-  const xp = activeLog.length * XP_PER_REVIEW;
-  const level = Math.floor(xp / XP_PER_LEVEL) + 1;
-  const streak = useMemo(() => computeStreak(activeLog.map((entry) => entry.reviewedAt)), [activeLog]);
-
   const handleExportAll = async () => {
     try {
+      // Read the log on demand: Settings renders no progression state, but the
+      // export still contains the complete history.
+      const reviewLog = await loadReviewLog();
       await exportJson('Memora export', {
         exportedAt: new Date().toISOString(),
         decks,
@@ -93,12 +81,7 @@ export default function SettingsScreen() {
     }
   };
 
-  const header = (
-    <PageHeader
-      title="Settings"
-      actions={<HeaderProfileButton onPress={() => pushOnce(router, '/profile')} />}
-    />
-  );
+  const header = <PageHeader title="Settings" />;
 
   const ledger = [
     { label: 'Cards', value: formatCount(totalCards) },
@@ -117,97 +100,14 @@ export default function SettingsScreen() {
       <View style={{ paddingBottom: 24 }}>
         <View style={{ gap: 28 }}>
           <RevealItem index={0}>
-            <Surface tone="scene" testID="settings-hero" style={{ gap: 16 }}>
-              <View style={{ gap: 6 }}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 10,
-                  }}
-                >
-                  <AppText
-                    variant="label"
-                    weight="semibold"
-                    tone="accent"
-                    className="uppercase"
-                    style={{ letterSpacing: 0.6 }}
-                  >
-                    Overview
-                  </AppText>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 5,
-                      paddingHorizontal: 8,
-                      paddingVertical: 2,
-                      borderRadius: 999,
-                      backgroundColor: alpha(colors.success, 0.12),
-                      borderWidth: 1,
-                      borderColor: alpha(colors.success, 0.25),
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: 3,
-                        backgroundColor: colors.success,
-                      }}
-                    />
-                    <AppText variant="caption" tone="success">
-                      On this device
-                    </AppText>
-                  </View>
-                </View>
-
-                <AppText weight="bold" style={v3.type.headlineMd}>
-                  Your study room
-                </AppText>
-                <AppText variant="bodySm" tone="muted">
-                  The scheduler, the voices and the archive.
-                </AppText>
-              </View>
-
-              <View
-                style={{
-                  flexDirection: 'row',
-                  backgroundColor: colors.surfaceInset,
-                  borderRadius: 16,
-                  borderWidth: 1,
-                  borderColor: alpha(colors.outlineSoft, 0.2),
-                  paddingVertical: 12,
-                  paddingHorizontal: 12,
-                }}
-              >
-                {ledger.map((cell, index) => (
-                  <View
-                    key={cell.label}
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      paddingStart: index === 0 ? 0 : 12,
-                      borderStartWidth: index === 0 ? 0 : 1,
-                      borderStartColor: colors.outlineVariant,
-                    }}
-                  >
-                    <AppText variant="caption" tone="tertiary" numberOfLines={1}>
-                      {cell.label}
-                    </AppText>
-                    <AppText
-                      variant="body"
-                      weight="semibold"
-                      numberOfLines={1}
-                      style={[NUMERIC, { marginTop: 2 }]}
-                    >
-                      {cell.value}
-                    </AppText>
-                  </View>
-                ))}
-              </View>
-            </Surface>
+            <SettingsHero
+              testID="settings-hero"
+              eyebrow="Overview"
+              status={{ label: 'On this device' }}
+              title="Your study room"
+              description="The scheduler, the voices and the archive."
+              ledger={ledger}
+            />
           </RevealItem>
 
           <RevealItem index={1}>
@@ -263,30 +163,6 @@ export default function SettingsScreen() {
           </RevealItem>
 
           <RevealItem index={3}>
-            <Chapter label="Progress">
-              <SettingsLine
-                icon="person-outline"
-                tone={colors.success}
-                title="Profile"
-                subtitle={
-                  streak > 0
-                    ? `Level ${level} · ${streak}-day streak`
-                    : `Level ${level} · no streak yet`
-                }
-                onPress={() => pushOnce(router, '/profile')}
-              />
-              <SettingsLine
-                icon="insights"
-                tone={colors.success}
-                title="Statistics"
-                subtitle="Streak, knowledge and forecast"
-                onPress={() => pushOnce(router, '/statistics')}
-                last
-              />
-            </Chapter>
-          </RevealItem>
-
-          <RevealItem index={4}>
             <Chapter label="Data">
               <SettingsLine
                 icon="cloud-off"
@@ -306,7 +182,7 @@ export default function SettingsScreen() {
           </RevealItem>
 
           {__DEV__ && (
-            <RevealItem index={5}>
+            <RevealItem index={4}>
               <Chapter label="Developer">
                 <SettingsLine
                   icon="science"

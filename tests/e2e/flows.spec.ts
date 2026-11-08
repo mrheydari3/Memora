@@ -1051,7 +1051,6 @@ test.describe('Phase 5 — behaviour', () => {
     const rows: Array<[RegExp, string]> = [
       [/^Algorithm/, '/settings/algorithm'],
       [/^Text-to-Speech/, '/settings/tts'],
-      [/^Statistics/, '/statistics'],
       [/^Offline & install/, '/settings/offline'],
     ];
     for (const [name, path] of rows) {
@@ -1061,16 +1060,18 @@ test.describe('Phase 5 — behaviour', () => {
       await expect(page).toHaveURL(/\/settings$/);
     }
 
-    // Profile is a tab now: its Settings row opens the tab root, which has no
-    // back control, so returning is the tab bar's job rather than a header
-    // action. This row is removed with the Settings Progress chapter.
-    await page.getByRole('button', { name: /^Profile/ }).click();
-    await expect(page).toHaveURL(/\/profile$/);
-    await expect(page.getByRole('button', { name: 'Go back' })).toHaveCount(0);
-    await expect(page.getByRole('tab', { name: 'Profile' })).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    // Settings is configuration only: progression is owned by the Profile tab.
+    await expect(page.getByTestId('settings-hero')).toBeVisible();
+    await expect(page.getByText('Your study room', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Export all data/ })).toBeVisible();
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: /Export all data/ }).click();
+    await expect((await downloadPromise).suggestedFilename()).toBe('Memora export.json');
+    await expect(page.getByText('Progress', { exact: true })).toHaveCount(0);
+    await expect(page.getByText(/Level \d/)).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Profile/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Statistics/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Open profile' })).toHaveCount(0);
   });
 
   test('navigation: tabs and direct-link fallback land on the right route', async ({ page }) => {
