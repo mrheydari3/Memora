@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { goBackOr, pushOnce } from '../../services/navigation';
@@ -6,6 +6,7 @@ import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
 import { buildStudyQueue } from '../../data/session';
+import { folderPath } from '../../data/folders';
 import { exportJson } from '../../services/export';
 import { alpha, colors, heights, iconSize, radii, stateColors } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
@@ -20,13 +21,16 @@ import {
   Field,
   HeroSkeleton,
   IconButton,
-  ListRow,
   PrimaryButton,
   RevealItem,
   Screen,
   SearchBar,
-  SheetScrollView,
+  Select,
+  ActionMenu,
+  ContextMenu,
+  Menu,
 } from '../../components';
+import type { MenuAction } from '../../components';
 import { ActionButton, HeaderIcon, PageHeader, Surface } from '../../components/v3';
 import type { Flashcard } from '../../data/types';
 
@@ -178,12 +182,10 @@ export default function DeckDetailsScreen() {
 
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [renameVisible, setRenameVisible] = useState(false);
-  const [folderVisible, setFolderVisible] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
-  const [cardMenuId, setCardMenuId] = useState<string | null>(null);
+  const optionsAnchorRef = useRef<React.ComponentRef<typeof View>>(null);
   const [nameDraft, setNameDraft] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('created');
-  const [sortVisible, setSortVisible] = useState(false);
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [colorFilter, setColorFilter] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -258,11 +260,6 @@ export default function DeckDetailsScreen() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [colorFilter]);
-
-  // The card menu is addressed by id, which keeps the row callback stable.
-  const cardMenuCard = cardMenuId ? (deckCards.find((c) => c.id === cardMenuId) ?? null) : null;
-  const openCardMenu = useCallback((card: Flashcard) => setCardMenuId(card.id), []);
-  const closeCardMenu = useCallback(() => setCardMenuId(null), []);
 
   const backHome = () => goBackOr(router, '/(tabs)/home');
 
@@ -373,6 +370,88 @@ export default function DeckDetailsScreen() {
     await useDeckStore.getState().deleteDeck(deck.id);
     router.replace('/(tabs)/home');
   };
+
+  // Every menu action is declarative, so the same list can drive the anchored
+  // menu, the compact sheet and the right-click context menu without three
+  // drifting copies of the deck's options.
+  const folderActions: MenuAction[] = [
+    {
+      key: 'no-folder',
+      label: 'No folder',
+      icon: 'folder-open',
+      selected: deck.folderId == null,
+      onPress: () => void setDeckFolder(deck.id, null),
+    },
+    ...folders.map((folder) => ({
+      key: folder.id,
+      label: folderPath(folders, folder.id)
+        .map((entry) => entry.name)
+        .join(' / '),
+      icon: 'folder' as const,
+      selected: deck.folderId === folder.id,
+      onPress: () => void setDeckFolder(deck.id, folder.id),
+    })),
+  ];
+
+  const deckActions: MenuAction[] = [
+    { key: 'rename', label: 'Rename Deck', icon: 'edit', onPress: openRename },
+    {
+      key: 'folder',
+      label: 'Move to folder',
+      icon: 'folder-shared',
+      submenuTitle: 'Move to folder',
+      submenu: folderActions,
+    },
+    {
+      key: 'duplicate',
+      label: 'Duplicate Deck',
+      icon: 'content-copy',
+      onPress: handleDuplicate,
+    },
+    {
+      key: 'archive',
+      label: deck.archivedAt ? 'Unarchive Deck' : 'Archive Deck',
+      icon: 'archive',
+      onPress: handleArchive,
+    },
+    { key: 'export', label: 'Export Deck', icon: 'upload', onPress: handleExport },
+    { key: 'destructive-separator', kind: 'separator', label: '' },
+    { key: 'reset', label: 'Reset Progress', icon: 'refresh', onPress: handleReset },
+    {
+      key: 'delete',
+      label: 'Delete Deck',
+      icon: 'delete-outline',
+      destructive: true,
+      onPress: handleDelete,
+    },
+  ];
+
+  const sortOptions = SORT_OPTIONS.map((option) => ({
+    value: option.mode,
+    label: option.title,
+    accessibilityLabel: `Sort by ${option.title}`,
+  }));
+
+  const cardActions = (card: Flashcard): MenuAction[] => [
+    {
+      key: 'edit',
+      label: 'Edit',
+      icon: 'edit',
+      onPress: () =>
+        pushOnce(router, {
+          pathname: '/deck/[id]/add-card',
+          params: { id: deck.id, editCardId: card.id },
+        }),
+    },
+    {
+      key: 'delete',
+      label: 'Delete',
+      icon: 'delete-outline',
+      destructive: true,
+      onPress: () =>
+        setConfirmAction({ kind: 'delete-card', cardId: card.id, front: card.front.text }),
+    },
+  ];
 
   const ledger = [
     { key: 'new', label: 'New', value: newDue, color: stateColors.New },
@@ -571,33 +650,17 @@ export default function DeckDetailsScreen() {
               />
             </View>
 
-            <Pressable
-              onPress={() => setSortVisible(true)}
-              accessibilityRole="button"
-              accessibilityLabel={`Sort: ${sortLabel}. Open sort options.`}
-              style={{
-                minHeight: 44,
-                paddingHorizontal: 12,
-                borderRadius: v3.radii.control,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                backgroundColor: colors.surfaceControl,
-                flexShrink: 0,
-              }}
-            >
-              <View
-                aria-hidden
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-              >
-                <MaterialIcons name="sort" size={iconSize.sm} color={colors.outline} />
-              </View>
-              <AppText variant="caption" weight="semibold" numberOfLines={1}>
-                Sort: {sortLabel}
-              </AppText>
-            </Pressable>
+            <Select
+              label="Sort"
+              value={sortMode}
+              valueLabel={sortLabel}
+              options={sortOptions}
+              onChange={(value) => setSortMode(value as SortMode)}
+              icon="sort"
+              sheetTitle="Sort cards"
+              sheetSubtitle="Choose how the card list is ordered."
+              width={260}
+            />
           </View>
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -686,13 +749,17 @@ export default function DeckDetailsScreen() {
           shown.map((card, index) => {
             const expanded = expandedId === card.id;
             return (
-              <View
+              <ContextMenu
                 key={card.id}
-                // A deck can hold thousands of rows; this class lets the
-                // browser skip layout and paint for the ones off screen.
-                className="defer-render"
-                style={{ position: 'relative' }}
+                label={`Actions for ${card.front.text}`}
+                actions={cardActions(card)}
               >
+                <View
+                  // A deck can hold thousands of rows; this class lets the
+                  // browser skip layout and paint for the ones off screen.
+                  className="defer-render"
+                  style={{ position: 'relative' }}
+                >
                 {/* A tinted card reads in its own colour in the ledger too, so
                     a deck can be scanned without opening a card. */}
                 {card.color ? (
@@ -776,21 +843,15 @@ export default function DeckDetailsScreen() {
                     </View>
                   </HintPressable>
 
-                  <Pressable
-                    onPress={() => openCardMenu(card)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`More options for ${card.front.text}`}
-                    style={{
-                      width: 44,
-                      height: 44,
-                      marginEnd: 4,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <MaterialIcons name="more-vert" size={iconSize.md} color={colors.outline} />
-                  </Pressable>
+                  <View style={{ marginEnd: 4 }}>
+                    <ActionMenu
+                      label={`More options for ${card.front.text}`}
+                      icon="more-vert"
+                      sheetTitle={card.front.text}
+                      sheetSubtitle={card.back.text}
+                      actions={cardActions(card)}
+                    />
+                  </View>
                 </View>
 
                 {index < shown.length - 1 && (
@@ -804,7 +865,8 @@ export default function DeckDetailsScreen() {
                     }}
                   />
                 )}
-              </View>
+                </View>
+              </ContextMenu>
             );
           })
         )}
@@ -847,11 +909,15 @@ export default function DeckDetailsScreen() {
                 label="Add cards"
                 onPress={() => pushOnce(router, `/deck/${deck.id}/add-card`)}
               />
-              <HeaderIcon
-                icon="more-horiz"
-                label="More options"
-                onPress={() => setOptionsVisible(true)}
-              />
+              <View ref={optionsAnchorRef} collapsable={false}>
+                <HeaderIcon
+                  icon="more-horiz"
+                  label="More options"
+                  ariaExpanded={optionsVisible}
+                  ariaHasPopup="menu"
+                  onPress={() => setOptionsVisible(true)}
+                />
+              </View>
             </>
           }
         />
@@ -862,63 +928,19 @@ export default function DeckDetailsScreen() {
         <RevealItem index={1}>{cardsSection}</RevealItem>
       </View>
 
-      {/* Deck options sheet */}
-      <BottomSheetModal
-        visible={optionsVisible}
+      {/* Deck options — anchored on a wide canvas, a compact sheet on a phone. */}
+      <Menu
+        open={optionsVisible}
         onClose={() => setOptionsVisible(false)}
+        anchorRef={optionsAnchorRef}
+        label="Deck options"
         title={deck.name}
         subtitle={countLabel}
-      >
-        <SheetRow icon="edit" label="Rename Deck" onPress={openRename} />
-        <SheetRow
-          icon="folder-shared"
-          label="Move to folder"
-          onPress={() => {
-            setOptionsVisible(false);
-            setFolderVisible(true);
-          }}
-        />
-        <SheetRow icon="content-copy" label="Duplicate Deck" onPress={handleDuplicate} />
-        <SheetRow
-          icon="archive"
-          label={deck.archivedAt ? 'Unarchive Deck' : 'Archive Deck'}
-          onPress={handleArchive}
-        />
-        <SheetRow icon="upload" label="Export Deck" onPress={handleExport} />
-        <SheetRow icon="refresh" label="Reset Progress" onPress={handleReset} />
-        <SheetRow icon="delete-outline" label="Delete Deck" onPress={handleDelete} destructive />
-      </BottomSheetModal>
+        actions={deckActions}
+        width={300}
+      />
 
-      {/* Sort sheet */}
-      <BottomSheetModal
-        visible={sortVisible}
-        onClose={() => setSortVisible(false)}
-        title="Sort cards"
-        subtitle="Choose how the card list is ordered."
-      >
-        {SORT_OPTIONS.map((option) => (
-          <ListRow
-            key={option.mode}
-            title={option.title}
-            tile="none"
-            density="compact"
-            gutter={0}
-            showChevron={false}
-            selected={sortMode === option.mode}
-            highlighted={sortMode === option.mode}
-            trailing={
-              sortMode === option.mode ? (
-                <MaterialIcons name="check" size={iconSize.lg} color={colors.primary} />
-              ) : undefined
-            }
-            onPress={() => {
-              setSortMode(option.mode);
-              setSortVisible(false);
-            }}
-            accessibilityLabel={`Sort by ${option.title}`}
-          />
-        ))}
-      </BottomSheetModal>
+
 
       {/* Rename sheet */}
       <BottomSheetModal
@@ -936,78 +958,6 @@ export default function DeckDetailsScreen() {
             }}
           />
         </View>
-      </BottomSheetModal>
-
-      {/* Folder sheet — a browsing label only: the deck keeps its cards,
-          schedule and history wherever it is filed. */}
-      <BottomSheetModal
-        visible={folderVisible}
-        onClose={() => setFolderVisible(false)}
-        title="Move to folder"
-      >
-        {folders.length === 0 ? (
-          <View className="px-1 pb-2">
-            <AppText variant="bodySm" tone="muted">
-              No folders yet. Create one from the Folders sheet on the home screen.
-            </AppText>
-          </View>
-        ) : (
-          <SheetScrollView style={{ maxHeight: heights.sheetCompact }}>
-            <SheetRow
-              icon="folder-open"
-              label="No folder"
-              onPress={async () => {
-                await setDeckFolder(deck.id, null);
-                setFolderVisible(false);
-              }}
-            />
-            {folders.map((folder) => (
-              <SheetRow
-                key={folder.id}
-                icon="folder"
-                label={folder.name}
-                onPress={async () => {
-                  await setDeckFolder(deck.id, folder.id);
-                  setFolderVisible(false);
-                }}
-              />
-            ))}
-          </SheetScrollView>
-        )}
-      </BottomSheetModal>
-
-      {/* Per-card Edit/Delete sheet */}
-      <BottomSheetModal
-        visible={!!cardMenuCard}
-        onClose={closeCardMenu}
-        title={cardMenuCard?.front.text}
-        subtitle={cardMenuCard?.back.text}
-      >
-        <SheetRow
-          icon="edit"
-          label="Edit"
-          onPress={() => {
-            const cardId = cardMenuCard?.id;
-            closeCardMenu();
-            if (cardId)
-              pushOnce(router, {
-                pathname: '/deck/[id]/add-card',
-                params: { id: deck.id, editCardId: cardId },
-              });
-          }}
-        />
-        <SheetRow
-          icon="delete-outline"
-          label="Delete"
-          destructive
-          onPress={() => {
-            const card = cardMenuCard;
-            closeCardMenu();
-            if (card) {
-              setConfirmAction({ kind: 'delete-card', cardId: card.id, front: card.front.text });
-            }
-          }}
-        />
       </BottomSheetModal>
 
       {/* Destructive actions are confirmed here, never from the options sheet. */}
@@ -1046,43 +996,5 @@ export default function DeckDetailsScreen() {
         </View>
       </BottomSheetModal>
     </Screen>
-  );
-}
-
-/**
- * One option inside a sheet: a soft tile with its glyph, its label and — for a
- * destructive action — a warmer weight.
- *
- * Each option sits on its own inset fill instead of a flat line of text, so a
- * menu reads as a stack of choices rather than a paragraph, and the tint stays
- * exactly one step above the sheet's own surface.
- */
-function SheetRow({
-  icon,
-  label,
-  onPress,
-  destructive = false,
-  accessibilityLabel,
-}: {
-  icon: IconName;
-  label: string;
-  onPress: () => void;
-  destructive?: boolean;
-  accessibilityLabel?: string;
-}) {
-  return (
-    <ListRow
-      title={label}
-      icon={icon}
-      tile="sm"
-      density="compact"
-      titleWeight={destructive ? 'semibold' : 'medium'}
-      iconTone={destructive ? 'destructive' : 'neutral'}
-      destructive={destructive}
-      showChevron={false}
-      gutter={0}
-      onPress={onPress}
-      accessibilityLabel={accessibilityLabel ?? label}
-    />
   );
 }

@@ -31,7 +31,9 @@ import {
   RevealItem,
   Screen,
   SheetScrollView,
+  ActionMenu,
 } from '../../components';
+import type { MenuAction } from '../../components';
 import { MaterialIcons } from '../../components/Icon';
 import {
   ArchivedRow,
@@ -132,7 +134,6 @@ export default function HomeScreen() {
   const [editColor, setEditColor] = useState<string>(COLOR_CHOICES[0]);
   const [editParentId, setEditParentId] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
-  const [deckMenuId, setDeckMenuId] = useState<string | null>(null);
   // v3 groups: a folder's decks sit under its header until it is collapsed.
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() => new Set());
 
@@ -279,7 +280,6 @@ export default function HomeScreen() {
   const editingFolder = editingFolderId
     ? folders.find((folder) => folder.id === editingFolderId) ?? null
     : null;
-  const menuDeck = deckMenuId ? decks.find((deck) => deck.id === deckMenuId) ?? null : null;
 
   // A folder may move anywhere except into itself or one of its own children.
   const eligibleParents = useMemo(() => {
@@ -415,6 +415,35 @@ export default function HomeScreen() {
     ? `${folderCountLabel} · ${visibleCards.toLocaleString('en-US')} cards · ${dueLabel}`
     : `${deckCountLabel} · ${dueLabel}`;
 
+  // Pin and move stay open after acting: they are repeatable shelf operations,
+  // and the same menu is used for the row's overflow and right-click actions.
+  const deckActions = (deck: Deck): MenuAction[] => [
+    {
+      key: 'pin',
+      label: deck.pinnedAt ? 'Unpin deck' : 'Pin deck',
+      description: deck.pinnedAt
+        ? 'Return it to the normal order'
+        : 'Keep it at the top of this folder',
+      icon: 'push-pin',
+      keepOpen: true,
+      onPress: () => void toggleDeckPinned(deck.id),
+    },
+    {
+      key: 'move-up',
+      label: 'Move up',
+      icon: 'arrow-upward',
+      keepOpen: true,
+      onPress: () => void moveDeck(deck.id, -1),
+    },
+    {
+      key: 'move-down',
+      label: 'Move down',
+      icon: 'arrow-downward',
+      keepOpen: true,
+      onPress: () => void moveDeck(deck.id, 1),
+    },
+  ];
+
   const renderDeck = (entry: DeckQueue) => (
     <DeckShelfRow
       key={entry.deck.id}
@@ -425,7 +454,14 @@ export default function HomeScreen() {
       due={entry.total}
       progress={entry.progress}
       pinned={entry.deck.pinnedAt != null}
-      onOptions={() => setDeckMenuId(entry.deck.id)}
+      optionsMenu={
+        <ActionMenu
+          label={`Options for deck ${entry.deck.name}`}
+          sheetTitle={entry.deck.name}
+          sheetSubtitle="Pinned decks stay above the others in their folder."
+          actions={deckActions(entry.deck)}
+        />
+      }
       onPress={() => pushOnce(router, `/deck/${entry.deck.id}`)}
     />
   );
@@ -539,7 +575,14 @@ export default function HomeScreen() {
               name={deck.name}
               cardCount={cards}
               onPress={() => pushOnce(router, `/deck/${deck.id}`)}
-              onOptions={() => setDeckMenuId(deck.id)}
+              optionsMenu={
+                <ActionMenu
+                  label={`Options for deck ${deck.name}`}
+                  sheetTitle={deck.name}
+                  sheetSubtitle="Pinned decks stay above the others in their folder."
+                  actions={deckActions(deck)}
+                />
+              }
             />
           ))}
         </View>
@@ -899,51 +942,6 @@ export default function HomeScreen() {
             </View>
           )}
         </SheetScrollView>
-      </BottomSheetModal>
-
-      <BottomSheetModal
-        visible={Boolean(menuDeck)}
-        onClose={() => setDeckMenuId(null)}
-        title={menuDeck?.name ?? 'Deck'}
-        subtitle="Pinned decks stay above the others in their folder."
-      >
-        {menuDeck && (
-          <View>
-            <ListRow
-              title={menuDeck.pinnedAt ? 'Unpin deck' : 'Pin deck'}
-              subtitle={
-                menuDeck.pinnedAt
-                  ? 'Return it to the normal order'
-                  : 'Keep it at the top of this folder'
-              }
-              icon="push-pin"
-              iconTone={menuDeck.pinnedAt ? 'accent' : 'neutral'}
-              tile="sm"
-              density="compact"
-              gutter={0}
-              showChevron={false}
-              onPress={() => void toggleDeckPinned(menuDeck.id)}
-            />
-            <ListRow
-              title="Move up"
-              icon="arrow-upward"
-              tile="sm"
-              density="compact"
-              gutter={0}
-              showChevron={false}
-              onPress={() => void moveDeck(menuDeck.id, -1)}
-            />
-            <ListRow
-              title="Move down"
-              icon="arrow-downward"
-              tile="sm"
-              density="compact"
-              gutter={0}
-              showChevron={false}
-              onPress={() => void moveDeck(menuDeck.id, 1)}
-            />
-          </View>
-        )}
       </BottomSheetModal>
     </Screen>
   );

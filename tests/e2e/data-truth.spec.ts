@@ -116,11 +116,13 @@ const activeQueues = (store: Store) =>
 const plural = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
 
-const shelfCaption = (folders: number, decks: number, cards: number, due: number) =>
+const shelfDeckCaption = (decks: number, due: number) =>
+  `${plural(decks, 'deck', 'decks')} · ${due > 0 ? `${due} due` : 'all caught up'}`;
+
+const shelfFolderCaption = (folders: number, cards: number, due: number) =>
   [
     plural(folders, 'folder', 'folders'),
-    plural(decks, 'deck', 'decks'),
-    `${cards.toLocaleString('en-US')} ${cards === 1 ? 'card' : 'cards'}`,
+    plural(cards, 'card', 'cards'),
     due > 0 ? `${due} due` : 'all caught up',
   ].join(' · ');
 
@@ -154,7 +156,7 @@ test.describe('Phase 7 — data truth', () => {
 
     const panel = page.getByTestId('today-panel');
     await expect(panel).toContainText(String(total));
-    await expect(panel).toContainText(`Across ${dueDecks} decks`);
+    await expect(panel).toContainText(`${plural(dueDecks, 'deck', 'decks')} · estimated`);
 
     // The New / Learning / Review rail describes the deck the button opens.
     const next = continueDeck(store);
@@ -174,22 +176,19 @@ test.describe('Phase 7 — data truth', () => {
     const active = activeDecks(store);
     const rootFolders = store.folders.filter((folder) => !folder.parentId);
     const rootDecks = active.filter((deck) => !deck.folderId);
-    const rootCards = rootDecks.reduce((sum, deck) => sum + (store.cards[deck.id] ?? []).length, 0);
     const rootDue = rootDecks.reduce((sum, deck) => sum + queueFor(deck, store).total, 0);
 
     expect(rootFolders.length).toBe(4);
     expect(rootDecks.length).toBe(2);
     await expect(
-      page.getByText(shelfCaption(rootFolders.length, rootDecks.length, rootCards, rootDue), {
-        exact: true,
-      })
+      page.getByText(shelfDeckCaption(rootDecks.length, rootDue), { exact: true })
     ).toBeVisible();
 
     // Languages holds German, whose two decks live one level down. The direct
     // rule means Languages itself reports no decks — and that is what we assert.
-    const languages = page.getByTestId('folder-row').filter({ hasText: 'Languages' });
+    const languages = page.getByTestId('folder-group').filter({ hasText: 'Languages' });
     await expect(languages).toContainText('0 decks');
-    await languages.click();
+    await page.getByRole('button', { name: /1 folder inside/ }).click();
 
     const childFolders = store.folders.filter((folder) => folder.parentId === 'fold-lang');
     const languageDecks = active.filter((deck) => deck.folderId === 'fold-lang');
@@ -202,27 +201,17 @@ test.describe('Phase 7 — data truth', () => {
       0
     );
     await expect(
-      page.getByText(
-        shelfCaption(childFolders.length, languageDecks.length, languageCards, languageDue),
-        { exact: true }
-      )
-    ).toBeVisible();
-
-    // German is where those decks actually live: two decks, 34 cards, 30 due.
-    const german = page.getByTestId('folder-row').filter({ hasText: 'German' });
-    await expect(german).toContainText('2 decks · 30 due');
-    await german.click();
-    const germanDecks = active.filter((deck) => deck.folderId === 'fold-de');
-    const germanCards = germanDecks.reduce(
-      (sum, deck) => sum + (store.cards[deck.id] ?? []).length,
-      0
-    );
-    const germanDue = germanDecks.reduce((sum, deck) => sum + queueFor(deck, store).total, 0);
-    await expect(
-      page.getByText(shelfCaption(0, germanDecks.length, germanCards, germanDue), {
+      page.getByText(shelfFolderCaption(childFolders.length, languageCards, languageDue), {
         exact: true,
       })
     ).toBeVisible();
+
+    // German is where those decks actually live: two decks, 34 cards, 30 due.
+    const german = page.getByTestId('folder-group').filter({ hasText: 'German' });
+    const germanDecks = active.filter((deck) => deck.folderId === 'fold-de');
+    const germanDue = germanDecks.reduce((sum, deck) => sum + queueFor(deck, store).total, 0);
+    await expect(german).toContainText('2 decks · 30 due');
+    await expect(german).toContainText(`${plural(germanDecks.length, 'deck', 'decks')} · ${germanDue} due`);
 
     // The two nested decks are the remaining per-deck totals: German and the
     // long-named deck. Their rows must agree with their own queues.
@@ -248,10 +237,14 @@ test.describe('Phase 7 — data truth', () => {
       const cards = store.cards[deck.id] ?? [];
       const queue = queueFor(deck, store);
       await expect(row).toContainText(plural(cards.length, 'card', 'cards'));
-      await expect(row.getByText(String(queue.total), { exact: true })).toBeVisible();
-      // Nothing in the fixture's root-level decks has been reviewed yet.
+      if (queue.total > 0) {
+        await expect(row.getByText(String(queue.total), { exact: true })).toBeVisible();
+      } else {
+        await expect(row).toContainText('clear');
+      }
+      // A deck with no reviews prints an em dash; once studied it prints a share.
       const studied = cards.filter((card) => card.fsrs.last_review != null).length;
-      await expect(row).toContainText(studied === 0 ? 'Not started' : 'studied');
+      await expect(row).toContainText(studied === 0 ? '—' : '%');
     }
   });
 
@@ -502,12 +495,9 @@ test.describe('Phase 7 — data truth', () => {
     // separator between adjacent lines; compare it verbatim, not normalised.
     const heroText = await panel.innerText();
     const store = await readStore(page);
-    const rootFolders = store.folders.filter((folder) => !folder.parentId);
     const rootDecks = activeDecks(store).filter((deck) => !deck.folderId);
-    const caption = shelfCaption(
-      rootFolders.length,
+    const caption = shelfDeckCaption(
       rootDecks.length,
-      rootDecks.reduce((sum, deck) => sum + (store.cards[deck.id] ?? []).length, 0),
       rootDecks.reduce((sum, deck) => sum + queueFor(deck, store).total, 0)
     );
 

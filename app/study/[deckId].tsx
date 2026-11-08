@@ -12,7 +12,16 @@ import { computeStreak } from '../../data/streak';
 import { buildLearningEngine } from '../../data/intelligence';
 import type { LearningEngineResult } from '../../data/intelligence';
 import { resolveFsrsParams } from '../../data/fsrs-params';
-import { AppText, BottomSheetModal, Field, Screen, EmptyState } from '../../components';
+import {
+  AppText,
+  BottomSheetModal,
+  EmptyState,
+  Field,
+  Menu,
+  MenuItem,
+  MenuSeparator,
+  Screen,
+} from '../../components';
 import {
   ActionButton,
   HeaderIcon,
@@ -152,6 +161,7 @@ export default function StudyScreen() {
   // The utility tray's two sheets: the card's note and the session's options.
   const [noteOpen, setNoteOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const optionsAnchorRef = useRef<React.ComponentRef<typeof View>>(null);
   const [noteDraft, setNoteDraft] = useState('');
 
   const currentCard = queue[index];
@@ -823,6 +833,7 @@ export default function StudyScreen() {
           onToggleMark={toggleMarked}
           onEditNote={openNoteEditor}
           onOptions={() => setOptionsOpen(true)}
+          optionsRef={optionsAnchorRef}
         />
       )}
 
@@ -946,11 +957,14 @@ export default function StudyScreen() {
       </View>
     </BottomSheetModal>
 
-    <BottomSheetModal
-      visible={optionsOpen}
+    <Menu
+      open={optionsOpen}
       onClose={() => setOptionsOpen(false)}
+      anchorRef={optionsAnchorRef}
+      label="Session options"
       title="Options"
       subtitle={deck.name}
+      width={300}
     >
       <Surface tone="inset" radius="control" padding="sm">
         <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
@@ -964,34 +978,30 @@ export default function StudyScreen() {
           {currentCard.fsrs.lapses} lapses
         </AppText>
       </Surface>
-      <View style={{ marginTop: 16, gap: 8 }}>
-        <ActionButton
-          label="Undo last review"
-          tone="quiet"
-          disabled={!lastUndo}
-          onPress={() => {
-            setOptionsOpen(false);
-            void undoLastReview();
-          }}
-        />
-        <ActionButton
-          label="Restart session"
-          tone="quiet"
-          onPress={() => {
-            setOptionsOpen(false);
-            startSession();
-          }}
-        />
-        <ActionButton
-          label="Back to deck"
-          tone="quiet"
-          onPress={() => {
-            setOptionsOpen(false);
-            goBackOr(router, deckFallback);
-          }}
-        />
-      </View>
-    </BottomSheetModal>
+      <MenuSeparator />
+      <MenuItem
+        label="Undo last review"
+        disabled={!lastUndo}
+        onPress={() => {
+          setOptionsOpen(false);
+          void undoLastReview();
+        }}
+      />
+      <MenuItem
+        label="Restart session"
+        onPress={() => {
+          setOptionsOpen(false);
+          startSession();
+        }}
+      />
+      <MenuItem
+        label="Back to deck"
+        onPress={() => {
+          setOptionsOpen(false);
+          goBackOr(router, deckFallback);
+        }}
+      />
+    </Menu>
   </>
   );
 }

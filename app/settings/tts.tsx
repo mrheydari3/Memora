@@ -1,17 +1,16 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, useWindowDimensions, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { goBackOr } from '../../services/navigation';
-import { MaterialIcons } from '../../components/Icon';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { speak, stopSpeaking } from '../../services/tts';
 import {
-  BottomSheetModal,
-  ListRow,
+  Menu,
   RevealItem,
   Screen,
   ToggleSwitch,
 } from '../../components';
+import type { MenuAction } from '../../components';
 import {
   PageHeader,
   SettingsChapter,
@@ -19,7 +18,7 @@ import {
   SettingsHero,
   SettingsLine,
 } from '../../components/v3';
-import { colors, heights, iconSize } from '../../theme/tokens';
+import { colors } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
 const LANGUAGES: { code: string; name: string }[] = [
@@ -55,14 +54,10 @@ const SAMPLES: Record<string, string> = {
  */
 export default function TTSSettingsScreen() {
   const router = useRouter();
-  const { height } = useWindowDimensions();
   const { settings, update } = useSettingsStore();
   const [pickerField, setPickerField] = useState<'front' | 'back' | null>(null);
-
-  // The language list never takes more than half the window. On a short window
-  // the sheet header and padding still fit, and the cap turns the list into a
-  // real scroll region instead of letting the last language fall off-screen.
-  const listMaxHeight = Math.max(160, Math.min(heights.sheetTall, Math.round(height * 0.5)));
+  const frontAnchorRef = useRef<React.ComponentRef<typeof View>>(null);
+  const backAnchorRef = useRef<React.ComponentRef<typeof View>>(null);
 
   // Leaving the screen should never leave a sample talking in the background.
   useEffect(() => () => void stopSpeaking(), []);
@@ -76,6 +71,17 @@ export default function TTSSettingsScreen() {
   const backSample = SAMPLES[back] ?? SAMPLES['en-US'];
 
   const active = pickerField === 'back' ? back : front;
+
+  const languageActions: MenuAction[] = LANGUAGES.map((lang) => ({
+    key: lang.code,
+    label: lang.name,
+    selected: lang.code === active,
+    onPress: async () => {
+      if (pickerField === 'back') await update({ ttsBackVoiceLang: lang.code });
+      else if (pickerField === 'front') await update({ ttsFrontVoiceLang: lang.code });
+      setPickerField(null);
+    },
+  }));
 
   const previewVoices = () => {
     void stopSpeaking();
@@ -163,23 +169,31 @@ export default function TTSSettingsScreen() {
 
           <RevealItem index={2}>
             <SettingsChapter label="Voices">
-              <SettingsLine
-                icon="translate"
-                tone={colors.info}
-                title="Front language"
-                subtitle="Used for every front card"
-                value={langName(front)}
-                onPress={() => setPickerField('front')}
-              />
-              <SettingsLine
-                icon="translate"
-                tone={colors.info}
-                title="Back language"
-                subtitle="Every back card answers in this voice"
-                value={langName(back)}
-                onPress={() => setPickerField('back')}
-                last
-              />
+              <View ref={frontAnchorRef} collapsable={false}>
+                <SettingsLine
+                  icon="translate"
+                  tone={colors.info}
+                  title="Front language"
+                  subtitle="Used for every front card"
+                  value={langName(front)}
+                  onPress={() => setPickerField('front')}
+                  ariaExpanded={pickerField === 'front'}
+                  ariaHasPopup="menu"
+                />
+              </View>
+              <View ref={backAnchorRef} collapsable={false}>
+                <SettingsLine
+                  icon="translate"
+                  tone={colors.info}
+                  title="Back language"
+                  subtitle="Every back card answers in this voice"
+                  value={langName(back)}
+                  onPress={() => setPickerField('back')}
+                  ariaExpanded={pickerField === 'back'}
+                  ariaHasPopup="menu"
+                  last
+                />
+              </View>
             </SettingsChapter>
           </RevealItem>
 
@@ -204,42 +218,20 @@ export default function TTSSettingsScreen() {
         </View>
       </View>
 
-      <BottomSheetModal
-        visible={pickerField !== null}
+      <Menu
+        open={pickerField !== null}
         onClose={() => setPickerField(null)}
+        anchorRef={pickerField === 'back' ? backAnchorRef : frontAnchorRef}
+        label={pickerField === 'back' ? 'Back language' : 'Front language'}
         title={pickerField === 'back' ? 'Back language' : 'Front language'}
         subtitle={
           pickerField === 'back'
             ? 'Every back card answers in this voice.'
             : 'Every front card and the samples use this voice.'
         }
-      >
-        <ScrollView style={{ maxHeight: listMaxHeight }} showsVerticalScrollIndicator>
-          {LANGUAGES.map((lang) => (
-            <ListRow
-              key={lang.code}
-              title={lang.name}
-              tile="none"
-              density="compact"
-              gutter={0}
-              showChevron={false}
-              selected={lang.code === active}
-              highlighted={lang.code === active}
-              trailing={
-                lang.code === active ? (
-                  <MaterialIcons name="check" size={iconSize.lg} color={colors.primary} />
-                ) : undefined
-              }
-              onPress={async () => {
-                if (pickerField === 'back') await update({ ttsBackVoiceLang: lang.code });
-                else if (pickerField === 'front') await update({ ttsFrontVoiceLang: lang.code });
-                setPickerField(null);
-              }}
-              accessibilityLabel={lang.name}
-            />
-          ))}
-        </ScrollView>
-      </BottomSheetModal>
+        actions={languageActions}
+        width={300}
+      />
     </Screen>
   );
 }
