@@ -1,5 +1,17 @@
 # UI v3 "Nocturne Focus" Completion — Implementation Plan
 
+> **Final status (2026-11-08 audit): completed and verified.** Section 1 below is
+> the planning-time snapshot; it is kept as history and is no longer true. The
+> shipped tree has zero imports of `theme/v2`, `components/v2`, `GlassCard`,
+> `HeroPane`, `TopAppBar`, `SectionHeader`, `DeckCard`, `DeckLibrary`,
+> `DeckListItem`, `DeckProgressCard`, `SettingsPlate`, `SettingsRow`,
+> `SettingsSection` or `SettingsNote`; those files were deleted in `318d8f2`.
+> `theme/v3.ts` is the only v3 step source and its display figures are rem-based
+> on web. Verified with `tsc` **0**, `npm test` **161/161**,
+> `check:design` **clean (82 files)**, responsive **592 runs / 0 flagged** at
+> 320/375/390/431/768/1024/1280, axe **22/22**, reduced motion **4/4 routes**.
+> The final engineering report records the per-gate evidence.
+
 > **For agentic workers:** execute this plan phase by phase, in order. Steps use checkbox (`- [ ]`) syntax for tracking. A task is not done until its acceptance line has been measured and recorded here or in the final report. Do not "finish" a screen by eye: every task ends with `tsc`, `check:design`, and the listed browser check.
 
 **Goal:** Finish the v3 redesign of Memora's web UI so every route — not only Home, Game, Settings, Deck, the composer and the settings sub-pages — speaks one Nocturne Focus language, with one primitive set, no v1/v2 leftovers, and the existing accessibility/data-truth guarantees still measured green.
@@ -64,7 +76,11 @@ These are the inputs the design pass is most likely to break; each is pinned by 
 
 None. Tasks 7–10 completed Profile, the Advanced/Import/Dev settings surfaces, Discover and Add deck; every remaining surface is listed below.
 
-### Still on v1/v2 grammar
+### Still on v1/v2 grammar (planning snapshot — now resolved)
+
+> This table described 2026-11-07. Quiz, 404 and the shell were finished by
+> `7279f77` and the 2026-11-08 audit; the v2 cluster was deleted in `318d8f2`.
+> Kept only so the original plan's reasoning remains readable.
 
 | Surface | Size | Current imports | Specific gap |
 | --- | --- | --- | --- |

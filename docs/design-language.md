@@ -31,13 +31,14 @@ theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌
 | نقش | کلاس / توکن | کاربرد |
 | --- | --- | --- |
 | بوم | `bg-background` | پس‌زمینهٔ همهٔ صفحه‌ها (`Screen` این را می‌دهد) |
-| پنل شیشه‌ای | `GlassCard` / `glassFill` | کارت، شیت، نوار ابزار، ریل تب |
-| تودرتو | `bg-fill-inset` | محتوای داخل یک پنل (پیش‌نمایش، سطر فرم) |
-| کاشی آیکن | `bg-fill-tile` | مربع ۳۸/۴۴ پیکسلی آیکن |
+| پنل صحنه | `Surface tone="scene"` | هیروی امروز، صحنهٔ مطالعه، آرنای کوییز |
+| پنل | `Surface tone="pane"` | ردیف‌ها، کارت‌ها، شیت‌ها |
+| تودرتو | `Surface tone="inset"` | محتوای داخل یک پنل (پیش‌نمایش، سرصفحهٔ پوشه) |
+| کاشی آیکن | `Surface tone="control"` / `bg-fill-tile` | مربع ۳۸/۴۴ پیکسلی آیکن |
 | کنترل | `bg-fill-control` | ورودی، دکمهٔ آیکن، ریل سگمنت |
 | ریل پیشرفت | `bg-fill-track` | نوار پیشرفت، متر |
 
-پنل‌ها **بدون کادر** و **بدون سایه‌های تزئینی** خوانده می‌شوند: `glassFill` + `shadow.pane`. فقط پنل‌های «صحنه» — هیروی امروز، نوار صف دِک، صحنهٔ مطالعه و آرنای کوییز — یک `rimColor` ۱px در لبهٔ بالا می‌گیرند؛ کارت‌ها، گروه‌های تنظیمات و پلیت‌ها هیچ لبه‌ای ندارند. عناصر داخل پنل (کاشی آیکن، ردیف، ورودی) یک پله روشن‌تر از پنل‌اند، پس هیچ‌کدام کادر نمی‌خواهند. برای پنل تیره‌تر/تأکیدی: `GlassCard tone="accent"` (فقط پرکننده، بدون خط تأکید).
+پنل‌ها **بدون کادر** و **بدون سایه‌های تزئینی** خوانده می‌شوند: `Surface` + `shadow.pane`. فقط پنل‌های «صحنه» یک `borderWidth` ۱px با `outlineSoft` ۳۰٪ در لبهٔ بالا می‌گیرند؛ کارت‌ها، گروه‌های تنظیمات و پلیت‌ها هیچ لبه‌ای ندارند. عناصر داخل پنل (کاشی آیکن، ردیف، ورودی) یک پله روشن‌تر از پنل‌اند، پس هیچ‌کدام کادر نمی‌خواهند. برای پنل تیره‌تر/تأکیدی: `Surface tone="inset"` (فقط پرکننده، بدون خط تأکید). سرصفحهٔ پوشه در Home یک `Surface tone="inset"` است، نه پنل.
 
 سلسله‌ی `fills` همان مقیاس عمق است و عوض شده تا بدون کادر هم تفکیک دیده شود:
 `subtle 0.03 → inset 0.05 → tile 0.06 → control 0.075 → track 0.09`.
@@ -88,7 +89,9 @@ theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌
 `tone`: `default` · `muted` · `tertiary` · `accent` · `onAccent` · `danger` · `success` · `warning`.
 وزن را با کلاس `font-inter-*` عوض نکنید مگر واقعاً لازم باشد؛ `variant` وزن درست را دارد.
 
-**پله‌های عدد درشت** بیرون از `variant` هستند و در `theme/v2.ts` تعریف می‌شوند: `v2.type.display` ۵۶/۵۸ برای عدد قهرمان هر صفحه، `v2.type.score` ۴۴/۴۸ برای امتیاز جاری کوییز و `v2.type.result` ۶۴/۶۸ برای نتیجهٔ پایان دور. هیچ صفحه‌ای عدد نمایشی خودش را inline تعریف نمی‌کند؛ اگر پلهٔ تازه‌ای لازم شد، به همین فهرست اضافه می‌شود.
+**پله‌های عدد درشت** بیرون از `variant` هستند و در `theme/v3.ts` تعریف می‌شوند: `v3.type.hero` ۴۰/۴۴ برای عدد قهرمان هر صفحه (و `heroWide` ۵۶/۵۸ از ۹۰۰px به بالا)، `v3.type.score` ۴۴/۴۸ برای امتیاز جاری کوییز و `v3.type.result` ۶۴/۶۸ برای نتیجهٔ پایان دور. هیچ صفحه‌ای عدد نمایشی خودش را inline تعریف نمی‌کند؛ اگر پلهٔ تازه‌ای لازم شد، به همین فهرست اضافه می‌شود.
+
+این پله‌ها روی وب با `rem` نوشته می‌شوند (روی native همان پیکسل منطقی می‌مانند)، چون `AppText` از مقیاس rem تیلویند می‌آید و بزرگ‌نمایی ۲۰۰٪ متن مرورگر باید هر دو را بزرگ کند.
 
 ---
 
@@ -100,7 +103,7 @@ theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌
 | `spacing.gutter` | ۱۶ | فاصلهٔ داخلی پنل‌ها |
 | `spacing.row` | ۱۶ | فاصلهٔ بین عنوان و مقدار در یک ردیف |
 | `spacing.section` | ۲۸ | فاصلهٔ بین بخش‌ها |
-| `spacing.tabClearance` | ۱۰۴ | فضای انتهای صفحه‌های تب‌دار |
+| `spacing.tabClearance` | ۱۱۲ | فضای انتهای صفحه‌های تب‌دار |
 | `spacing.screenBottom` | ۴۰ | فضای انتهای صفحه‌های بدون تب |
 
 **صفحه‌ها حاشیهٔ افقی خودشان را تعیین نمی‌کنند.** `Screen` پس‌زمینهٔ تخت، safe area، نوار بالای ثابت، بدنهٔ اسکرول‌شونده و فضای انتهایی را می‌دهد.
@@ -110,10 +113,10 @@ theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌
   scroll        // بدنه را اسکرول‌شونده کن
   gutter        // حاشیهٔ افقی ۲۰px استاندارد
   tabClearance  // ۱۰۴px فضای انتهای صفحه‌های تب‌دار
-  header={<TopAppBar title="کتابخانه" />}
+  header={<PageHeader title="کتابخانه" back />}
 >
-  <SectionHeader title="دسته‌بندی" />
-  <GlassCard>…</GlassCard>
+  <SectionHeading title="دسته‌بندی" />
+  <Surface tone="pane">…</Surface>
 </Screen>
 ```
 
@@ -134,7 +137,7 @@ theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌
 | `radii.sheet` | ۲۸ | شیت پایین |
 | `radii.pill` | ۹۹۹۹ | چیپ، قرص |
 
-ارتفاع‌ها فقط از `heights`: `button` ۵۲، `field` ۴۴، `row` ۵۸، `icon` ۳۸، `tile` ۳۸، `tileLg` ۴۴، `appbar` ۵۶…
+ارتفاع‌ها فقط از `heights`: `button` ۵۲، `field` ۴۴، `row` ۶۰، `pageHeader` ۶۴، `icon` ۳۸، `tile` ۳۸، `tileLg` ۴۴، `hit` ۴۴…
 اندازهٔ آیکن از `iconSize`: `xs` ۱۳ → `display` ۲۸. هیچ `<MaterialIcons size={18}>` دستی نیست.
 
 ---
@@ -173,21 +176,22 @@ theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌
 
 همه از `@components/index` قابل import هستند.
 
-**چیدمان و سطح:** `Screen` (+ `ScreenScroll`, `ScreenBody`) · `GlassCard` · `SectionHeader` · `ListRow` · `TopAppBar` · `BottomSheetModal` + `SheetPanel`
+**چیدمان و سطح:** `Screen` (+ `ScreenScroll`, `ScreenBody`) · `Surface` (`scene`/`pane`/`inset`/`control`) · `PageHeader` (+ `HeaderIcon`, `HeaderProfileButton`) · `SectionHeading` · `ShelfHeader` · `ListRow` · `FolderGroup` · `DeckShelfRow` · `ArchivedRow` · `TodayPane` · `BottomSheetModal` + `SheetPanel`
 
-**کنترل:** `Button` (`primary` / `primaryQuiet` / `secondary` / `outline` / `text`، به‌همراه پرچم `destructive` و اندازه‌های `md`/`lg`) · `PrimaryButton` · `GhostButton` · `IconButton` · `ToggleSwitch` · `SearchBar` · `Chip` (`filter`/`select`) · `SegmentedControl` · `Stepper` · `Field` · `Pill` (`neutral`/`accent`/`warning`)
+**تنظیمات:** `SettingsHero` · `SettingsChapter` · `SettingsLine` · `SettingsFootnote` · `SettingsBackHeader` · `MetricGrid`
 
-**محتوا:** `DeckCard` · `DeckListItem` · `SettingsPlate` · `SettingsSection` + `SettingsCard` + `SettingsRow` · `SettingsNote` · `StatPill` · `FlashcardView` · `SegmentedProgressBar` · `RatingButtonRow` · `RadioOptionCard` · `LearningStepRow` · `AchievementBadge` · `DonutChart` · `MiniBarChart` · `EmptyState`
+**کنترل:** `Button` (`primary` / `primaryQuiet` / `secondary` / `outline` / `text`، به‌همراه پرچم `destructive` و اندازه‌های `md`/`lg`) · `PrimaryButton` · `GhostButton` · `IconButton` · `ToggleSwitch` · `SearchBar` · `Chip` (`filter`/`select`) · `SegmentedControl` · `Stepper` · `Field` · `Pill` (`neutral`/`accent`/`warning`) · `Menu` / `Select` / `ActionMenu` / `ContextMenu` · `AppearancePicker`
+
+**محتوا:** `StudyCard` · `FlashcardView` · `CardStack` · `SegmentedProgressBar` · `RatingKeys` · `RadioOptionCard` · `LearningStepRow` · `QuizAnswer` · `DonutChart` · `MiniBarChart` · `ActionButton` · `EmptyState`
 
 ### قوانین کامپوننت
 
 1. **`ListRow` تنها ردیف استاندارد است** — `title`, `subtitle`, `icon`, `value`, `tile` (`sm`/`lg`/`none`), `density` (`compact`/`default`/`tall`), `iconTone`, `trailing`, `showChevron`, `highlighted`, `onPress`. ردیف دست‌ساز (`<Pressable>` + سه `<AppText>`) جدید نسازید. ردیف‌ها خط جداکننده ندارند؛ `divider` فقط برای سازگاری نگه داشته شده و چیزی رسم نمی‌کند — ردیف‌ها با ارتفاع و پدینگ پنل از هم جدا می‌شوند.
-2. **`GlassCard` پدینگ خودش را دارد** — `padding` (`none`/`sm`/`md`)، `tone` (`glass`/`accent`/`inset`)، `rim`, `radius`. روی `GlassCard` کلاس `p-*` تکراری نگذارید. پنلِ «امروز» هر صفحه `tone="accent"` است و هر صفحه حداکثر یکی دارد.
-3. **`SettingsPlate` آغاز هر صفحهٔ تنظیمات است** — یک پنل، یک عنوان، و دفترِ خوانده‌ها (ledger) با اعداد هم‌تراز؛ فقط صفحهٔ فهرست تنظیمات تُن accent دارد.
-3. **`SettingsSection` ریتم تنظیمات را می‌دهد** — هر بخش تنظیمات = `SettingsSection` با `label` و `SettingsRow`های داخلش. فاصلهٔ ۲۸px بالای بخش و ۱۲px بالای کارت را خودش می‌دهد؛ برای اولین بخشِ یک صفحه `first` بدهید. `rule` دیگر خط رسم نمی‌کند؛ بخش‌ها فقط با فاصله جدا می‌شوند. مقدارهای سمت راست را با `value` بگذارید (خودش chevron را کنار مقدار می‌آورد)، نه با `trailing` دست‌ساز.
+2. **`Surface` تنها پنل است** — `tone` (`scene`/`pane`/`inset`/`control`)، `radius` (`control`/`card`/`pane`)، `padding` (`none`/`sm`/`md`). روی `Surface` کلاس `p-*` تکراری نگذارید. هر صفحه حداکثر یک `tone="scene"` دارد.
+3. **`SettingsHero` آغاز صفحهٔ تنظیمات است** — یک `Surface`، یک عنوان، و دفترِ خوانده‌ها (ledger) با اعداد هم‌تراز. سپس `SettingsChapter` با `SettingsLine`ها؛ آخرین خط هر فصل `last` می‌گیرد.
 4. **`Button` ارتفاع و شعاع و رنگ را خودش می‌داند**؛ `className` فقط برای عرض/آرایش (`flex-1`, `self-stretch`).
-5. **شیت‌ها با `BottomSheetModal` + `SheetPanel`**؛ ارتفاع از `heights.sheet*` — نه `Animated.View` دست‌ساز.
-6. **حالت خالی با `EmptyState`** (`icon`, `title`, `description`, `action`) داخل یک `GlassCard` — نه پنل نقطه‌چین اختصاصی.
+5. **شیت‌ها با `BottomSheetModal` + `SheetPanel`**؛ ارتفاع از `heights.sheet*` — نه `Animated.View` دست‌ساز. منوها از `Menu`/`Select`؛ هیچ منوی دست‌ساز تازه‌ای نسازید.
+6. **حالت خالی با `EmptyState`** (`icon`, `title`, `description`, `action`) داخل یک `Surface tone="pane"` — نه پنل نقطه‌چین اختصاصی.
 7. **لیست‌های مجازی** (لجر کارت‌های دِک) تنها جایی هستند که پنل از ردیف‌ها ساخته می‌شود: فریم هر ردیف فقط از `glassFill`, `colors.hairline`, `rimColor`, `radii.pane` و `spacing` ساخته شود و اولین/آخرین ردیف گوشه‌ها و ریم پنل را بکشند. ردیف باید یک `Pressable` کامل با `accessibilityRole="button"` باشد، نه یک آیکن کوچک.
 
 ---
@@ -208,7 +212,7 @@ npm test
 
 ---
 
-## ۱۱. مرز (border)
+## ۱۰. مرز (border)
 
 مرز فقط جایی می‌آید که **معنا** دارد. فهرست کامل مجازها:
 
@@ -217,23 +221,24 @@ npm test
 | رینگ فوکوس | `SearchBar` (و هر ورودی‌ای که فوکوس بصری می‌خواهد) |
 | وضعیت انتخاب‌شده | `RadioOptionCard` (نقطهٔ رادیو) |
 | کادر خالی، نقطه‌چین | فریم حالت خالی، دکمهٔ «افزودن مرحله» |
-| `rim` بالای شیشه | یک لبه، فقط در پنل‌های صحنه (`TodayHero`، نوار صف دِک، صحنهٔ مطالعه، آرنای کوییز) و کاشی‌های پاسخ کوییز |
+| `rim` بالای شیشه | یک لبه، فقط در `Surface tone="scene"` (`TodayPane`، صحنهٔ مطالعه، آرنای کوییز) و کاشی‌های پاسخ کوییز |
+| خط راهنمای پوشه | `FolderGroup` (یک `borderStartWidth` ۱px برای تودرتویی، نه کادر) |
 | هندل شیت | `SheetPanel` (یک پُرشدگی، نه کادر) |
 
 هر چیز دیگری با **پُرشدگی** جدا می‌شود. یک عنصر هرگز هم‌زمان کادر + rim + سایه ندارد.
 
-عدد فعلی: پروژه از ۱۶۰ ارجاع مرز به کمتر از ۲۰ رسیده و همهٔ موارد باقی‌مانده در جدول بالا هستند. صفحهٔ Import که ده‌ها کادر نقطه‌چین و مُهر تزئینی داشت حالا هیچ مرزی ندارد.
+عدد فعلی: پروژه از ۱۶۰ ارجاع مرز به کمتر از ۲۰ رسیده و همهٔ موارد باقی‌مانده در جدول بالا هستند. صفحهٔ Import که ده‌ها کادر نقطه‌چین و مُهر تزئینی داشت حالا هیچ مرزی ندارد. هیچ `GlassCard`/`TopAppBar`/`v2`ای در کد نمانده است.
 
-## ۱۰. چک‌لیست صفحهٔ جدید
+## ۱۱. چک‌لیست صفحهٔ جدید
 
-- [ ] `<Screen scroll gutter>` (و `tabClearance` در تب‌ها) با `header={<TopAppBar title="…" />}` — بدون حاشیهٔ دستی
+- [ ] `<Screen scroll gutter>` (و `tabClearance` در تب‌ها) با `header={<PageHeader title="…" />}` — بدون حاشیهٔ دستی
 - [ ] همهٔ متن‌ها `AppText` با `variant` مناسب؛ هیچ `Text` خام
-- [ ] همهٔ پنل‌ها `GlassCard`؛ هیچ `View` با `borderRadius` و `backgroundColor` دستی و **هیچ `border` تازه‌ای**
-- [ ] عرض ستون محتوا از `layout.contentMaxWidth` — بدون `max-w-[…]` دستی
+- [ ] همهٔ پنل‌ها `Surface`؛ هیچ `View` با `borderRadius` و `backgroundColor` دستی و **هیچ `border` تازه‌ای**
+- [ ] عرض ستون محتوا از `v3.layout.contentMaxWidth` — بدون `max-w-[…]` دستی
 - [ ] هدف لمسی هر کنترل ≥ ۴۴px (`heights.hit` / `hitSlop`)
 - [ ] ردیف‌ها `ListRow`؛ دکمه‌ها `Button`/`IconButton`؛ چیپ‌ها `Chip`
-- [ ] فاصله‌ها از `spacing`/کلاس‌های `gap-*` — بدون عدد جادویی
+- [ ] فاصله‌ها از `v3.spacing`/`spacing`/کلاس‌های `gap-*` — بدون عدد جادویی
 - [ ] رنگ‌ها فقط از توکن؛ `npm run check:design` پاس
 - [ ] کارت‌ها/شیت‌ها/آیکن‌ها با `heights`, `radii`, `iconSize`
-- [ ] انیمیشن با `motion`
+- [ ] انیمیشن با `motion`؛ مسیر reduced-motion تست شده
 - [ ] در وب و عرض باریک هم چیده می‌شود (حداقل یک بار اسکرین‌شات)

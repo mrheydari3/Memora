@@ -1,11 +1,11 @@
 /**
  * Memora Design v3 — "Nocturne Focus".
  *
- * Only the steps v3 introduces live here; colours still come from
- * `theme/palette.js`. The direction keeps v2's "today first" order but makes the
- * page read as one quiet desk: a single hero pane that states the day and its
- * one action, then a shelf where folders are collapsible groups and a deck row
- * answers name, studied share and due count in one line.
+ * Colours still come from `theme/palette.js`. The direction keeps the
+ * "today first" order but makes the page read as one quiet desk: a single hero
+ * pane that states the day and its one action, then a shelf where folders are
+ * collapsible groups and a deck row answers name, studied share and due count
+ * in one line.
  *
  *   - the due figure is 40px on a phone and 56px from 900px up
  *   - the hero pane carries a live scheduler status and the next deck's rail
