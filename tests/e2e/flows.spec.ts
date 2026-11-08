@@ -1212,3 +1212,14 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(applyAll).toBeFocused();
   });
 });
+
+test('advanced settings without a deckId names the real cause', async ({ page }) => {
+  await go(page, '/settings/algorithm-advanced');
+
+  await expect(page.getByText('No deck chosen', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Open this page from a deck's algorithm settings.", { exact: true })
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Back', exact: true })).toBeVisible();
+  await expect(page.getByText(/may have been deleted/i)).toHaveCount(0);
+});

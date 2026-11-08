@@ -1,17 +1,15 @@
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { AppText, RevealItem, Screen } from '../components';
 import {
-  AppText,
-  Button,
-  RevealItem,
-  Screen,
-  SettingsNote,
-  SettingsPlate,
-  SettingsRow,
-  SettingsSection,
-  TopAppBar,
-} from '../components';
+  ActionButton,
+  PageHeader,
+  SettingsChapter,
+  SettingsFootnote,
+  SettingsHero,
+  SettingsLine,
+} from '../components/v3';
 import { useDeckStore } from '../store/useDeckStore';
 import { useReviewStore } from '../store/useReviewStore';
 import { useGameStore } from '../store/useGameStore';
@@ -19,7 +17,9 @@ import { useSettingsStore } from '../store/useSettingsStore';
 import * as repository from '../data/repository';
 import { buildDevLibrary } from '../data/devFixture';
 import { sampleCards, sampleDecks } from '../data/seed';
-import { v2 } from '../theme/v2';
+import { goBackOr } from '../services/navigation';
+import { colors } from '../theme/tokens';
+import { v3 } from '../theme/v3';
 
 type Action = 'load' | 'restore' | 'wipe';
 
@@ -123,86 +123,94 @@ export default function DevDataScreen() {
     <Screen
       scroll
       gutter
-      contentMaxWidth={v2.layout.contentMaxWidth}
-      header={<TopAppBar title="Developer data" back backFallback="/settings" />}
+      contentMaxWidth={v3.layout.contentMaxWidth}
+      header={
+        <PageHeader
+          title="Developer data"
+          back
+          onBack={() => goBackOr(router, '/settings')}
+        />
+      }
     >
-      <RevealItem index={0}>
-        <SettingsPlate
-          tone="accent"
-          icon="science"
-          eyebrow="Development only"
-          title="Test library"
-          description="Seed a fixed library, then reset or wipe it whenever you need a clean start."
-          status={{
-            label: busy ? 'Working…' : 'Device storage',
-            tone: busy ? 'warning' : 'success',
-          }}
-          ledger={[
-            { label: 'Decks', value: count(totals.decks) },
-            { label: 'Cards', value: count(totals.cards) },
-            { label: 'Reviews', value: count(totals.reviews) },
-          ]}
-        />
-      </RevealItem>
+      <View style={{ paddingBottom: 24 }}>
+        <View style={{ gap: 28 }}>
+          <RevealItem index={0}>
+            <SettingsHero
+              testID="dev-hero"
+              eyebrow="Dev only"
+              status={{
+                label: busy ? 'Working…' : 'Device storage',
+                tone: busy ? 'accent' : 'success',
+              }}
+              title="Test library"
+              description="Seed a fixed library, then reset or wipe it whenever you need a clean start."
+              ledger={[
+                { label: 'Decks', value: count(totals.decks) },
+                { label: 'Cards', value: count(totals.cards) },
+                { label: 'Reviews', value: count(totals.reviews) },
+              ]}
+            />
+          </RevealItem>
 
-      <SettingsSection label="Actions" index={1}>
-        <View className="gap-2 p-3">
-          <Button
-            variant="primary"
-            label="Load test library"
-            icon="auto-awesome"
-            loading={busy === 'load'}
-            disabled={busy !== null && busy !== 'load'}
-            onPress={loadTestLibrary}
-          />
-          <Button
-            variant="secondary"
-            label="Restore shipped deck"
-            icon="restore"
-            loading={busy === 'restore'}
-            disabled={busy !== null && busy !== 'restore'}
-            onPress={restoreShippedDeck}
-          />
-          <Button
-            variant="outline"
-            destructive
-            label={wipeArmed ? 'Tap again to erase everything' : 'Wipe everything'}
-            icon="delete-outline"
-            loading={busy === 'wipe'}
-            disabled={busy !== null && busy !== 'wipe'}
-            onPress={wipeEverything}
-          />
+          <RevealItem index={1}>
+            <SettingsChapter label="Actions">
+              <View style={{ gap: 8, padding: 12 }}>
+                <ActionButton
+                  label="Load test library"
+                  icon="auto-awesome"
+                  disabled={busy !== null && busy !== 'load'}
+                  onPress={loadTestLibrary}
+                />
+                <ActionButton
+                  label="Restore shipped deck"
+                  icon="restore"
+                  tone="quiet"
+                  disabled={busy !== null && busy !== 'restore'}
+                  onPress={restoreShippedDeck}
+                />
+                <ActionButton
+                  label={wipeArmed ? 'Tap again to erase everything' : 'Wipe everything'}
+                  icon="delete-outline"
+                  tone="danger"
+                  disabled={busy !== null && busy !== 'wipe'}
+                  onPress={wipeEverything}
+                />
+              </View>
+            </SettingsChapter>
+          </RevealItem>
+
+          {message && (
+            <View accessibilityLiveRegion="polite">
+              <AppText variant="bodySm" tone="muted">
+                {message}
+              </AppText>
+            </View>
+          )}
+
+          <RevealItem index={2}>
+            <SettingsChapter label="What you get">
+              <SettingsLine
+                icon="folder"
+                tone={colors.info}
+                title="Six decks, 47 cards"
+                subtitle="Nesting, empty, archived, long names, RTL and overdue."
+              />
+              <SettingsLine
+                icon="insights"
+                tone={colors.success}
+                title="Thirty-three reviews"
+                subtitle="Thirteen days of history for streaks and charts."
+                last
+              />
+            </SettingsChapter>
+          </RevealItem>
+
+          <SettingsFootnote icon="warning-amber">
+            Developer tools. Wiping removes every deck, card, review and setting on this device; it
+            cannot be undone.
+          </SettingsFootnote>
         </View>
-      </SettingsSection>
-
-      {message && (
-        <View className="mt-5" accessibilityLiveRegion="polite">
-          <AppText variant="bodySm" tone="muted">
-            {message}
-          </AppText>
-        </View>
-      )}
-
-      <SettingsSection label="What you get" index={2}>
-        <SettingsRow
-          icon="folder"
-          iconTone="info"
-          title="Six decks, 47 cards"
-          subtitle="Nested folders, an empty deck, an archived deck, an overflowing name, RTL cards and a fully overdue deck"
-        />
-        <SettingsRow
-          icon="insights"
-          iconTone="success"
-          title="Thirty-three reviews"
-          subtitle="Thirteen consecutive days, so the streak and the charts have data"
-          isLast
-        />
-      </SettingsSection>
-
-      <SettingsNote icon="warning-amber">
-        Developer tools. Wiping removes every deck, card, review and setting on this device; it
-        cannot be undone.
-      </SettingsNote>
+      </View>
     </Screen>
   );
 }

@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { View, Pressable } from 'react-native';
+import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { goBackOr } from '../../services/navigation';
-import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import {
   isFsrsLearningStepValid,
@@ -13,23 +12,26 @@ import { isSM2StepValid } from '../../data/schedulers/sm2';
 import {
   AppText,
   Screen,
-  GlassCard,
   LearningStepRow,
-  SettingsPlate,
-  SettingsSection,
-  SettingsRow,
   ToggleSwitch,
   BottomSheetModal,
-  PrimaryButton,
   EmptyState,
   Field,
-  GhostButton,
   Pill,
   IconButton,
+  RevealItem,
 } from '../../components';
-import { PageHeader } from '../../components/v3';
+import {
+  ActionButton,
+  SettingsBackHeader,
+  SettingsChapter,
+  SettingsFootnote,
+  SettingsHero,
+  SettingsLine,
+  Surface,
+} from '../../components/v3';
 import { colors, iconSize } from '../../theme/tokens';
-import { v2 } from '../../theme/v2';
+import { v3 } from '../../theme/v3';
 
 const DEFAULT_SM2_STEPS = ['12 hours', '1 day', '2 days', '3 days'];
 
@@ -80,27 +82,34 @@ export default function AlgorithmAdvancedScreen() {
   // The plate reads what is saved, not the draft: a half-edited step list must
   // never look like the deck's current schedule.
   const savedParams = resolveFsrsParams(deck ?? {});
-  const ledger: { label: string; value: string; accent?: boolean }[] =
+  const ledger: { label: string; value: string }[] =
     preset === 'general'
       ? [
           { label: 'Scheduler', value: 'SM-2' },
-          { label: 'Learning steps', value: pluralSteps(deck?.learningSteps.length ?? steps.length) },
+          { label: 'Steps', value: pluralSteps(deck?.learningSteps.length ?? steps.length) },
           {
-            label: 'Starting multiplier',
+            label: 'Multiplier',
             value: `× ${deck?.masteredIntervalMultiplier ?? multiplier}`,
           },
         ]
       : preset === 'fsrs'
         ? [
-            {
-              label: 'Learning steps',
-              value: pluralSteps(savedParams.fsrsLearningSteps.length),
-              accent: true,
-            },
-            { label: 'Relearning steps', value: pluralSteps(savedParams.fsrsRelearningSteps.length) },
-            { label: 'Short-term', value: savedParams.enableShortTerm ? 'On' : 'Off' },
+            { label: 'Learning', value: pluralSteps(savedParams.fsrsLearningSteps.length) },
+            { label: 'Relearn', value: pluralSteps(savedParams.fsrsRelearningSteps.length) },
+            { label: 'Reviews', value: savedParams.enableShortTerm ? 'Same day' : 'Off' },
           ]
-        : [{ label: 'Scheduler', value: 'Fast repetition' }];
+        : [
+            { label: 'Scheduler', value: 'Fast repetition' },
+            { label: 'Due dates', value: 'None' },
+            { label: 'Queue', value: 'In order' },
+          ];
+
+  const heroDescription =
+    preset === 'fast'
+      ? 'Fast repetition keeps every card available; there are no intervals to tune.'
+      : preset === 'general'
+        ? 'The SM-2 steps these cards pass through before long-term scheduling takes over.'
+        : 'The steps these cards pass through before long-term scheduling takes over.';
 
   const sm2Dirty =
     JSON.stringify(steps) !== JSON.stringify(deck?.learningSteps ?? DEFAULT_SM2_STEPS) ||
@@ -200,60 +209,42 @@ export default function AlgorithmAdvancedScreen() {
   };
 
   const deckName = deck?.name ?? 'this deck';
+  const header = (
+    <SettingsBackHeader title="Advanced" onBack={() => goBackOr(router, '/settings/algorithm')} />
+  );
 
   // The store hydrates asynchronously, and the deck may legitimately have been
   // deleted while this screen was open. Say so instead of editing another deck.
   if (!deck && !loaded) {
     return (
-      <Screen
-        scroll
-        gutter
-        contentMaxWidth={v2.layout.contentMaxWidth}
-        header={
-          <PageHeader
-            title="Advanced"
-            back
-            onBack={() => goBackOr(router, '/settings/algorithm')}
-          />
-        }
-      >
-        <GlassCard tone="inset">
+      <Screen scroll gutter contentMaxWidth={v3.layout.contentMaxWidth} header={header}>
+        <Surface tone="pane" radius="card" padding="md">
           <AppText variant="bodySm" tone="muted">
             Loading deck…
           </AppText>
-        </GlassCard>
+        </Surface>
       </Screen>
     );
   }
 
   if (!deck) {
     return (
-      <Screen
-        scroll
-        gutter
-        contentMaxWidth={v2.layout.contentMaxWidth}
-        header={
-          <PageHeader
-            title="Advanced"
-            back
-            onBack={() => goBackOr(router, '/settings/algorithm')}
-          />
-        }
-      >
-        <GlassCard>
+      <Screen scroll gutter contentMaxWidth={v3.layout.contentMaxWidth} header={header}>
+        <Surface tone="scene" padding="md">
           <EmptyState
             icon="layers-clear"
-            title="Deck not found"
-            titleVariant="bodyLg"
-            description="It may have been deleted. Go back and pick a deck that still exists."
+            title="No deck chosen"
+            titleVariant="headline"
+            description="Open this page from a deck's algorithm settings."
             action={
-              <GhostButton
-                label="Go back"
+              <ActionButton
+                label="Back"
+                fullWidth={false}
                 onPress={() => goBackOr(router, '/settings/algorithm')}
               />
             }
           />
-        </GlassCard>
+        </Surface>
       </Screen>
     );
   }
@@ -262,210 +253,235 @@ export default function AlgorithmAdvancedScreen() {
     <Screen
       scroll
       gutter
-      contentMaxWidth={v2.layout.contentMaxWidth}
-      header={
-        <PageHeader
-          title="Advanced"
-          back
-          onBack={() => goBackOr(router, '/settings/algorithm')}
-        />
-      }
+      contentMaxWidth={v3.layout.contentMaxWidth}
+      header={header}
     >
-      <SettingsPlate
-        icon="tune"
-        eyebrow="Advanced"
-        title={deckName}
-        description="The steps these cards pass through before long-term scheduling takes over."
-        ledger={ledger}
-      />
-
-      {preset === 'fast' && (
-        <GlassCard className="mt-4">
-          <AppText variant="body" weight="medium">
-            No scheduling settings
-          </AppText>
-          <AppText variant="bodySm" tone="muted" className="mt-1">
-            Fast Repetition never sets a due date, so there is nothing to tune here. Pick FSRS on
-            the Algorithm screen if you want spaced scheduling.
-          </AppText>
-        </GlassCard>
-      )}
-
-      {preset === 'fsrs' && (
-        <>
-          <SettingsSection label="Learning phase" index={1}>
-            <View className="px-4 pt-4">
-              <AppText variant="bodySm" tone="muted">
-                New cards pass through short steps before FSRS takes over long-term scheduling.
-                Keep every step under one day — that is what the algorithm expects.
-              </AppText>
-            </View>
-            <View className="mt-3">
-              {fsrsSteps.length === 0 ? (
-                <View className="px-4 py-3">
-                  <AppText variant="bodySm" tone="tertiary">
-                    No steps — FSRS schedules the same day too.
-                  </AppText>
-                </View>
-              ) : (
-                fsrsSteps.map((step, i) => (
-                  <LearningStepRow
-                    key={`${step}-${i}`}
-                    index={i}
-                    step={step}
-                    label={`FSRS learning step ${i + 1}`}
-                    isFirst={false}
-                    onEdit={() => openStepEditor('fsrs', i, step)}
-                    onRemove={() => removeStep('fsrs', i)}
-                  />
-                ))
-              )}
-            </View>
-            <AddStepButton onPress={() => addStep('fsrs')} label="Add learning step" />
-          </SettingsSection>
-
-          <SettingsSection label="Relearning phase" index={2}>
-            <View className="px-4 pt-4">
-              <AppText variant="bodySm" tone="muted">
-                Steps a review card goes through after you press Again.
-              </AppText>
-            </View>
-            <View className="mt-3">
-              {relearnSteps.length === 0 ? (
-                <View className="px-4 py-3">
-                  <AppText variant="bodySm" tone="tertiary">
-                    No steps — FSRS schedules the lapse itself.
-                  </AppText>
-                </View>
-              ) : (
-                relearnSteps.map((step, i) => (
-                  <LearningStepRow
-                    key={`${step}-${i}`}
-                    index={i}
-                    step={step}
-                    label={`FSRS relearning step ${i + 1}`}
-                    isFirst={false}
-                    onEdit={() => openStepEditor('relearn', i, step)}
-                    onRemove={() => removeStep('relearn', i)}
-                  />
-                ))
-              )}
-            </View>
-            <AddStepButton onPress={() => addStep('relearn')} label="Add relearning step" />
-          </SettingsSection>
-
-          <SettingsSection label="Scheduling behaviour" index={3}>
-            <SettingsRow
-              icon="short-text"
-              title="Short-term scheduling"
-              subtitle="Use steps for same-day reviews"
-              trailing={
-                <ToggleSwitch
-                  value={shortTerm}
-                  onToggle={setShortTerm}
-                  accessibilityLabel="Short-term scheduling"
-                />
-              }
+      <View style={{ paddingBottom: 24 }}>
+        <View style={{ gap: 28 }}>
+          <RevealItem index={0}>
+            <SettingsHero
+              testID="advanced-hero"
+              eyebrow="Advanced"
+              status={{
+                label: preset === 'fsrs' ? 'FSRS' : preset === 'general' ? 'SM-2' : 'Fast',
+                tone: 'accent',
+              }}
+              title={deckName}
+              description={heroDescription}
+              ledger={ledger}
             />
-            <SettingsRow
-              icon="shuffle"
-              title="Fuzz intervals"
-              subtitle="Add a little randomness to long gaps"
-              trailing={
-                <ToggleSwitch value={fuzz} onToggle={setFuzz} accessibilityLabel="Fuzz intervals" />
-              }
-              isLast
-            />
-          </SettingsSection>
-        </>
-      )}
+          </RevealItem>
 
-      {preset === 'general' && (
-        <>
-          <SettingsSection label="Learning phase" index={1}>
-            <View className="px-4 pt-4">
-              <AppText variant="bodySm" tone="muted">
-                New cards go through a short learning phase with gradually increasing intervals
-                before graduating to the main schedule.
-              </AppText>
-            </View>
-            <View className="mt-3">
-              {steps.map((step, i) => (
-                <LearningStepRow
-                  key={`${step}-${i}`}
-                  index={i}
-                  step={step}
-                  label={`SM-2 learning step ${i + 1}`}
-                  isFirst={i === 0}
-                  onEdit={() => openStepEditor('sm2', i, step)}
-                  onRemove={() => removeStep('sm2', i)}
+          {preset === 'fast' && (
+            <RevealItem index={1}>
+              <SettingsChapter label="Fast repetition">
+                <SettingsLine
+                  icon="bolt"
+                  tone={colors.warning}
+                  title="No scheduling settings"
+                  subtitle="Fast repetition never sets a due date; choose FSRS to tune spaced scheduling."
+                  last
                 />
-              ))}
-            </View>
-            <AddStepButton onPress={() => addStep('sm2')} label="Add step" />
-          </SettingsSection>
+              </SettingsChapter>
+            </RevealItem>
+          )}
 
-          <SettingsSection label="Mastered phase" index={2}>
-            <View className="px-4 pt-4">
-              <AppText variant="bodySm" tone="muted">
-                After graduating from the learning phase, cards enter the mastered phase with
-                longer intervals.
-              </AppText>
-            </View>
-            <View className="mt-3">
-              <SettingsRow
-                icon="speed"
-                title="Starting interval"
-                subtitle="Multiplier applied to the first mastered interval"
-                isLast
-                trailing={
-                  <View className="flex-row items-center gap-2">
-                    <IconButton
-                      icon="remove"
-                      size="sm"
-                      glyphSize={iconSize.sm}
-                      onPress={() =>
-                        setMultiplier(Math.max(1, Math.round((multiplier - 0.5) * 10) / 10))
+          {preset === 'fsrs' && (
+            <>
+              <RevealItem index={1}>
+                <SettingsChapter label="Learning phase">
+                  <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+                    <AppText variant="bodySm" tone="muted">
+                      New cards pass through short steps before FSRS takes over long-term scheduling.
+                      Keep every step under one day — that is what the algorithm expects.
+                    </AppText>
+                  </View>
+                  <View style={{ marginTop: 10 }}>
+                    {fsrsSteps.length === 0 ? (
+                      <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
+                        <AppText variant="bodySm" tone="tertiary">
+                          No steps — FSRS schedules the same day too.
+                        </AppText>
+                      </View>
+                    ) : (
+                      fsrsSteps.map((step, i) => (
+                        <LearningStepRow
+                          key={`${step}-${i}`}
+                          index={i}
+                          step={step}
+                          label={`FSRS learning step ${i + 1}`}
+                          isFirst={false}
+                          onEdit={() => openStepEditor('fsrs', i, step)}
+                          onRemove={() => removeStep('fsrs', i)}
+                        />
+                      ))
+                    )}
+                  </View>
+                  <SettingsLine
+                    icon="add"
+                    title="Add learning step"
+                    onPress={() => addStep('fsrs')}
+                    last
+                  />
+                </SettingsChapter>
+              </RevealItem>
+
+              <RevealItem index={2}>
+                <SettingsChapter label="Relearning phase">
+                  <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+                    <AppText variant="bodySm" tone="muted">
+                      Steps a review card goes through after you press Again.
+                    </AppText>
+                  </View>
+                  <View style={{ marginTop: 10 }}>
+                    {relearnSteps.length === 0 ? (
+                      <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
+                        <AppText variant="bodySm" tone="tertiary">
+                          No steps — FSRS schedules the lapse itself.
+                        </AppText>
+                      </View>
+                    ) : (
+                      relearnSteps.map((step, i) => (
+                        <LearningStepRow
+                          key={`${step}-${i}`}
+                          index={i}
+                          step={step}
+                          label={`FSRS relearning step ${i + 1}`}
+                          isFirst={false}
+                          onEdit={() => openStepEditor('relearn', i, step)}
+                          onRemove={() => removeStep('relearn', i)}
+                        />
+                      ))
+                    )}
+                  </View>
+                  <SettingsLine
+                    icon="add"
+                    title="Add relearning step"
+                    onPress={() => addStep('relearn')}
+                    last
+                  />
+                </SettingsChapter>
+              </RevealItem>
+
+              <RevealItem index={3}>
+                <SettingsChapter label="Scheduling behaviour">
+                  <SettingsLine
+                    icon="short-text"
+                    title="Short-term"
+                    subtitle="Use steps for same-day reviews"
+                    trailing={
+                      <ToggleSwitch
+                        value={shortTerm}
+                        onToggle={setShortTerm}
+                        accessibilityLabel="Short-term scheduling"
+                      />
+                    }
+                  />
+                  <SettingsLine
+                    icon="shuffle"
+                    title="Fuzz intervals"
+                    subtitle="Add randomness to long gaps"
+                    trailing={
+                      <ToggleSwitch
+                        value={fuzz}
+                        onToggle={setFuzz}
+                        accessibilityLabel="Fuzz intervals"
+                      />
+                    }
+                    last
+                  />
+                </SettingsChapter>
+              </RevealItem>
+            </>
+          )}
+
+          {preset === 'general' && (
+            <>
+              <RevealItem index={1}>
+                <SettingsChapter label="Learning phase">
+                  <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+                    <AppText variant="bodySm" tone="muted">
+                      New cards go through a short learning phase with gradually increasing intervals
+                      before graduating to the main schedule.
+                    </AppText>
+                  </View>
+                  <View style={{ marginTop: 10 }}>
+                    {steps.map((step, i) => (
+                      <LearningStepRow
+                        key={`${step}-${i}`}
+                        index={i}
+                        step={step}
+                        label={`SM-2 learning step ${i + 1}`}
+                        isFirst={i === 0}
+                        onEdit={() => openStepEditor('sm2', i, step)}
+                        onRemove={() => removeStep('sm2', i)}
+                      />
+                    ))}
+                  </View>
+                  <SettingsLine icon="add" title="Add step" onPress={() => addStep('sm2')} last />
+                </SettingsChapter>
+              </RevealItem>
+
+              <RevealItem index={2}>
+                <SettingsChapter label="Mastered phase">
+                  <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+                    <AppText variant="bodySm" tone="muted">
+                      After graduating from the learning phase, cards enter the mastered phase with
+                      longer intervals.
+                    </AppText>
+                  </View>
+                  <View style={{ marginTop: 10 }}>
+                    <SettingsLine
+                      icon="speed"
+                      title="Starting interval"
+                      subtitle="Multiplier applied to the first mastered interval"
+                      trailing={
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <IconButton
+                            icon="remove"
+                            size="sm"
+                            glyphSize={iconSize.sm}
+                            onPress={() =>
+                              setMultiplier(Math.max(1, Math.round((multiplier - 0.5) * 10) / 10))
+                            }
+                            accessibilityLabel="Decrease multiplier"
+                          />
+                          <Pill label={`× ${multiplier}`} />
+                          <IconButton
+                            icon="add"
+                            size="sm"
+                            glyphSize={iconSize.sm}
+                            onPress={() =>
+                              setMultiplier(Math.min(10, Math.round((multiplier + 0.5) * 10) / 10))
+                            }
+                            accessibilityLabel="Increase multiplier"
+                          />
+                        </View>
                       }
-                      accessibilityLabel="Decrease multiplier"
-                    />
-                    <Pill label={`× ${multiplier}`} />
-                    <IconButton
-                      icon="add"
-                      size="sm"
-                      glyphSize={iconSize.sm}
-                      onPress={() =>
-                        setMultiplier(Math.min(10, Math.round((multiplier + 0.5) * 10) / 10))
-                      }
-                      accessibilityLabel="Increase multiplier"
+                      last
                     />
                   </View>
-                }
-              />
-            </View>
-          </SettingsSection>
-        </>
-      )}
+                </SettingsChapter>
+              </RevealItem>
+            </>
+          )}
 
-      {preset !== 'fast' && (
-        <View className="mt-7">
-          {dirty ? (
-            <PrimaryButton
-              label="Save changes"
-              onPress={async () => {
-                await save();
-              }}
-            />
-          ) : (
-            <View className="flex-row items-center justify-center gap-2 py-3">
-              <MaterialIcons name="check-circle" size={iconSize.sm} color={colors.success} />
-              <AppText variant="bodySm" weight="medium" tone="muted">
-                No changes to save
-              </AppText>
-            </View>
+          {preset !== 'fast' && (
+            <RevealItem index={4}>
+              {dirty ? (
+                <ActionButton
+                  label="Save changes"
+                  onPress={async () => {
+                    await save();
+                  }}
+                />
+              ) : (
+                <SettingsFootnote icon="check-circle">No changes to save</SettingsFootnote>
+              )}
+            </RevealItem>
           )}
         </View>
-      )}
+      </View>
 
       {/* Step editor sheet */}
       <BottomSheetModal
@@ -492,26 +508,10 @@ export default function AlgorithmAdvancedScreen() {
             {stepError}
           </AppText>
         )}
-        <View className="mt-3">
-          <PrimaryButton label="Save step" onPress={commitStep} />
+        <View style={{ marginTop: 12 }}>
+          <ActionButton label="Save step" onPress={commitStep} />
         </View>
       </BottomSheetModal>
     </Screen>
-  );
-}
-
-function AddStepButton({ onPress, label }: { onPress: () => void; label: string }) {
-  return (
-    <Pressable
-      className="mx-4 my-3 flex-row items-center justify-center gap-2 rounded-md border border-dashed border-hairline-strong py-3 active:opacity-70"
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-    >
-      <MaterialIcons name="add" size={iconSize.md} color={colors.primary} />
-      <AppText variant="bodySm" weight="semibold" tone="accent">
-        {label}
-      </AppText>
-    </Pressable>
   );
 }

@@ -1,15 +1,17 @@
+import { View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { MaterialIcons } from '../components/Icon';
+import { Pill, RevealItem, Screen } from '../components';
 import {
-  Pill,
-  RevealItem,
-  Screen,
-  SettingsNote,
-  SettingsPlate,
-  SettingsRow,
-  SettingsSection,
-  TopAppBar,
-} from '../components';
-import { v2 } from '../theme/v2';
+  PageHeader,
+  SettingsChapter,
+  SettingsFootnote,
+  SettingsHero,
+  SettingsLine,
+} from '../components/v3';
+import { goBackOr } from '../services/navigation';
+import { colors } from '../theme/tokens';
+import { v3 } from '../theme/v3';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -34,78 +36,96 @@ const STEPS: { index: string; title: string; body: string; icon: IconName }[] = 
 /**
  * Import — what the intake desk will accept, and what it cannot do yet.
  *
- * The page follows the settings rhythm like every other data screen: one plate
- * with the state of the intake, then chapters for the sources, the parser and
- * the planned route. Every line is a standard setting row, status is a `Pill`,
- * and the closing caveat is a `SettingsNote`. There are no stamps, seals, room
- * numbers or dashed frames — the shared fills and spacing carry the page, so it
- * reads as part of the same app as Settings and Offline.
+ * The page follows the v3 settings rhythm: one hero with the intake state, then
+ * chapters for the sources, the parser and the planned route. Every line is a
+ * `SettingsLine`, status is a `Pill`, and the closing caveat is a
+ * `SettingsFootnote`. The parser is still honestly absent; no control pretends
+ * a file can be chosen or imported.
  */
 export default function MassImportScreen() {
+  const router = useRouter();
+
   return (
     <Screen
       scroll
       gutter
-      contentMaxWidth={v2.layout.contentMaxWidth}
-      header={<TopAppBar title="Import" back backFallback="/(tabs)/home" />}
+      contentMaxWidth={v3.layout.contentMaxWidth}
+      header={
+        <PageHeader
+          title="Import"
+          back
+          onBack={() => goBackOr(router, '/(tabs)/home')}
+        />
+      }
     >
-      <RevealItem index={0}>
-        <SettingsPlate
-          tone="glass"
-          icon="move-to-inbox"
-          eyebrow="Data room"
-          title="Bring your cards over."
-          description="Anki, Quizlet and spreadsheet exports will land here. The desk is ready; the parser is not."
-          status={{ label: 'Planned', tone: 'warning' }}
-          ledger={[
-            { label: 'Sources', value: String(SOURCES.length) },
-            { label: 'Formats', value: 'APKG · CSV · XLSX' },
-            { label: 'Parser', value: 'Not wired' },
-          ]}
-        />
-      </RevealItem>
+      <View style={{ paddingBottom: 24 }}>
+        <View style={{ gap: 28 }}>
+          <RevealItem index={0}>
+            <SettingsHero
+              testID="import-hero"
+              eyebrow="Data room"
+              status={{ label: 'Planned', tone: 'muted' }}
+              title="Bring your cards over."
+              description="Anki, Quizlet and spreadsheet exports will land here. The desk is ready; the parser is not."
+              ledger={[
+                { label: 'Sources', value: String(SOURCES.length) },
+                { label: 'Formats', value: '3 types' },
+                { label: 'Parser', value: 'Not wired' },
+              ]}
+            />
+          </RevealItem>
 
-      <SettingsSection label="Sources" index={1} hint={String(SOURCES.length)}>
-        {SOURCES.map((source) => (
-          <SettingsRow
-            key={source.id}
-            icon={source.icon}
-            iconTone="info"
-            title={source.title}
-            subtitle={source.format}
-            trailing={<Pill label="On hold" tone="warning" />}
-          />
-        ))}
-      </SettingsSection>
+          <RevealItem index={1}>
+            <SettingsChapter label="Sources">
+              {SOURCES.map((source, index) => (
+                <SettingsLine
+                  key={source.id}
+                  icon={source.icon}
+                  tone={colors.info}
+                  title={source.title}
+                  subtitle={source.format}
+                  trailing={<Pill label="On hold" tone="warning" />}
+                  last={index === SOURCES.length - 1}
+                />
+              ))}
+            </SettingsChapter>
+          </RevealItem>
 
-      <SettingsSection label="Parser" index={2}>
-        <SettingsRow
-          icon="construction"
-          iconTone="warning"
-          title="File parser"
-          subtitle="Anki, Quizlet and spreadsheet parsing are not wired up yet."
-          trailing={<Pill label="Pending" tone="warning" />}
-          isLast
-        />
-      </SettingsSection>
+          <RevealItem index={2}>
+            <SettingsChapter label="Parser">
+              <SettingsLine
+                icon="construction"
+                tone={colors.warning}
+                title="File parser"
+                subtitle="Not wired up yet."
+                trailing={<Pill label="Pending" tone="warning" />}
+                last
+              />
+            </SettingsChapter>
+          </RevealItem>
 
-      <SettingsSection label="Planned route" index={3} hint="Nothing imports yet">
-        {STEPS.map((step) => (
-          <SettingsRow
-            key={step.index}
-            icon={step.icon}
-            iconTone="info"
-            title={step.title}
-            subtitle={step.body}
-            value={step.index}
-          />
-        ))}
-      </SettingsSection>
+          <RevealItem index={3}>
+            <SettingsChapter label="Planned route">
+              {STEPS.map((step, index) => (
+                <SettingsLine
+                  key={step.index}
+                  icon={step.icon}
+                  tone={colors.info}
+                  title={step.title}
+                  subtitle={step.body}
+                  value={step.index}
+                  last={index === STEPS.length - 1}
+                />
+              ))}
+            </SettingsChapter>
+          </RevealItem>
 
-      <SettingsNote icon="info-outline">
-        Importing stays disabled until the file parser lands. The decks, cards and review history
-        already on this device are untouched.
-      </SettingsNote>
+          <SettingsFootnote icon="info-outline">
+            Importing stays disabled until the file parser lands. The decks, cards and review history
+            already on this device are untouched.
+          </SettingsFootnote>
+        </View>
+      </View>
     </Screen>
   );
 }

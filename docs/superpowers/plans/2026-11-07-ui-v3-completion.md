@@ -60,11 +60,9 @@ These are the inputs the design pass is most likely to break; each is pinned by 
 
 `components/v3/` is now 16 files / 2,984 lines; `components/v2/` is four files / 466 lines. `theme/v3.ts` owns hero/stat/deck-name/headline/composer type, panel/section/group/row spacing, 12/14/22/24 radii, 6/4 rails, 960/420/220 widths, plus the Task 3 `score`, `result`, `page`, `studyMeasure`, `ratingKey`, and `answer` steps.
 
-### Partially converted (Task 7)
+### Partially converted
 
-| Surface | Size | Current imports | Remaining gap |
-| --- | --- | --- | --- |
-| Profile (`app/profile.tsx`) | 743 lines | `PageHeader`, `SectionHeading`, `Surface`; `theme/v2` | Identity card, achievement grid, and deck rows are converted; the identity card is `tone="pane"` not scene, the grid is 2 columns below 700 and 3 above (not 3/4), the empty deck state has no study action, and `theme/v2` spacing/score remain. Task 7 is **partial**. |
+None. Tasks 7 and 8 completed Profile and the Advanced, Import and Dev settings surfaces; every remaining surface is listed below.
 
 ### Still on v1/v2 grammar
 
@@ -74,9 +72,6 @@ These are the inputs the design pass is most likely to break; each is pinned by 
 | Discover index (`app/discover/index.tsx`) | 123 lines | `GlassCard`, `ListRow`, `SectionHeading`, `v2` | catalogue rows still v2; `SectionHeading` conversion started; task 9 remains open |
 | Discover preview (`app/discover/[id].tsx`) | 177 lines | `SectionHeading`, `v2` | v1 preview, inline colour, 18/22/30 spacing |
 | Add deck (`app/add-deck.tsx`) | 211 lines | base `BottomSheetModal` only | sheet is v1; no v3 header/handle/body rhythm |
-| Advanced algorithm (`app/settings/algorithm-advanced.tsx`) | 517 lines | `PageHeader`, `SettingsPlate`, `SettingsSection`, `v2` | header converted, but still the old plate/chapters; missing-param copy is misleading (P9) |
-| Import (`app/mass-import.tsx`) | 111 lines | `SettingsPlate`, `SettingsSection`, `v2` | honest stub, but on the old plate grammar |
-| Dev (`app/dev.tsx`) | 208 lines | `SettingsPlate`, `v2` | internal route, visually inconsistent |
 | 404 (`app/+not-found.tsx`) | 37 lines | base `EmptyState` | no v3 scene pane/action pill |
 | Shell | — | `AppSplash`, `Skeleton.tsx`, `LiquidTabBar` | splash/skeletons still sized to v2 surfaces; dock needs a v3 audit |
 
@@ -84,9 +79,9 @@ These are the inputs the design pass is most likely to break; each is pinned by 
 
 - `node_modules` is installed in this workspace, so the planned baseline has been run: `npx tsc --noEmit` is clean, `npm test` is 161/161, `npm run test:surfaces` covers 83 surfaces, `npm run test:fixtures` is 14/14, and `npm run build:web` exports `dist/`. Playwright launches here with the browser dependencies staged under `.playwright-deps/`; the Study visual, axe and keyboard gates were measured in Task 4, and the remaining suites are run per task.
 - `npm run check:design` → clean (97 files).
-- The planning-time `skills/design-drift-audit` scan reported 9 off-grid spacing values, 4 literal font sizes, 4 `Screen` shells without standard switches, 1 direct `Animated.timing` in `app/(tabs)/library.tsx:44`, and 179 deliberate micro-spacings. These are Phase 0/1 clean-up, not a redesign, and this list has not been re-measured after Tasks 1–7.
+- The planning-time `skills/design-drift-audit` scan reported 9 off-grid spacing values, 4 literal font sizes, 4 `Screen` shells without standard switches, 1 direct `Animated.timing` in `app/(tabs)/library.tsx:44`, and 179 deliberate micro-spacings. These are Phase 0/1 clean-up, not a redesign, and this list has not been re-measured after Tasks 1–8.
 - Retirement candidates are still live: `components/v2/*` (four files / 466 lines), `QuizStartCard`, `DeckCard`, `DeckLibrary`, `DeckListItem`, `DeckProgressCard`, `HeroPane`, `SectionHeader`, `SettingsPlate`, `SettingsRow`, `SettingsSection`, and `SettingsNote`. Task 13 must verify each with `rg` before deleting; do not treat the current list as an inventory of confirmed dead files.
-- `theme/v2.ts` is imported by seven app files — Profile, Home, Discover ×2, Mass import, Advanced, and Dev — plus `HeroPane`, `TopAppBar`, and `components/v2/{DeckRow,FolderRow,TodayRail}`. It retires with the last of them.
+- `theme/v2.ts` is imported by three app files — Home and Discover ×2 — plus `HeroPane`, `TopAppBar`, and `components/v2/{DeckRow,FolderRow,TodayRail}`. It retires with the last of them.
 
 ---
 
@@ -371,42 +366,46 @@ Each key is one `Pressable` ≥68px tall, `accessibilityRole="button"`, `accessi
 #### Task 7: Profile in v3
 
 **Files:**
-- Modify: `app/profile.tsx` (743 lines)
-- Test: `tests/e2e/a11y.spec.ts`, `tests/e2e/visual.spec.ts`
+- Modify: `app/profile.tsx` (692 lines)
+- Test: `tests/e2e/a11y.spec.ts`, `tests/e2e/data-truth.spec.ts`, `tests/e2e/visual.spec.ts`
 
 **Interfaces:**
-- Consumes `PageHeader`, `Surface`, `SectionHeading`, `MetricGrid`, `ActionButton`, `EmptyState`.
+- Consumes `PageHeader`, `Surface`, `SectionHeading`, `ActionButton`, `EmptyState`; the three-cell Reviews/XP/Streak ledger is a scene inset row rather than `MetricGrid`, whose phone shape is 2-up.
 - Preserves the review-log-derived XP/streak/achievement logic.
 
-**Status (2026-11-07):** partial — the rail is gone and real identity/deck data is in place, but the scene pane, empty-state action, responsive-spec reconciliation, and axe gate are still open.
+**Status (2026-11-08):** complete — one scene hero, a 3-at-320/4-at-900 badge grid, inset deck lines, the no-reviews and no-decks actions, and the Profile axe gate are measured. Left uncommitted for review.
 
-- [ ] Replace `HeroPane` with one `Surface tone="scene"`: level figure, XP rail, streak status, and a ledger (reviews, XP, streak).
-- [ ] Replace the horizontal achievement rail with a responsive grid; the implementation currently uses **2 columns below 700 and 3 at ≥700**, so reconcile this with the original 3-at-320/4-at-900 target before checking it off. Locked badges keep a visible lock glyph and "Locked" name suffix.
-- [ ] Replace the deck `GlassCard` list with inset lines (name, card count, due) using `SectionHeading`; no `SectionHeader`.
-- [ ] Empty state: no reviews yet → "Your record starts with one card" + `ActionButton` to study.
-- [ ] Run `npx tsc --noEmit`, `npm run check:design`, `npx playwright test tests/e2e/a11y.spec.ts`; screenshot 320/390/1280.
-- [ ] Commit: `feat(profile): v3 record and badge grid`.
+- [x] Replace `HeroPane` with one `Surface tone="scene"`: level figure, XP rail, streak status, and a ledger (reviews, XP, streak). Active days remain a quiet caption under the ledger.
+- [x] Replace the horizontal achievement rail with a responsive grid: **3 columns at 320 / 4 at ≥900**. Locked badges keep a visible lock glyph and a `Locked` state label; earned badges use `Earned`.
+- [x] Replace the deck `GlassCard` list with inset lines (name, card count, due) using `SectionHeading`; no `SectionHeader`. Archived decks keep `Archived` instead of a due count.
+- [x] Empty state: no reviews yet → "Your record starts with one card" + `ActionButton` to study; an empty library → "No decks yet" + `Browse starter decks`.
+- [x] Run `npx tsc --noEmit`, `npm run check:design`, `npx playwright test tests/e2e/a11y.spec.ts`, `tests/e2e/data-truth.spec.ts`; screenshot 320/390/1280 populated, no-reviews and no-decks. Profile axe **1/1**; the full a11y suite is **15/18** with three failures on the untouched `/library` surface and the global zoom check (see Result).
+- [ ] Commit: `feat(profile): v3 record and badge grid` — left uncommitted for review.
 
-**Result (partial, 2026-11-07):** `app/profile.tsx` is 743 lines. `PageHeader`, `SectionHeading`, and `Surface` replaced `HeroPane`/the horizontal rail; the identity card, achievements, and deck rows use real review-log data. The implemented grid is 2 columns below 700 and 3 above, the identity card is `tone="pane"` rather than scene, the empty deck state has no study action, and `theme/v2` remains for `v2.type.score`/`v2.spacing.section`. 320/360/390 inspections showed no horizontal overflow; `tsc`, `check:design`, and `build:web` passed; axe has not run because Playwright cannot launch.
+**Result (complete, 2026-11-08):** `app/profile.tsx` is **692 lines** and no longer imports `theme/v2`. One scene hero carries LEVEL, the XP rail, the 13-day streak status, a Reviews/XP/Streak ledger and `13 active days`; the badge grid is 3-up at 320/390 and 4-up at 1280, with lock glyphs and state labels. Decks are inset lines with name, card count and due: `30 cards · 26 due`, `6 cards · 6 due`, `4 cards · 4 due` ×2, and `3 cards · Archived`. The no-reviews state is the record prompt with `Start studying`; the no-decks state has `Browse starter decks`. `npx tsc --noEmit` **0** · `npm run check:design` **clean (97 files)** · `npm test` **161/161** · `npm run build:web` exported `dist/`. Profile axe **1/1**; Profile data-truth **1/1** (330 XP, level 1, 13-day streak, 2 of 5 badges, deck order). 0 document overflow and 0 controls under 44px at 320/390/1280; screenshots: `qa/profile-v3-{320,390,1280}.png`, `qa/profile-empty-record-v3-{320,390}.png`, `qa/profile-no-decks-v3-390.png`. The full `a11y.spec.ts` run is **15/18**: `/library` still has `aria-required-attr`/`aria-required-parent` violations and two 38px mode controls, and the 200% text-zoom test fails there; the Profile test itself is green and those files were not touched.
 
 **Acceptance:** 0 horizontal overflow at 320 (the P10 badge rail is gone); badge names include state; one scene pane; axe 0.
 
 #### Task 8: Advanced, Import and Dev on the v3 settings grammar
 
 **Files:**
-- Modify: `app/settings/algorithm-advanced.tsx` (517), `app/mass-import.tsx` (111), `app/dev.tsx` (208)
+- Modify: `app/settings/algorithm-advanced.tsx` (518), `app/mass-import.tsx` (131), `app/dev.tsx` (216)
 - Test: `tests/e2e/a11y.spec.ts`, `tests/e2e/flows.spec.ts`
 
 **Interfaces:**
 - Consumes `PageHeader`, `SettingsBackHeader`, `SettingsHero`, `SettingsChapter`, `SettingsLine`, `SettingsFootnote`, `Surface`, `ActionButton`.
 - No scheduler behaviour changes.
 
-- [ ] `algorithm-advanced`: replace `SettingsPlate`/`SettingsSection` with the v3 settings components; keep every slider/step/row. Missing `deckId` (P9) shows "No deck chosen — open this page from a deck's algorithm settings" plus a Back action, not "It may have been deleted".
-- [ ] `mass-import`: convert to the v3 settings rhythm; keep the honest "Planned / parser not wired" status; remove the old plate/ledger and dashed frames. It must not pretend to accept a file.
-- [ ] `dev`: convert to the same rhythm (it is a developer surface, but it still ships in the bundle and shows up in coverage).
-- [ ] Remove the last `SettingsPlate`/`SettingsRow`/`SettingsSection`/`SettingsNote` imports after this task.
-- [ ] Run `npx tsc --noEmit`, `npm run check:design`, `npx playwright test tests/e2e/a11y.spec.ts`.
-- [ ] Commit: `feat(settings): finish the v3 chapter grammar`.
+**Status (2026-11-08):** complete — all three pages use the v3 settings grammar, the missing-`deckId` state names the real cause, and the checks below pass. Left uncommitted for review.
+
+- [x] `algorithm-advanced`: replace `SettingsPlate`/`SettingsSection` with the v3 settings components; keep every slider/step/row. Missing `deckId` (P9) shows "No deck chosen — open this page from a deck's algorithm settings" plus a Back action, not "It may have been deleted".
+- [x] `mass-import`: convert to the v3 settings rhythm; keep the honest "Planned / parser not wired" status; remove the old plate/ledger and dashed frames. It must not pretend to accept a file.
+- [x] `dev`: convert to the same rhythm (it is a developer surface, but it still ships in the bundle and shows up in coverage).
+- [x] Remove the last `SettingsPlate`/`SettingsRow`/`SettingsSection`/`SettingsNote` imports after this task.
+- [x] Run `npx tsc --noEmit`, `npm run check:design`, `npx playwright test tests/e2e/a11y.spec.ts`.
+- [ ] Commit: `feat(settings): finish the v3 chapter grammar` — left uncommitted for review.
+
+**Result (complete, 2026-11-08):** `algorithm-advanced` is **518 lines**, `mass-import` **131**, and `dev` **216**. Advanced keeps every step row, toggle and the edit sheet behind `SettingsBackHeader` + one `SettingsHero` + chaptered `SettingsLine`s; a missing `deckId` shows "No deck chosen", the cause and a Back action. Import is one `Planned` hero, three `On hold` source lines, a `Pending` parser line, the planned route and a footnote — with no file control. Dev keeps load / restore / two-tap wipe on three `ActionButton`s, with the device counts in the hero and a destructive-action footnote. No `SettingsPlate`/`SettingsRow`/`SettingsSection`/`SettingsNote` import remains in `app/`; the app's `theme/v2` importers drop from six to three (Home and Discover ×2). The legacy components still exist and are exported for Task 13 to retire. `npx tsc --noEmit` **0** · `npm run check:design` **clean (97 files)** · `npm test` **161/161** · `npm run build:web` exported `dist/` · missing-deck flow **1/1** · Advanced/Import/Dev axe **3/3** · full `a11y.spec.ts` **17/20**, with the three failures confined to untouched `/library` (axe, two 38px controls) and its 200% zoom check. 0 document overflow and 0 controls under 44px at 320/390/1280; screenshots: `qa/{advanced,import,dev}-v3-{320,390,1280}.png` and `qa/advanced-missing-v3-390.png`.
 
 **Acceptance:** all settings routes share one header/hero/line rhythm; the missing-parameter copy names the real cause; axe 0; no `SettingsPlate` import remains in `app/`.
 
@@ -563,8 +562,8 @@ Pure, no storage, no store dependency.
 | `/deck/[id]/add-card` | v3 | 1–2 |
 | `/study/[deckId]` | v3 | 3–4, 12 |
 | `/quiz/[deckId]` | v1/v2 | 3, 5 |
-| `/statistics` | v3 partial | 2, 6 |
-| `/profile` | v3 partial | 2, 7 |
+| `/statistics` | v3 | 2, 6 |
+| `/profile` | v3 | 2, 7 |
 | `/discover`, `/discover/[id]` | v2 + v3 section | 2, 9 |
 | `/add-deck` | v1 sheet | 10 |
 | `/settings/algorithm`, `/tts`, `/offline` | v3 | 1–2, 8 |
