@@ -1074,6 +1074,18 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(page.getByRole('button', { name: 'Open profile' })).toHaveCount(0);
   });
 
+  test('navigation: tab headers expose only their own actions', async ({ page }) => {
+    await go(page, '/home');
+    await expect(page.getByRole('button', { name: 'Discover' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add deck' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open profile' })).toHaveCount(0);
+
+    await go(page, '/library');
+    await expect(page.getByRole('button', { name: 'Open profile' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Settings', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Add deck', exact: true })).toHaveCount(0);
+  });
+
   test('navigation: tabs and direct-link fallback land on the right route', async ({ page }) => {
     await go(page, '/home');
     // Exactly four tabs, in this order: no fifth and no hidden destination.
@@ -1107,7 +1119,7 @@ test.describe('Phase 5 — behaviour', () => {
 
     await go(page, '/add-deck');
     await page.getByRole('button', { name: 'Close sheet' }).click();
-    await expect(page).toHaveURL(/\/library$/);
+    await expect(page).toHaveURL(/\/home$/);
   });
 
   test('navigation: Statistics is a Profile drill-down', async ({ page }) => {
@@ -1136,8 +1148,8 @@ test.describe('Phase 5 — behaviour', () => {
   test('navigation: unknown route and browser forward recover', async ({ page }) => {
     await go(page, '/not-a-real-route');
     await expect(page.getByText('This page moved on')).toBeVisible();
-    await page.getByRole('button', { name: 'Back to Game' }).click();
-    await expect(page).toHaveURL(/\/library$/);
+    await page.getByRole('button', { name: 'Back to Home' }).click();
+    await expect(page).toHaveURL(/\/home$/);
 
     await go(page, '/home');
     await page.getByTestId('deck-row').filter({ hasText: DECK }).click();
@@ -1148,6 +1160,34 @@ test.describe('Phase 5 — behaviour', () => {
     await page.goForward();
     await settle(page);
     await expect(page).toHaveURL(new RegExp(`/deck/${DECK_ID}$`));
+  });
+
+  test('navigation: empty Game and Profile route Home', async ({ page }) => {
+    await go(page, '/home');
+    await page.evaluate(
+      ({ decks, allCards, reviewLog, initialized }) => {
+        localStorage.setItem(decks, '[]');
+        localStorage.setItem(allCards, '{}');
+        localStorage.setItem(reviewLog, '[]');
+        localStorage.setItem(initialized, '1');
+      },
+      {
+        decks: STORAGE_KEYS.decks,
+        allCards: STORAGE_KEYS.allCards,
+        reviewLog: STORAGE_KEYS.reviewLog,
+        initialized: STORAGE_KEYS.initialized,
+      }
+    );
+
+    await go(page, '/library');
+    await expect(page.getByText('Not enough cards')).toBeVisible();
+    await page.getByRole('button', { name: 'Go to Home' }).click();
+    await expect(page).toHaveURL(/\/home$/);
+
+    await go(page, '/profile');
+    await expect(page.getByText('Your record starts with one card')).toBeVisible();
+    await page.getByRole('button', { name: 'Start on Home' }).click();
+    await expect(page).toHaveURL(/\/home$/);
   });
 
   test('sheets: scrim click closes the folder sheet and returns focus', async ({ page }) => {

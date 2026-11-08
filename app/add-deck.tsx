@@ -80,7 +80,7 @@ export default function AddDeckScreen() {
       : null;
   const canCreate = trimmedName.length > 0 && !duplicateName && !creating;
 
-  const closeSheet = () => goBackOr(router, '/(tabs)/library');
+  const closeSheet = () => goBackOr(router, '/(tabs)/home');
 
   // The sheet owns focus while it is open. Store the trigger so closing the
   // route returns the caret to "Add deck" instead of dropping it on <body>.
@@ -103,7 +103,7 @@ export default function AddDeckScreen() {
     const onKeyDown = (event: WebKeyEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        goBackOr(router, '/(tabs)/library');
+        goBackOr(router, '/(tabs)/home');
         return;
       }
       if (event.key !== 'Tab') return;

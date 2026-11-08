@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
  * without a pointer. Space reveals the answer and 1–4 rate the card.
  */
 test('add-deck sheet traps focus and Escape returns to its opener', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/home');
   await page.waitForSelector('[role="main"]', { timeout: 30_000 });
   await page.waitForTimeout(700);
 
@@ -20,7 +20,7 @@ test('add-deck sheet traps focus and Escape returns to its opener', async ({ pag
   await expect(close).toBeFocused();
 
   await page.keyboard.press('Escape');
-  await expect(page).not.toHaveURL(/add-deck/);
+  await expect(page).toHaveURL(/\/home$/);
   await expect(page.getByRole('button', { name: 'Add deck' })).toBeFocused();
 });
 

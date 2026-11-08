@@ -2,7 +2,7 @@ export { Surface } from './Surface';
 export type { SurfaceTone, SurfaceRadius, SurfacePadding } from './Surface';
 export { ActionButton } from './ActionButton';
 export type { ActionTone } from './ActionButton';
-export { PageHeader, HeaderProfileButton } from './PageHeader';
+export { PageHeader } from './PageHeader';
 export { SectionHeading } from './SectionHeading';
 export { MetricGrid } from './MetricGrid';
 export type { Metric } from './MetricGrid';

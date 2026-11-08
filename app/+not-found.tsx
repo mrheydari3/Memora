@@ -9,10 +9,9 @@ import { v3 } from '../theme/v3';
 /**
  * +not-found — the app's own 404.
  *
- * Expo Router's development fallback prints a raw sitemap of every route (the
- * audit caught `/discover`, which has no index route, rendering a link list with
- * 23px targets). In production that page must look like the rest of the app and
- * offer one way back, so every unmatched path lands here instead.
+ * Expo Router's development fallback prints a raw sitemap of every route
+ * instead of a designed page. In production that page must look like the rest
+ * of the app and offer one way back, so every unmatched path lands here.
  *
  * v3 keeps it to one scene pane on the normal 960px page column. The pane is
  * the composer's 420px reading width, not a full-width card, and the 52px
@@ -29,7 +28,7 @@ export default function NotFoundScreen() {
         <PageHeader
           title="Not found"
           back
-          onBack={() => router.replace('/(tabs)/library')}
+          onBack={() => router.replace('/(tabs)/home')}
         />
       }
     >
@@ -86,8 +85,8 @@ export default function NotFoundScreen() {
 
           <View style={{ width: '100%', marginTop: 2 }}>
             <ActionButton
-              label="Back to Game"
-              onPress={() => router.replace('/(tabs)/library')}
+              label="Back to Home"
+              onPress={() => router.replace('/(tabs)/home')}
             />
           </View>
 

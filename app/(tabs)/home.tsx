@@ -40,7 +40,6 @@ import {
   DeckShelfRow,
   FolderGroup,
   HeaderIcon,
-  HeaderProfileButton,
   PageHeader,
   SectionHeading,
   ShelfHeader,
@@ -403,7 +402,6 @@ export default function HomeScreen() {
             label="Add deck"
             onPress={() => pushOnce(router, '/add-deck')}
           />
-          <HeaderProfileButton onPress={() => pushOnce(router, '/profile')} />
         </>
       }
     />

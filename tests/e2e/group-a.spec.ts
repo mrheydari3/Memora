@@ -24,12 +24,12 @@ test.describe('Group A navigation', () => {
     await expect(page).toHaveURL(/\/profile$/);
   });
 
-  test('a direct-loaded add-deck sheet closes to the Library', async ({ page }) => {
+  test('a direct-loaded add-deck sheet closes to Home', async ({ page }) => {
     await page.goto('/add-deck');
     await page.getByRole('button', { name: 'Close sheet' }).waitFor();
 
     await page.getByRole('button', { name: 'Close sheet' }).click();
-    await expect(page).toHaveURL(/\/library$/);
+    await expect(page).toHaveURL(/\/home$/);
   });
 });
 

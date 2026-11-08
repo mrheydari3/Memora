@@ -13,8 +13,6 @@ import { folderPath } from '../../data/folders';
 import { AppText, EmptyState, RevealItem, Screen } from '../../components';
 import {
   ActionButton,
-  HeaderIcon,
-  HeaderProfileButton,
   PageHeader,
   Surface,
 } from '../../components/v3';
@@ -450,26 +448,7 @@ export default function GameScreen() {
     pushOnce(router, mode === 'reverse' ? `/quiz/${quizDeckId}?mode=reverse` : `/quiz/${quizDeckId}`);
   };
 
-  const header = (
-    <PageHeader
-      title="Game"
-      actions={
-        <>
-          <HeaderIcon
-            icon="add"
-            label="Add deck"
-            onPress={() => pushOnce(router, '/add-deck')}
-          />
-          <HeaderIcon
-            icon="settings"
-            label="Settings"
-            onPress={() => pushOnce(router, '/settings')}
-          />
-          <HeaderProfileButton onPress={() => pushOnce(router, '/profile')} />
-        </>
-      }
-    />
-  );
+  const header = <PageHeader title="Game" />;
 
   if (playableDecks.length === 0) {
     return (
@@ -487,15 +466,15 @@ export default function GameScreen() {
             titleVariant="headline"
             description={
               mode === 'reverse'
-                ? 'Reverse needs four cards with distinct words to choose from. Add a few more cards to a deck to unlock the arena.'
-                : 'The quiz needs four cards with distinct meanings to choose from. Add a few more cards to a deck to unlock the arena.'
+                ? 'Reverse needs four cards with distinct words to choose from. Create a deck on Home and add cards to unlock the arena.'
+                : 'The quiz needs four cards with distinct meanings to choose from. Create a deck on Home and add cards to unlock the arena.'
             }
             action={
               <View style={{ width: 208 }}>
                 <ActionButton
-                  label="Add a deck"
-                  icon="add"
-                  onPress={() => pushOnce(router, '/add-deck')}
+                  label="Go to Home"
+                  icon="home"
+                  onPress={() => pushOnce(router, '/home')}
                 />
               </View>
             }

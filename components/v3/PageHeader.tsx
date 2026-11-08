@@ -1,4 +1,4 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { goBackOr } from '../../services/navigation';
 import { MaterialIcons } from '../Icon';
@@ -20,7 +20,7 @@ type PageHeaderProps = {
   onBack?: () => void;
   /** A streak or status chip that sits beside the title. */
   meta?: React.ReactNode;
-  /** HeaderIcon siblings, the profile action, or another 44px control. */
+  /** HeaderIcon siblings or another 44px control. */
   actions?: React.ReactNode;
   /** Defaults to the 960px reading column; the composer passes its 420px column. */
   maxWidth?: number;
@@ -121,39 +121,5 @@ export function PageHeader({
         ) : null}
       </View>
     </View>
-  );
-}
-
-/**
- * The filled 32px avatar on its 44px header target. It is the same action on
- * Home, Game and Settings, so it lives with the bar rather than in three files.
- */
-export function HeaderProfileButton({
-  onPress,
-  label = 'Open profile',
-}: {
-  onPress: () => void;
-  label?: string;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
-    >
-      <View
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 16,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: colors.primary,
-        }}
-      >
-        <MaterialIcons name="person" size={18} color={colors.onPrimary} />
-      </View>
-    </Pressable>
   );
 }
