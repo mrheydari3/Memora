@@ -71,6 +71,11 @@ test.describe('changed surfaces', () => {
     });
 
     test(`answered study card at ${width}px`, async ({ page }) => {
+      // The seeded deck shuffles by default; pin the RNG so the captured card
+      // is the same on every run.
+      await page.addInitScript(() => {
+        Math.random = () => 0.42;
+      });
       await page.setViewportSize({ width, height });
       await page.goto('/study/deck-german-a2b1');
       await page.waitForSelector('[role="main"]', { timeout: 30_000 });
