@@ -7,7 +7,7 @@
  * would pin users (and the dev preview) to whatever loaded first.
  */
 
-const CACHE_NAME = 'memory-v2';
+const CACHE_NAME = 'memory-v5';
 const RUNTIME_CACHE = 'memory-runtime';
 
 // Assets to pre-cache on install. Icons and the manifest are part of the
@@ -16,11 +16,12 @@ const RUNTIME_CACHE = 'memory-runtime';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
-  '/favicon.ico',
+  '/favicon-v4.ico',
   '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/apple-touch-icon.png',
+  '/icon-192-v4.png',
+  '/icon-512-v4.png',
+  '/splash-icon-v4.png',
+  '/apple-touch-icon-v4.png',
 ];
 
 self.addEventListener('install', (event) => {

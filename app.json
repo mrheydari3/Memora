@@ -17,7 +17,12 @@
       "backgroundColor": "#07090E",
       "display": "standalone",
       "orientation": "portrait",
-      "startUrl": "/"
+      "startUrl": "/",
+      "splash": {
+        "image": "/splash-icon-v4.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#07090E"
+      }
     },
     "plugins": [
       [

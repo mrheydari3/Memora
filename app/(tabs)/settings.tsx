@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { pushOnce } from '../../services/navigation';
 import { useDeckStore } from '../../store/useDeckStore';
+import { useGameStore } from '../../store/useGameStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { loadReviewLog } from '../../data/repository';
 import { schedulerLabel } from '../../data/schedulers';
@@ -40,7 +41,9 @@ export default function SettingsScreen() {
   const router = useRouter();
 
   const decks = useDeckStore((s) => s.decks);
+  const folders = useDeckStore((s) => s.folders);
   const cardsByDeck = useDeckStore((s) => s.cardsByDeck);
+  const gameRecords = useGameStore((s) => s.records);
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.update);
 
@@ -64,10 +67,15 @@ export default function SettingsScreen() {
       // export still contains the complete history.
       const reviewLog = await loadReviewLog();
       await exportJson('Memora export', {
+        format: 'memora-backup',
+        version: 1,
+        appVersion: APP_VERSION,
         exportedAt: new Date().toISOString(),
         decks,
+        folders,
         cardsByDeck,
         reviewLog,
+        gameRecords,
         settings,
       });
     } catch {
@@ -166,9 +174,15 @@ export default function SettingsScreen() {
                 onPress={() => pushOnce(router, '/settings/offline')}
               />
               <SettingsLine
+                icon="file-download"
+                title="Import data"
+                subtitle="CSV, TSV, JSON or a Memora backup"
+                onPress={() => pushOnce(router, '/mass-import')}
+              />
+              <SettingsLine
                 icon="upload"
                 title="Export all data"
-                subtitle="Decks, cards and review history"
+                subtitle="Decks, cards, folders and review history"
                 onPress={handleExportAll}
                 last
               />

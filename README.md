@@ -106,7 +106,7 @@ Most flashcard apps are good at collecting cards. Memora is designed around the 
 | **Statistics** | A Profile drill-down with recall, review volume, memory, habits, forecast, insights, and reports. |
 | **Library** | Creates, edits, searches, filters, archives, and files decks without moving their cards or schedules. |
 | **Folders** | Groups decks into a browsable tree. A folder is a label, not a container: deleting one never deletes a deck. |
-| **Settings** | Scheduler parameters, text-to-speech, offline cache, install state, sound, and haptics. |
+| **Settings** | Scheduler parameters, text-to-speech, offline cache, install state, sound, haptics, and local import/export. |
 | **Discover** | A small starter-deck catalogue with previews and sample-card counts that match the import. |
 | **Accessibility** | Keyboard paths, visible focus rings, headings, 44px targets, reduced motion, and 200% text zoom. |
 
@@ -306,7 +306,7 @@ The current tree was verified on **2026-11-08** against the running Chromium pre
 | Gate | Command | Result |
 | --- | --- | --- |
 | Types | `npx tsc --noEmit` | **0 errors** |
-| Domain tests | `npm test` | **183 / 183** |
+| Domain tests | `npm test` | **190 / 190** |
 | Surface parity | `npm run test:surfaces` | **11 / 11** |
 | Surface manifest | `tests/ui/surfaces.ts` | **84 surfaces** |
 | Design tokens | `npm run check:design` | **clean, 83 files** |

@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"><defs>
+    <linearGradient id="canvas" x1="140" y1="100" x2="900" y2="940" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FBFF" />
+      <stop offset="0.52" stop-color="#EAF4FF" />
+      <stop offset="1" stop-color="#D7EBFF" />
+    </linearGradient>
+    <linearGradient id="fur" x1="260" y1="170" x2="760" y2="880" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D8EEFF" />
+      <stop offset="0.5" stop-color="#BEE2FF" />
+      <stop offset="1" stop-color="#9ACAF8" />
+    </linearGradient>
+    <linearGradient id="head" x1="300" y1="140" x2="730" y2="590" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#DDF2FF" />
+      <stop offset="0.56" stop-color="#C4E5FF" />
+      <stop offset="1" stop-color="#A6D2FB" />
+    </linearGradient>
+    <linearGradient id="belly" x1="380" y1="560" x2="600" y2="890" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F5FBFF" />
+      <stop offset="1" stop-color="#D7ECFF" />
+    </linearGradient>
+    <linearGradient id="ear" x1="150" y1="130" x2="360" y2="360" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#BCE1FF" />
+      <stop offset="1" stop-color="#92C6F5" />
+    </linearGradient>
+    <linearGradient id="tree" x1="700" y1="280" x2="880" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D1A584" />
+      <stop offset="0.5" stop-color="#C2926D" />
+      <stop offset="1" stop-color="#AD7D5A" />
+    </linearGradient>
+  </defs><g stroke="#000000" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M672 318C672 292 692 272 718 272H804C830 272 850 292 850 318V824C850 857 827 880 794 880H728C695 880 672 857 672 824Z" fill="#000000" />
+    <path d="M836 516H910C935 516 954 535 954 560V600C954 625 935 644 910 644H836Z" fill="#000000" />
+    <g fill="none" stroke="#000000" stroke-width="13">
+      <path d="M742 382c16 13 16 31 0 44" />
+      <path d="M792 438c17 14 17 32 0 46" />
+      <path d="M726 708c17 14 17 32 0 46" />
+      <path d="M789 750c16 13 16 31 0 44" />
+    </g>
+
+    <circle cx="220" cy="234" r="142" fill="#000000" />
+    <circle cx="792" cy="234" r="142" fill="#000000" />
+    <circle cx="220" cy="238" r="76" fill="#000000" stroke="none" />
+    <circle cx="792" cy="238" r="76" fill="#000000" stroke="none" />
+
+    <path d="M276 492C202 566 174 682 210 782C241 867 321 914 414 914H596C698 914 768 850 784 754C802 650 769 560 700 510C659 480 610 464 556 464H426C368 464 316 472 276 492Z" fill="#000000" />
+    <path d="M364 634C323 700 333 800 390 858C440 909 530 915 586 866C641 818 650 730 609 668C567 604 464 566 364 634Z" fill="#000000" stroke="none" />
+
+    <path d="M506 104C648 104 750 174 797 282C836 370 804 478 734 540C670 596 594 622 506 622C418 622 342 596 278 540C208 478 176 370 215 282C262 174 364 104 506 104Z" fill="#000000" />
+
+    <ellipse cx="408" cy="344" rx="17" ry="29" fill="#FFFFFF" stroke="none" />
+    <ellipse cx="604" cy="344" rx="17" ry="29" fill="#FFFFFF" stroke="none" />
+    <circle cx="413" cy="337" r="5" fill="#FFFFFF" stroke="none" />
+    <circle cx="609" cy="337" r="5" fill="#FFFFFF" stroke="none" />
+    <path d="M506 374C546 374 571 402 571 444C571 488 544 514 506 514C468 514 441 488 441 444C441 402 466 374 506 374Z" fill="#FFFFFF" />
+    <path d="M506 510V536" fill="none" />
+    <path d="M460 548C476 568 491 576 506 576C521 576 536 568 552 548" fill="none" />
+    <circle cx="491" cy="407" r="9" fill="#FFFFFF" stroke="none" opacity="0.65" />
+
+    <path d="M294 640C258 700 277 786 346 816C384 833 423 818 436 786C448 758 431 730 402 716C361 696 323 674 312 642Z" fill="#000000" />
+    <path d="M332 802c-3-19 8-34 23-34 15 0 26 15 23 34" fill="none" stroke="#000000" stroke-width="16" />
+
+    <path d="M654 622C701 608 766 618 820 638C852 650 867 676 858 704C849 733 824 747 796 739L732 721C694 710 668 688 652 662Z" fill="#000000" />
+    <path d="M800 636c-6 17 4 32 22 36 18 4 33-6 36-23" fill="none" stroke="#000000" stroke-width="16" />
+
+    <path d="M280 858C280 826 305 802 340 802H362C410 802 444 834 444 872C444 903 418 922 384 922H336C306 922 280 898 280 858Z" fill="#000000" />
+    <path d="M317 892c-3-16 6-28 19-28 13 0 22 12 19 28" fill="none" stroke="#000000" stroke-width="14" />
+  </g>
+</svg>

@@ -37,6 +37,28 @@ const bodyText = (page: import('@playwright/test').Page) =>
 const splashCount = (page: import('@playwright/test').Page) =>
   page.locator('[aria-label="Loading Memora"]').count();
 
+test('the document ships the designed boot screen', async ({ request }) => {
+  const response = await request.get(`${base}/`);
+  expect(response.ok()).toBeTruthy();
+  const html = await response.text();
+  expect(html).toContain('id="boot-splash"');
+  expect(html).toContain('src="/icon-192-v4.png"');
+  expect(html).toContain('class="boot-wordmark"');
+  expect(html).toContain('data-boot-delay="2600"');
+  expect(html).toContain('Pre-flight Verification');
+  expect(html).toContain('aria-label="Loading Memora"');
+});
+
+test('the launch screen holds long enough to read before leaving', async ({ page }) => {
+  await page.goto(`${base}/home?boot=1`, { waitUntil: 'commit' });
+  const splash = page.locator('#boot-splash');
+
+  await expect(splash).toBeVisible();
+  await page.waitForTimeout(900);
+  await expect(splash).toBeVisible();
+  await expect.poll(() => splash.count(), { timeout: 6_000 }).toBe(0);
+});
+
 test('the first tab mounts under 4× CPU and the splash leaves', async ({ page, context }) => {
   const cdp = await context.newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU_RATE });

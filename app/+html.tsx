@@ -42,7 +42,9 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <meta name="robots" content="index,follow" />
         <link rel="canonical" href={PRODUCTION_URL} />
         <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="icon" href="/favicon-v4.ico" sizes="48x48" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192-v4.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon-v4.png" />
         <meta name="theme-color" content={colors.background} />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

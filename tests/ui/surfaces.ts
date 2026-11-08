@@ -241,6 +241,6 @@ export const SURFACES: readonly Surface[] = [
     trigger: 'Add deck from Home, or direct /add-deck',
     overlay: true,
   }),
-  s('MI-01', 'Mass import planned state', '/mass-import', ['F0']),
+  s('MI-01', 'Import data: cards and full backup', '/mass-import', ['F0']),
   s('DV-01', 'Developer data: load, restore, wipe', '/dev', ['F0']),
 ];

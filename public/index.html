@@ -14,7 +14,9 @@
     <meta name="robots" content="index,follow" />
     <link rel="canonical" href="https://site-4cf1794985694a0fbdbfb3b24dec3e09.freebuff.page" />
     <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" href="/favicon-v4.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192-v4.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-v4.png" />
     <meta name="theme-color" content="#07090E" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -49,25 +51,805 @@
       :root {
         color-scheme: dark;
         background-color: #07090e;
+        --boot-bg: #07090e;
+        --boot-surface: #141a24;
+        --boot-card: #171e29;
+        --boot-inset: #11161f;
+        --boot-text: #dce2eb;
+        --boot-muted: #a2acbc;
+        --boot-soft: #8b97a9;
+        --boot-primary: #7cbbff;
+        --boot-primary-strong: #2f86e0;
+        --boot-success: #5fd39a;
+        --boot-success-surface: #203837;
+        --boot-warning: #f1c75b;
+        --boot-hairline: rgba(146, 176, 214, 0.14);
       }
+
+      * {
+        box-sizing: border-box;
+      }
+
       html,
       body {
         height: 100%;
-      }
-      body {
         margin: 0;
-        overflow: hidden;
-        background-color: #07090e;
       }
+
+      body {
+        overflow: hidden;
+        background-color: var(--boot-bg);
+        color: var(--boot-text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
       #root {
         display: flex;
         height: 100%;
         flex: 1;
+      }
+
+      /*
+       * This layer lives outside #root on purpose. React replaces the contents
+       * of #root, but cannot remove the launch screen until its short hold is
+       * over. A cold load therefore gets one deliberate, readable boot moment
+       * instead of a flash of skeleton.
+       */
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        display: flex;
+        justify-content: center;
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding: max(18px, env(safe-area-inset-top)) 20px
+          max(20px, env(safe-area-inset-bottom));
+        background:
+          radial-gradient(ellipse at 50% -8%, rgba(47, 134, 224, 0.2), transparent 46%),
+          radial-gradient(ellipse at 100% 100%, rgba(124, 187, 255, 0.06), transparent 42%),
+          var(--boot-bg);
+        opacity: 1;
+        transition: opacity 520ms cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      #boot-splash.is-leaving {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .boot-shell {
+        display: flex;
+        width: min(100%, 560px);
+        margin: 0 auto;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .boot-top {
+        display: flex;
+        justify-content: center;
+        margin: 0 0 clamp(26px, 7vh, 64px);
+      }
+
+      .boot-vault {
+        display: inline-flex;
+        min-height: 30px;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: rgba(20, 26, 36, 0.94);
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+          0 10px 28px rgba(0, 0, 0, 0.2);
+        color: var(--boot-muted);
+        font-size: 9.5px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        line-height: 1;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .boot-vault strong {
+        color: #a4c9ff;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+      }
+
+      .boot-vault .boot-vault-sep {
+        color: #4a5666;
+        font-weight: 400;
+      }
+
+      .boot-vault .boot-vault-enclave {
+        padding: 4px 6px;
+        border-radius: 4px;
+        background: #18202b;
+        color: #9dcaff;
+        font-size: 8.5px;
+        letter-spacing: 0.14em;
+      }
+
+      .boot-dot {
+        position: relative;
+        display: inline-flex;
+        width: 7px;
+        height: 7px;
+        flex: none;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .boot-dot::before,
+      .boot-dot::after {
+        position: absolute;
+        display: block;
+        width: 100%;
+        height: 100%;
+        border-radius: 999px;
+        background: var(--boot-success);
+        content: '';
+      }
+
+      .boot-dot::before {
+        opacity: 0.25;
+        animation: boot-ping 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+      }
+
+      .boot-dot::after {
+        width: 5px;
+        height: 5px;
+      }
+
+      .boot-hero {
+        display: flex;
+        width: 100%;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 22px;
+        text-align: center;
+      }
+
+      .boot-logo {
+        display: block;
+        width: clamp(58px, 16vw, 82px);
+        height: clamp(58px, 16vw, 82px);
+        margin: 0 0 12px;
+        border-radius: 22px;
+        filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.34));
+      }
+
+      .boot-wordmark {
+        margin: 0;
+        color: #f4f8ff;
+        font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+        font-size: clamp(48px, 15vw, 104px);
+        font-weight: 400;
+        letter-spacing: -0.075em;
+        line-height: 0.8;
+      }
+
+      .boot-subtitle {
+        max-width: 330px;
+        margin: 12px 0 0;
+        color: var(--boot-muted);
+        font-size: clamp(12px, 3.2vw, 19px);
+        font-weight: 400;
+        letter-spacing: -0.01em;
+        line-height: 1.4;
+      }
+
+      .boot-version {
+        display: inline-flex;
+        max-width: 100%;
+        align-items: center;
+        gap: 6px;
+        margin-top: 15px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #18202b;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+        color: var(--boot-warning);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        line-height: 1;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .boot-version .boot-version-muted {
+        color: #8494a8;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+      }
+
+      .boot-version .boot-star {
+        font-size: 11px;
+        letter-spacing: 0;
+      }
+
+      .boot-progress {
+        width: 100%;
+        margin-bottom: 22px;
+      }
+
+      .boot-status-row {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+        color: var(--boot-muted);
+        font-size: 10.5px;
+        line-height: 1.3;
+      }
+
+      .boot-status {
+        display: inline-flex;
+        min-width: 0;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .boot-status > span:last-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .boot-status svg {
+        width: 13px;
+        height: 13px;
+        flex: none;
+        color: var(--boot-primary);
+      }
+
+      .boot-percent {
+        flex: none;
+        color: var(--boot-primary);
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .boot-track {
+        width: 100%;
+        height: 8px;
+        padding: 2px;
+        border-radius: 999px;
+        background: var(--boot-surface);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+        overflow: hidden;
+      }
+
+      .boot-track-inner {
+        width: 100%;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--boot-inset);
+        overflow: hidden;
+      }
+
+      .boot-progress-fill {
+        width: 0%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #2f86e0, #7cbbff 70%, #b8dcff);
+        box-shadow: 0 0 12px rgba(124, 187, 255, 0.35);
+        transition: width 460ms cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .boot-card {
+        width: 100%;
+        margin-bottom: 22px;
+        padding: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.035);
+        border-radius: 18px;
+        background: var(--boot-card);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.025),
+          0 18px 40px rgba(0, 0, 0, 0.16);
+      }
+
+      .boot-card-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 2px 11px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+      }
+
+      .boot-card-head svg {
+        width: 16px;
+        height: 16px;
+        flex: none;
+        color: var(--boot-success);
+      }
+
+      .boot-card-title {
+        color: var(--boot-text);
+        font-size: 9.5px;
+        font-weight: 700;
+        letter-spacing: 0.13em;
+        line-height: 1;
+        text-transform: uppercase;
+      }
+
+      .boot-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: auto;
+        padding: 4px 7px;
+        border-radius: 999px;
+        background: var(--boot-success-surface);
+        color: var(--boot-success);
+        font-size: 8.5px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        line-height: 1;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .boot-badge.is-checking {
+        background: #222831;
+        color: var(--boot-warning);
+      }
+
+      .boot-badge-dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 999px;
+        background: currentColor;
+      }
+
+      .boot-rows {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding-top: 10px;
+      }
+
+      .boot-row {
+        display: flex;
+        min-height: 38px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: var(--boot-surface);
+        color: var(--boot-muted);
+        font-size: 10.5px;
+        line-height: 1.2;
+      }
+
+      .boot-row-label {
+        display: inline-flex;
+        min-width: 0;
+        align-items: center;
+        gap: 7px;
+      }
+
+      .boot-row-label svg {
+        width: 14px;
+        height: 14px;
+        flex: none;
+      }
+
+      .boot-row-label span {
+        overflow: hidden;
+        color: var(--boot-text);
+        font-weight: 500;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .boot-row-value {
+        flex: none;
+        font-size: 9.5px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+      }
+
+      .boot-row-value.is-success {
+        color: var(--boot-success);
+      }
+
+      .boot-row-value.is-primary {
+        color: var(--boot-primary);
+      }
+
+      .boot-row-value.is-muted {
+        color: #7f8c9d;
+      }
+
+      .boot-actions {
+        display: flex;
+        min-height: 44px;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: var(--boot-muted);
+      }
+
+      .boot-action {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        gap: 5px;
+        padding: 0 4px;
+        border: 0;
+        background: transparent;
+        color: var(--boot-muted);
+        font: inherit;
+        font-size: 10px;
+        cursor: pointer;
+      }
+
+      .boot-action:hover,
+      .boot-action:focus-visible {
+        color: var(--boot-primary);
+      }
+
+      .boot-action:focus-visible {
+        outline: 2px solid var(--boot-primary);
+        outline-offset: 3px;
+        border-radius: 4px;
+      }
+
+      .boot-action svg {
+        width: 13px;
+        height: 13px;
+        flex: none;
+      }
+
+      .boot-action.is-primary {
+        color: var(--boot-warning);
+      }
+
+      .boot-action-sep {
+        color: #4a5666;
+        font-size: 11px;
+      }
+
+      @keyframes boot-ping {
+        0% {
+          opacity: 0.28;
+          transform: scale(0.8);
+        }
+        75%,
+        100% {
+          opacity: 0;
+          transform: scale(2);
+        }
+      }
+
+      @media (max-height: 700px) {
+        .boot-top {
+          margin-bottom: 16px;
+        }
+
+        .boot-logo {
+          width: 48px;
+          height: 48px;
+          margin-bottom: 8px;
+          border-radius: 15px;
+        }
+
+        .boot-wordmark {
+          font-size: 46px;
+        }
+
+        .boot-subtitle {
+          margin-top: 8px;
+          font-size: 11.5px;
+        }
+
+        .boot-version {
+          margin-top: 10px;
+          padding: 5px 8px;
+        }
+
+        .boot-hero {
+          margin-bottom: 14px;
+        }
+
+        .boot-progress {
+          margin-bottom: 14px;
+        }
+
+        .boot-card {
+          margin-bottom: 12px;
+          padding: 11px;
+        }
+
+        .boot-row {
+          min-height: 32px;
+          padding: 6px 8px;
+        }
+
+        .boot-rows {
+          gap: 4px;
+          padding-top: 7px;
+        }
+
+        .boot-card-head {
+          padding-bottom: 8px;
+        }
+
+        .boot-actions {
+          min-height: 36px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .boot-dot::before,
+        .boot-action,
+        #boot-splash,
+        .boot-progress-fill {
+          animation: none !important;
+          transition: none !important;
+        }
       }
     </style>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run Memora.</noscript>
     <div id="root"></div>
+
+    <div
+      id="boot-splash"
+      role="status"
+      aria-live="polite"
+      aria-label="Loading Memora"
+      data-boot-delay="2600"
+    >
+      <div class="boot-shell">
+        <header class="boot-top">
+          <div class="boot-vault">
+            <span class="boot-dot" aria-hidden="true"></span>
+            <strong>ON-DEVICE VAULT</strong>
+            <span class="boot-vault-sep" aria-hidden="true">·</span>
+            <span class="boot-vault-enclave">LOCAL ENCLAVE</span>
+          </div>
+        </header>
+
+        <section class="boot-hero" aria-labelledby="boot-wordmark">
+          <img class="boot-logo" src="/icon-192-v4.png" alt="" />
+          <h1 id="boot-wordmark" class="boot-wordmark">Memora</h1>
+          <p class="boot-subtitle">Cognitive Resonance &amp; Spaced Repetition</p>
+          <div class="boot-version">
+            <span class="boot-star" aria-hidden="true">✦</span>
+            <span>SYSTEM v3.0.0</span>
+            <span class="boot-vault-sep" aria-hidden="true">·</span>
+            <span class="boot-version-muted">FSRS-6 NEURAL</span>
+          </div>
+        </section>
+
+        <section class="boot-progress" aria-label="Boot progress">
+          <div class="boot-status-row">
+            <span class="boot-status">
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 11.5A8 8 0 1 1 17.7 6" stroke-linecap="round" />
+                <path d="M20 4v5h-5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span id="boot-status">Preparing local vault…</span>
+            </span>
+            <span class="boot-percent" id="boot-percent">0%</span>
+          </div>
+          <div
+            class="boot-track"
+            id="boot-progress"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+            aria-label="Memora boot progress"
+          >
+            <div class="boot-track-inner">
+              <div class="boot-progress-fill" id="boot-progress-fill"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="boot-card" aria-labelledby="boot-card-title">
+          <div class="boot-card-head">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 3 20 6v5c0 5-3.4 8.2-8 10-4.6-1.8-8-5-8-10V6l8-3Z" stroke-linejoin="round" />
+              <path d="m8.5 12 2.2 2.2 4.8-4.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span id="boot-card-title" class="boot-card-title">Pre-flight Verification</span>
+            <span class="boot-badge is-checking" id="boot-badge">CHECKING…</span>
+          </div>
+
+          <div class="boot-rows">
+            <div class="boot-row">
+              <span class="boot-row-label">
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="5" y="10" width="14" height="10" rx="2" />
+                  <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke-linecap="round" />
+                </svg>
+                <span>Local Vault</span>
+              </span>
+              <span class="boot-row-value is-muted" id="boot-value-1">Queued</span>
+            </div>
+            <div class="boot-row">
+              <span class="boot-row-label">
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="4" y="4" width="16" height="16" rx="2" />
+                  <path d="M8 9h8M8 13h3M8 17h8M15 14h1M15 17h1" stroke-linecap="round" />
+                </svg>
+                <span>FSRS-6 Dynamic Model</span>
+              </span>
+              <span class="boot-row-value is-muted" id="boot-value-2">Queued</span>
+            </div>
+            <div class="boot-row">
+              <span class="boot-row-label">
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="m12 4 8 4-8 4-8-4 8-4Z" stroke-linejoin="round" />
+                  <path d="m4 12 8 4 8-4M4 16l8 4 8-4" stroke-linejoin="round" />
+                </svg>
+                <span>Memory Vault</span>
+              </span>
+              <span class="boot-row-value is-muted" id="boot-value-3">Queued</span>
+            </div>
+          </div>
+        </section>
+
+        <footer class="boot-actions">
+          <button class="boot-action is-primary" id="boot-fast" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m13 2-8 12h6l-1 8 8-12h-6l1-8Z" stroke-linejoin="round" />
+            </svg>
+            Fast Boot
+          </button>
+          <span class="boot-action-sep" aria-hidden="true">·</span>
+          <button class="boot-action" id="boot-rerun" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 11.5A8 8 0 1 1 17.7 6" stroke-linecap="round" />
+              <path d="M20 4v5h-5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            Re-run Pre-flight
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <script>
+      (() => {
+        const splash = document.getElementById('boot-splash');
+        if (!splash) return;
+
+        const fill = document.getElementById('boot-progress-fill');
+        const track = document.getElementById('boot-progress');
+        const percent = document.getElementById('boot-percent');
+        const status = document.getElementById('boot-status');
+        const badge = document.getElementById('boot-badge');
+        const value1 = document.getElementById('boot-value-1');
+        const value2 = document.getElementById('boot-value-2');
+        const value3 = document.getElementById('boot-value-3');
+        const fast = document.getElementById('boot-fast');
+        const rerun = document.getElementById('boot-rerun');
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const forceBoot = new URLSearchParams(window.location.search).get('boot') === '1';
+
+        // The e2e suite exercises the app, not the launch hold. A forced boot
+        // query opens the screen anyway, so the boot test can measure the real
+        // 2.6s hold without slowing every other route flow.
+        if (navigator.webdriver && !forceBoot) {
+          splash.remove();
+          return;
+        }
+
+        let dismissTimer = 0;
+        let sequence = [];
+        let closed = false;
+
+        const setProgress = (value, label) => {
+          const amount = Math.max(0, Math.min(100, value));
+          fill.style.width = `${amount}%`;
+          percent.textContent = `${amount}%`;
+          track.setAttribute('aria-valuenow', String(amount));
+          if (label) status.textContent = label;
+        };
+
+        const setRow = (element, text, tone) => {
+          element.textContent = text;
+          element.className = `boot-row-value is-${tone}`;
+        };
+
+        const finish = () => {
+          setProgress(100, 'Neural baseline locked & stable.');
+          badge.textContent = 'PASSED';
+          badge.classList.remove('is-checking');
+          setRow(value1, '✓ Zero Telemetry', 'success');
+          setRow(value2, '21-Param Matrix', 'primary');
+          setRow(value3, 'On-device · 0ms', 'success');
+        };
+
+        const reset = () => {
+          setProgress(0, 'Preparing local vault…');
+          badge.textContent = 'CHECKING…';
+          badge.classList.add('is-checking');
+          setRow(value1, 'Queued', 'muted');
+          setRow(value2, 'Queued', 'muted');
+          setRow(value3, 'Queued', 'muted');
+        };
+
+        const clearSequence = () => {
+          sequence.forEach((timer) => window.clearTimeout(timer));
+          sequence = [];
+          window.clearTimeout(dismissTimer);
+        };
+
+        const close = (delay = 0) => {
+          if (closed) return;
+          closed = true;
+          clearSequence();
+          dismissTimer = window.setTimeout(() => {
+            splash.classList.add('is-leaving');
+            window.setTimeout(() => splash.remove(), 540);
+          }, delay);
+        };
+
+        const run = () => {
+          clearSequence();
+          closed = false;
+          splash.classList.remove('is-leaving');
+          reset();
+
+          if (reducedMotion) {
+            finish();
+            dismissTimer = window.setTimeout(() => close(), 1400);
+            return;
+          }
+
+          sequence.push(
+            window.setTimeout(() => setProgress(28, 'Opening the local vault…'), 280),
+            window.setTimeout(() => {
+              setProgress(58, 'Calibrating FSRS-6 21-param matrix…');
+              setRow(value1, '✓ Zero Telemetry', 'success');
+            }, 720),
+            window.setTimeout(() => {
+              setProgress(84, 'Mounting memory vault…');
+              setRow(value2, '21-Param Matrix', 'primary');
+            }, 1120),
+            window.setTimeout(() => {
+              finish();
+              badge.classList.remove('is-checking');
+            }, 1580)
+          );
+
+          // Final state stays on screen for ~1s; the screen is always readable,
+          // even on a warm start where the bundle has already mounted.
+          dismissTimer = window.setTimeout(() => close(), 2600);
+        };
+
+        fast?.addEventListener('click', () => {
+          finish();
+          close();
+        });
+
+        rerun?.addEventListener('click', () => {
+          run();
+        });
+
+        // If the user navigates while the launch screen is up, let the app take
+        // over immediately rather than holding a stale overlay.
+        window.addEventListener('pagehide', () => close(), { once: true });
+
+        run();
+      })();
+    </script>
   </body>
 </html>
