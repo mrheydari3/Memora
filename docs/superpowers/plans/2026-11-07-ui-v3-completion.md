@@ -354,7 +354,7 @@ Each key is one `Pressable` ≥68px tall, `accessibilityRole="button"`, `accessi
 - Consumes `PageHeader`, `Surface`, `SectionHeading`, `ActionButton`, `EmptyState`, `DonutChart`, `TrendChart`, `MiniBarChart`, `MetricGrid`.
 - Preserves every `data/intelligence.ts` computation and the range selector values (`RANGE_OPTIONS`).
 
-**Status (2026-11-08):** complete — one scene hero, `SectionHeading` sections, a scene empty state with the start action, and the Playwright gate. Left uncommitted for review.
+**Status (2026-11-08):** complete — one scene hero, `SectionHeading` sections, a scene empty state with the start action, and the Playwright gate. Committed as `94cb70d`.
 
 - [x] Replace `HeroPane` with one `Surface tone="scene"`: eyebrow "Intelligence", status pill (`FSRS-6` / `Not enough data`), the page's one hero figure (recall % when `MIN_RECALL_SAMPLE` is met, otherwise the review count — label it explicitly), the range `SegmentedControl`, and a 3-cell ledger (reviews, streak, due). Remove the two stacked `GlassCard` fallbacks.
 - [x] Replace every `SectionHeader` with `SectionHeading` (uppercase 12/600, count chip, no `mt-7` classes).
@@ -362,7 +362,7 @@ Each key is one `Pressable` ≥68px tall, `accessibilityRole="button"`, `accessi
 - [x] Keep all numbers tabular; ensure forecast/habits bars use `v3.rail` or token heights, not literals.
 - [x] Empty state (`0` reviews): one scene pane explaining which sample is missing, with `ActionButton label="Start a session"`.
 - [x] Run `npx tsc --noEmit`, `npm run check:design`, `npm test`, `npx playwright test tests/e2e/statistics-visual.spec.ts --update-snapshots`, then `tests/e2e/data-truth.spec.ts`.
-- [ ] Commit: `feat(statistics): v3 intelligence desk`.
+- [x] Commit: `feat(statistics): v3 intelligence desk` (`94cb70d`).
 
 **Result (2026-11-08):** `app/statistics.tsx` is **1,744 lines** and no longer imports `theme/v2`. One `Surface tone="scene"` hero carries the range eyebrow, FSRS-6 / Not-enough-data pill, the page's one figure (recall when the sample clears `MIN_RECALL_SAMPLE`, otherwise the review count), the `SegmentedControl` ranges, a Reviews/Streak/Due ledger and the activity bars. Every section is `SectionHeading` through a thin `StatsSection`; the zero-review range is one scene pane explaining the missing sample, with `Start a session`. New `v3.rail` tokens own the activity, habit and forecast heights. `npx tsc --noEmit` **0** · `npm run check:design` **clean (97 files)** · `npm test` **161/161** · `npm run build:web` exported `dist/` · 18 `statistics-visual` baselines regenerated and verified · the 320/390 empty-state baselines regenerated · axe **0** · statistics data-truth **1/1** · 0 document overflow and 0 controls under 44px at 320/390/1280. The section baselines now align each heading to the top of the scroller, and the 320px habit/memory labels were shortened to fit. The macOS `visual.spec` baselines were not refreshed in this Linux workspace; the obsolete second empty-state snapshot was removed and Linux empty-state baselines were added.
 
