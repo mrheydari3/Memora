@@ -7,11 +7,21 @@
  * would pin users (and the dev preview) to whatever loaded first.
  */
 
-const CACHE_NAME = 'memory-v1';
+const CACHE_NAME = 'memory-v2';
 const RUNTIME_CACHE = 'memory-runtime';
 
-// Assets to pre-cache on install
-const PRECACHE_URLS = ['/', '/index.html', '/favicon.ico'];
+// Assets to pre-cache on install. Icons and the manifest are part of the
+// installable surface; they are individually cached so one missing file cannot
+// abort the worker install.
+const PRECACHE_URLS = [
+  '/',
+  '/index.html',
+  '/favicon.ico',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

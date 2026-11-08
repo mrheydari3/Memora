@@ -4,7 +4,6 @@ import '../global.css';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { Stack, usePathname } from 'expo-router';
-import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { useDeckStore } from '../store/useDeckStore';
@@ -120,10 +119,6 @@ export default function RootLayout() {
 
   return (
     <>
-      <Head>
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-      </Head>
       <StatusBar style="light" />
       {/*
         One main landmark for the whole app. It wraps the navigator rather than

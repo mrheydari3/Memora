@@ -2,6 +2,18 @@
 
 ## v3.0.0 — Nocturne Focus on every surface
 
+### Public launch
+
+- The static web build is live at
+  [site-4cf1794985694a0fbdbfb3b24dec3e09.freebuff.page](https://site-4cf1794985694a0fbdbfb3b24dec3e09.freebuff.page).
+- Production is the same Expo web export, served by `worker.mjs`; there is no
+  application server and no change to the local-first data model.
+- The installable surface now has a branded icon set, a maskable icon, an
+  Apple touch icon, manifest metadata, canonical/Open Graph/Twitter tags and a
+  1280×640 social preview.
+- `npm run deploy:prepare` writes the 4.69 MiB upload bundle and rejects
+  dependency paths, source maps, hidden files and over-budget uploads.
+
 The v3 design language is now the only language. Every one of the 83 audited
 surfaces renders the same canvas → scene pane → fill → type grammar; the v2
 glass vocabulary is deleted, not kept behind a compatibility export.

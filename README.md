@@ -26,13 +26,19 @@
   <img src="https://img.shields.io/badge/License-MIT-2EA44F?style=flat-square" alt="MIT License" />
 </p>
 
+<p align="center">
+  <a href="https://site-4cf1794985694a0fbdbfb3b24dec3e09.freebuff.page"><strong>Open the live app →</strong></a>
+  <br />
+  <sub>Static web build · no account · data stays in this browser</sub>
+</p>
+
 ---
 
 **Memora** is a browser-first flashcard app for deliberate study. It combines a local library, FSRS-6 scheduling, a calm four-tab workspace, and an analytics layer that reports only what the review log can prove.
 
 There is no account, no cloud sync, and no telemetry. Your decks, review history, settings, and game records stay in `AsyncStorage` on the device.
 
-> **Current release: `3.0.0` — “Nocturne Focus.”**<br />
+> **Live:** [Open Memora](https://site-4cf1794985694a0fbdbfb3b24dec3e09.freebuff.page) · **Current release: `3.0.0` — “Nocturne Focus.”**<br />
 > Web only, by design. See [CHANGELOG.md](CHANGELOG.md) for the measured v3 release notes.
 
 ## Contents
@@ -232,7 +238,7 @@ flowchart LR
 | Design | `theme/`, `global.css` | Palette, tokens, spacing, type, motion, and the one Tailwind bridge. |
 | Verification | `tests/`, `scripts/` | Unit tests, Playwright suites, route manifest, census, responsive, axe, and visual checks. |
 
-Everything runs in the browser. `worker.mjs` is an optional static-asset host that answers deep links with the exported SPA document; it does not add a server-side application runtime.
+Everything runs in the browser. `worker.mjs` is the static-asset host used by the published build; it answers deep links with the exported SPA document and does not add a server-side application runtime.
 
 ## Run locally
 
@@ -258,6 +264,22 @@ npm run serve:dist
 ```
 
 `build:web` writes the static SPA to `dist/`. `serve:dist` serves it at <http://127.0.0.1:3107> with SPA fallback and `no-store` responses.
+
+### Public build
+
+The public build is the same static export, served by `worker.mjs` at
+[memora](https://site-4cf1794985694a0fbdbfb3b24dec3e09.freebuff.page).
+
+```bash
+npm run build:web
+npm run deploy:prepare
+```
+
+`deploy:prepare` writes `dist-deploy/`, the upload bundle. It removes the
+`assets/node_modules` copies that Metro emits while keeping the static fonts,
+icons and sound assets; the hosting validator does not accept dependency paths.
+The worker answers extensionless HTML navigations with the SPA document, so a
+deck or settings URL survives a refresh and a deep link.
 
 ### Useful commands
 

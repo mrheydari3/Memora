@@ -55,6 +55,7 @@
     "start": "expo start --web",
     "web": "expo start --web",
     "build:web": "expo export --platform web",
+    "deploy:prepare": "node scripts/prepare-deploy.mjs",
     "serve:dist": "node scripts/serve-dist.mjs",
     "test:boot": "playwright test --config playwright.boot.config.ts"
   },
