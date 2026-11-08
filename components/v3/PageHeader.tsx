@@ -14,6 +14,8 @@ type PageHeaderProps = {
   brand?: boolean;
   /** Show the 44px back control. */
   back?: boolean;
+  /** A custom 44px leading control (for example a session's Close) instead of the back arrow. */
+  leading?: React.ReactNode;
   /** Where back goes; defaults to the Home tab. */
   onBack?: () => void;
   /** A streak or status chip that sits beside the title. */
@@ -37,6 +39,7 @@ export function PageHeader({
   title,
   brand = false,
   back = false,
+  leading,
   onBack,
   meta,
   actions,
@@ -57,10 +60,11 @@ export function PageHeader({
           flexDirection: 'row',
           alignItems: 'center',
           gap: 4,
-          paddingHorizontal: back ? 12 : 20,
+          paddingHorizontal: back || leading ? 12 : 20,
         }}
       >
-        {back && <HeaderIcon icon="arrow-back" label="Go back" onPress={handleBack} />}
+        {leading ??
+          (back ? <HeaderIcon icon="arrow-back" label="Go back" onPress={handleBack} /> : null)}
 
         <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           {brand ? (

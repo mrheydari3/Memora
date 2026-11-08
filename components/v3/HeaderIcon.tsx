@@ -9,6 +9,7 @@ type HeaderIconProps = {
   icon: IconName;
   label: string;
   onPress: () => void;
+  disabled?: boolean;
 };
 
 /**
@@ -16,16 +17,18 @@ type HeaderIconProps = {
  * hover tile on web. It draws no resting fill, so the bar stays a header rather
  * than a row of buttons.
  */
-export function HeaderIcon({ icon, label, onPress }: HeaderIconProps) {
+export function HeaderIcon({ icon, label, onPress, disabled = false }: HeaderIconProps) {
   const [hovered, setHovered] = useState(false);
 
   return (
     <Pressable
-      onPress={onPress}
-      onHoverIn={() => setHovered(true)}
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
+      onHoverIn={() => !disabled && setHovered(true)}
       onHoverOut={() => setHovered(false)}
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ disabled }}
       style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
     >
       <View
@@ -35,10 +38,14 @@ export function HeaderIcon({ icon, label, onPress }: HeaderIconProps) {
           borderRadius: 10,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: hovered ? fills.control : 'transparent',
+          backgroundColor: hovered && !disabled ? fills.control : 'transparent',
         }}
       >
-        <MaterialIcons name={icon} size={iconSize.xl} color={colors.outline} />
+        <MaterialIcons
+          name={icon}
+          size={iconSize.xl}
+          color={disabled ? colors.outlineVariant : colors.outline}
+        />
       </View>
     </Pressable>
   );

@@ -724,6 +724,37 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(page.getByRole('button', { name: 'Show answer' })).toBeVisible();
   });
 
+  test('study: an archived deck explains the archive and restores into a session', async ({ page }) => {
+    await go(page, `/deck/${DECK_ID}`);
+    await openDeckOptions(page);
+    await page.getByRole('button', { name: 'Archive Deck' }).click();
+    await expect(page).toHaveURL(/\/library$/);
+    await settle(page);
+
+    await go(page, `/study/${DECK_ID}`);
+    await expect(page.getByRole('heading', { name: DECK })).toBeVisible();
+    await expect(page.getByText('This deck is archived')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Show answer' })).toHaveCount(0);
+
+    await go(page, `/deck/${DECK_ID}`);
+    await expect(page.getByRole('button', { name: 'Deck archived' })).toBeDisabled();
+
+    await go(page, `/study/${DECK_ID}`);
+    await page.getByRole('button', { name: 'Restore deck' }).click();
+    await expect(page.getByRole('button', { name: 'Show answer' })).toBeVisible();
+
+    const decks = await readStorage<Array<{ id: string; archivedAt?: number | null }>>(
+      page,
+      STORAGE_KEYS.decks,
+      []
+    );
+    expect(decks.find((deck) => deck.id === DECK_ID)?.archivedAt ?? null).toBeNull();
+
+    await page.reload();
+    await settle(page);
+    await expect(page.getByRole('button', { name: 'Show answer' })).toBeVisible();
+  });
+
   test('quiz: a wrong answer reveals the correct one and records the miss', async ({ page }) => {
     const deckId = await createQuizDeck(page);
     await go(page, `/quiz/${deckId}`);

@@ -494,10 +494,12 @@ export default function DeckDetailsScreen() {
       </View>
 
       <ActionButton
-        label={totalDue > 0 ? 'Start session' : 'Nothing due today'}
-        icon="arrow-forward"
+        label={
+          archived ? 'Deck archived' : totalDue > 0 ? 'Start session' : 'Nothing due today'
+        }
+        icon={archived ? 'archive' : 'arrow-forward'}
         onPress={() => pushOnce(router, `/study/${deck.id}`)}
-        disabled={totalDue === 0}
+        disabled={archived || totalDue === 0}
       />
     </Surface>
   );

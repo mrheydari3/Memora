@@ -12,16 +12,16 @@ import { computeStreak } from '../../data/streak';
 import { buildLearningEngine } from '../../data/intelligence';
 import type { LearningEngineResult } from '../../data/intelligence';
 import { resolveFsrsParams } from '../../data/fsrs-params';
+import { AppText, BottomSheetModal, Field, Screen, EmptyState } from '../../components';
 import {
-  AppText,
-  BottomSheetModal,
-  Field,
-  Screen,
-  IconButton,
-  EmptyState,
-  TopAppBar,
-} from '../../components';
-import { ActionButton, HeaderIcon, RatingKeys, StudyCard, StudyTray, Surface } from '../../components/v3';
+  ActionButton,
+  HeaderIcon,
+  PageHeader,
+  RatingKeys,
+  StudyCard,
+  StudyTray,
+  Surface,
+} from '../../components/v3';
 import { SessionSummary } from '../../components/v3/SessionSummary';
 import {
   colors,
@@ -101,6 +101,7 @@ export default function StudyScreen() {
   const deck = decks.find((d) => d.id === deckId);
   const cardsByDeck = useDeckStore((s) => s.cardsByDeck);
   const updateCard = useDeckStore((s) => s.updateCard);
+  const updateDeck = useDeckStore((s) => s.updateDeck);
   const logReview = useReviewStore((s) => s.logReview);
   const removeLastReview = useReviewStore((s) => s.removeLastReview);
   const reviewLog = useReviewStore((s) => s.reviewLog);
@@ -229,7 +230,7 @@ export default function StudyScreen() {
   // existing capped queue already selected; FSRS still owns every due date.
   // The tray's restart runs this same builder and returns to the first card.
   const startSession = useCallback(() => {
-    if (!deck) return;
+    if (!deck || deck.archivedAt) return;
     const cards = useDeckStore.getState().getCards(deck.id);
     const log = useReviewStore.getState().reviewLog;
     const now = Date.now();
@@ -532,9 +533,22 @@ export default function StudyScreen() {
     }
   };
 
+  const restoreDeck = async () => {
+    if (!deck) return;
+    try {
+      await updateDeck(deck.id, { archivedAt: null });
+    } catch (e) {
+      console.error('Failed to restore deck:', e);
+    }
+  };
+
   if (!deck) {
     return (
-      <Screen header={<TopAppBar title="Study" back backFallback={deckFallback} />}>
+      <Screen
+        header={
+          <PageHeader title="Study" back onBack={() => goBackOr(router, deckFallback)} />
+        }
+      >
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
           <EmptyState
             icon="layers-clear"
@@ -547,47 +561,84 @@ export default function StudyScreen() {
     );
   }
 
-  const header = (
-    <TopAppBar
-      leftContent={
-        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <IconButton
-            icon="close"
-            onPress={() => goBackOr(router, deckFallback)}
-            accessibilityLabel="Close session"
+  if (deck.archivedAt) {
+    return (
+      <Screen
+        header={
+          <PageHeader
+            title={deck.name}
+            back
+            onBack={() => goBackOr(router, deckFallback)}
           />
-          <AppText
-            variant="headline"
-            weight="semibold"
-            headingLevel={1}
-            numberOfLines={1}
-            style={{ flexShrink: 1 }}
-          >
-            Study Session
-          </AppText>
+        }
+      >
+        <View
+          style={{
+            flex: 1,
+            width: '100%',
+            maxWidth: v3.layout.studyMeasure,
+            alignSelf: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 20,
+            paddingBottom: 48,
+          }}
+        >
+          <EmptyState
+            icon="archive"
+            title="This deck is archived"
+            titleVariant="headline"
+            description="It stays out of your queue until you restore it. Restoring keeps every card and review exactly as they were."
+          />
           <View
             style={{
-              borderRadius: radii.pill,
-              backgroundColor: fills.inset,
-              paddingHorizontal: 9,
-              paddingVertical: 4,
+              width: '100%',
+              maxWidth: 280,
+              alignSelf: 'center',
+              marginTop: 20,
             }}
           >
-            <AppText variant="label" weight="semibold" tone="muted">
-              {Math.min(index + 1, sessionTotal)} / {sessionTotal}
-            </AppText>
+            <ActionButton
+              label="Restore deck"
+              icon="unarchive"
+              onPress={() => void restoreDeck()}
+            />
           </View>
         </View>
+      </Screen>
+    );
+  }
+
+  const header = (
+    <PageHeader
+      title={deck.name}
+      leading={
+        <HeaderIcon
+          icon="close"
+          label="Close session"
+          onPress={() => goBackOr(router, deckFallback)}
+        />
       }
-      rightContent={
-        <View style={{ marginEnd: 4 }}>
-          <IconButton
-            icon="undo"
-            onPress={undoLastReview}
-            disabled={!lastUndo}
-            accessibilityLabel="Undo last review"
-          />
+      meta={
+        <View
+          style={{
+            borderRadius: radii.pill,
+            backgroundColor: fills.inset,
+            paddingHorizontal: 9,
+            paddingVertical: 4,
+          }}
+        >
+          <AppText variant="label" weight="semibold" tone="muted">
+            {Math.min(index + 1, sessionTotal)} / {sessionTotal}
+          </AppText>
         </View>
+      }
+      actions={
+        <HeaderIcon
+          icon="undo"
+          label="Undo last review"
+          onPress={undoLastReview}
+          disabled={!lastUndo}
+        />
       }
     />
   );
@@ -595,74 +646,47 @@ export default function StudyScreen() {
   const emptyDeck = deckCards.length === 0;
 
   const completionHeader = (
-    <View style={{ backgroundColor: colors.appBarGlass }}>
-      <View
-        style={{
-          height: heights.pageHeader,
-          width: '100%',
-          maxWidth: 760,
-          alignSelf: 'center',
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 4,
-          paddingHorizontal: 12,
-        }}
-      >
-        <View style={{ width: width >= 400 ? 100 : 44, alignItems: 'flex-start' }}>
-          <HeaderIcon
-            icon="close"
-            label="Close session"
-            onPress={() => goBackOr(router, deckFallback)}
-          />
-        </View>
-        <View style={{ flex: 1, minWidth: 0, alignItems: 'center' }}>
-          <AppText
-            variant="headline"
-            weight="semibold"
-            headingLevel={1}
-            numberOfLines={1}
+    <PageHeader
+      title={emptyDeck ? 'Study' : 'Session Complete'}
+      maxWidth={v3.layout.studyMeasure}
+      leading={
+        <HeaderIcon
+          icon="close"
+          label="Close session"
+          onPress={() => goBackOr(router, deckFallback)}
+        />
+      }
+      meta={
+        width >= 400 ? (
+          <View
+            style={{
+              maxWidth: 100,
+              minHeight: 28,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              borderRadius: radii.pill,
+              borderWidth: 1,
+              borderColor: rims.soft,
+              backgroundColor: colors.surfacePane,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+            }}
           >
-            {emptyDeck ? 'Study' : 'Session Complete'}
-          </AppText>
-        </View>
-        <View
-          style={{
-            width: width >= 400 ? 100 : 44,
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-          }}
-        >
-          {width >= 400 ? (
-            <View
-              style={{
-                maxWidth: 100,
-                minHeight: 28,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
-                borderRadius: radii.pill,
-                borderWidth: 1,
-                borderColor: rims.soft,
-                backgroundColor: colors.surfacePane,
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-              }}
+            <MaterialIcons name="folder" size={iconSize.xs} color={colors.primary} />
+            <AppText
+              variant="caption"
+              weight="medium"
+              tone="muted"
+              numberOfLines={1}
+              style={{ flexShrink: 1 }}
             >
-              <MaterialIcons name="folder" size={iconSize.xs} color={colors.primary} />
-              <AppText
-                variant="caption"
-                weight="medium"
-                tone="muted"
-                numberOfLines={1}
-                style={{ flexShrink: 1 }}
-              >
-                {deck.name}
-              </AppText>
-            </View>
-          ) : null}
-        </View>
-      </View>
-    </View>
+              {deck.name}
+            </AppText>
+          </View>
+        ) : undefined
+      }
+    />
   );
 
   if (!currentCard) {

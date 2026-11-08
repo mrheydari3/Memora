@@ -4,7 +4,7 @@
 
 **Goal:** Finish the v3 redesign of Memora's web UI so every route — not only Home, Game, Settings, Deck, the composer and the settings sub-pages — speaks one Nocturne Focus language, with one primitive set, no v1/v2 leftovers, and the existing accessibility/data-truth guarantees still measured green.
 
-**Architecture:** v3 is already defined by `theme/v3.ts` (type steps, spacing, radii, rails, widths) plus fourteen components in `components/v3/`. The work is a **systematic rollout**, not a new design: extract the repeated grammar (scene pane, page header, section label, action pill, metric grid, rating keys) into primitives, then finish the remaining surfaces (Study, Quiz, Statistics, Profile, Discover, Add deck) plus the settings stragglers (Advanced, Import) and the shell (404, splash, skeletons, dock). Every conversion consumes tokens; no screen invents a value.
+**Architecture:** v3 is already defined by `theme/v3.ts` (type steps, spacing, radii, rails, widths) plus sixteen components in `components/v3/`. The work is a **systematic rollout**, not a new design: extract the repeated grammar (scene pane, page header, section label, action pill, metric grid, rating keys) into primitives, then finish the remaining surfaces (Study, Quiz, Statistics, Profile, Discover, Add deck) plus the settings stragglers (Advanced, Import) and the shell (404, splash, skeletons, dock). Every conversion consumes tokens; no screen invents a value.
 
 **Tech Stack:** Expo SDK 58 (`expo ~58.0.22`), React Native 0.88, React 19.3, TypeScript, Expo Router, react-native-web, NativeWind, Zustand, `ts-fsrs`. Tests: `node:test` for data, Playwright + axe-core for UI. Web only (`app.json` → `platforms: ["web"]`).
 
@@ -17,7 +17,7 @@
 - **Expo SDK 58 only.** Read `https://docs.expo.dev/versions/v58.0.0/` before touching Expo APIs. SDK 57 references do not describe this app.
 - **Web only.** No native project, no iOS/Android verification claimed, no store build.
 - **No new dependencies.** Everything needed is already in `package.json`.
-- **One token source.** Raw `hex`/`rgba` is forbidden outside `theme/`; `npm run check:design` must stay clean (currently 95 files).
+- **One token source.** Raw `hex`/`rgba` is forbidden outside `theme/`; `npm run check:design` must stay clean (currently 97 files).
 - **One text primitive.** All text is `AppText`; no raw `Text` from `react-native`.
 - **Tokens, not literals.** Spacing, radii, heights, icon sizes and type steps come from `theme/` or `theme/v3.ts`. New steps are added to `theme/v3.ts`, never inlined.
 - **Touch targets ≥ 44×44 CSS px**, including icon-only controls. Colour is never the only signal.
@@ -55,9 +55,10 @@ These are the inputs the design pass is most likely to break; each is pinned by 
 | Deck details (`app/deck/[id].tsx`) | v3 hero + ledger + ledger rows + options sheet |
 | Card composer (`app/deck/[id]/add-card.tsx`) | card-face pane, 420 column, 30/36 prompt |
 | Settings sub-pages (`algorithm`, `tts`, `offline`) | `SettingsBackHeader`, `SettingsHero`, chapters |
+| Study session (`app/study/[deckId].tsx`) | `PageHeader`, `StudyCard`, `StudyTray`, `RatingKeys`, `SessionSummary`; archived and empty states |
 | Study summary (`components/v3/SessionSummary.tsx`) | hero, metric grid, rating rail |
 
-`components/v3/` is now 14 files / 2,370 lines; `components/v2/` is four files / 466 lines. `theme/v3.ts` owns hero/stat/deck-name/headline/composer type, panel/section/group/row spacing, 12/14/22/24 radii, 6/4 rails, 960/420/220 widths, plus the Task 3 `score`, `result`, `page`, `studyMeasure`, `ratingKey`, and `answer` steps.
+`components/v3/` is now 16 files / 2,984 lines; `components/v2/` is four files / 466 lines. `theme/v3.ts` owns hero/stat/deck-name/headline/composer type, panel/section/group/row spacing, 12/14/22/24 radii, 6/4 rails, 960/420/220 widths, plus the Task 3 `score`, `result`, `page`, `studyMeasure`, `ratingKey`, and `answer` steps.
 
 ### Partially converted (Tasks 6–7)
 
@@ -70,7 +71,6 @@ These are the inputs the design pass is most likely to break; each is pinned by 
 
 | Surface | Size | Current imports | Specific gap |
 | --- | --- | --- | --- |
-| Study session (`app/study/[deckId].tsx`) | 1,032 lines | `TodayRail` from `components/v2`; `v2` | v1 app bar, glass card stage, `TodayRail` still v2; rating keys and action pills converted; session body not |
 | Quiz (`app/quiz/[deckId].tsx`) | 1,311 lines | `v2`, `GlassCard` | 156px timer ring, glass scoreboard, v2 result type; answer pads and Play again converted |
 | Discover index (`app/discover/index.tsx`) | 123 lines | `GlassCard`, `ListRow`, `SectionHeading`, `v2` | catalogue rows still v2; `SectionHeading` conversion started; task 9 remains open |
 | Discover preview (`app/discover/[id].tsx`) | 177 lines | `SectionHeading`, `v2` | v1 preview, inline colour, 18/22/30 spacing |
@@ -83,11 +83,11 @@ These are the inputs the design pass is most likely to break; each is pinned by 
 
 ### Guards and leftovers
 
-- `node_modules` is installed in this workspace, so the planned baseline has been run: `npx tsc --noEmit` is clean, `npm test` is 161/161, `npm run test:surfaces` covers 83 surfaces, `npm run test:fixtures` is 14/14, and `npm run build:web` exports `dist/`. Playwright cannot launch Chromium here (`libnspr4.so` is missing), so the visual/axe/keyboard gates remain **blocked**, not passed.
+- `node_modules` is installed in this workspace, so the planned baseline has been run: `npx tsc --noEmit` is clean, `npm test` is 161/161, `npm run test:surfaces` covers 83 surfaces, `npm run test:fixtures` is 14/14, and `npm run build:web` exports `dist/`. Playwright launches here with the browser dependencies staged under `.playwright-deps/`; the Study visual, axe and keyboard gates were measured in Task 4, and the remaining suites are run per task.
 - `npm run check:design` → clean (95 files).
 - The planning-time `skills/design-drift-audit` scan reported 9 off-grid spacing values, 4 literal font sizes, 4 `Screen` shells without standard switches, 1 direct `Animated.timing` in `app/(tabs)/library.tsx:44`, and 179 deliberate micro-spacings. These are Phase 0/1 clean-up, not a redesign, and this list has not been re-measured after Tasks 1–7.
-- Retirement candidates are still live: `components/v2/*` (four files / 466 lines; Study imports `TodayRail`), `QuizStartCard`, `DeckCard`, `DeckLibrary`, `DeckListItem`, `DeckProgressCard`, `HeroPane`, `SectionHeader`, `SettingsPlate`, `SettingsRow`, `SettingsSection`, and `SettingsNote`. Task 13 must verify each with `rg` before deleting; do not treat the current list as an inventory of confirmed dead files.
-- `theme/v2.ts` is imported by ten app files — Study, Quiz, Statistics, Profile, Home, Discover ×2, Mass import, Advanced, and Dev — plus `HeroPane`, `TopAppBar`, and `components/v2/{DeckRow,FolderRow,TodayRail}`. It retires with the last of them.
+- Retirement candidates are still live: `components/v2/*` (four files / 466 lines), `QuizStartCard`, `DeckCard`, `DeckLibrary`, `DeckListItem`, `DeckProgressCard`, `HeroPane`, `SectionHeader`, `SettingsPlate`, `SettingsRow`, `SettingsSection`, and `SettingsNote`. Task 13 must verify each with `rg` before deleting; do not treat the current list as an inventory of confirmed dead files.
+- `theme/v2.ts` is imported by eight app files — Statistics, Profile, Home, Discover ×2, Mass import, Advanced, and Dev — plus `HeroPane`, `TopAppBar`, and `components/v2/{DeckRow,FolderRow,TodayRail}`. It retires with the last of them.
 
 ---
 
@@ -300,23 +300,25 @@ Each key is one `Pressable` ≥68px tall, `accessibilityRole="button"`, `accessi
 #### Task 4: Study session in v3
 
 **Files:**
-- Modify: `app/study/[deckId].tsx` (1,032 lines), `components/v3/SessionSummary.tsx`, `components/Flashcard.tsx` (only if the stage needs a v3 `full` frame)
+- Modify: `app/study/[deckId].tsx` (997 lines), `components/v3/SessionSummary.tsx`, `components/Flashcard.tsx` (only if the stage needs a v3 `full` frame)
 - Test: `tests/e2e/flows.spec.ts`, `tests/e2e/visual.spec.ts`, `tests/e2e/data-truth.spec.ts`
 
 **Interfaces:**
 - Consumes `PageHeader`, `Surface`, `ActionButton`, `RatingKeys`, `SessionSummary`.
 - Produces no new exports; session state (`queue`, `index`, `sessionTotal`, `lastUndo`, `waiting`) stays as-is.
 
-- [ ] Replace the `TopAppBar` header with `PageHeader`: close (44), deck name, state pill (`New/Learning/Review`), undo (44), and a 4px progress rail directly under the bar. Progress text uses the fixed `sessionTotal` set when the queue is built — verify it never grows mid-session (P3).
-- [ ] Put the card in one `Surface tone="scene"` stage, radius 24, no padding on the frame; the flashcard keeps its own 24px inner padding and `textDirection`. Keep the answer reveal, speak control and S/R/D pill.
-- [ ] Put `RatingKeys` in the fixed footer (`Screen footer`), with Show answer as `ActionButton` before reveal.
-- [ ] Empty deck (P8): if `deckCards.length === 0`, render a scene empty state — "No cards in this deck" + `ActionButton label="Add cards"` — never "All done" / "0 / 0".
-- [ ] Archived deck (P4): if `deck.archivedAt`, block the session with "This deck is archived" and an `ActionButton label="Restore deck"` that clears `archivedAt`; the deck page must not offer Start session while archived.
-- [ ] Session summary: `StartButton` → `ActionButton`, ledger → `MetricGrid`; keep the four real metrics and the undo/back actions.
-- [ ] Run `npx tsc --noEmit`, `npm run check:design`, `npm test`, `npx playwright test tests/e2e/flows.spec.ts tests/e2e/data-truth.spec.ts`, and capture 320/390/1280 screenshots (question, answer, waiting, summary, empty, archived).
+- [x] Replace the `TopAppBar` header with `PageHeader`: close (44), deck name, session counter, undo (44), and a 4px progress rail directly under the bar. The scheduler state stays the card's pill, where the Study card already shows it; progress text uses the fixed `sessionTotal` set when the queue is built — verify it never grows mid-session (P3).
+- [x] Put the card in one `Surface tone="scene"` stage, radius 24, no padding on the frame; the flashcard keeps its own 24px inner padding and `textDirection`. Keep the answer reveal, speak control and S/R/D pill.
+- [x] Put `RatingKeys` in the fixed footer (`Screen footer`), with Show answer as `ActionButton` before reveal.
+- [x] Empty deck (P8): if `deckCards.length === 0`, render a scene empty state — "No cards in this deck" + `ActionButton label="Add cards"` — never "All done" / "0 / 0".
+- [x] Archived deck (P4): if `deck.archivedAt`, block the session with "This deck is archived" and an `ActionButton label="Restore deck"` that clears `archivedAt`; the deck page must not offer Start session while archived.
+- [x] Session summary: `StartButton` → `ActionButton`, ledger → `MetricGrid`; keep the four real metrics and the undo/back actions.
+- [x] Run `npx tsc --noEmit`, `npm run check:design`, `npm test`, `npx playwright test tests/e2e/flows.spec.ts tests/e2e/data-truth.spec.ts`, and capture 320/390/1280 screenshots (question, answer, waiting, summary, empty, archived).
 - [ ] Commit: `feat(study): v3 session stage, keys and honest empty states`.
 
 **Acceptance:** a 5-card session shows a constant denominator from first to last card; the empty and archived states never claim completion; rating names include a separator; axe 0 on the four states; no horizontal overflow at 320 with a 40-char deck name.
+
+**Result (2026-11-08):** `npx tsc --noEmit` **0** · `npm run check:design` **clean (97 files)** · `npm test` **161/161** · `npm run build:web` exported `dist/`. Study flows **6/6**, including the new archive → restore → reload test; keyboard **1/1**; axe **0** on the session (question), answered, empty and archived states; `study-answer-{320,390}` baselines regenerated and green. The session and completion bars are `PageHeader` (which gained a custom `leading` slot for Close, and `HeaderIcon` gained a disabled state for Undo): the session h1 is the deck name, the fixed counter is meta and Undo is the action. At 320/390/1280 the session has **0** controls under 44px and **0** horizontal overflow; a 40-character deck name and a Persian name at 320 also overflow **0**. Archiving a deck and opening `/study/deck-german-a2b1` explains the archive, restores into the session and survives reload; the deck page's primary action reads "Deck archived" and is disabled. `data-truth.spec.ts` is **7/11**: the four failures are the known Home/folder/deck-row totals owned by Task 12, not this surface. The waiting state was not separately axe-scanned. Commit left uncommitted for review.
 
 #### Task 5: Quiz arena and result in v3
 
@@ -560,7 +562,7 @@ Pure, no storage, no store dependency.
 | `/settings` | v3 | 2 |
 | `/deck/[id]` | v3 | 1–2, 4, 12 |
 | `/deck/[id]/add-card` | v3 | 1–2 |
-| `/study/[deckId]` | v1/v2 | 3–4, 12 |
+| `/study/[deckId]` | v3 | 3–4, 12 |
 | `/quiz/[deckId]` | v1/v2 | 3, 5 |
 | `/statistics` | v3 partial | 2, 6 |
 | `/profile` | v3 partial | 2, 7 |

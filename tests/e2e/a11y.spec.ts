@@ -54,6 +54,28 @@ test.describe('axe — WCAG 2.2 AA', () => {
   }
 });
 
+test('archived study state has no WCAG 2.2 AA violations', async ({ page }) => {
+  await page.goto('/deck/deck-german-a2b1');
+  await settle(page);
+  await page.getByRole('button', { name: 'More options', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Archive Deck' }).click();
+  await expect(page).toHaveURL(/\/library$/);
+
+  await page.goto('/study/deck-german-a2b1');
+  await settle(page);
+  await expect(page.getByText('This deck is archived')).toBeVisible();
+
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  const summary = violations.map((v) => ({
+    id: v.id,
+    impact: v.impact,
+    nodes: v.nodes.map((n) => n.target.join(' ')),
+  }));
+  expect(summary).toEqual([]);
+});
+
 test('page shell is dark, English and landmarked', async ({ page }) => {
   await page.goto('/');
   await settle(page);
