@@ -1,10 +1,9 @@
-import { View } from 'react-native';
+import { Image, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { goBackOr } from '../../services/navigation';
-import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
+import { FloatingHeader } from './FloatingHeader';
 import { HeaderIcon } from './HeaderIcon';
-import { colors, heights, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
 type PageHeaderProps = {
@@ -28,12 +27,12 @@ type PageHeaderProps = {
 };
 
 /**
- * PageHeader — the one 64px app bar.
+ * PageHeader — the one floating 64px glass app bar.
  *
  * On a tab page it carries the brand (the mark and "Memora" are the h1); on a
  * stack page it carries the 44px back control and the route name as the h1.
- * The bar is full-bleed, but its content stays on the same 960px column as the
- * page body. It writes no rule and casts no shadow: the page scrolls under it.
+ * `FloatingHeader` owns the inset, rounding and blur; the content still lands
+ * on the page's 960px column, so the app bar and the body share one left edge.
  */
 export function PageHeader({
   title,
@@ -50,76 +49,71 @@ export function PageHeader({
   const handleBack = onBack ?? (() => goBackOr(router, '/(tabs)/home'));
 
   return (
-    <View testID={testID} style={{ backgroundColor: colors.appBarGlass }}>
+    <FloatingHeader maxWidth={maxWidth} testID={testID} barTestID="page-header-bar">
+      {leading ??
+        (back ? <HeaderIcon icon="arrow-back" label="Go back" onPress={handleBack} /> : null)}
+
       <View
         style={{
-          height: heights.pageHeader,
-          width: '100%',
-          maxWidth: maxWidth ?? v3.layout.contentMaxWidth,
-          alignSelf: 'center',
+          flex: 1,
+          minWidth: 0,
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 4,
-          paddingHorizontal: back || leading ? 12 : 20,
+          gap: v3.appBar.contentGap,
         }}
       >
-        {leading ??
-          (back ? <HeaderIcon icon="arrow-back" label="Go back" onPress={handleBack} /> : null)}
-
-        <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          {brand ? (
-            <>
-              <View
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 8,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: colors.surfaceControl,
-                  flexShrink: 0,
-                }}
-              >
-                <MaterialIcons name="blur-on" size={iconSize.lg} color={colors.primary} />
-              </View>
-              <AppText
-                variant="headline"
-                weight="semibold"
-                headingLevel={1}
-                numberOfLines={1}
-                style={{ letterSpacing: -0.4, flexShrink: 1 }}
-              >
-                Memora
-              </AppText>
-            </>
-          ) : title ? (
+        {brand ? (
+          <>
+            {/* The dark mark carries its own light ink, so it needs no plate. */}
+            <Image
+              source={require('../../assets/brand-koala.png')}
+              style={{
+                width: v3.appBar.brandTile,
+                height: v3.appBar.brandTile,
+                flexShrink: 0,
+              }}
+              resizeMode="contain"
+              accessible={false}
+              alt=""
+              testID="brand-mark"
+            />
             <AppText
               variant="headline"
               weight="semibold"
               headingLevel={1}
               numberOfLines={1}
-              style={{ letterSpacing: -0.4, flexShrink: 1, minWidth: 0, marginStart: 4 }}
+              style={{ letterSpacing: -0.4, flexShrink: 1 }}
             >
-              {title}
+              Memora
             </AppText>
-          ) : null}
-
-          {meta ? <View style={{ flexShrink: 0 }}>{meta}</View> : null}
-        </View>
-
-        {actions ? (
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 2,
-              flexShrink: 0,
-            }}
+          </>
+        ) : title ? (
+          <AppText
+            variant="headline"
+            weight="semibold"
+            headingLevel={1}
+            numberOfLines={1}
+            style={{ letterSpacing: -0.4, flexShrink: 1, minWidth: 0, marginStart: 4 }}
           >
-            {actions}
-          </View>
+            {title}
+          </AppText>
         ) : null}
+
+        {meta ? <View style={{ flexShrink: 0, marginLeft: 'auto' }}>{meta}</View> : null}
       </View>
-    </View>
+
+      {actions ? (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: v3.appBar.actionGap,
+            flexShrink: 0,
+          }}
+        >
+          {actions}
+        </View>
+      ) : null}
+    </FloatingHeader>
   );
 }

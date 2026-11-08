@@ -1,6 +1,7 @@
 import { useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Surface } from './v3/Surface';
+import { FloatingHeader } from './v3/FloatingHeader';
 import {
   DeckCardGridSkeleton,
   DeckShelfSkeleton,
@@ -56,9 +57,10 @@ export function launchVariant(pathname: string): LaunchVariant {
  * LaunchSkeleton — the first paint of the app, drawn as the page it will become.
  *
  * It is not a second splash: there is no wordmark moment and no progress rail.
- * The shell (64px app bar, 960px content column, tab dock) is already in place,
- * and the content is the same skeleton grammar every screen uses, so the
- * hand-off to the real page is a dissolve rather than a layout jump.
+ * The shell (floating 64px glass app bar, 960px content column, tab dock) is
+ * already in place, and the content is the same skeleton grammar every screen
+ * uses, so the hand-off to the real page is a dissolve rather than a layout
+ * jump.
  */
 export function LaunchSkeleton({ pathname = '/' }: { pathname?: string }) {
   const insets = useSafeAreaInsets();
@@ -85,25 +87,19 @@ export function LaunchSkeleton({ pathname = '/' }: { pathname?: string }) {
 }
 
 /**
- * The app bar without its controls. It uses the same 64px height, 960px
- * content ceiling and 20px brand / 12px stack gutters as `PageHeader`, so the
- * real bar lands on the same pixels when the skeleton leaves.
+ * The app bar without its content. It uses the same floating shell, 36px tiles
+ * and 42px brand plate as `PageHeader`, so the real bar lands on the same
+ * pixels when the skeleton leaves.
  */
 function LaunchTopBar({ variant }: { variant: LaunchVariant }) {
   const { width } = useWindowDimensions();
   const home = variant === 'home';
   const tab =
     home || variant === 'library' || variant === 'profile' || variant === 'settings';
+  const leading = !tab;
+  const centered = variant === 'quiz';
   const actionCount =
-    home || variant === 'library'
-      ? 3
-      : variant === 'settings'
-        ? 1
-        : variant === 'statistics'
-          ? 2
-          : variant === 'quiz'
-            ? 1
-            : 0;
+    home ? 2 : variant === 'statistics' || variant === 'quiz' ? 1 : 0;
   const titleWidth =
     variant === 'settings'
       ? 76
@@ -118,69 +114,92 @@ function LaunchTopBar({ variant }: { variant: LaunchVariant }) {
               : 84;
 
   return (
-    <View style={{ backgroundColor: colors.appBarGlass }}>
-      <View
-        style={{
-          height: heights.pageHeader,
-          width: '100%',
-          maxWidth: v3.layout.contentMaxWidth,
-          alignSelf: 'center',
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 4,
-          paddingHorizontal: tab ? 20 : 12,
-        }}
-      >
-        {!tab && (
-          <View
-            style={{
-              width: heights.hit,
-              height: heights.hit,
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Skeleton width={38} height={38} radius={19} />
-          </View>
-        )}
-
-        {home ? (
-          <>
-            <Skeleton width={32} height={32} radius={8} />
-            <Skeleton width={76} height={18} radius={7} style={{ marginStart: 8 }} />
-            {width >= 360 && (
-              <Skeleton width={44} height={22} radius={radii.pill} style={{ marginStart: 8 }} />
-            )}
-          </>
-        ) : (
+    <FloatingHeader maxWidth={v3.layout.contentMaxWidth} barTestID="launch-header-bar">
+      {leading && (
+        <View
+          style={{
+            width: v3.appBar.actionHit,
+            height: v3.appBar.actionHit,
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
           <Skeleton
-            width={titleWidth}
-            height={18}
-            radius={7}
-            style={{ marginStart: tab ? 0 : 4 }}
+            width={v3.appBar.actionTile}
+            height={v3.appBar.actionTile}
+            radius={v3.appBar.actionRadius}
           />
-        )}
+        </View>
+      )}
 
-        <View style={{ flex: 1 }} />
+      {home ? (
+        <View
+          style={{
+            flex: 1,
+            minWidth: 0,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: v3.appBar.contentGap,
+          }}
+        >
+          <Skeleton
+            width={v3.appBar.brandTile}
+            height={v3.appBar.brandTile}
+            radius={v3.appBar.actionRadius}
+          />
+          <Skeleton width={76} height={18} radius={7} />
+          {width >= 360 && (
+            <View style={{ marginLeft: 'auto' }}>
+              <Skeleton width={44} height={30} radius={radii.pill} />
+            </View>
+          )}
+        </View>
+      ) : centered ? (
+        <View style={{ flex: 1, minWidth: 0, alignItems: 'center', gap: 4 }}>
+          <Skeleton width={78} height={8} radius={4} />
+          <Skeleton width={titleWidth} height={18} radius={7} />
+        </View>
+      ) : (
+        <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center' }}>
+          <Skeleton width={titleWidth} height={18} radius={7} style={{ marginStart: 4 }} />
+          {variant === 'study' && (
+            <View style={{ marginLeft: 'auto' }}>
+              <Skeleton width={width < 360 ? 72 : 100} height={22} radius={radii.pill} />
+            </View>
+          )}
+        </View>
+      )}
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+      {actionCount > 0 && (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: v3.appBar.actionGap,
+            flexShrink: 0,
+          }}
+        >
           {Array.from({ length: actionCount }).map((_, index) => (
             <View
               key={index}
               style={{
-                width: heights.hit,
-                height: heights.hit,
+                width: v3.appBar.actionHit,
+                height: v3.appBar.actionHit,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Skeleton width={38} height={38} radius={19} />
+              <Skeleton
+                width={v3.appBar.actionTile}
+                height={v3.appBar.actionTile}
+                radius={v3.appBar.actionRadius}
+              />
             </View>
           ))}
         </View>
-      </View>
-    </View>
+      )}
+    </FloatingHeader>
   );
 }
 

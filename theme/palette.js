@@ -148,6 +148,8 @@ const glass = {
   blur: 0,
   blurStrong: 0,
   blurTab: 80,
+  /** The floating page header: a soft refraction, lighter than the dock. */
+  blurHeader: 40,
   /** The selection lens: a denser blur than the rail around it. */
   blurLens: 40,
   /**

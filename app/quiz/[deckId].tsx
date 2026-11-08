@@ -37,12 +37,17 @@ import {
 } from '../../data/quiz';
 import type { Flashcard } from '../../data/types';
 import { AppText, EmptyState, QuizSkeleton, Screen } from '../../components';
-import { ActionButton, MetricGrid, Surface } from '../../components/v3';
+import {
+  ActionButton,
+  FloatingHeader,
+  HeaderIcon,
+  MetricGrid,
+  Surface,
+} from '../../components/v3';
 import {
   alpha,
   colors,
   fills,
-  heights,
   iconSize,
   motion,
   radii,
@@ -356,56 +361,6 @@ function ArenaAnswer({
         </Animated.View>
       </Animated.View>
     </Animated.View>
-  );
-}
-
-type HeaderControlProps = {
-  icon: IconName;
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-};
-
-/**
- * The quiz app bar's control: the mockup's 40px tile on a 44px target. The tile
- * keeps its resting hairline and only takes a fill on hover, so the bar reads as
- * a header rather than a row of buttons.
- */
-function HeaderControl({ icon, label, onPress, disabled = false }: HeaderControlProps) {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <Pressable
-      onPress={onPress}
-      onHoverIn={() => setHovered(true)}
-      onHoverOut={() => setHovered(false)}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled }}
-      style={{
-        width: heights.hit,
-        height: heights.hit,
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: disabled ? 0.45 : 1,
-      }}
-    >
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: v3.radii.tile,
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderWidth: 1,
-          borderColor: hovered ? colors.outlineSoft : rims.soft,
-          backgroundColor: hovered ? colors.surfaceControl : 'transparent',
-        }}
-      >
-        <MaterialIcons name={icon} size={iconSize.lg} color={colors.onSurface} />
-      </View>
-    </Pressable>
   );
 }
 
@@ -912,48 +867,46 @@ export default function QuizScreen() {
   const progress = order.length > 0 ? Math.min(1, (index + 1) / order.length) : 0;
 
   const header = (
-    <View style={{ backgroundColor: colors.appBarGlass }}>
-      <View style={styles.header}>
-        <HeaderControl
-          icon="arrow-back"
-          label="Close quiz"
-          onPress={() => goBackOr(router, '/(tabs)/library')}
-        />
-        <View style={{ flex: 1, minWidth: 0, alignItems: 'center' }}>
-          <AppText
-            variant="label"
-            weight="semibold"
-            tone="muted"
-            numberOfLines={1}
-            style={{ letterSpacing: 1.6 }}
-          >
-            ACTIVE SESSION
-          </AppText>
-          <AppText
-            variant="bodySm"
-            weight="semibold"
-            headingLevel={1}
-            numberOfLines={1}
-            style={{ marginTop: 1 }}
-          >
-            {deck?.name ?? 'Quiz'}
-          </AppText>
-        </View>
-        <HeaderControl
-          icon="pause"
-          label="Pause quiz"
-          disabled={phase !== 'playing'}
-          onPress={() => {
-            if (Platform.OS === 'web' && typeof document !== 'undefined') {
-              const active = document.activeElement;
-              pauseReturnRef.current =
-                active instanceof HTMLElement && active !== document.body ? active : null;
-            }
-            setPaused(true);
-          }}
-        />
+    <FloatingHeader maxWidth={v3.layout.quizMeasure} barTestID="quiz-header-bar">
+      <HeaderIcon
+        icon="arrow-back"
+        label="Close quiz"
+        onPress={() => goBackOr(router, '/(tabs)/library')}
+      />
+      <View style={{ flex: 1, minWidth: 0, alignItems: 'center' }}>
+        <AppText
+          variant="label"
+          weight="semibold"
+          tone="muted"
+          numberOfLines={1}
+          style={{ letterSpacing: 1.6 }}
+        >
+          ACTIVE SESSION
+        </AppText>
+        <AppText
+          variant="bodySm"
+          weight="semibold"
+          headingLevel={1}
+          numberOfLines={1}
+          style={{ marginTop: 1 }}
+        >
+          {deck?.name ?? 'Quiz'}
+        </AppText>
       </View>
-    </View>
+      <HeaderIcon
+        icon="pause"
+        label="Pause quiz"
+        disabled={phase !== 'playing'}
+        onPress={() => {
+          if (Platform.OS === 'web' && typeof document !== 'undefined') {
+            const active = document.activeElement;
+            pauseReturnRef.current =
+              active instanceof HTMLElement && active !== document.body ? active : null;
+          }
+          setPaused(true);
+        }}
+      />
+    </FloatingHeader>
   );
 
   // A missing card key is not a loading state: the store may legitimately have
@@ -1430,16 +1383,6 @@ export default function QuizScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    height: heights.pageHeader,
-    width: '100%',
-    maxWidth: v3.layout.quizMeasure,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-  },
   centered: {
     flex: 1,
     alignItems: 'center',

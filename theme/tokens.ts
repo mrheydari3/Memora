@@ -84,6 +84,7 @@ type Palette = {
     blur: number;
     blurStrong: number;
     blurTab: number;
+    blurHeader: number;
     blurLens: number;
     lensWash: string;
     saturate: number;

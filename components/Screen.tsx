@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Platform, ScrollView } from 'react-native';
+import { Animated, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Edge } from 'react-native-safe-area-context';
 import { useIsFocused } from 'expo-router';
-import { motion, spacing } from '../theme/tokens';
+import { heights, motion, spacing } from '../theme/tokens';
+import { v3 } from '../theme/v3';
 import { useReveal } from '../motion';
 
 type ScreenProps = {
@@ -11,7 +12,7 @@ type ScreenProps = {
   /** Safe-area edges to inset. Defaults to the top only; the tab bar handles the bottom. */
   edges?: readonly Edge[];
   className?: string;
-  /** The fixed app bar, rendered above the scrolling body. */
+  /** The floating app bar; its measured height is reserved at the top of the body. */
   header?: React.ReactNode;
   /** A fixed footer (primary action, rating row) rendered below the body. */
   footer?: React.ReactNode;
@@ -41,8 +42,11 @@ type ScreenProps = {
 };
 
 /**
- * Screen — the standard route shell: flat ink canvas, safe area, a fixed app
+ * Screen — the standard route shell: flat ink canvas, safe area, a floating app
  * bar and an optional fixed footer around one scrolling body.
+ *
+ * The bar is painted above the body and its measured height pads the body, so
+ * the content starts below it and scrolls up beneath its glass on the way back.
  *
  * The canvas is one opaque colour and nothing else: no colour fields, no glow,
  * no animated layer behind the content. Panes still read as glass because they
@@ -71,6 +75,11 @@ export function Screen({
   const focused = useIsFocused();
   // A pass counter, not the boolean: returning to a tab must replay the entrance.
   const [pass, setPass] = useState(0);
+  // Seed with the standard PageHeader height (bar + top gap) so the first paint
+  // is already below the bar; a custom header corrects this on its first layout.
+  const [headerHeight, setHeaderHeight] = useState(
+    header ? heights.pageHeader + v3.appBar.floatGap : 0
+  );
   const seenFocus = useRef(false);
 
   useEffect(() => {
@@ -111,35 +120,58 @@ export function Screen({
       accessibilityElementsHidden={backgroundInert || undefined}
       importantForAccessibility={backgroundInert ? 'no-hide-descendants' : undefined}
     >
-      {header}
-      <Animated.View testID="screen-body" style={{ flex: 1, ...(animate ? reveal.style : null) }}>
-        {scroll ? (
-          <ScrollView
-            className={`flex-1 ${contentClassName}`}
-            // `focusable`: the screen's own scroll region must be reachable and
-            // scrollable from the keyboard, otherwise content that overflows a
-            // short viewport (e.g. Statistics at 320×700) is touch-only
-            // (axe: "scrollable-region-focusable").
-            focusable
-            contentContainerStyle={{
-              paddingTop: spacing.screen,
-              paddingBottom: tabClearance ? spacing.tabClearance : spacing.screenBottom,
-              ...(gutter ? { paddingHorizontal: spacing.screen } : {}),
-              ...(contentMaxWidth
-                ? { width: '100%', maxWidth: contentMaxWidth, alignSelf: 'center' }
-                : {}),
+      {/* Absolute children ignore the SafeAreaView's padding; this inner box is
+          the safe-area content, so the floating bar starts below the status bar
+          on native and at y=0 on web. */}
+      <View style={{ flex: 1 }}>
+        {header ? (
+          <View
+            pointerEvents="box-none"
+            onLayout={(event) => {
+              const next = Math.round(event.nativeEvent.layout.height);
+              setHeaderHeight((current) => (Math.abs(current - next) > 1 ? next : current));
             }}
-            showsVerticalScrollIndicator={false}
-            decelerationRate="normal"
-            scrollEventThrottle={16}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20 }}
           >
-            {children}
-          </ScrollView>
-        ) : (
-          children
-        )}
-      </Animated.View>
-      {footer}
+            {header}
+          </View>
+        ) : null}
+        <Animated.View
+          testID="screen-body"
+          style={{
+            flex: 1,
+            ...(animate ? reveal.style : null),
+            ...(header && !scroll ? { paddingTop: headerHeight } : null),
+          }}
+        >
+          {scroll ? (
+            <ScrollView
+              className={`flex-1 ${contentClassName}`}
+              // `focusable`: the screen's own scroll region must be reachable and
+              // scrollable from the keyboard, otherwise content that overflows a
+              // short viewport (e.g. Statistics at 320×700) is touch-only
+              // (axe: "scrollable-region-focusable").
+              focusable
+              contentContainerStyle={{
+                paddingTop: headerHeight + spacing.screen,
+                paddingBottom: tabClearance ? spacing.tabClearance : spacing.screenBottom,
+                ...(gutter ? { paddingHorizontal: spacing.screen } : {}),
+                ...(contentMaxWidth
+                  ? { width: '100%', maxWidth: contentMaxWidth, alignSelf: 'center' }
+                  : {}),
+              }}
+              showsVerticalScrollIndicator={false}
+              decelerationRate="normal"
+              scrollEventThrottle={16}
+            >
+              {children}
+            </ScrollView>
+          ) : (
+            children
+          )}
+        </Animated.View>
+        {footer}
+      </View>
     </SafeAreaView>
   );
 }

@@ -373,12 +373,15 @@ export default function HomeScreen() {
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              gap: 4,
+              gap: 5,
+              minHeight: 30,
+              justifyContent: 'center',
               paddingHorizontal: 10,
-              paddingVertical: 4,
               borderRadius: 999,
               backgroundColor: colors.surfaceInset,
             }}
+            accessible
+            accessibilityLabel={`${streak}-day streak`}
           >
             <MaterialIcons
               name="local-fire-department"
@@ -396,11 +399,13 @@ export default function HomeScreen() {
           <HeaderIcon
             icon="explore"
             label="Discover"
+            raised
             onPress={() => pushOnce(router, '/discover')}
           />
           <HeaderIcon
             icon="add"
             label="Add deck"
+            emphasized
             onPress={() => pushOnce(router, '/add-deck')}
           />
         </>
