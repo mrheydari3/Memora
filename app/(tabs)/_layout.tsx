@@ -11,9 +11,13 @@ type TabDefinition = {
   icon: TabIconName;
 };
 
+// `/library` is the Game tab's URL on purpose: the public path is preserved
+// while the visible label is Game. Renaming it to `/game` needs its own redirect
+// and test pass; do not "fix" it here.
 const TABS: TabDefinition[] = [
   { name: 'home', title: 'Home', icon: 'home' },
   { name: 'library', title: 'Game', icon: 'sports-esports' },
+  { name: 'profile', title: 'Profile', icon: 'person' },
   { name: 'settings', title: 'Settings', icon: 'settings' },
 ];
 

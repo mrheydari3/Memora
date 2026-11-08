@@ -100,11 +100,12 @@ function TabItem({
           minWidth: tabBar.cell,
           // A minimum, like the tab itself: at 200% text size the glyph and its
           // caption need more room, and the capsule grows instead of cutting
-          // the caption off at the tile's edge.
+          // the caption off at the tile's edge. The inset is tight because four
+          // captions at 200% size have to share the dock's 300px ceiling.
           minHeight: tabBar.pill,
           alignItems: 'center',
           justifyContent: 'center',
-          paddingHorizontal: 6,
+          paddingHorizontal: 2,
           paddingVertical: 2,
         }}
       >

@@ -401,12 +401,14 @@ const tabBar = {
    * on phones and stretched on tablets, and it forced the selection tile to
    * float inside a slot wider than itself.
    */
-  cell: 88,
+  // Four tabs, so the cell is narrower than the three-tab dock was. A full cell
+  // remains a comfortable target and the labels still fit at 200% text size.
+  cell: 70,
   height: 64,
   /**
-   * The dock's ceiling. Three full cells plus padding is 276; the extra room is
-   * for a label that grows (200% text size) so the tab widens instead of
-   * truncating its caption.
+   * The dock's ceiling. Four full cells plus padding is 292; the small headroom
+   * is for a label that grows at 200% text size, so a caption takes the slack
+   * from its neighbours instead of truncating.
    */
   maxWidth: 300,
   gutter: 12,

@@ -2,12 +2,12 @@ import { useEffect, useMemo } from 'react';
 import type { ComponentProps } from 'react';
 import { Pressable, useWindowDimensions, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MaterialIcons } from '../components/Icon';
-import { useDeckStore } from '../store/useDeckStore';
-import { useReviewStore } from '../store/useReviewStore';
-import { computeStreak, startOfLocalDay } from '../data/streak';
-import type { Deck } from '../data/types';
-import { dueNow } from '../data/session';
+import { MaterialIcons } from '../../components/Icon';
+import { useDeckStore } from '../../store/useDeckStore';
+import { useReviewStore } from '../../store/useReviewStore';
+import { computeStreak, startOfLocalDay } from '../../data/streak';
+import type { Deck } from '../../data/types';
+import { dueNow } from '../../data/session';
 import {
   AppText,
   EmptyState,
@@ -15,15 +15,13 @@ import {
   RevealItem,
   Screen,
   SettingsGroupSkeleton,
-} from '../components';
+} from '../../components';
 import {
   ActionButton,
-  HeaderIcon,
-  HeaderProfileButton,
   PageHeader,
   SectionHeading,
   Surface,
-} from '../components/v3';
+} from '../../components/v3';
 import {
   alpha,
   colors,
@@ -31,9 +29,9 @@ import {
   heights,
   iconSize,
   radii,
-} from '../theme/tokens';
-import { v3 } from '../theme/v3';
-import { goBackOr, pushOnce } from '../services/navigation';
+} from '../../theme/tokens';
+import { v3 } from '../../theme/v3';
+import { pushOnce } from '../../services/navigation';
 
 const CONTENT_MAX = 760;
 const XP_PER_REVIEW = 10;
@@ -562,30 +560,12 @@ export default function ProfileScreen() {
     return [...activeDecks.slice(0, activeLimit), ...archivedDecks.slice(0, 1)];
   }, [deckStats]);
 
-  const header = (
-    <PageHeader
-      title="Profile"
-      back
-      onBack={() => goBackOr(router, '/settings')}
-      maxWidth={CONTENT_MAX}
-      actions={
-        <>
-          <HeaderIcon
-            icon="more-vert"
-            label="Options"
-            onPress={() => pushOnce(router, '/settings')}
-          />
-          <HeaderProfileButton
-            label="Profile settings"
-            onPress={() => pushOnce(router, '/settings')}
-          />
-        </>
-      }
-    />
-  );
+  // A tab root has no back stack and no Settings shortcut: Settings is its own
+  // tab, and this screen owns identity and progress only.
+  const header = <PageHeader title="Profile" maxWidth={CONTENT_MAX} />;
 
   return (
-    <Screen scroll gutter contentMaxWidth={CONTENT_MAX} header={header}>
+    <Screen scroll gutter tabClearance contentMaxWidth={CONTENT_MAX} header={header}>
       {!loaded ? (
         <>
           <HeroSkeleton height={310} />

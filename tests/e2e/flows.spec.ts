@@ -1051,7 +1051,6 @@ test.describe('Phase 5 — behaviour', () => {
     const rows: Array<[RegExp, string]> = [
       [/^Algorithm/, '/settings/algorithm'],
       [/^Text-to-Speech/, '/settings/tts'],
-      [/^Profile/, '/profile'],
       [/^Statistics/, '/statistics'],
       [/^Offline & install/, '/settings/offline'],
     ];
@@ -1061,10 +1060,37 @@ test.describe('Phase 5 — behaviour', () => {
       await page.getByRole('button', { name: 'Go back' }).click();
       await expect(page).toHaveURL(/\/settings$/);
     }
+
+    // Profile is a tab now: its Settings row opens the tab root, which has no
+    // back control, so returning is the tab bar's job rather than a header
+    // action. This row is removed with the Settings Progress chapter.
+    await page.getByRole('button', { name: /^Profile/ }).click();
+    await expect(page).toHaveURL(/\/profile$/);
+    await expect(page.getByRole('button', { name: 'Go back' })).toHaveCount(0);
+    await expect(page.getByRole('tab', { name: 'Profile' })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
   });
 
   test('navigation: tabs and direct-link fallback land on the right route', async ({ page }) => {
     await go(page, '/home');
+    // Exactly four tabs, in this order: no fifth and no hidden destination.
+    await expect(page.getByRole('tab')).toHaveCount(4);
+    expect(
+      await page
+        .getByRole('tab')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('aria-label')))
+    ).toEqual(['Home', 'Game', 'Profile', 'Settings']);
+
+    await page.getByRole('tab', { name: 'Profile' }).click();
+    await expect(page).toHaveURL(/\/profile$/);
+    await expect(page.getByRole('tab', { name: 'Profile' })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    await expect(page.getByRole('button', { name: 'Go back' })).toHaveCount(0);
+
     await page.getByRole('tab', { name: 'Game' }).click();
     await expect(page).toHaveURL(/\/library$/);
     await page.getByRole('tab', { name: 'Settings' }).click();

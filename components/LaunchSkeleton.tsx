@@ -63,7 +63,11 @@ export function launchVariant(pathname: string): LaunchVariant {
 export function LaunchSkeleton({ pathname = '/' }: { pathname?: string }) {
   const insets = useSafeAreaInsets();
   const variant = launchVariant(pathname);
-  const tabRoute = variant === 'home' || variant === 'library' || variant === 'settings';
+  const tabRoute =
+    variant === 'home' ||
+    variant === 'library' ||
+    variant === 'profile' ||
+    variant === 'settings';
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background, overflow: 'hidden' }}>
@@ -88,7 +92,8 @@ export function LaunchSkeleton({ pathname = '/' }: { pathname?: string }) {
 function LaunchTopBar({ variant }: { variant: LaunchVariant }) {
   const { width } = useWindowDimensions();
   const home = variant === 'home';
-  const tab = home || variant === 'library' || variant === 'settings';
+  const tab =
+    home || variant === 'library' || variant === 'profile' || variant === 'settings';
   const actionCount =
     home || variant === 'library'
       ? 3
@@ -335,8 +340,8 @@ function HomeLaunchSkeleton() {
 }
 
 /**
- * The floating dock in its pre-tab state: the same 64px capsule, 276px
- * content width (three 88px cells plus 6px padding), 52px pill and selected
+ * The floating dock in its pre-tab state: the same 64px capsule, 292px
+ * content width (four 70px cells plus 6px padding), 52px pill and selected
  * lens. It is a static skeleton, not a second navigator — nothing is focusable.
  */
 function LaunchDock({ bottom }: { bottom: number }) {
@@ -376,7 +381,7 @@ function LaunchDock({ bottom }: { bottom: number }) {
           }}
         />
 
-        {[0, 1, 2].map((index) => (
+        {[0, 1, 2, 3].map((index) => (
           <View
             key={index}
             style={{
