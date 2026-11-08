@@ -1,5 +1,90 @@
 # CHANGELOG
 
+## v3.0.0 — Nocturne Focus on every surface
+
+The v3 design language is now the only language. Every one of the 83 audited
+surfaces renders the same canvas → scene pane → fill → type grammar; the v2
+glass vocabulary is deleted, not kept behind a compatibility export.
+
+### What changed, screen by screen
+
+| Surface | Before | v3.0.0 |
+| --- | --- | --- |
+| Home | one glass card per deck; a folder holding two decks could read `0 decks` | one `TodayPane`, compact shelf rows, subtree folder counts (`0 direct · 2 nested`) and archived rows |
+| Game / Library | v2 hero and segment controls | v3 hero, 44px mode tabs with `aria-selected`, session and streak figures |
+| Study | the denominator grew mid-session (`1 / 26` → `2 / 27`); an empty deck said "All done" | fixed `sessionTotal`, v3 stage and rating keys, distinct empty and archived states with a restore action |
+| Quiz | 156px timer ring and a glass scoreboard | v3 arena — 6px timer rail, 40/44 score, 64px answer tiles, and a v3 result ledger |
+| Statistics | two stacked glass fallbacks; headings repeated per card | one scene hero, ranged metrics and chart panes; every range still recomputes from the review log |
+| Profile | a horizontal badge rail that clipped at 320/390 | scene hero, Reviews/XP/Streak ledger, 3-up/4-up badge grid and inset deck lines |
+| Settings | mixed v2 plates and rows across the index and sub-pages | one 64px header, hero and chapter/line grammar on the index, Algorithm, TTS, Offline, Advanced, Import and Dev |
+| Deck + composer | v2 hero and 56px bar; the example/synonym fields were 22px tall | v3 hero and ledger, 420px composer column, 44px detail fields with the shared focus ring |
+| Discover | the rollout was pending and advertised counts did not match the four-card import | v3 catalogue and preview; every visible count is `sampleCards.length` (4) |
+| Add deck | a two-step sheet with a nested modal | one v3 sheet: 28px face, sticky footer, live validation, focus trap intact |
+| Shell | the 404 and skeletons were still sized to v2 | v3 404, opacity-only splash exit, skeletons matched to the final surfaces, 64px dock with 44px tabs |
+
+### Data-truth and accessibility fixes folded in
+
+P3–P11 from the 2026-11-06 report are closed or made honest:
+
+- **P3** — study progress keeps the denominator it started the session with.
+- **P4** — an archived deck cannot start a session; the deck page offers restore instead.
+- **P5** — folder headers count the whole subtree and say `0 direct · 2 nested` when both are true; Home's totals reconcile.
+- **P6** — Import still says *Planned* and accepts no file; it does not pretend to work.
+- **P7** — rating names end in a separated `Again|Hard|Good|Easy` plus interval.
+- **P8** — an empty deck says so and offers Add cards, never "All done" or `0 / 0`.
+- **P9** — Advanced without `deckId` names the missing parameter instead of suggesting deletion.
+- **P10** — the profile badge rail no longer exceeds the viewport.
+- **P11** — starter decks advertise the four cards the import actually creates.
+
+The release run also fixed defects the route audit never rendered: statistics
+weekday tiles carried labels on role-less `div`s, several rows omitted their
+visible subtitle from the accessible name, the library direction tabs lacked
+`aria-selected`, the add-card detail fields were 22px tall, and the archived
+row's 75% opacity held its 12–13px text at 3.71–4.11:1. The browser suites now
+pin each of these.
+
+### Measured
+
+| Metric | Before v3 | v3.0.0 |
+| --- | --- | --- |
+| Surfaces in one vocabulary | Quiz, 404 and the shell still outside it (planning snapshot) | **83/83** |
+| Superseded surface files | 27 files / 2,959 lines to delete | **0** imports of `theme/v2` or `components/v2`; removed in `318d8f2` |
+| axe violations | v2.1 closed **22** | **0** across 83 surfaces and 52 route×viewport runs |
+| Controls under 44px | v2.1 closed **276** | **0** of 84 measured targets |
+| Document overflow | v2.1 fixed a 3px splash overflow | **0** from 320 to 1440; 672 responsive runs, 0 flagged |
+| Focus rings / tab states | not measured per surface | **0** missing rings, **0** missing tab states |
+| Text zoom | 20 → 40px | **24 → 48px** |
+| Reduced motion | 4 routes | **0** node changes; the control observes 40–83 |
+| Unit tests | 161 | **164/164** |
+| Functional + boot Playwright | — | **104/104** |
+
+Cross-browser: Chromium **18/18** clean (axe, targets, overflow, focus, console).
+Firefox and WebKit binaries are unavailable in this workspace; neither is
+claimed as passing.
+
+### Verification
+
+`npm ci` (lockfile unchanged) · `npx tsc --noEmit` **0** · `npm test`
+**164/164** · `npm run check:design` **clean (82 files)** · `npm run build:web`
+exported `dist/`.
+
+Playwright: **104/104** functional and boot tests. The visual suite is the one
+failure: **7 passed / 5 failed**, all stale baselines rather than regressions —
+`home-390` 0.09, `library-390` 0.04, `settings-390` 0.04, `home-1280` 0.06 and
+`study-answer-390` 0.03 against a 0.02 threshold. Home embeds a calendar date
+and the visual spec has no fixed clock; the other four predate main's header and
+tools changes. No snapshot was regenerated.
+
+Census **83/83**, 84 targets, 1,168 nodes, **0 axe**, **0 small targets**, **0
+focus misses**; responsive **672 runs / 0 flagged**; reduced motion **0 changes**;
+audit **52 runs / 0 axe, 0 small, 0 overflow, 0 errors**. One expected console
+error remains from the corrupt-storage fixture (SH-02).
+
+Limitations are recorded, not waived: Firefox/WebKit unavailable, five stale
+visual baselines, and the Review Focus walk covered by automated equivalents
+rather than a separate human pass. Full evidence:
+`docs/test-report-2026-11-08-ui-v3.md`.
+
 ## v2.3 — My decks, rebuilt as one boxed tree
 
 Before: folders were a chip row above a stack of full-width deck cards. With a

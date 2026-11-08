@@ -569,14 +569,16 @@ Pure, no storage, no store dependency.
 **Files:**
 - Modify: `package.json`, `app.json` (version `3.0.0`), `CHANGELOG.md`, `README.md` (only if commands changed)
 
-- [ ] Write the CHANGELOG v3.0.0 entry: what changed per screen, the before/after measurements (surfaces converted, v1/v2 components deleted, axe/targets/overflow counts), and the fixes folded in (P3–P11).
-- [ ] Bump `version` in `package.json` and `app.json` to `3.0.0` (they must match).
-- [ ] Update the README's check list if the command set changed; keep the run instructions accurate.
-- [ ] Run the complete gate once more after the version bump; `git status` clean apart from the intended commit.
-- [ ] Commit: `release: Memora UI v3 Nocturne Focus`.
-- [ ] Do **not** deploy or publish without an explicit request.
+- [x] Write the CHANGELOG v3.0.0 entry: what changed per screen, the before/after measurements (surfaces converted, v1/v2 components deleted, axe/targets/overflow counts), and the fixes folded in (P3–P11).
+- [x] Bump `version` in `package.json` and `app.json` to `3.0.0` (they must match).
+- [x] Update the README's check list if the command set changed; keep the run instructions accurate.
+- [x] Run the complete gate once more after the version bump; `git status` clean apart from the intended commit.
+- [x] Commit: `release: Memora UI v3 Nocturne Focus`.
+- [x] Do **not** deploy or publish without an explicit request.
 
 **Acceptance:** version strings agree; CHANGELOG quotes measured numbers; the final gate was run on the final tree, not an earlier commit.
+
+**Result (complete, 2026-11-08):** `package.json`, the two root fields in `package-lock.json` and `app.json` all read **3.0.0**; no stale `2.3.0` root version remains. The CHANGELOG entry maps every surface, records the 27-file / 2,959-line v1/v2 deletion, P3–P11 and the release numbers; the README names the version, requires Node 22.13+ and installs with `npm ci`. Final gate on the bumped tree: `npm ci` 0 · `npx tsc --noEmit` **0** · `npm test` **164/164** · `npm run check:design` **clean (82 files)** · `npm run build:web` exported `dist/`. Playwright **104/104** functional and boot (40 + 45 + 13 + 3 statistics + 3 boot); visual **7/12** with the same five stale baselines (`home-390` 0.09, `library-390` 0.04, `settings-390` 0.04, `home-1280` 0.06, `study-answer-390` 0.03) and no snapshots regenerated. Census **83/83**, 84 targets, 1,168 nodes, **0 axe**, 100 heuristic findings, 1 expected SH-02 console error; responsive **672 runs** (84 × 8 widths) **0 flagged/0 failed**; reduced motion **0 changes** (control 83/77/40/42) and zoom **24 → 48**; audit **52 runs / 0 axe, 0 small, 0 overflow, 0 errors**; Chromium cross-browser **18/18** clean. Firefox/WebKit remain unavailable and are not claimed. Release commit `release: Memora UI v3 Nocturne Focus`; nothing deployed or published.
 
 ---
 

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Memora",
     "slug": "memora",
-    "version": "2.3.0",
+    "version": "3.0.0",
     "platforms": ["web"],
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
