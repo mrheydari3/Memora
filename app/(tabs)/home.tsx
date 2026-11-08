@@ -5,6 +5,7 @@ import { pushOnce } from '../../services/navigation';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
 import { buildStudyQueue } from '../../data/session';
+import { schedulerLabel } from '../../data/schedulers';
 import { computeStreak } from '../../data/streak';
 import {
   childFolders,
@@ -486,6 +487,7 @@ export default function HomeScreen() {
       icon={entry.deck.icon as IconName}
       color={entry.deck.color}
       cardCount={entry.cardCount}
+      schedulerLabel={schedulerLabel(entry.deck.algorithmPreset)}
       due={entry.total}
       progress={entry.progress}
       pinned={entry.deck.pinnedAt != null}

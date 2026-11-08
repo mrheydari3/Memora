@@ -315,6 +315,9 @@ test.describe('Phase 7 — data truth', () => {
     await expect(page.getByText('First Review', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('7-Day Streak', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('100 Reviews', { exact: true }).first()).toBeVisible();
+    await expect(page.getByTestId('achievement-night-owl')).toContainText('Locked');
+    await expect(page.getByTestId('achievement-speed-demon')).toContainText('Not tracked yet');
+    await expect(page.getByTestId('achievement-speed-demon')).toContainText(/not stored/i);
     await expect(page.getByTestId('profile-deck')).toHaveCount(0);
     await expect(page.getByText('My decks', { exact: true })).toHaveCount(0);
 

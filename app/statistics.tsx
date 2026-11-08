@@ -56,6 +56,7 @@ import type {
   InsightTone,
   IntelligenceReport,
 } from '../data/intelligence/core/types';
+import { schedulerLabel } from '../data/schedulers';
 import { goBackOr, pushOnce } from '../services/navigation';
 
 const CONTENT_MAX = 760;
@@ -131,9 +132,6 @@ function formatReviewTime(ms: number | null): string {
   }
   return formatDuration(ms);
 }
-
-const algorithmLabel = (algorithm: DeckIntelligence['algorithm']) =>
-  algorithm === 'fsrs' ? 'FSRS-6' : algorithm === 'fast' ? 'Fast' : 'SM-2';
 
 async function copyOrShare(text: string): Promise<'copied' | 'shared'> {
   if (
@@ -493,6 +491,10 @@ function OverviewHero({
   const bars = buildVolumeBars(performance.activity.points, rangeDays);
   const recall = performance.recall;
   const hasRecall = recall.successRate !== null;
+  const schedulerScope =
+    report.coverage.nonFsrsDecks === 0 && report.coverage.fsrsDecks > 0
+      ? 'FSRS-6'
+      : 'All decks';
   const heroType = wide ? v3.type.heroWide : v3.type.hero;
 
   return (
@@ -507,7 +509,10 @@ function OverviewHero({
         >
           {`${report.range.label} · intelligence`}
         </AppText>
-        <TinyPill label={hasRecall ? 'FSRS-6' : 'Not enough data'} accent={hasRecall} />
+        <TinyPill
+          label={hasRecall ? schedulerScope : 'Not enough data'}
+          accent={hasRecall}
+        />
       </View>
 
       <View
@@ -1206,7 +1211,7 @@ function DeckCard({ deck }: { deck: DeckIntelligence }) {
             >
               {deck.name}
             </AppText>
-            <TinyPill label={algorithmLabel(deck.algorithm)} />
+            <TinyPill label={schedulerLabel(deck.algorithm)} />
           </View>
           <View
             style={{

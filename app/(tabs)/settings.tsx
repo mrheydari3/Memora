@@ -6,6 +6,7 @@ import { pushOnce } from '../../services/navigation';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { loadReviewLog } from '../../data/repository';
+import { schedulerLabel } from '../../data/schedulers';
 import { exportJson } from '../../services/export';
 import { MaterialIcons } from '../../components/Icon';
 import { AppText, RevealItem, Screen, ToggleSwitch } from '../../components';
@@ -17,15 +18,8 @@ import {
 } from '../../components/v3';
 import { colors, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
-import type { Deck } from '../../data/types';
 
-const APP_VERSION = Constants.expoConfig?.version ?? '1.2.0';
-
-const PRESET_LABELS: Record<Deck['algorithmPreset'], string> = {
-  fsrs: 'FSRS-6',
-  fast: 'Fast repetition',
-  general: 'Regular repetition',
-};
+const APP_VERSION = Constants.expoConfig?.version;
 
 const formatCount = (value: number) => value.toLocaleString('en-US');
 
@@ -61,7 +55,7 @@ export default function SettingsScreen() {
     if (activeDecks.length === 0) return undefined;
     const [first] = activeDecks;
     const shared = activeDecks.every((deck) => deck.algorithmPreset === first.algorithmPreset);
-    return shared ? PRESET_LABELS[first.algorithmPreset] : 'Per deck';
+    return shared ? schedulerLabel(first.algorithmPreset) : 'Per deck';
   }, [activeDecks]);
 
   const handleExportAll = async () => {
@@ -206,7 +200,9 @@ export default function SettingsScreen() {
           >
             <MaterialIcons name="lock-outline" size={iconSize.sm} color={colors.outline} />
             <AppText variant="caption" tone="tertiary" style={{ flexShrink: 1 }}>
-              Memora {APP_VERSION} · Exports are plain JSON. Keep a copy somewhere safe.
+              {APP_VERSION
+                ? `Memora ${APP_VERSION} · Exports are plain JSON. Keep a copy somewhere safe.`
+                : 'Exports are plain JSON. Keep a copy somewhere safe.'}
             </AppText>
           </View>
         </View>

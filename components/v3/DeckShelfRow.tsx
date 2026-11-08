@@ -16,6 +16,8 @@ type DeckShelfRowProps = {
   /** The deck's own colour, washed into its tile. */
   color: string;
   cardCount: number;
+  /** The deck's persisted scheduler, resolved by the screen. */
+  schedulerLabel: string;
   due: number;
   /** Studied share, 0–1. */
   progress: number;
@@ -46,6 +48,7 @@ export function DeckShelfRow({
   icon,
   color,
   cardCount,
+  schedulerLabel,
   due,
   progress,
   pinned = false,
@@ -88,7 +91,7 @@ export function DeckShelfRow({
         </View>
 
         <AppText variant="bodySm" tone="tertiary" numberOfLines={1} style={{ marginTop: 2 }}>
-          {cardCount.toLocaleString('en-US')} {cardLabel} · FSRS-6
+          {cardCount.toLocaleString('en-US')} {cardLabel} · {schedulerLabel}
         </AppText>
 
         <View

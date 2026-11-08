@@ -103,7 +103,7 @@ export function TodayPane({
               style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: stateColors.Learning }}
             />
             <AppText variant="caption" tone="muted">
-              FSRS-6 Active
+              Scheduler active
             </AppText>
           </View>
         </View>

@@ -6,7 +6,7 @@ import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
-import { getSchedulerForDeck } from '../../data/schedulers';
+import { getSchedulerForDeck, schedulerLabel } from '../../data/schedulers';
 import { buildStudyQueue } from '../../data/session';
 import { computeStreak } from '../../data/streak';
 import { buildLearningEngine } from '../../data/intelligence';
@@ -747,6 +747,7 @@ export default function StudyScreen() {
         <SessionSummary
           deckName={deck.name}
           deckColor={deck.color}
+          schedulerLabel={schedulerLabel(deck.algorithmPreset)}
           emptyDeck={emptyDeck}
           reviewed={reviewed}
           recallPct={reviewed > 0 ? Math.round((recalled / reviewed) * 100) : 0}

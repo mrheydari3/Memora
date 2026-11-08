@@ -12,6 +12,8 @@ type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 export type SessionSummaryProps = {
   deckName: string;
   deckColor: string;
+  /** The deck's persisted scheduler, resolved by the study screen. */
+  schedulerLabel: string;
   emptyDeck: boolean;
   /** Reviews completed in this session, in the order they happened. */
   reviewed: number;
@@ -68,6 +70,7 @@ type Metric = {
 export function SessionSummary({
   deckName,
   deckColor,
+  schedulerLabel,
   emptyDeck,
   reviewed,
   recallPct,
@@ -348,7 +351,7 @@ export function SessionSummary({
                 Rating breakdown
               </AppText>
               <AppText variant="caption" tone="tertiary">
-                FSRS-6
+                {schedulerLabel}
               </AppText>
             </View>
 

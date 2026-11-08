@@ -948,6 +948,8 @@ test.describe('Phase 5 — behaviour', () => {
 
   test('settings: remaining toggles, back voice, and algorithm preset persist', async ({ page }) => {
     await go(page, '/settings');
+    await expect(page.getByText(/Memora 3\.0\.0/)).toBeVisible();
+    await expect(page.getByText(/1\.2\.0/)).toHaveCount(0);
     const haptics = page.getByRole('switch', { name: 'Quiz haptics' });
     const hapticsBefore = await haptics.getAttribute('aria-checked');
     await haptics.click();
@@ -988,6 +990,14 @@ test.describe('Phase 5 — behaviour', () => {
       []
     );
     expect(decks.find((deck) => deck.id === DECK_ID)?.algorithmPreset).toBe('fast');
+
+    await go(page, '/settings');
+    await expect(page.getByTestId('settings-hero')).toContainText('Fast');
+    await go(page, '/home');
+    const deckRow = page.getByTestId('deck-row').filter({ hasText: DECK });
+    await expect(deckRow).toContainText('· Fast');
+    await expect(deckRow).not.toContainText('FSRS-6');
+    await expect(page.getByText('Scheduler active', { exact: true })).toBeVisible();
   });
 
   test('settings: adaptive order, shuffle, offline cache and install prompt work', async ({ page }) => {
