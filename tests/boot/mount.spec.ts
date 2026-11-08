@@ -42,7 +42,7 @@ test('the document ships the designed boot screen', async ({ request }) => {
   expect(response.ok()).toBeTruthy();
   const html = await response.text();
   expect(html).toContain('id="boot-splash"');
-  expect(html).toContain('src="/icon-192-v4.png"');
+  expect(html).not.toContain('class="boot-logo"');
   expect(html).toContain('class="boot-wordmark"');
   expect(html).toContain('data-boot-delay="2600"');
   expect(html).toContain('Pre-flight Verification');

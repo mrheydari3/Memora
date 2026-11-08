@@ -3,9 +3,9 @@
 ## Unreleased
 
 - **Import data** — Settings now opens a working local importer for CSV, TSV and JSON card lists, a single deck export, or a full Memora backup. Card imports create a new deck; backup replacement is armed and confirmed before it touches the library. The full export now includes folders and game records so a backup is round-trippable.
-- **Boot screen** — the static document paints the Memora mark and wordmark while the bundle loads, then React replaces it with the existing route-shaped skeleton. The web splash config and service-worker precache now include the splash icon.
-- **Official brand mark** — the official koala-and-tree artwork now drives the app icon, splash, PWA icons, favicon, boot screen, Android foreground/monochrome assets and README/social artwork. The color/transparent set plus blue and black variants live in `public/logo-*`; the installable icon keeps a light badge so the black outline stays legible at 48px.
-- **Launch screen** — a cold load now gets the full pre-flight boot screen for 2.6 seconds, with the official mark, animated progress and verification rows. `Fast Boot` skips the hold; the e2e path bypasses it so route tests stay fast.
+- **Boot screen** — the static document paints the Memora wordmark while the bundle loads, then React replaces it with the existing route-shaped skeleton. The web splash config and service-worker precache now include the splash icon.
+- **Official brand mark** — the official koala-and-tree artwork now drives the app icon, splash, PWA icons, favicon, Android foreground/monochrome assets and README/social artwork. The color/transparent set plus blue and black variants live in `public/logo-*`; the installable icon keeps a light badge so the black outline stays legible at 48px.
+- **Launch screen** — a cold load now gets a polished pre-flight wordmark screen for 2.6 seconds, with a deep radial canvas, animated progress and verification rows. `Fast Boot` skips the hold; the e2e path bypasses it so route tests stay fast.
 
 ## v3.0.0 — Nocturne Focus on every surface
 
