@@ -50,6 +50,15 @@ for (const preference of ['reduce', 'no-preference']) {
     page.on('pageerror', (e) => errors.push(String(e).slice(0, 120)));
     await page.goto(BASE + route.path, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('[role="main"]');
+    // Under reduce, sampling before the route skeleton detaches would report
+    // that content swap as motion. The control run deliberately keeps the
+    // earliest sample: it only has to prove the sampler sees style changes.
+    if (preference === 'reduce') {
+      await page
+        .locator('[role="progressbar"][aria-label="Loading Memora"]')
+        .waitFor({ state: 'detached', timeout: 30_000 })
+        .catch(() => {});
+    }
 
     const mediaMatches = await page.evaluate(() =>
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
