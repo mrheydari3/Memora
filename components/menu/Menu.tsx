@@ -532,6 +532,10 @@ function AnchoredMenu({
     inputRange: [0, 1],
     outputRange: [position.openAbove ? 6 : -6, 0],
   });
+  // Aliased out of the style object: Reanimated's babel heuristic treats any
+  // `.value` it sees inline as a shared value, and warns even for Animated.Value.
+  const presenceOpacity = presence.value;
+  const levelOpacity = levelPresence.value;
 
   const context: MenuContextValue = {
     presentation: 'anchored',
@@ -601,7 +605,7 @@ function AnchoredMenu({
         <MenuContext.Provider value={context}>
           <Animated.View
             style={{
-              opacity: presence.value,
+              opacity: presenceOpacity,
               transform: [{ translateY }],
               position: 'absolute',
               left: position.left,
@@ -628,7 +632,7 @@ function AnchoredMenu({
           {levelPresence.mounted && submenu && (
             <Animated.View
               style={{
-                opacity: levelPresence.value,
+                opacity: levelOpacity,
                 transform: [{ translateX: submenuTranslateX }],
                 position: 'absolute',
                 left: submenuLeft,

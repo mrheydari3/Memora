@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -61,6 +62,18 @@ export function Button({
   const isText = variant === 'text';
   const isOutline = variant === 'outline';
   const filled = isPrimary || isQuiet;
+
+  // Interpolated outside JSX: Reanimated's babel heuristic flags any `.value` it
+  // finds in an inline style, even for the core Animated API used here.
+  const pressVeil = useMemo(
+    () => ({
+      opacity: press.value.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, isQuiet ? 0.1 : 0.06],
+      }),
+    }),
+    [press.value, isQuiet]
+  );
 
   // No outlines: a variant is a fill plus a weight of shadow, nothing more.
   const background: ViewStyle | undefined = filled
@@ -128,15 +141,7 @@ export function Button({
           {!disabled && (
             <Animated.View
               pointerEvents="none"
-              style={[
-                styles.pressVeil,
-                {
-                  opacity: press.value.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, isQuiet ? 0.1 : 0.06],
-                  }),
-                },
-              ]}
+              style={[styles.pressVeil, pressVeil]}
             />
           )}
 

@@ -47,18 +47,26 @@ test('a deck row hint opens that deck', async ({ page }) => {
   await expect(page.getByRole('heading', { name: DECK })).toBeVisible();
 });
 
-test('a folder row hint opens that folder', async ({ page }) => {
+test('a folder group hint expands and collapses that folder', async ({ page }) => {
   await page.goto('/');
   await settle(page);
   await createFolder(page, FOLDER);
 
-  const row = page.getByTestId('folder-row').filter({ hasText: FOLDER });
+  // v3 shows a folder's decks inline: the header is an accordion control, so
+  // its hint and state describe expansion rather than navigating to a page.
+  // A new folder starts expanded, so the first press collapses it.
+  const row = page.getByTestId('folder-group').filter({ hasText: FOLDER });
   await expect(row).toBeVisible();
-  await expect(row).toHaveAccessibleDescription('Open folder');
+  await expect(row).toHaveAccessibleDescription('Collapse folder');
+  await expect(row).toHaveAttribute('aria-expanded', 'true');
   await row.click();
 
-  await expect(page.getByRole('heading', { name: FOLDER })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Back to All decks' })).toBeVisible();
+  await expect(row).toHaveAttribute('aria-expanded', 'false');
+  await expect(row).toHaveAccessibleDescription('Expand folder');
+
+  await row.click();
+  await expect(row).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByText('No decks inside yet.')).toBeVisible();
 });
 
 test('a card row hint expands and collapses the full card', async ({ page }) => {

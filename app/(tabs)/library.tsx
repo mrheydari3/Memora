@@ -508,7 +508,7 @@ export default function GameScreen() {
         pointerEvents="none"
         width={224}
         height={224}
-        style={{ position: 'absolute', right: -64, top: -64 }}
+        style={{ position: 'absolute', right: -8, top: -64 }}
       >
         <Defs>
           <RadialGradient id="game-glow" cx="50%" cy="50%" r="50%">
