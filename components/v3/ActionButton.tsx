@@ -2,6 +2,7 @@ import { Animated, Pressable } from 'react-native';
 import { AppText } from '../AppText';
 import { MaterialIcons } from '../Icon';
 import { usePressFeedback } from '../../motion';
+import { HapticsEngine } from '../../services/haptics';
 import { alpha, colors, fills, heights, iconSize, radii } from '../../theme/tokens';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -24,6 +25,8 @@ type ActionButtonProps = {
   disabled?: boolean;
   /** Defaults to true: an action is one full-width pill under its pane. */
   fullWidth?: boolean;
+  /** Defaults to true; set false when the action has its own semantic cue. */
+  haptic?: boolean;
   testID?: string;
 };
 
@@ -45,6 +48,7 @@ export function ActionButton({
   tone = 'primary',
   disabled = false,
   fullWidth = true,
+  haptic = true,
   testID,
 }: ActionButtonProps) {
   const press = usePressFeedback({ scale: 0.975 });
@@ -54,7 +58,14 @@ export function ActionButton({
     <Animated.View style={[press.style, fullWidth ? { width: '100%' } : null]}>
       <Pressable
         testID={testID}
-        onPress={disabled ? undefined : onPress}
+        onPress={
+          disabled
+            ? undefined
+            : () => {
+                if (haptic) HapticsEngine.selection();
+                onPress?.();
+              }
+        }
         onPressIn={disabled ? undefined : press.onPressIn}
         onPressOut={disabled ? undefined : press.onPressOut}
         disabled={disabled}

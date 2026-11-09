@@ -23,7 +23,7 @@ const settle = async (page: Page) => {
 };
 
 async function createFolder(page: Page, name: string) {
-  await page.getByRole('button', { name: 'Manage folders' }).click();
+  await page.getByRole('button', { name: 'New folder' }).click();
   const sheet = page.getByRole('dialog');
   await expect(sheet).toBeVisible();
 

@@ -14,6 +14,7 @@ import {
   folderSubtreeCounts,
   groupDecksByFolder,
   moveSibling,
+  moveSiblingTo,
   normalizeFolderName,
   removeFolder,
   renameFolder,
@@ -170,6 +171,15 @@ test('pinned items sort first and moving swaps neighbours', () => {
   // A move past the edge is a no-op, not a wrap-around.
   assert.equal(moveSibling(items, 'b', () => true, -1), items);
   assert.equal(moveSibling(items, 'a', () => true, 2), items);
+
+  // A drag target can be several slots away, but pinned items keep the top
+  // segment and unpinned items cannot jump above them.
+  const dragged = moveSiblingTo(items, 'a', () => true, 3);
+  assert.deepEqual(dragged.map((item) => item.id), ['b', 'd', 'c', 'a']);
+  const pinnedMove = moveSiblingTo(items, 'b', () => true, 1);
+  assert.deepEqual(pinnedMove.map((item) => item.id), ['d', 'b', 'a', 'c']);
+  const clampedMove = moveSiblingTo(items, 'c', () => true, 0);
+  assert.deepEqual(clampedMove.map((item) => item.id), ['b', 'd', 'c', 'a']);
 });
 
 test('deleting a folder re-parents its children instead of hiding them', () => {

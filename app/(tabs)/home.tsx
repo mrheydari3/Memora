@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, useWindowDimensions, View } from 'react-native';
-import type { ViewStyle } from 'react-native';
+import type { ScrollViewInstance, ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
 import { useDeckStore } from '../../store/useDeckStore';
@@ -45,12 +45,15 @@ import {
   PageHeader,
   SectionHeading,
   ShelfHeader,
+  ShelfPanel,
+  ShelfReorder,
   Surface,
   TodayPane,
   HeroAura,
   LibraryPane,
   FolderCard,
 } from '../../components/v3';
+import type { ShelfReorderGroup } from '../../components/v3';
 import { colors, fills, heights, iconSize, radii, spacing } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
@@ -128,8 +131,10 @@ export default function HomeScreen() {
   const deleteFolder = useDeckStore((s) => s.deleteFolder);
   const toggleFolderPinned = useDeckStore((s) => s.toggleFolderPinned);
   const moveFolder = useDeckStore((s) => s.moveFolder);
+  const moveFolderTo = useDeckStore((s) => s.moveFolderTo);
   const toggleDeckPinned = useDeckStore((s) => s.toggleDeckPinned);
   const moveDeck = useDeckStore((s) => s.moveDeck);
+  const moveDeckTo = useDeckStore((s) => s.moveDeckTo);
   const reviewLog = useReviewStore((s) => s.reviewLog);
   const reviewLoaded = useReviewStore((s) => s.loaded);
 
@@ -159,6 +164,13 @@ export default function HomeScreen() {
   const [editError, setEditError] = useState<string | null>(null);
   // v3 groups: a folder's decks sit under its header until it is collapsed.
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() => new Set());
+  // Edit layout replaces the shelf board with a fixed-row drag list; it never
+  // changes the underlying folder navigation or opens a deck by accident.
+  const [editingLayout, setEditingLayout] = useState(false);
+  const homeScrollRef = useRef<ScrollViewInstance>(null);
+  // The drag list needs the live scroll offset so holding at an edge can move
+  // the page and the row together. Screen owns the only ScrollView.
+  const homeScrollY = useRef(0);
 
   const activeDeckIds = useMemo(
     () => new Set(decks.filter((deck) => !deck.archivedAt).map((deck) => deck.id)),
@@ -228,6 +240,12 @@ export default function HomeScreen() {
   const gridWidth = Math.min(width, contentMaxWidth) - spacing.screen * 2;
   const deckCellWidth = desktop
     ? Math.max(0, (gridWidth - gridGap * (gridColumns - 1)) / gridColumns)
+    : undefined;
+  // The shelf's partition adds its own inset and 1px rim around the board.
+  const shelfInset = desktop ? v3.spacing.panel : v3.spacing.group;
+  const shelfGridWidth = Math.max(0, gridWidth - shelfInset * 2 - 2);
+  const shelfCellWidth = desktop
+    ? Math.max(0, (shelfGridWidth - gridGap * (gridColumns - 1)) / gridColumns)
     : undefined;
 
   const lastStudiedDeckId = useMemo(() => {
@@ -558,6 +576,55 @@ export default function HomeScreen() {
   const deckCellStyle: ViewStyle = desktop
     ? { width: deckCellWidth, minWidth: 0 }
     : { width: '100%' };
+  const shelfCellStyle: ViewStyle = desktop
+    ? { width: shelfCellWidth, minWidth: 0 }
+    : { width: '100%' };
+
+  // The reorder list uses the same level and pinned-first order as the shelf.
+  // The store writes the result directly into the stored slots, so the board
+  // comes back in the new order without a separate local arrangement state.
+  const deckReorderItems = visibleDecks.map((entry) => ({
+    id: entry.deck.id,
+    name: entry.deck.name,
+    icon: entry.deck.icon,
+    color: entry.deck.color,
+    kind: 'deck' as const,
+    meta: `${entry.cardCount.toLocaleString('en-US')} ${
+      entry.cardCount === 1 ? 'card' : 'cards'
+    } · ${entry.total} due`,
+    pinned: entry.deck.pinnedAt != null,
+  }));
+
+  const folderReorderItems = visibleFolders.map((folder) => ({
+    id: folder.id,
+    name: folder.name,
+    icon: folder.icon,
+    color: folder.color,
+    kind: 'folder' as const,
+    meta: `${folder.decks} ${folder.decks === 1 ? 'deck' : 'decks'} · ${folder.due} due`,
+    pinned: folder.pinnedAt != null,
+  }));
+
+  const shelfReorderGroups: ShelfReorderGroup[] = [
+    {
+      key: 'decks',
+      label: openFolder ? 'Decks here' : 'Decks',
+      items: deckReorderItems,
+      onReorder: (from: number, to: number) => {
+        const entry = visibleDecks[from];
+        if (entry) void moveDeckTo(entry.deck.id, to);
+      },
+    },
+    {
+      key: 'folders',
+      label: openFolder ? 'Folders here' : 'Folders',
+      items: folderReorderItems,
+      onReorder: (from: number, to: number) => {
+        const folder = visibleFolders[from];
+        if (folder) void moveFolderTo(folder.id, to);
+      },
+    },
+  ].filter((group) => group.items.length > 0);
 
   const renderDeckList = (entries: DeckQueue[]) => (
     <View style={deckGridStyle}>
@@ -615,29 +682,39 @@ export default function HomeScreen() {
         </Pressable>
       )}
 
-      <ShelfHeader
-        title={openFolder ? openFolder.name : 'Your decks'}
-        countLabel={deckCountLabel}
-        meta={shelfMeta}
-        statusLabel={
-          !openFolder && caughtUpFolders > 0 ? `${caughtUpFolders} caught up` : undefined
-        }
-        onManageFolders={() => {
-          setFolderSheetMode('list');
-          setFolderSheet(true);
-        }}
-      />
+      <ShelfPanel style={{ padding: shelfInset }}>
+        <ShelfHeader
+          title={openFolder ? openFolder.name : 'Your decks'}
+          countLabel={deckCountLabel}
+          meta={shelfMeta}
+          statusLabel={
+            !openFolder && caughtUpFolders > 0 ? `${caughtUpFolders} caught up` : undefined
+          }
+          onNewFolder={() => {
+            setFolderSheetMode('list');
+            setFolderSheet(true);
+          }}
+          onToggleLayout={() => setEditingLayout((next) => !next)}
+          editingLayout={editingLayout}
+        />
 
-      {/* The shelf is one rule and a list. The hairline separates the section's
-          numbers from the things they count; the rows below it are the library
-          itself, with no drawing between them. */}
+        {/* The shelf is one quiet glass partition. Its rule separates the
+            section's numbers from the things they count; the rows below it are
+            the library itself. */}
 
-      <View style={{ gap: desktop ? 0 : 20 }}>
+      {editingLayout ? (
+        <ShelfReorder
+          groups={shelfReorderGroups}
+          scrollRef={homeScrollRef}
+          scrollOffsetRef={homeScrollY}
+        />
+      ) : (
+        <View style={{ gap: desktop ? 0 : 20 }}>
         {desktop ? (
           desktopShelf.length > 0 ? (
             <View style={deckGridStyle}>
               {desktopShelf.map((item) => (
-                <View key={item.key} style={deckCellStyle}>
+                <View key={item.key} style={shelfCellStyle}>
                   {item.node}
                 </View>
               ))}
@@ -691,7 +768,9 @@ export default function HomeScreen() {
               : 'No decks yet.'}
           </AppText>
         )}
-      </View>
+        </View>
+      )}
+      </ShelfPanel>
 
       {!openFolder && archivedDecks.length > 0 && (
         <View style={{ marginTop: 28, gap: 10 }}>
@@ -796,6 +875,10 @@ export default function HomeScreen() {
       gutter
       tabClearance
       contentMaxWidth={contentMaxWidth}
+      scrollRef={homeScrollRef}
+      onScroll={(event) => {
+        homeScrollY.current = event.nativeEvent.contentOffset.y;
+      }}
       header={header}
     >
       {!ready ? (

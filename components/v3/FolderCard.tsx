@@ -2,18 +2,19 @@ import { Animated, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { alpha, colors, fills, iconSize, radii } from '../../theme/tokens';
+import { alpha, colors, fills, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { usePressFeedback } from '../../motion';
-import { Surface } from './Surface';
+import { FolderGlass } from './FolderGlass';
+import { FolderGlyph } from './FolderGlyph';
 
-type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
+const NUMERIC = { fontVariant: ['tabular-nums'] as const };
 
 type FolderCardProps = {
   name: string;
   /** The folder's own glyph; the neutral folder until one is chosen. */
   icon?: string;
-  /** The folder's own colour, washed into its tile. */
+  /** The folder's own colour, washed into its frame. */
   color?: string;
   /** Decks anywhere in this folder's subtree. */
   deckCount: number;
@@ -25,16 +26,14 @@ type FolderCardProps = {
   onPress: () => void;
 };
 
-const NUMERIC = { fontVariant: ['tabular-nums'] as const };
-
 /**
  * FolderCard — the desktop library board's folder tile.
  *
- * A folder is a place, not a deck, so it keeps the deck row's geometry (44px
- * glyph, 17/24 name, one quiet line) but trades the studied rail for an
- * "Open folder" affordance. The due tile mirrors the deck row's, so a folder
- * with cards waiting still reads at a glance. The mobile shelf keeps the
- * accordion; this card is only composed at desktop widths.
+ * A folder is a place, not a deck, so it trades the studied rail for an "Open
+ * folder" affordance. Its glass jacket and folder-shaped glyph frame make it
+ * read as a folder beside the darker deck panes, while the due tile keeps the
+ * folder's waiting cards legible. The mobile shelf keeps the accordion; this
+ * card is only composed at desktop widths.
  */
 export function FolderCard({
   name,
@@ -49,18 +48,17 @@ export function FolderCard({
   const press = usePressFeedback({ scale: 0.985 });
   const tint = color ?? colors.primary;
   const empty = deckCount === 0;
-  const caughtUp = !empty && due === 0;
   const deckLabel = deckCount === 1 ? 'deck' : 'decks';
   const folderLabel = nestedFolders === 1 ? 'folder' : 'folders';
   const meta = empty
-    ? 'Empty folder'
+    ? 'Folder · empty'
     : nestedFolders > 0
-      ? `${deckCount} ${deckLabel} · ${nestedFolders} ${folderLabel}`
-      : `${deckCount} ${deckLabel}`;
+      ? `Folder · ${deckCount} ${deckLabel} · ${nestedFolders} ${folderLabel}`
+      : `Folder · ${deckCount} ${deckLabel}`;
 
   return (
     <Animated.View style={[press.style, { width: '100%' }]}>
-      <Surface tone="pane" radius="card" padding="sm" style={{ width: '100%' }}>
+      <FolderGlass tabColor={tint} style={{ width: '100%' }}>
         <HintPressable
           hint="Open folder"
           testID="folder-card"
@@ -72,23 +70,7 @@ export function FolderCard({
           style={{ flex: 1, minWidth: 0 }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 12,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: alpha(tint, 0.15),
-                flexShrink: 0,
-              }}
-            >
-              <MaterialIcons
-                name={(icon ?? 'folder') as IconName}
-                size={iconSize.xl}
-                color={tint}
-              />
-            </View>
+            <FolderGlyph icon={icon} color={tint} size={48} />
 
             <View style={{ flex: 1, minWidth: 0 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -110,11 +92,16 @@ export function FolderCard({
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 4,
+                  gap: 5,
                   marginTop: 8,
                 }}
               >
-                <AppText variant="caption" tone="tertiary">
+                <MaterialIcons
+                  name="folder-open"
+                  size={iconSize.sm}
+                  color={colors.primary}
+                />
+                <AppText variant="caption" tone="accent" weight="semibold">
                   Open folder
                 </AppText>
                 <MaterialIcons name="chevron-right" size={iconSize.sm} color={colors.outline} />
@@ -188,7 +175,7 @@ export function FolderCard({
             </View>
           </View>
         </HintPressable>
-      </Surface>
+      </FolderGlass>
     </Animated.View>
   );
 }

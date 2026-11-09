@@ -6,6 +6,7 @@ import { AppText } from '../AppText';
 import { useMenuContext } from './MenuContext';
 import type { AnchorRect, IconName, WebFocusable } from './types';
 import { colors, fills, heights, iconSize, menu, radii } from '../../theme/tokens';
+import { HapticsEngine } from '../../services/haptics';
 
 /** The host node exposes these on web; text files stay free of DOM types. */
 type MeasurableNode = {
@@ -116,9 +117,11 @@ export function MenuItem({
   const activate = () => {
     if (disabled) return;
     if (hasSubmenu) {
+      HapticsEngine.modalOpen();
       openSubmenu();
       return;
     }
+    HapticsEngine.selection();
     if (!keepOpen) menuContext.closeAll();
     onPress?.();
   };

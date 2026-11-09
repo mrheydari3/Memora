@@ -2,11 +2,14 @@ import { useEffect, useRef } from 'react';
 import { Animated, Pressable, View } from 'react-native';
 import { colors, fills, heights } from '../theme/tokens';
 import { springTo } from '../motion';
+import { HapticsEngine } from '../services/haptics';
 
 type ToggleSwitchProps = {
   value: boolean;
   onToggle?: (value: boolean) => void;
   accessibilityLabel?: string;
+  /** Locks the control while keeping its state readable to assistive tech. */
+  disabled?: boolean;
 };
 
 const KNOB = 20;
@@ -24,7 +27,12 @@ const TRAVEL = heights.toggleWidth - KNOB - 4;
  * reads `accessibilityState`. The 26px pill sits inside a 44px press box so the
  * target size holds on touch and on the web, where hitSlop is dropped.
  */
-export function ToggleSwitch({ value, onToggle, accessibilityLabel = 'Toggle' }: ToggleSwitchProps) {
+export function ToggleSwitch({
+  value,
+  onToggle,
+  accessibilityLabel = 'Toggle',
+  disabled = false,
+}: ToggleSwitchProps) {
   const on = useRef(new Animated.Value(value ? 1 : 0)).current;
 
   useEffect(() => {
@@ -39,10 +47,20 @@ export function ToggleSwitch({ value, onToggle, accessibilityLabel = 'Toggle' }:
         alignItems: 'center',
         justifyContent: 'center',
       }}
-      onPress={() => onToggle?.(!value)}
+      onPress={
+        disabled
+          ? undefined
+          : () => {
+              if (value) HapticsEngine.toggleOff();
+              else HapticsEngine.toggleOn();
+              onToggle?.(!value);
+            }
+      }
+      disabled={disabled}
       accessibilityRole="switch"
-      accessibilityState={{ checked: value }}
+      accessibilityState={{ checked: value, disabled }}
       aria-checked={value}
+      aria-disabled={disabled}
       accessibilityLabel={accessibilityLabel}
     >
       <View

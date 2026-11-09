@@ -303,6 +303,49 @@ export function moveSibling<T extends { id: string; pinnedAt?: number | null }>(
 }
 
 /**
+ * Moves an item to a target slot within its displayed sibling group. Unlike
+ * `moveSibling`, this can cross several neighbours in one write, and it keeps
+ * pinned items in the top segment so a drag cannot silently undo the pin rule.
+ */
+export function moveSiblingTo<T extends { id: string; pinnedAt?: number | null }>(
+  items: readonly T[],
+  id: string,
+  isSibling: (item: T) => boolean,
+  targetIndex: number
+): T[] {
+  const slots: number[] = [];
+  items.forEach((item, index) => {
+    if (isSibling(item)) slots.push(index);
+  });
+  if (slots.length < 2) return items as T[];
+
+  const group = sortPinned(slots.map((index) => items[index]));
+  const from = group.findIndex((item) => item.id === id);
+  if (from < 0) return items as T[];
+
+  const firstUnpinned = group.findIndex((item) => item.pinnedAt == null);
+  const pinned = group[from].pinnedAt != null;
+  const min = pinned ? 0 : firstUnpinned;
+  const max = pinned
+    ? firstUnpinned < 0
+      ? group.length - 1
+      : firstUnpinned - 1
+    : group.length - 1;
+  const requested = Number.isFinite(targetIndex) ? Math.round(targetIndex) : from;
+  const to = Math.max(min, Math.min(requested, max));
+  if (to === from) return items as T[];
+
+  const [moving] = group.splice(from, 1);
+  group.splice(to, 0, moving);
+
+  const next = [...items];
+  slots.forEach((slot, index) => {
+    next[slot] = group[index];
+  });
+  return next;
+}
+
+/**
  * The library tab's flat grouping: every folder in stored order, then the
  * unfiled decks. Home uses `childFolders` for the nested view instead.
  */

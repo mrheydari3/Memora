@@ -3,6 +3,7 @@ import type { GestureResponderEvent } from 'react-native';
 import { MaterialIcons } from './Icon';
 import { alpha, colors, fills, heights, iconSize } from '../theme/tokens';
 import { usePressFeedback } from '../motion';
+import { HapticsEngine } from '../services/haptics';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -74,7 +75,14 @@ export function IconButton({
       <Animated.View style={press.style}>
         <Pressable
           style={{ width: target, height: target, alignItems: 'center', justifyContent: 'center' }}
-          onPress={disabled ? undefined : onPress}
+          onPress={
+            disabled
+              ? undefined
+              : (event) => {
+                  HapticsEngine.selection();
+                  onPress?.(event);
+                }
+          }
           onPressIn={disabled ? undefined : press.onPressIn}
           onPressOut={disabled ? undefined : press.onPressOut}
           accessibilityRole="button"

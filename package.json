@@ -41,7 +41,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "test": "node --import ./scripts/ts-resolve.mjs --test \"data/**/*.test.ts\"",
+    "test": "node --import ./scripts/ts-resolve.mjs --test \"data/**/*.test.ts\" \"services/**/*.test.ts\"",
     "test:surfaces": "node --import ./scripts/ts-resolve.mjs --test tests/ui/route-parity.test.ts",
     "test:fixtures": "node --import ./scripts/ts-resolve.mjs --test tests/ui/fixtures.test.ts",
     "census:dry": "node --import ./scripts/ts-resolve.mjs scripts/census.mjs --dry-run",

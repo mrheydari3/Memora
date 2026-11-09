@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { alpha, colors, iconSize } from '../../theme/tokens';
+import { HapticsEngine } from '../../services/haptics';
 
 type RowOptionsProps = {
   label: string;
@@ -14,7 +15,10 @@ export function RowOptions({ label, onPress }: RowOptionsProps) {
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        HapticsEngine.selection();
+        onPress();
+      }}
       onHoverIn={() => setHovered(true)}
       onHoverOut={() => setHovered(false)}
       accessibilityRole="button"

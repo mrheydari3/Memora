@@ -17,7 +17,7 @@ const WIDTHS = [
 ];
 
 const SHEETS = [
-  { name: 'home-folders', path: '/home', steps: ['Manage folders'] },
+  { name: 'home-folders', path: '/home', steps: ['New folder'] },
   { name: 'home-deck-menu', path: '/home', steps: ['/^Options for deck/'] },
   { name: 'deck-options', path: '/deck/deck-german-a2b1', steps: ['More options'] },
   { name: 'deck-rename', path: '/deck/deck-german-a2b1', steps: ['More options', 'Rename Deck'] },

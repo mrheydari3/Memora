@@ -12,7 +12,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { goBackOr } from '../../services/navigation';
 import Svg, { Circle } from 'react-native-svg';
 import { MaterialIcons } from '../../components/Icon';
-import * as Haptics from 'expo-haptics';
+import { HapticsEngine } from '../../services/haptics';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
@@ -409,6 +409,8 @@ export default function QuizScreen() {
   const advanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTickRef = useRef(Date.now());
+  /** One warning per round as the clock enters its last ten seconds. */
+  const warnedRef = useRef(false);
   const mountedRef = useRef(true);
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
@@ -448,25 +450,14 @@ export default function QuizScreen() {
     [settings.soundEnabled]
   );
 
-  const haptic = useCallback(
-    (kind: 'success' | 'error' | 'combo' | 'end') => {
-      if (Platform.OS === 'web' || settings.hapticsEnabled === false) return;
-      try {
-        if (kind === 'success') {
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } else if (kind === 'error') {
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        } else if (kind === 'combo') {
-          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        } else {
-          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-        }
-      } catch {
-        // Unsupported device: silence is the correct fallback.
-      }
-    },
-    [settings.hapticsEnabled]
-  );
+  const haptic = useCallback((kind: 'success' | 'error' | 'combo' | 'end') => {
+    // The engine owns the global preference, platform routing and dedupe; the
+    // game only names the moment.
+    if (kind === 'success') HapticsEngine.success();
+    else if (kind === 'error') HapticsEngine.error();
+    else if (kind === 'combo') HapticsEngine.combo();
+    else HapticsEngine.gameOver();
+  }, []);
 
   // A game cue should sound even with the phone on silent; failure is harmless.
   useEffect(() => {
@@ -503,11 +494,13 @@ export default function QuizScreen() {
     setNewBest(false);
     setScoreGain(0);
     setPaused(false);
+    warnedRef.current = false;
     lockedRef.current = false;
     submittedRef.current = false;
     shownAtRef.current = Date.now();
     commitRound(createRound());
     setPhase('playing');
+    HapticsEngine.medium();
   }, [commitRound, deck, mode]);
 
   // Decks and cards load asynchronously; start as soon as the deck is playable.
@@ -542,6 +535,7 @@ export default function QuizScreen() {
           .getState()
           .submitRound(deck.id, final.score, final.bestCombo)
           .then((best) => {
+            if (best) HapticsEngine.achievement();
             if (mountedRef.current) setNewBest(best);
           })
           .catch(() => {
@@ -575,6 +569,14 @@ export default function QuizScreen() {
     }, TICK_MS);
     return () => clearInterval(id);
   }, [phase, paused]);
+
+  // A single attention cue at ten seconds, never one per tick.
+  useEffect(() => {
+    if (phase !== 'playing' || paused || warnedRef.current) return;
+    if (round.timeLeftMs > 10_000) return;
+    warnedRef.current = true;
+    HapticsEngine.warning();
+  }, [round.timeLeftMs, phase, paused]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -820,6 +822,7 @@ export default function QuizScreen() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
+        HapticsEngine.modalClose();
         setPaused(false);
         return;
       }
@@ -903,6 +906,7 @@ export default function QuizScreen() {
             pauseReturnRef.current =
               active instanceof HTMLElement && active !== document.body ? active : null;
           }
+          HapticsEngine.modalOpen();
           setPaused(true);
         }}
       />
@@ -1264,7 +1268,14 @@ export default function QuizScreen() {
               The clock is stopped. Your round picks up where it left off.
             </AppText>
             <View style={{ width: '100%', marginTop: 20 }}>
-              <ActionButton label="Resume round" icon="play-arrow" onPress={() => setPaused(false)} />
+              <ActionButton
+                label="Resume round"
+                icon="play-arrow"
+                onPress={() => {
+                  HapticsEngine.modalClose();
+                  setPaused(false);
+                }}
+              />
             </View>
             <View style={{ width: '100%', marginTop: 8 }}>
               <ActionButton

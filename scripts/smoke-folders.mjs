@@ -51,7 +51,7 @@ const stored = () =>
 const wait = (ms) => page.waitForTimeout(ms);
 
 async function openFolders() {
-  await page.getByRole('button', { name: 'Manage folders', exact: true }).click();
+  await page.getByRole('button', { name: 'New folder', exact: true }).click();
   await wait(450);
 }
 

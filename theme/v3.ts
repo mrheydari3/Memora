@@ -9,7 +9,7 @@
  *
  *   - the due figure is 40px on a phone and 56px from 900px up
  *   - the hero pane carries a live scheduler status and the next deck's rail
- *   - deck rows are 22px panes with a 44px glyph tile
+ *   - deck rows are 22px panes with a 38px glyph tile and one 30px status circle
  *   - folder headers are 14px inset controls, not panes
  *
  * v1/v2 screens do not import this module, so they are untouched.
@@ -36,8 +36,10 @@ export const v3 = {
     heroWide: { fontSize: size(56), lineHeight: size(58), letterSpacing: -2 },
     /** A deck's due count. */
     stat: { fontSize: size(28), lineHeight: size(30), letterSpacing: -0.6 },
-    /** Deck names sit one step above body and one below the section title. */
+    /** Folder and board titles sit one step above body. */
     deckName: { fontSize: size(17), lineHeight: size(24), letterSpacing: 0 },
+    /** A shelf deck's name: quieter than a folder title, still easy to scan. */
+    deckTitle: { fontSize: size(15), lineHeight: size(20), letterSpacing: 0 },
     /** A section-opening line, e.g. the Game hero's "Beat the clock.". */
     headlineMd: { fontSize: size(24), lineHeight: size(30), letterSpacing: -0.5 },
     /** The composer's prompt: the card's front, written on the card itself. */

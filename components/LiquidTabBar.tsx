@@ -15,6 +15,7 @@ import { colors, glass, iconSize, motion, rims, shadow, tabBar } from '../theme/
 import { v3 } from '../theme/v3';
 import { prefersReducedMotion, springLiquidTo } from '../motion';
 import { useRtl } from '../services/direction';
+import { HapticsEngine } from '../services/haptics';
 
 type TabBarState = {
   index: number;
@@ -301,7 +302,10 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
     const max = Math.max(0, countRef.current - 1);
     const nearest = clamp(Math.round(dragProgress.current), 0, max);
 
+    // A drag that settles back on the current tab was canceled; only a drag
+    // that actually changes tabs gets the closing tick.
     if (nearest !== stateIndexRef.current) {
+      HapticsEngine.dragEnd();
       const route = routesRef.current[nearest];
       if (route) navigateRef.current(route.key);
     }
@@ -318,6 +322,7 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
           Math.abs(gesture.dx) > 8 &&
           Math.abs(gesture.dx) > Math.abs(gesture.dy),
         onPanResponderGrant: () => {
+          HapticsEngine.dragStart();
           dragging.current = true;
           dragStart.current = stateIndexRef.current;
           dragProgress.current = stateIndexRef.current;
@@ -384,6 +389,7 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
       if (!route) return;
 
       keyboardFocusIndex.current = next;
+      HapticsEngine.navigation();
       navigateRef.current(route.key);
     };
 
@@ -519,6 +525,7 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
                 onMeasure={(slot) => reportSlot(index, slot)}
                 onPress={() => {
                   if (dragging.current || index === state.index) return;
+                  HapticsEngine.navigation();
                   navigateToTab(route.key);
                 }}
               />

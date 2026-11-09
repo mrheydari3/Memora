@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Edge } from 'react-native-safe-area-context';
+import type {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  ScrollViewInstance,
+} from 'react-native';
 import { useIsFocused } from 'expo-router';
 import { heights, motion, spacing } from '../theme/tokens';
 import { useReveal } from '../motion';
@@ -38,6 +43,10 @@ type ScreenProps = {
    * neither the keyboard nor assistive technology can reach the covered content.
    */
   backgroundInert?: boolean;
+  /** The body's scroll view; screens can coordinate a drag with its offset. */
+  scrollRef?: React.Ref<ScrollViewInstance>;
+  /** Called as the body scrolls; pair with `scrollRef` for drag auto-scroll. */
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
 };
 
 /**
@@ -70,6 +79,8 @@ export function Screen({
   contentMaxWidth,
   animate = true,
   backgroundInert = false,
+  scrollRef,
+  onScroll,
 }: ScreenProps) {
   const focused = useIsFocused();
   // A pass counter, not the boolean: returning to a tab must replay the entrance.
@@ -143,6 +154,9 @@ export function Screen({
         >
           {scroll ? (
             <ScrollView
+              testID="screen-scroll"
+              ref={scrollRef}
+              onScroll={onScroll}
               className={`flex-1 ${contentClassName}`}
               // `focusable`: the screen's own scroll region must be reachable and
               // scrollable from the keyboard, otherwise content that overflows a

@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { colors, fills, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
+import { HapticsEngine } from '../../services/haptics';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -48,7 +49,14 @@ export function HeaderIcon({
 
   return (
     <Pressable
-      onPress={disabled ? undefined : onPress}
+      onPress={
+        disabled
+          ? undefined
+          : () => {
+              HapticsEngine.selection();
+              onPress();
+            }
+      }
       disabled={disabled}
       onHoverIn={() => !disabled && setHovered(true)}
       onHoverOut={() => setHovered(false)}

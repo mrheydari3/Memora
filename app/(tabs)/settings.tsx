@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { pushOnce } from '../../services/navigation';
+import { HAPTICS_REPAIR_MODE } from '../../services/haptics';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useGameStore } from '../../store/useGameStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
@@ -33,9 +34,9 @@ const formatCount = (value: number) => value.toLocaleString('en-US');
  * a desk drawer rather than a form. Progress and Statistics live on Profile;
  * Settings never duplicates them.
  *
- * Every remaining route and switch is unchanged: the quiz sound and haptics
- * switches keep their exact accessible names, which the persistence flow
- * relies on.
+ * The interaction chapter owns the global haptics preference; the game chapter
+ * keeps its sound switch. The switches keep the accessible names the
+ * persistence flow relies on.
  */
 export default function SettingsScreen() {
   const router = useRouter();
@@ -133,6 +134,30 @@ export default function SettingsScreen() {
           </RevealItem>
 
           <RevealItem index={2}>
+            <Chapter label="Interaction">
+              <SettingsLine
+                icon="vibration"
+                tone={colors.warning}
+                title="Haptic Feedback"
+                subtitle={
+                  HAPTICS_REPAIR_MODE
+                    ? 'In repair — tactile feedback is temporarily paused.'
+                    : 'Tactile feedback for navigation, actions and learning interactions.'
+                }
+                trailing={
+                  <ToggleSwitch
+                    value={HAPTICS_REPAIR_MODE ? false : settings.hapticsEnabled !== false}
+                    onToggle={(value) => updateSettings({ hapticsEnabled: value })}
+                    disabled={HAPTICS_REPAIR_MODE}
+                    accessibilityLabel="Haptic feedback"
+                  />
+                }
+                last
+              />
+            </Chapter>
+          </RevealItem>
+
+          <RevealItem index={3}>
             <Chapter label="Game">
               <SettingsLine
                 icon="volume-up"
@@ -146,25 +171,12 @@ export default function SettingsScreen() {
                     accessibilityLabel="Quiz sound effects"
                   />
                 }
-              />
-              <SettingsLine
-                icon="vibration"
-                tone={colors.warning}
-                title="Haptics"
-                subtitle="Taps for answers and combos"
-                trailing={
-                  <ToggleSwitch
-                    value={settings.hapticsEnabled !== false}
-                    onToggle={(value) => updateSettings({ hapticsEnabled: value })}
-                    accessibilityLabel="Quiz haptics"
-                  />
-                }
                 last
               />
             </Chapter>
           </RevealItem>
 
-          <RevealItem index={3}>
+          <RevealItem index={4}>
             <Chapter label="Data">
               <SettingsLine
                 icon="cloud-off"
@@ -190,7 +202,7 @@ export default function SettingsScreen() {
           </RevealItem>
 
           {__DEV__ && (
-            <RevealItem index={4}>
+            <RevealItem index={5}>
               <Chapter label="Developer">
                 <SettingsLine
                   icon="science"

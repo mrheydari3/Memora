@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { View, Animated, Platform, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { goBackOr, pushOnce } from '../../services/navigation';
+import { HapticsEngine } from '../../services/haptics';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
@@ -408,6 +409,11 @@ export default function StudyScreen() {
     }
   };
 
+  const revealAnswer = useCallback(() => {
+    HapticsEngine.cardFlip();
+    setShowAnswer(true);
+  }, []);
+
   const handleRate = async (rating: Rating) => {
     if (!currentCard || !deck || !scheduler || advancing) return;
 
@@ -435,6 +441,13 @@ export default function StudyScreen() {
         stateBefore: currentCard.fsrs.state,
         fsrs: log,
       });
+
+      // Only after the review is committed: four distinguishable, restrained
+      // weights, never a success buzz before the schedule exists.
+      if (rating === 1) HapticsEngine.reviewAgain();
+      else if (rating === 2) HapticsEngine.reviewHard();
+      else if (rating === 3) HapticsEngine.reviewGood();
+      else HapticsEngine.reviewEasy();
 
       // Re-queue a card only when the session still owes it something:
       //  - FSRS cards in Learning/Relearning must see their next step today;
@@ -482,7 +495,7 @@ export default function StudyScreen() {
 
       if (!showAnswer && (event.key === ' ' || event.key === 'Enter' || event.key === 'Spacebar')) {
         event.preventDefault();
-        setShowAnswer(true);
+        revealAnswer();
         return;
       }
       if (showAnswer && ['1', '2', '3', '4'].includes(event.key)) {
@@ -493,7 +506,7 @@ export default function StudyScreen() {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [currentCard, waiting, showAnswer, handleRate]);
+  }, [currentCard, waiting, showAnswer, handleRate, revealAnswer]);
 
   const undoLastReview = async () => {
     if (!lastUndo) return;
@@ -515,6 +528,7 @@ export default function StudyScreen() {
       setStudyNowId(preCard.id);
       setClock(Date.now());
       setCardShownAt(Date.now());
+      HapticsEngine.actionComplete();
     } catch (e) {
       console.error('Failed to undo review:', e);
     }
@@ -522,9 +536,15 @@ export default function StudyScreen() {
 
   const toggleMarked = () => {
     if (!currentCard) return;
-    void updateCard(currentCard.id, { marked: !(storedCard?.marked === true) }).catch((e) => {
-      console.error('Failed to mark card:', e);
-    });
+    const nextMarked = !(storedCard?.marked === true);
+    void updateCard(currentCard.id, { marked: nextMarked })
+      .then(() => {
+        if (nextMarked) HapticsEngine.toggleOn();
+        else HapticsEngine.toggleOff();
+      })
+      .catch((e) => {
+        console.error('Failed to mark card:', e);
+      });
   };
 
   const openNoteEditor = () => {
@@ -538,10 +558,20 @@ export default function StudyScreen() {
     try {
       await updateCard(currentCard.id, { note: note ? note : undefined });
       setNoteOpen(false);
+      HapticsEngine.actionComplete();
     } catch (e) {
       console.error('Failed to save note:', e);
     }
   };
+
+  /** One settle when the visit's last card is finished, once per mount. */
+  const completionHapticRef = useRef(false);
+  useEffect(() => {
+    if (currentCard || !queueBuilt || completionHapticRef.current) return;
+    if (sessionReviews.length === 0) return;
+    completionHapticRef.current = true;
+    HapticsEngine.success();
+  }, [currentCard, queueBuilt, sessionReviews.length]);
 
   const restoreDeck = async () => {
     if (!deck) return;
@@ -867,7 +897,8 @@ export default function StudyScreen() {
             <ActionButton
               label="Show answer"
               icon="visibility"
-              onPress={() => setShowAnswer(true)}
+              onPress={revealAnswer}
+              haptic={false}
             />
             {Platform.OS === 'web' && (
               <AppText variant="caption" tone="tertiary" align="center" className="mt-2">

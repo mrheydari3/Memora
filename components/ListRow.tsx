@@ -6,6 +6,7 @@ import { AppText } from './AppText';
 import { alpha, colors, fills, heights, iconSize, veil } from '../theme/tokens';
 import type { ViewStyle } from 'react-native';
 import { usePressFeedback } from '../motion';
+import { HapticsEngine } from '../services/haptics';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -333,7 +334,10 @@ export function ListRow({
       <Pressable
         className={`${base} overflow-hidden`}
         style={geometry}
-        onPress={onPress}
+        onPress={() => {
+          HapticsEngine.selection();
+          onPress();
+        }}
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
         accessibilityRole="button"

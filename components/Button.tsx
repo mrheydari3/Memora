@@ -11,6 +11,7 @@ import { MaterialIcons } from './Icon';
 import { AppText } from './AppText';
 import { alpha, colors, fills, heights, iconSize, shadow, veil } from '../theme/tokens';
 import { usePressFeedback } from '../motion';
+import { HapticsEngine } from '../services/haptics';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -129,7 +130,14 @@ export function Button({
             depth,
             isQuiet && { overflow: 'hidden' },
           ]}
-          onPress={onPress}
+          onPress={
+            onPress
+              ? () => {
+                  HapticsEngine.selection();
+                  onPress();
+                }
+              : undefined
+          }
           onPressIn={press.onPressIn}
           onPressOut={press.onPressOut}
           disabled={disabled || loading}

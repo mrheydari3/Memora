@@ -47,7 +47,7 @@ const reviewCount = (page: Page) =>
   readStorage<unknown[]>(page, STORAGE_KEYS.reviewLog, []).then((entries) => entries.length);
 
 const openFolderSheet = async (page: Page) => {
-  await page.getByRole('button', { name: 'Manage folders' }).click();
+  await page.getByRole('button', { name: 'New folder' }).click();
   const sheet = page.getByRole('dialog').filter({ hasText: 'New folder' });
   await expect(sheet).toBeVisible();
   return sheet;
@@ -256,7 +256,7 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(page.getByTestId('folder-group').filter({ hasText: 'Flow Folder Edited' })).toBeVisible();
 
     // Delete from the same editor; its decks move up one level.
-    await page.getByRole('button', { name: 'Manage folders' }).click();
+    await page.getByRole('button', { name: 'New folder' }).click();
     const list = page.getByRole('dialog').filter({ hasText: 'New folder' });
     await list.getByRole('button', { name: 'Options for folder Flow Folder Edited' }).click();
     const deleteEditor = page.getByRole('dialog').filter({ hasText: 'Delete folder' });
@@ -281,7 +281,7 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(folderRow).toBeVisible();
     await expect(page.getByTestId('deck-row').filter({ hasText: DECK })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Manage folders' }).click();
+    await page.getByRole('button', { name: 'New folder' }).click();
     const list = page.getByRole('dialog').filter({ hasText: 'New folder' });
     await list.getByRole('button', { name: 'Options for folder Move Folder' }).click();
     const editor = page.getByRole('dialog').filter({ hasText: 'Delete folder' });
@@ -327,7 +327,7 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(page.getByTestId('folder-group').filter({ hasText: 'Nest Child' })).toBeVisible();
 
     // Re-parent the child back to the root; the parent must not disappear.
-    await page.getByRole('button', { name: 'Manage folders' }).click();
+    await page.getByRole('button', { name: 'New folder' }).click();
     const manager = page.getByRole('dialog').filter({ hasText: 'New folder' });
     await manager.getByRole('button', { name: 'Options for folder Nest Child' }).click();
     const reparent = page.getByRole('dialog').filter({ hasText: 'Save folder' });
@@ -419,7 +419,7 @@ test.describe('Phase 5 — behaviour', () => {
 
     await page.reload();
     await settle(page);
-    await page.getByRole('button', { name: 'Manage folders' }).click();
+    await page.getByRole('button', { name: 'New folder' }).click();
     const list = page.getByRole('dialog').filter({ hasText: 'New folder' });
     await list.getByRole('button', { name: 'Options for folder Tree Parent' }).click();
     const deleteEditor = page.getByRole('dialog').filter({ hasText: 'Delete folder' });
@@ -968,16 +968,12 @@ test.describe('Phase 5 — behaviour', () => {
     await go(page, '/settings');
     await expect(page.getByText(/Memora 3\.0\.0/)).toBeVisible();
     await expect(page.getByText(/1\.2\.0/)).toHaveCount(0);
-    const haptics = page.getByRole('switch', { name: 'Quiz haptics' });
-    const hapticsBefore = await haptics.getAttribute('aria-checked');
-    await haptics.click();
-    const hapticsAfter = hapticsBefore === 'true' ? 'false' : 'true';
-    await page.reload();
-    await settle(page);
-    await expect(page.getByRole('switch', { name: 'Quiz haptics' })).toHaveAttribute(
-      'aria-checked',
-      hapticsAfter
-    );
+    // The engine is in repair mode: the preference is locked off rather than
+    // pretending feedback is available. The saved value itself is preserved.
+    await expect(page.getByText(/In repair/)).toBeVisible();
+    const haptics = page.getByRole('switch', { name: 'Haptic feedback' });
+    await expect(haptics).toBeDisabled();
+    await expect(haptics).toHaveAttribute('aria-checked', 'false');
 
     await go(page, '/settings/tts');
     for (const name of ['Read Entire Card', 'Automatic Playback']) {
@@ -1270,7 +1266,7 @@ test.describe('Phase 5 — behaviour', () => {
 
   test('sheets: scrim click closes the folder sheet and returns focus', async ({ page }) => {
     await go(page, '/home');
-    const trigger = page.getByRole('button', { name: 'Manage folders' });
+    const trigger = page.getByRole('button', { name: 'New folder' });
     await trigger.click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.mouse.click(8, 140);
@@ -1280,7 +1276,7 @@ test.describe('Phase 5 — behaviour', () => {
 
   test('sheets: Escape closes the folder sheet and returns focus', async ({ page }) => {
     await go(page, '/home');
-    const trigger = page.getByRole('button', { name: 'Manage folders' });
+    const trigger = page.getByRole('button', { name: 'New folder' });
     await trigger.click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.keyboard.press('Escape');
@@ -1370,7 +1366,7 @@ test.describe('Phase 5 — behaviour', () => {
     page,
   }) => {
     await go(page, '/home');
-    const opener = page.getByRole('button', { name: 'Manage folders' });
+    const opener = page.getByRole('button', { name: 'New folder' });
     await opener.click();
     const sheet = page.getByRole('dialog');
     await expect(sheet).toBeVisible();

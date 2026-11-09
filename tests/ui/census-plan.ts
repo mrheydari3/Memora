@@ -93,19 +93,19 @@ function actionsFor(surface: Surface): CensusAction[] {
     case 'HM-07':
       return [click('Nothing here yet', false)];
     case 'HM-08':
-      return [click('Manage folders')];
+      return [click('New folder')];
     case 'HM-09':
       return [
-        click('Manage folders'),
+        click('New folder'),
         fill('New folder', 'Languages'),
         click('Create folder'),
         expect('A folder with that name already exists.'),
       ];
     case 'HM-10':
-      return [click('Manage folders'), click('Options for folder Languages')];
+      return [click('New folder'), click('Options for folder Languages')];
     case 'HM-11':
       return [
-        click('Manage folders'),
+        click('New folder'),
         click('Options for folder Languages'),
         click('Location', false),
       ];

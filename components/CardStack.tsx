@@ -15,7 +15,7 @@ import { AppText } from './AppText';
 import { IconButton } from './IconButton';
 import { HintPressable } from './HintPressable';
 import { EASE, springTo, springToAsync, timingTo, useReducedMotion } from '../motion';
-import { selectionHaptic } from '../services/haptics';
+import { HapticsEngine } from '../services/haptics';
 import {
   colors,
   fills,
@@ -146,7 +146,7 @@ export function CardStack({
         if (direction < 0) onNext();
         else onPrevious();
         // Only after the turn actually committed does the device tick.
-        selectionHaptic();
+        HapticsEngine.cardTransition();
         // The arriving card enters from the far edge and settles on the spring.
         drag.setValue(-direction * width * 0.16);
         springToAsync(drag, 0);
@@ -161,6 +161,9 @@ export function CardStack({
       PanResponder.create({
         onMoveShouldSetPanResponder: (_event, gesture) =>
           Math.abs(gesture.dx) > 8 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2,
+        onPanResponderGrant: () => {
+          HapticsEngine.dragStart();
+        },
         onPanResponderMove: (_event, gesture) => {
           if (turning.current) return;
           drag.setValue(gesture.dx);
@@ -176,12 +179,15 @@ export function CardStack({
           else if (wantedPrev && hasPrev) go(1);
           else springTo(drag, 0);
         },
+        // A canceled swipe settles silently; the next committed turn is the
+        // only event that earns feedback.
         onPanResponderTerminate: () => springTo(drag, 0),
       }),
     [drag, go]
   );
 
   const toggleFlip = useCallback(() => {
+    HapticsEngine.cardFlip();
     const nextFlipped = !flipped;
     setFlipped(nextFlipped);
     timingTo(flip, nextFlipped ? 1 : 0, { duration: motion.flip, easing: EASE.flip });
@@ -329,6 +335,7 @@ export function CardStack({
                   pressable is invalid HTML on web, and the menu must not flip. */}
               <HintPressable
                 hint="Tap for the card details"
+                haptic={false}
                 className="flex-1"
                 onPress={toggleFlip}
                 accessibilityRole="button"
@@ -411,6 +418,7 @@ export function CardStack({
               */}
               <HintPressable
                 hint="Tap to return to the word"
+                haptic={false}
                 className="flex-1"
                 onPress={toggleFlip}
                 accessibilityRole="button"

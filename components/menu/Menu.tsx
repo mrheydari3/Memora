@@ -18,6 +18,7 @@ import { MenuItem } from './MenuItem';
 import type { AnchorRect, MenuAction, MenuPresentation, SubmenuLevel, WebFocusable } from './types';
 import { alpha, colors, menu, motion, radii } from '../../theme/tokens';
 import { usePresence } from '../../motion';
+import { HapticsEngine } from '../../services/haptics';
 
 export type MenuProps = {
   open: boolean;
@@ -676,6 +677,17 @@ function AnchoredMenu({
  */
 export function Menu(props: MenuProps) {
   const { width } = useWindowDimensions();
+
+  // One open and one close tick for both presentations. A sheet menu renders
+  // BottomSheetModal as well; the engine's shared key collapses the pair.
+  const wasOpenRef = useRef(false);
+  useEffect(() => {
+    if (props.open === wasOpenRef.current) return;
+    wasOpenRef.current = props.open;
+    if (props.open) HapticsEngine.modalOpen();
+    else HapticsEngine.modalClose();
+  }, [props.open]);
+
   const mode =
     props.presentation === 'anchored' || props.presentation === 'sheet'
       ? props.presentation

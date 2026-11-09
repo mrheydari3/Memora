@@ -15,11 +15,16 @@ export { TodayPane } from './TodayPane';
 export { HeroAura } from './HeroAura';
 export { LibraryPane } from './LibraryPane';
 export { FolderCard } from './FolderCard';
+export { FolderGlass } from './FolderGlass';
+export { FolderGlyph } from './FolderGlyph';
 export { DeckShelfRow } from './DeckShelfRow';
 export { FolderGroup } from './FolderGroup';
 export { ArchivedRow } from './ArchivedRow';
 export { RowOptions } from './RowOptions';
 export { ShelfHeader } from './ShelfHeader';
+export { ShelfPanel } from './ShelfPanel';
+export { ShelfReorder } from './ShelfReorder';
+export type { ShelfReorderGroup, ShelfReorderItem } from './ShelfReorder';
 export { HeaderIcon } from './HeaderIcon';
 export {
   SettingsChapter,

@@ -3,6 +3,7 @@ import { MaterialIcons } from './Icon';
 import { AppText } from './AppText';
 import { alpha, colors, fills, heights, iconSize } from '../theme/tokens';
 import { usePressFeedback } from '../motion';
+import { HapticsEngine } from '../services/haptics';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -53,7 +54,10 @@ function SegmentPress({
         // 44px minimum touch height (WCAG 2.5.8 / 2.2 Target Size): the rail
         // used to draw 36px segments, which a thumb misses on a phone.
         style={[style, { minHeight: heights.hit, justifyContent: 'center' }]}
-        onPress={onPress}
+        onPress={() => {
+          HapticsEngine.selection();
+          onPress();
+        }}
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
         accessibilityRole="button"

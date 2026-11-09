@@ -7,6 +7,7 @@ import {
   detachChildFolders,
   detachDecksFromFolder,
   moveSibling,
+  moveSiblingTo,
   removeFolder,
   renameFolder,
   type FolderError,
@@ -39,12 +40,16 @@ type DeckStore = {
   toggleFolderPinned: (id: string) => Promise<void>;
   /** Moves a folder one step among the folders that share its parent. */
   moveFolder: (id: string, delta: number) => Promise<void>;
+  /** Writes a drag target for a folder among the folders that share its parent. */
+  moveFolderTo: (id: string, toIndex: number) => Promise<void>;
   renameFolder: (id: string, name: string) => Promise<{ ok: boolean; error?: FolderError }>;
   deleteFolder: (id: string) => Promise<void>;
   setDeckFolder: (deckId: string, folderId: string | null) => Promise<void>;
   toggleDeckPinned: (id: string) => Promise<void>;
   /** Moves a deck one step among the decks in its folder. */
   moveDeck: (id: string, delta: number) => Promise<void>;
+  /** Writes a drag target for a deck among the active decks in its folder. */
+  moveDeckTo: (id: string, toIndex: number) => Promise<void>;
   addDeck: (deck: Deck) => Promise<void>;
   /** Add a deck and all of its cards in one write (Discover import). */
   addDeckWithCards: (deck: Deck, cards: Flashcard[]) => Promise<void>;
@@ -205,6 +210,21 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     set({ folders });
   },
 
+  moveFolderTo: async (id, toIndex) => {
+    const folder = get().folders.find((entry) => entry.id === id);
+    if (!folder) return;
+    const parentId = folder.parentId ?? null;
+    const folders = moveSiblingTo(
+      get().folders,
+      id,
+      (entry) => (entry.parentId ?? null) === parentId,
+      toIndex
+    );
+    if (folders === get().folders) return;
+    await repo.saveFolders(folders);
+    set({ folders });
+  },
+
   renameFolder: async (id, name) => {
     const result = renameFolder(get().folders, id, name);
     if (!result.ok) return { ok: false, error: result.error };
@@ -242,6 +262,21 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       id,
       (entry) => (entry.folderId ?? null) === folderId,
       delta
+    );
+    if (decks === get().decks) return;
+    await repo.saveDecks(decks);
+    set({ decks });
+  },
+
+  moveDeckTo: async (id, toIndex) => {
+    const deck = get().decks.find((entry) => entry.id === id);
+    if (!deck) return;
+    const folderId = deck.folderId ?? null;
+    const decks = moveSiblingTo(
+      get().decks,
+      id,
+      (entry) => (entry.folderId ?? null) === folderId && !entry.archivedAt,
+      toIndex
     );
     if (decks === get().decks) return;
     await repo.saveDecks(decks);

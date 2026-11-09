@@ -16,6 +16,7 @@ import { IconButton } from './IconButton';
 import { glass, glassFillStrong, iconSize, motion, radii, sheet, veil } from '../theme/tokens';
 import { v3 } from '../theme/v3';
 import { usePresence } from '../motion';
+import { HapticsEngine } from '../services/haptics';
 
 type SheetPanelProps = {
   title?: string;
@@ -209,6 +210,16 @@ export function BottomSheetModal({
   const { height: measuredHeight, width: measuredWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const isDesktop = desktopLayout && measuredWidth >= 1024;
+
+  // One soft tick when a sheet surfaces and one when it is dismissed. The
+  // engine's dedupe key means a menu that wraps this sheet never buzzes twice.
+  const wasVisibleRef = useRef(false);
+  useEffect(() => {
+    if (visible === wasVisibleRef.current) return;
+    wasVisibleRef.current = visible;
+    if (visible) HapticsEngine.modalOpen();
+    else HapticsEngine.modalClose();
+  }, [visible]);
   /**
    * A browser can report no window height at all — a PWA restored in the
    * background, a phone rotating on open, an embedded webview before layout.

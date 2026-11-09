@@ -136,6 +136,10 @@ const glass = {
   /** The two panes peeking out under the flashcard. */
   stackNear: '#0d121a',
   stackFar: '#090d13',
+  /** The Your decks partition: quieter than the hero, just enough to separate. */
+  shelf: 'rgba(23, 30, 41, 0.34)',
+  /** The folders' jacket: one step lighter than the shelf around it. */
+  folder: 'rgba(31, 40, 53, 0.46)',
   blur: 0,
   blurStrong: 0,
   /**
@@ -143,6 +147,10 @@ const glass = {
    * the flat canvas rather than disappearing into it.
    */
   blurScene: 80,
+  /** The shelf partition's quieter refraction. */
+  blurShelf: 48,
+  /** Folder jackets are small, so their refraction can be a touch firmer. */
+  blurFolder: 56,
   /** The floating app bar and the tab dock: one refraction for both surfaces. */
   blurHeader: 40,
   /** The selection lens: a denser blur than the rail around it. */

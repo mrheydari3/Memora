@@ -3,6 +3,7 @@ import { Animated, Pressable, View } from 'react-native';
 import { AppText } from './AppText';
 import { colors, fills, heights } from '../theme/tokens';
 import { springTo, usePressFeedback } from '../motion';
+import { HapticsEngine } from '../services/haptics';
 
 type ChipProps = {
   label: string;
@@ -66,7 +67,12 @@ export function Chip({
           alignItems: 'center',
           justifyContent: 'center',
         }}
-        onPress={onPress}
+        onPress={() => {
+          if (menu) HapticsEngine.modalOpen();
+          else if (active) HapticsEngine.toggleOff();
+          else HapticsEngine.toggleOn();
+          onPress();
+        }}
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
         accessibilityRole="button"

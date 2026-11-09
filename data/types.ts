@@ -172,7 +172,10 @@ export type Settings = {
   pwaInstalled: boolean;
   /** Quiz sound effects. Optional so settings saved before the game keep working. */
   soundEnabled?: boolean;
-  /** Quiz haptics. Optional for the same reason. */
+  /**
+   * Global tactile feedback for navigation, actions and learning. Optional for
+   * the same reason; a missing value means enabled.
+   */
   hapticsEnabled?: boolean;
 };
 
