@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Edge } from 'react-native-safe-area-context';
 import { useIsFocused } from 'expo-router';
 import { heights, motion, spacing } from '../theme/tokens';
-import { v3 } from '../theme/v3';
 import { useReveal } from '../motion';
 
 type ScreenProps = {
@@ -75,11 +74,9 @@ export function Screen({
   const focused = useIsFocused();
   // A pass counter, not the boolean: returning to a tab must replay the entrance.
   const [pass, setPass] = useState(0);
-  // Seed with the standard PageHeader height (bar + top gap) so the first paint
-  // is already below the bar; a custom header corrects this on its first layout.
-  const [headerHeight, setHeaderHeight] = useState(
-    header ? heights.pageHeader + v3.appBar.floatGap : 0
-  );
+  // Seed with the standard PageHeader height so the first paint is already
+  // below the bar; a custom header corrects this on its first layout.
+  const [headerHeight, setHeaderHeight] = useState(header ? heights.pageHeader : 0);
   const seenFocus = useRef(false);
 
   useEffect(() => {

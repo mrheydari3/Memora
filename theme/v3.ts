@@ -49,13 +49,13 @@ export const v3 = {
   },
 
   /**
-   * The floating app-bar geometry. The bar is inset 7px from the page column
-   * and 12px from the top; its 1px rim plus 12px inner padding put the content
-   * back on the page's exact 20px edge.
+   * The app-bar geometry. The bar is welded to the top edge and spans the full
+   * canvas, with square top corners and a 20px bottom curve. Its content keeps
+   * the page's 20px gutter. `floatGap` now spaces only the floating dock from
+   * the bottom edge.
    */
   appBar: {
     floatGap: 12,
-    sideInset: 7,
     radius: 20,
     padding: 12,
     contentGap: 8,

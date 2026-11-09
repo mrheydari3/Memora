@@ -27,11 +27,11 @@ type PageHeaderProps = {
 };
 
 /**
- * PageHeader — the one floating 64px glass app bar.
+ * PageHeader — the one 64px glass app bar, welded to the top edge.
  *
  * On a tab page it carries the brand (the mark and "Memora" are the h1); on a
  * stack page it carries the 44px back control and the route name as the h1.
- * `FloatingHeader` owns the inset, rounding and blur; the content still lands
+ * `FloatingHeader` owns the top-edge crop, rounding and blur; the content still lands
  * on the page's 960px column, so the app bar and the body share one left edge.
  */
 export function PageHeader({

@@ -58,10 +58,10 @@ export function launchVariant(pathname: string): LaunchVariant {
  * LaunchSkeleton — the first paint of the app, drawn as the page it will become.
  *
  * It is not a second splash: there is no wordmark moment and no progress rail.
- * The shell (floating 64px glass app bar, 960px content column, tab dock) is
- * already in place, and the content is the same skeleton grammar every screen
- * uses, so the hand-off to the real page is a dissolve rather than a layout
- * jump.
+ * The shell (notch-cut 64px glass app bar, 960px content column, floating tab
+ * dock) is already in place, and the content is the same skeleton grammar every
+ * screen uses, so the hand-off to the real page is a dissolve rather than a
+ * layout jump.
  */
 export function LaunchSkeleton({ pathname = '/' }: { pathname?: string }) {
   const insets = useSafeAreaInsets();
