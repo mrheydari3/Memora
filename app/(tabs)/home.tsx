@@ -103,7 +103,7 @@ type FolderSheetMode = 'list' | 'edit' | 'location';
  */
 export default function HomeScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
 
   // A desktop canvas gets its own composition: the today grid with a library
   // rail, then a two-up shelf. Below 1024 the page keeps the single phone
@@ -112,6 +112,11 @@ export default function HomeScreen() {
   const contentMaxWidth = desktop
     ? v3.layout.homeDesktopMaxWidth
     : v3.layout.contentMaxWidth;
+  // The folder sheet has more vertical room on a desktop dialog, but still
+  // needs a cap so the title and scrim stay visible on a short laptop screen.
+  const folderSheetBodyMaxHeight = desktop
+    ? Math.max(320, Math.min(620, height - 240))
+    : heights.sheetTall;
 
   const decks = useDeckStore((s) => s.decks);
   const cardsByDeck = useDeckStore((s) => s.cardsByDeck);
@@ -724,6 +729,66 @@ export default function HomeScreen() {
     </View>
   );
 
+  const folderSheetList =
+    folders.length > 0 ? (
+      <View className={desktop ? '' : 'mt-6'}>
+        <SectionHeading label="Your folders" count={`${folders.length}`} rule={false} />
+        <View className="mt-2">
+          {folders.map((folder) => {
+            const summary = summaryById.get(folder.id);
+            const trail = folderPath(folders, folder.id)
+              .map((entry) => entry.name)
+              .join(' / ');
+            const count = summary?.decks ?? 0;
+            return (
+              <ListRow
+                key={folder.id}
+                title={folder.name}
+                subtitle={`${trail === folder.name ? '' : `${trail} · `}${count} ${
+                  count === 1 ? 'deck' : 'decks'
+                }`}
+                icon={(folder.icon ?? FOLDER_DEFAULT_ICON) as IconName}
+                iconTone={folder.color ? 'deck' : 'neutral'}
+                deckColor={folder.color}
+                tile="sm"
+                density="compact"
+                gutter={0}
+                showChevron={false}
+                trailing={
+                  <IconButton
+                    icon="more-vert"
+                    size="sm"
+                    accessibilityLabel={`Options for folder ${folder.name}`}
+                    onPress={() => openFolderEditor(folder.id)}
+                  />
+                }
+              />
+            );
+          })}
+        </View>
+      </View>
+    ) : desktop ? (
+      <View>
+        <SectionHeading label="Your folders" count="0" rule={false} />
+        <View
+          style={{
+            gap: 6,
+            marginTop: 8,
+            padding: 18,
+            borderRadius: radii.pane,
+            backgroundColor: colors.surfaceInset,
+          }}
+        >
+          <AppText variant="bodySm" weight="semibold">
+            No folders yet
+          </AppText>
+          <AppText variant="caption" tone="muted">
+            Create your first folder to group decks into a browsable shelf.
+          </AppText>
+        </View>
+      </View>
+    ) : null;
+
   return (
     <Screen
       scroll
@@ -833,6 +898,7 @@ export default function HomeScreen() {
       <BottomSheetModal
         visible={folderSheet}
         onClose={closeFolders}
+        desktopLayout={desktop}
         focusKey={`${folderSheetMode}-${editingFolderId ?? 'list'}`}
         title={
           folderSheetMode === 'edit'
@@ -853,116 +919,94 @@ export default function HomeScreen() {
           // Switching bodies remounts the scroll region, so each mode opens at
           // its own first row instead of inheriting the previous offset.
           key={`${folderSheetMode}-${editingFolderId ?? 'list'}`}
-          style={{ maxHeight: heights.sheetTall }}
+          style={{ maxHeight: folderSheetBodyMaxHeight }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {folderSheetMode === 'list' && (
-            <View>
-              <Field
-                label="New folder"
-                value={folderDraft}
-                onChangeText={(text) => {
-                  setFolderDraft(text);
-                  setFolderError(null);
-                }}
-                placeholder="e.g. German A2"
-                maxLength={40}
-              />
-              <AppText variant="caption" tone="muted" className="mt-1.5">
-                {openFolder ? `Creates inside ${openFolder.name}.` : 'Creates on the top level.'}
-              </AppText>
-              {folderError && (
-                <AppText variant="bodySm" tone="danger" className="mt-2">
-                  {folderError}
-                </AppText>
-              )}
-
-              <View className="mt-4">
-                <AppearancePicker
-                  icon={folderIcon}
-                  color={folderColor}
-                  onIconChange={setFolderIcon}
-                  onColorChange={setFolderColor}
-                />
-              </View>
-
-              <View className="mt-4">
-                <PrimaryButton
-                  label="Create folder"
-                  icon="create-new-folder"
-                  disabled={folderDraft.trim().length === 0}
-                  onPress={async () => {
-                    const result = await addFolder(folderDraft, {
-                      icon: folderIcon,
-                      color: folderColor,
-                      parentId: openFolder?.id ?? null,
-                    });
-                    if (!result.ok) {
-                      setFolderError(
-                        result.error === 'duplicate'
-                          ? 'A folder with that name already exists.'
-                          : 'Give the folder a name.'
-                      );
-                      return;
-                    }
-                    setFolderDraft('');
+            <View
+              style={
+                desktop
+                  ? { flexDirection: 'row', gap: 24, alignItems: 'flex-start' }
+                  : undefined
+              }
+            >
+              <View style={desktop ? { flex: 1.35, minWidth: 0 } : undefined}>
+                <Field
+                  label="New folder"
+                  value={folderDraft}
+                  onChangeText={(text) => {
+                    setFolderDraft(text);
                     setFolderError(null);
-                    setFolderIcon(FOLDER_DEFAULT_ICON);
-                    setFolderColor(COLOR_CHOICES[0]);
                   }}
+                  placeholder="e.g. German A2"
+                  maxLength={40}
                 />
+                <AppText variant="caption" tone="muted" className="mt-1.5">
+                  {openFolder
+                    ? `Creates inside ${openFolder.name}.`
+                    : 'Creates on the top level.'}
+                </AppText>
+                {folderError && (
+                  <AppText variant="bodySm" tone="danger" className="mt-2">
+                    {folderError}
+                  </AppText>
+                )}
+
+                <View className="mt-4">
+                  <AppearancePicker
+                    icon={folderIcon}
+                    color={folderColor}
+                    onIconChange={setFolderIcon}
+                    onColorChange={setFolderColor}
+                  />
+                </View>
+
+                <View className="mt-4">
+                  <PrimaryButton
+                    label="Create folder"
+                    icon="create-new-folder"
+                    disabled={folderDraft.trim().length === 0}
+                    onPress={async () => {
+                      const result = await addFolder(folderDraft, {
+                        icon: folderIcon,
+                        color: folderColor,
+                        parentId: openFolder?.id ?? null,
+                      });
+                      if (!result.ok) {
+                        setFolderError(
+                          result.error === 'duplicate'
+                            ? 'A folder with that name already exists.'
+                            : 'Give the folder a name.'
+                        );
+                        return;
+                      }
+                      setFolderDraft('');
+                      setFolderError(null);
+                      setFolderIcon(FOLDER_DEFAULT_ICON);
+                      setFolderColor(COLOR_CHOICES[0]);
+                    }}
+                  />
+                </View>
               </View>
 
-              {folders.length > 0 && (
-                <View className="mt-6">
-                  <SectionHeading
-                    label="Your folders"
-                    count={`${folders.length}`}
-                    rule={false}
-                  />
-                  <View className="mt-2">
-                    {folders.map((folder) => {
-                      const summary = summaryById.get(folder.id);
-                      const trail = folderPath(folders, folder.id)
-                        .map((entry) => entry.name)
-                        .join(' / ');
-                      const count = summary?.decks ?? 0;
-                      return (
-                        <ListRow
-                          key={folder.id}
-                          title={folder.name}
-                          subtitle={`${trail === folder.name ? '' : `${trail} · `}${count} ${
-                            count === 1 ? 'deck' : 'decks'
-                          }`}
-                          icon={(folder.icon ?? FOLDER_DEFAULT_ICON) as IconName}
-                          iconTone={folder.color ? 'deck' : 'neutral'}
-                          deckColor={folder.color}
-                          tile="sm"
-                          density="compact"
-                          gutter={0}
-                          showChevron={false}
-                          trailing={
-                            <IconButton
-                              icon="more-vert"
-                              size="sm"
-                              accessibilityLabel={`Options for folder ${folder.name}`}
-                              onPress={() => openFolderEditor(folder.id)}
-                            />
-                          }
-                        />
-                      );
-                    })}
-                  </View>
-                </View>
-              )}
+              <View style={desktop ? { flex: 1, minWidth: 0 } : undefined}>
+                {folderSheetList}
+              </View>
             </View>
           )}
 
           {folderSheetMode === 'edit' && editingFolder && (
-            <View>
-              <Field
-                label="Name"
+            <View
+              style={
+                desktop
+                  ? { flexDirection: 'row', gap: 24, alignItems: 'flex-start' }
+                  : undefined
+              }
+            >
+              <View style={desktop ? { flex: 1.35, minWidth: 0 } : undefined}>
+                <Field
+                  label="Name"
                 value={editName}
                 onChangeText={(text) => {
                   setEditName(text);
@@ -977,16 +1021,18 @@ export default function HomeScreen() {
                 </AppText>
               )}
 
-              <View className="mt-4">
-                <AppearancePicker
-                  icon={editIcon}
-                  color={editColor}
-                  onIconChange={setEditIcon}
-                  onColorChange={setEditColor}
-                />
+                <View className="mt-4">
+                  <AppearancePicker
+                    icon={editIcon}
+                    color={editColor}
+                    onIconChange={setEditIcon}
+                    onColorChange={setEditColor}
+                  />
+                </View>
               </View>
 
-              <View className="mt-5">
+              <View style={desktop ? { flex: 1, minWidth: 0 } : undefined}>
+                <View className="mt-5">
                 <ListRow
                   title="Location"
                   subtitle="Where this folder sits in the library"
@@ -1055,20 +1101,25 @@ export default function HomeScreen() {
                 />
               </View>
 
-              <View className="mt-5">
-                <PrimaryButton label="Save folder" icon="check" onPress={saveFolderEditor} />
+                <View className="mt-5">
+                  <PrimaryButton label="Save folder" icon="check" onPress={saveFolderEditor} />
+                </View>
+                <GhostButton
+                  className="mt-2"
+                  label="Back to folders"
+                  variant="text"
+                  onPress={() => setFolderSheetMode('list')}
+                />
               </View>
-              <GhostButton
-                className="mt-2"
-                label="Back to folders"
-                variant="text"
-                onPress={() => setFolderSheetMode('list')}
-              />
             </View>
           )}
 
           {folderSheetMode === 'location' && editingFolder && (
-            <View>
+            <View
+              style={
+                desktop ? { width: '100%', maxWidth: 560, alignSelf: 'center' } : undefined
+              }
+            >
               <ListRow
                 title="Top level"
                 subtitle="Shows next to Your decks"

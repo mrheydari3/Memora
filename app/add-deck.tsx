@@ -21,6 +21,7 @@ import {
   Field,
   IconButton,
 } from '../components';
+import { MaterialIcons } from '../components/Icon';
 import { ActionButton, Surface } from '../components/v3';
 import { alpha, colors, glass, iconSize, radii, sheet, veil } from '../theme/tokens';
 
@@ -57,7 +58,8 @@ function webDocument(): WebDocument | null {
 export default function AddDeckScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const desktop = windowWidth >= 1024;
   const decks = useDeckStore((state) => state.decks);
   const panelRef = useRef<React.ComponentRef<typeof View>>(null);
   const returnFocus = useRef<WebNode | null>(null);
@@ -162,13 +164,100 @@ export default function AddDeckScreen() {
 
   const maxHeight =
     windowHeight > 0 ? Math.round(windowHeight * sheet.maxHeightRatio) : undefined;
+  const desktopPanelHeight =
+    windowHeight > 0 ? Math.min(760, Math.max(0, windowHeight - 64)) : undefined;
+
+  const detailsPane = (
+    <Surface tone="pane" radius="card" padding="md" style={{ gap: 16 }}>
+      <Field
+        label="Name"
+        value={name}
+        onChangeText={(next) => {
+          setName(next);
+          setNameEdited(true);
+          setSaveError(null);
+        }}
+        placeholder="Deck name"
+      />
+
+      {nameError && (
+        <AppText
+          variant="caption"
+          style={{ color: colors.error, marginTop: -8 }}
+          accessibilityLiveRegion="polite"
+        >
+          {nameError}
+        </AppText>
+      )}
+
+      <Field
+        label="Description"
+        value={description}
+        onChangeText={setDescription}
+        placeholder="Optional"
+        multiline
+        tall
+      />
+    </Surface>
+  );
+
+  const appearancePane = (
+    <AppearancePicker
+      icon={icon}
+      color={color}
+      onIconChange={(next) => {
+        setIcon(next);
+        setSaveError(null);
+      }}
+      onColorChange={(next) => {
+        setColor(next);
+        setSaveError(null);
+      }}
+    />
+  );
+
+  const deckPreview = (
+    <Surface tone="pane" radius="card" padding="md" style={{ gap: 14 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: radii.control,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: alpha(color, 0.14),
+          }}
+        >
+          <MaterialIcons
+            name={icon as React.ComponentProps<typeof MaterialIcons>['name']}
+            size={iconSize.lg}
+            color={color}
+          />
+        </View>
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <AppText variant="body" weight="semibold" numberOfLines={1}>
+            {trimmedName || 'Untitled deck'}
+          </AppText>
+          <AppText variant="caption" tone="muted" numberOfLines={1}>
+            {description.trim() || 'No description yet'} · 0 cards
+          </AppText>
+        </View>
+      </View>
+      <AppText variant="caption" tone="tertiary">
+        A preview of this deck’s tile on Home.
+      </AppText>
+    </Surface>
+  );
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{
         flex: 1,
-        justifyContent: 'flex-end',
+        justifyContent: desktop ? 'center' : 'flex-end',
+        alignItems: desktop ? 'center' : undefined,
+        padding: desktop ? 32 : 0,
         backgroundColor: alpha(veil, sheet.scrimDim),
       }}
     >
@@ -189,50 +278,58 @@ export default function AddDeckScreen() {
         accessibilityViewIsModal
         style={{
           width: '100%',
-          maxHeight,
+          maxWidth: desktop ? 960 : undefined,
+          height: desktop ? desktopPanelHeight : undefined,
+          maxHeight: desktop ? desktopPanelHeight : maxHeight,
           overflow: 'hidden',
           borderTopLeftRadius: radii.sheet,
           borderTopRightRadius: radii.sheet,
+          borderBottomLeftRadius: desktop ? radii.sheet : 0,
+          borderBottomRightRadius: desktop ? radii.sheet : 0,
           borderCurve: 'continuous',
           backgroundColor: glass.sheet,
         }}
       >
         <View
           style={{
-            height: 64,
-            paddingHorizontal: 20,
+            minHeight: desktop ? 78 : 64,
+            paddingHorizontal: desktop ? 28 : 20,
             flexDirection: 'row',
             alignItems: 'center',
+            gap: desktop ? 12 : 0,
           }}
         >
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              top: 8,
-              left: 0,
-              right: 0,
-              alignItems: 'center',
-            }}
-          >
+          {!desktop && (
             <View
+              pointerEvents="none"
               style={{
-                width: sheet.handleWidth,
-                height: sheet.handleHeight,
-                borderRadius: sheet.handleHeight / 2,
-                backgroundColor: colors.outlineVariant,
+                position: 'absolute',
+                top: 8,
+                left: 0,
+                right: 0,
+                alignItems: 'center',
               }}
-            />
+            >
+              <View
+                style={{
+                  width: sheet.handleWidth,
+                  height: sheet.handleHeight,
+                  borderRadius: sheet.handleHeight / 2,
+                  backgroundColor: colors.outlineVariant,
+                }}
+              />
+            </View>
+          )}
+          <View style={{ flex: 1, gap: 2, paddingTop: desktop ? 0 : 8 }}>
+            <AppText variant="headline" weight="semibold" headingLevel={1} numberOfLines={1}>
+              New deck
+            </AppText>
+            {desktop && (
+              <AppText variant="bodySm" tone="muted">
+                Name it, give it a face, then add cards.
+              </AppText>
+            )}
           </View>
-          <AppText
-            variant="headline"
-            weight="semibold"
-            headingLevel={1}
-            numberOfLines={1}
-            style={{ flex: 1, paddingTop: 8 }}
-          >
-            New deck
-          </AppText>
           <IconButton
             icon="close"
             size="sm"
@@ -243,88 +340,90 @@ export default function AddDeckScreen() {
         </View>
 
         <ScrollView
-          style={{ flexShrink: 1, minHeight: 0 }}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 16 }}
+          style={desktop ? { flex: 1, minHeight: 0 } : { flexShrink: 1, minHeight: 0 }}
+          contentContainerStyle={{
+            paddingHorizontal: desktop ? 28 : 20,
+            paddingTop: 4,
+            paddingBottom: 16,
+          }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={{ gap: 20 }}>
-            <Surface tone="pane" radius="card" padding="md" style={{ gap: 16 }}>
-              <Field
-                label="Name"
-                value={name}
-                onChangeText={(next) => {
-                  setName(next);
-                  setNameEdited(true);
-                  setSaveError(null);
-                }}
-                placeholder="Deck name"
-              />
-
-              {nameError && (
-                <AppText
-                  variant="caption"
-                  style={{ color: colors.error, marginTop: -8 }}
-                  accessibilityLiveRegion="polite"
-                >
-                  {nameError}
-                </AppText>
-              )}
-
-              <Field
-                label="Description"
-                value={description}
-                onChangeText={setDescription}
-                placeholder="Optional"
-                multiline
-                tall
-              />
-            </Surface>
-
-            <AppearancePicker
-              icon={icon}
-              color={color}
-              onIconChange={(next) => {
-                setIcon(next);
-                setSaveError(null);
-              }}
-              onColorChange={(next) => {
-                setColor(next);
-                setSaveError(null);
-              }}
-            />
-          </View>
+          {desktop ? (
+            <View style={{ flexDirection: 'row', gap: 24, alignItems: 'flex-start' }}>
+              <View style={{ flex: 1, minWidth: 0, gap: 20 }}>
+                {deckPreview}
+                {detailsPane}
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Surface tone="pane" radius="card" padding="md" style={{ gap: 4 }}>
+                  <AppText variant="label" tone="tertiary" className="uppercase">
+                    Appearance
+                  </AppText>
+                  <View style={{ marginTop: 14 }}>{appearancePane}</View>
+                </Surface>
+              </View>
+            </View>
+          ) : (
+            <View style={{ gap: 20 }}>
+              {detailsPane}
+              {appearancePane}
+            </View>
+          )}
         </ScrollView>
 
         <View
           style={{
             gap: 10,
-            paddingHorizontal: 20,
+            flexDirection: desktop ? 'row' : 'column',
+            justifyContent: desktop ? 'flex-end' : undefined,
+            alignItems: desktop ? 'center' : undefined,
+            paddingHorizontal: desktop ? 28 : 20,
             paddingTop: 12,
-            paddingBottom: Math.max(20, insets.bottom + 12),
+            paddingBottom: desktop ? 24 : Math.max(20, insets.bottom + 12),
+            borderTopWidth: desktop ? 1 : 0,
+            borderTopColor: desktop ? alpha(colors.outlineSoft, 0.25) : undefined,
             backgroundColor: glass.sheet,
           }}
         >
           {saveError && (
             <AppText
               variant="caption"
-              style={{ color: colors.error }}
+              style={{ color: colors.error, flex: desktop ? 1 : undefined }}
               accessibilityLiveRegion="polite"
             >
               {saveError}
             </AppText>
           )}
-          <ActionButton
-            label="Create deck"
-            onPress={createDeck}
-            disabled={!canCreate}
-          />
-          <ActionButton
-            label="Cancel"
-            tone="quiet"
-            onPress={closeSheet}
-            disabled={creating}
-          />
+          {desktop ? (
+            <>
+              <View style={{ width: 160 }}>
+                <ActionButton
+                  label="Cancel"
+                  tone="quiet"
+                  onPress={closeSheet}
+                  disabled={creating}
+                />
+              </View>
+              <View style={{ width: 200 }}>
+                <ActionButton label="Create deck" onPress={createDeck} disabled={!canCreate} />
+              </View>
+            </>
+          ) : (
+            <>
+              <ActionButton
+                label="Create deck"
+                onPress={createDeck}
+                disabled={!canCreate}
+              />
+              <ActionButton
+                label="Cancel"
+                tone="quiet"
+                onPress={closeSheet}
+                disabled={creating}
+              />
+            </>
+          )}
         </View>
       </View>
     </KeyboardAvoidingView>

@@ -31,6 +31,8 @@ type SheetPanelProps = {
   onBodyLayout?: (event: LayoutChangeEvent) => void;
   /** Scrolls the body instead of letting a long sheet grow past the viewport. */
   scroll?: boolean;
+  /** A centred desktop dialog: more gutter, all four corners, no bottom docking. */
+  desktop?: boolean;
 };
 
 /** True while the sheet body owns scrolling. Lists read it through `SheetScrollView`. */
@@ -71,12 +73,15 @@ export function SheetPanel({
   style,
   onLayout,
   scroll = false,
+  desktop = false,
 }: SheetPanelProps) {
   const hasHeader = Boolean(title || subtitle || onClose);
 
   return (
     <View
-      className={`rounded-t-2xl px-5 pb-8 ${hasHeader ? 'pt-6' : 'pt-3'} ${className}`}
+      className={`rounded-t-2xl ${desktop ? 'px-8 pb-8' : 'px-5 pb-8'} ${
+        hasHeader ? (desktop ? 'pt-7' : 'pt-6') : 'pt-3'
+      } ${className}`}
       style={[glassFillStrong, { backgroundColor: glass.sheet }, style as ViewStyle]}
       onLayout={onLayout}
     >
@@ -147,6 +152,11 @@ type BottomSheetModalProps = {
    * reserving nearly half the viewport. Forms keep the default tall surface.
    */
   compact?: boolean;
+  /**
+   * Centre the panel as a desktop dialog with a 960px cap and all four rounded
+   * corners. Phone and tablet keep the bottom-docked sheet unchanged.
+   */
+  desktopLayout?: boolean;
   children: React.ReactNode;
 };
 
@@ -191,11 +201,13 @@ export function BottomSheetModal({
   focusKey,
   onEscape,
   compact = false,
+  desktopLayout = false,
   children,
 }: BottomSheetModalProps) {
   const { mounted, value } = usePresence(visible, { duration: motion.base });
-  const { height: measuredHeight } = useWindowDimensions();
+  const { height: measuredHeight, width: measuredWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const isDesktop = desktopLayout && measuredWidth >= 1024;
   /**
    * A browser can report no window height at all — a PWA restored in the
    * background, a phone rotating on open, an embedded webview before layout.
@@ -206,7 +218,9 @@ export function BottomSheetModal({
     Number.isFinite(measuredHeight) && measuredHeight > 0 ? measuredHeight : 0;
   const maxHeight =
     windowHeight > 0
-      ? Math.round(windowHeight * (compact ? 0.82 : sheet.maxHeightRatio))
+      ? isDesktop
+        ? Math.max(0, windowHeight - 64)
+        : Math.round(windowHeight * (compact ? 0.82 : sheet.maxHeightRatio))
       : undefined;
 
   const onCloseRef = useRef(onClose);
@@ -313,6 +327,43 @@ export function BottomSheetModal({
   const translateY = value.interpolate({ inputRange: [0, 1], outputRange: [72, 0] });
   const panelOpacity = value.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 1, 1] });
 
+  const renderPanel = () => (
+    <Animated.View
+      style={[
+        styles.panel,
+        isDesktop ? styles.desktopPanel : null,
+        {
+          maxHeight,
+          // A short sheet still reads as a surface rather than a strip,
+          // unless it is a compact menu: those size to their own content.
+          minHeight:
+            !compact && !isDesktop && windowHeight > 0
+              ? Math.round(windowHeight * sheet.minHeightRatio)
+              : undefined,
+          opacity: panelOpacity,
+          transform: [{ translateY }],
+        },
+      ]}
+    >
+      <View ref={panelRef} tabIndex={-1}>
+        <SheetPanel
+          title={title}
+          subtitle={subtitle}
+          onClose={onClose}
+          desktop={isDesktop}
+          style={{
+            paddingBottom: Math.max(
+              compact ? 20 : 32,
+              insets.bottom + (compact ? 12 : 16)
+            ),
+          }}
+        >
+          {children}
+        </SheetPanel>
+      </View>
+    </Animated.View>
+  );
+
   return (
     <Modal
       visible
@@ -343,38 +394,13 @@ export function BottomSheetModal({
             assistive tech: the header's close button is the accessible one. */}
         <Pressable className="flex-1" onPress={onClose} accessible={false} />
 
-        <Animated.View
-          style={[
-            styles.panel,
-            {
-              maxHeight,
-              // A short sheet still reads as a surface rather than a strip,
-              // unless it is a compact menu: those size to their own content.
-              minHeight:
-                !compact && windowHeight > 0
-                  ? Math.round(windowHeight * sheet.minHeightRatio)
-                  : undefined,
-              opacity: panelOpacity,
-              transform: [{ translateY }],
-            },
-          ]}
-        >
-          <View ref={panelRef} tabIndex={-1}>
-            <SheetPanel
-              title={title}
-              subtitle={subtitle}
-              onClose={onClose}
-              style={{
-                paddingBottom: Math.max(
-                  compact ? 20 : 32,
-                  insets.bottom + (compact ? 12 : 16)
-                ),
-              }}
-            >
-              {children}
-            </SheetPanel>
+        {isDesktop ? (
+          <View style={styles.desktopStage} pointerEvents="box-none">
+            {renderPanel()}
           </View>
-        </Animated.View>
+        ) : (
+          renderPanel()
+        )}
       </View>
     </Modal>
   );
@@ -399,6 +425,23 @@ const styles = StyleSheet.create({
     borderTopRightRadius: radii.sheet,
     borderCurve: 'continuous',
     backgroundColor: glass.sheet,
+  },
+  desktopStage: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  desktopPanel: {
+    maxWidth: 960,
+    // A dialog is a complete surface: unlike the docked sheet, it rounds both
+    // ends so it reads as centred on the canvas rather than sliding under it.
+    borderBottomLeftRadius: radii.sheet,
+    borderBottomRightRadius: radii.sheet,
   },
   body: {
     flex: 1,
