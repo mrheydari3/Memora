@@ -31,8 +31,8 @@ type FolderGlyphProps = {
  * artwork rather than as depth.
  *
  * The compact drawing (32px, the Edit layout row) drops the side shade and the
- * inner seams, which are sub-pixel noise at that size, and gives the glyph a
- * larger share of the panel.
+ * inner seams, which are sub-pixel noise at that size, and lets the glyph fill
+ * a little more of the panel.
  */
 export function FolderGlyph({ icon, color, size = 44 }: FolderGlyphProps) {
   const tint = color ?? colors.primary;
@@ -42,7 +42,7 @@ export function FolderGlyph({ icon, color, size = 44 }: FolderGlyphProps) {
   const frontId = `folder-front-${gradientKey}`;
   const iconSize = Math.max(
     compact ? 13 : 12,
-    Math.round(size * (compact ? 0.43 : 0.4))
+    Math.round(size * (compact ? 0.48 : 0.46))
   );
   // Center the glyph on the front panel, between its top edge (24.7) and its
   // bottom edge (54.3), so the folder tab never competes with it.

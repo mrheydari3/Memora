@@ -67,7 +67,15 @@ export function DeckShelfRow({
         tone="pane"
         radius="card"
         padding="sm"
-        style={{ width: '100%', minHeight: 92, position: 'relative' }}
+        style={{
+          width: '100%',
+          // The shelf's rows stay low: a deck is an item inside the board, and
+          // folders carry the taller tile. The controls still fit at 88.
+          minHeight: 88,
+          paddingTop: 12,
+          paddingBottom: 12,
+          position: 'relative',
+        }}
       >
         <HintPressable
           hint="Open deck"

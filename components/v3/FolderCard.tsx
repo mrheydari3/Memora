@@ -10,6 +10,12 @@ import { FolderGlyph } from './FolderGlyph';
 
 const NUMERIC = { fontVariant: ['tabular-nums'] as const };
 
+/**
+ * A folder is a place, not a row: its tile stands taller than a deck card so
+ * the board reads as places and their contents, not as one flat list.
+ */
+const FOLDER_HEIGHT = 168;
+
 type FolderCardProps = {
   name: string;
   /** The folder's own glyph; the neutral folder until one is chosen. */
@@ -58,7 +64,7 @@ export function FolderCard({
 
   return (
     <Animated.View style={[press.style, { width: '100%' }]}>
-      <FolderGlass tabColor={tint} style={{ width: '100%' }}>
+      <FolderGlass style={{ width: '100%', minHeight: FOLDER_HEIGHT }}>
         <HintPressable
           hint="Open folder"
           testID="folder-card"
@@ -67,7 +73,7 @@ export function FolderCard({
           onPressOut={press.onPressOut}
           accessibilityRole="button"
           accessibilityLabel={`Open folder ${name}, ${deckCount} ${deckLabel}, ${due} due`}
-          style={{ flex: 1, minWidth: 0 }}
+          style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
             <FolderGlyph icon={icon} color={tint} size={48} />

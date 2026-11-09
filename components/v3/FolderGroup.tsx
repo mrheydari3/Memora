@@ -70,7 +70,6 @@ export function FolderGroup({
   return (
     <View>
       <FolderGlass
-        tabColor={color ?? colors.primary}
         radius={14}
         padding={0}
         style={{ width: '100%' }}
