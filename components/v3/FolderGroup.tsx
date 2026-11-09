@@ -3,7 +3,7 @@ import { Platform, useWindowDimensions, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { alpha, colors, fills, iconSize, radii } from '../../theme/tokens';
+import { alpha, colors, fills, iconSize, radii, stateColors } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { FolderGlass } from './FolderGlass';
 import { FolderGlyph } from './FolderGlyph';
@@ -33,6 +33,8 @@ type FolderGroupProps = {
   directDecks?: number;
   /** Cards those decks want today, rolled through the subtree. */
   due: number;
+  /** Studied share across the subtree, 0–1. */
+  progress?: number;
   pinned?: boolean;
   /** How many folders sit one level below, for the header split. */
   nestedFolders?: number;
@@ -60,6 +62,7 @@ export function FolderGroup({
   deckCount,
   directDecks = deckCount,
   due,
+  progress = 0,
   pinned = false,
   subfolders = [],
   onOpenSubfolder,
@@ -78,6 +81,8 @@ export function FolderGroup({
 
   const empty = deckCount === 0;
   const caughtUp = due === 0 && !empty;
+  const percent = Math.round(Math.max(0, Math.min(1, progress)) * 100);
+  const progressLabel = empty ? null : `${percent}% studied`;
   const deckLabel = deckCount === 1 ? 'deck' : 'decks';
   const nestedDecks = Math.max(0, deckCount - directDecks);
   // A parent with no direct decks is not empty: name what it actually holds.
@@ -88,11 +93,12 @@ export function FolderGroup({
       : `${deckCount} ${deckLabel}`;
   // At 320 a 48px glyph, the status tile and the chevron would leave the name
   // under 100px, so the due figure folds into the meta line instead.
-  const metaLabel = narrow
-    ? empty
-      ? 'Empty folder'
-      : `${deckCount} ${deckLabel} · ${due} due`
-    : counts;
+  const metaLabel =
+    (narrow
+      ? empty
+        ? 'Empty folder'
+        : `${deckCount} ${deckLabel} · ${due} due`
+      : counts) + (progressLabel ? ` · ${progressLabel}` : '');
 
   return (
     <View>
@@ -222,6 +228,30 @@ export function FolderGroup({
             </View>
           </View>
         </HintPressable>
+
+        {!empty && (
+          <View
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 3,
+              backgroundColor: colors.surfaceControl,
+            }}
+          >
+            <View
+              style={{
+                width: `${percent}%`,
+                height: '100%',
+                backgroundColor: stateColors.Review,
+              }}
+            />
+          </View>
+        )}
       </FolderGlass>
 
       {expanded && (

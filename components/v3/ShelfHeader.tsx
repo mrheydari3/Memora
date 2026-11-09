@@ -110,7 +110,12 @@ export function ShelfHeader({
           paddingBottom: 12,
         }}
       >
-        <AppText variant="caption" tone="tertiary" numberOfLines={1} style={{ flexShrink: 1 }}>
+        <AppText
+          variant="caption"
+          tone="tertiary"
+          numberOfLines={2}
+          style={{ flexShrink: 1, minWidth: 0 }}
+        >
           {meta}
         </AppText>
         {statusLabel && (

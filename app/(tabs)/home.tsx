@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, useWindowDimensions, View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 import type { ScrollViewInstance, ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
@@ -55,6 +55,8 @@ import {
   FolderCard,
   FolderGlyph,
   NewFolderButton,
+  ShelfBand,
+  ShelfBreadcrumbs,
   ExploreEntry,
   ExploreSheet,
 } from '../../components/v3';
@@ -91,13 +93,19 @@ type FolderSummary = {
   directDecks: number;
   due: number;
   nestedFolders: number;
+  /** Cards anywhere in this folder's subtree. */
+  cards: number;
+  /** Subtree cards that already carry at least one review. */
+  studied: number;
+  /** Studied share across the subtree, 0–1. */
+  progress: number;
 };
 
 /** The three bodies the Folders sheet can show. */
 type FolderSheetMode = 'list' | 'edit' | 'location';
 
 /**
- * Home — design v2, "Today first".
+ * Home — design v4, "Today first" with a folder-first library.
  *
  * The page answers "what do I study now?" before "what do I own?": the day
  * label ("Today") is the h1 and the due number is the canvas's one display-sized
@@ -154,8 +162,7 @@ export default function HomeScreen() {
   // Folders are a browsing layer: creating one is local, deleting one only
   // moves its decks and subfolders up, so neither can touch a card or a review.
   const [folderSheet, setFolderSheet] = useState(false);
-  // Explore is a reading lens over the shelf. It never writes, moves or
-  // reschedules anything; the sheet only routes to a deck the learner owns.
+  // Explore is a read-only lens; opening it never writes, moves or reschedules.
   const [exploreOpen, setExploreOpen] = useState(false);
   const [folderSheetMode, setFolderSheetMode] = useState<FolderSheetMode>('list');
   const [folderDraft, setFolderDraft] = useState('');
@@ -279,9 +286,10 @@ export default function HomeScreen() {
     deckQueues[0];
   const resuming = Boolean(lastStudiedEntry && continueEntry?.deck.id === lastStudiedEntry.deck.id);
 
-  // Explore reads the same capped queues as the shelf, so its reasons can
-  // never disagree with the due figures beside them. The engine is memoized:
-  // Home does not rebuild the full intelligence report for one row.
+  // Explore reads the same capped queues as the shelf, so its reasons can never
+  // disagree with the due figures beside them. The engine is memoized and only
+  // receives the light queue stats; Home does not build the full intelligence
+  // report for one row. The hero deck is excluded so the row never repeats it.
   const decksById = useMemo(() => new Map(decks.map((deck) => [deck.id, deck])), [decks]);
   const explorePicks = useMemo(() => {
     if (!ready) return [];
@@ -322,7 +330,6 @@ export default function HomeScreen() {
     () => (openFolder ? folderPath(folders, openFolder.id) : []),
     [folders, openFolder]
   );
-  const parentFolder = folderTrail.length > 1 ? folderTrail[folderTrail.length - 2] : null;
 
   // The shelf shows one level: the folders inside the open folder (or the root
   // folders) and the decks that live exactly here. A deck filed away is reached
@@ -349,6 +356,13 @@ export default function HomeScreen() {
     for (const folder of folders) {
       const directEntries = deckQueues.filter((entry) => entry.deck.folderId === folder.id);
       const subtree = subtreeById.get(folder.id);
+      const subtreeIds = folderDescendantIds(folders, folder.id);
+      subtreeIds.add(folder.id);
+      const subtreeEntries = deckQueues.filter(
+        (entry) => entry.deck.folderId && subtreeIds.has(entry.deck.folderId)
+      );
+      const cards = subtreeEntries.reduce((sum, entry) => sum + entry.cardCount, 0);
+      const studied = subtreeEntries.reduce((sum, entry) => sum + entry.studiedCount, 0);
       map.set(folder.id, {
         id: folder.id,
         name: folder.name,
@@ -359,6 +373,9 @@ export default function HomeScreen() {
         directDecks: directEntries.length,
         due: subtree?.due ?? 0,
         nestedFolders: subtree?.nestedFolders ?? 0,
+        cards,
+        studied,
+        progress: cards > 0 ? studied / cards : 0,
       });
     }
     return map;
@@ -400,10 +417,6 @@ export default function HomeScreen() {
       (entry) => entry.deck.folderId && scope.has(entry.deck.folderId)
     );
   }, [deckQueues, openFolder, folders]);
-  const shelfCards = useMemo(
-    () => shelfEntries.reduce((sum, entry) => sum + entry.cardCount, 0),
-    [shelfEntries]
-  );
   const shelfDue = useMemo(
     () => shelfEntries.reduce((sum, entry) => sum + entry.total, 0),
     [shelfEntries]
@@ -556,18 +569,18 @@ export default function HomeScreen() {
     (folder) => folder.decks > 0 && folder.due === 0
   ).length;
 
-  const folderCountLabel = `${visibleFolders.length} ${
-    visibleFolders.length === 1 ? 'folder' : 'folders'
+  // The shelf is a library index now, so its meta line names both kinds of
+  // item a level can hold. At the root the folder total counts the whole tree;
+  // inside a folder it counts the child folders printed here.
+  const scopeFolderCount = openFolder ? visibleFolders.length : folders.length;
+  const deckCountLabel = `${shelfEntries.length} ${
+    shelfEntries.length === 1 ? 'deck' : 'decks'
   }`;
-  const cardCountLabel = `${shelfCards.toLocaleString('en-US')} ${
-    shelfCards === 1 ? 'card' : 'cards'
+  const folderCountLabel = `${scopeFolderCount} ${
+    scopeFolderCount === 1 ? 'folder' : 'folders'
   }`;
   const dueLabel = shelfDue > 0 ? `${shelfDue} due` : 'all caught up';
-  // The count chip already carries the deck count, so the meta line spends its
-  // room on what the chip cannot say: cards and what is due.
-  const shelfMeta = openFolder
-    ? `${folderCountLabel} · ${cardCountLabel} · ${dueLabel}`
-    : `${cardCountLabel} · ${dueLabel}`;
+  const shelfMeta = `${deckCountLabel} · ${folderCountLabel} · ${dueLabel}`;
 
   // Pin and move stay open after acting: they are repeatable shelf operations,
   // and the same menu is used for the row's overflow and right-click actions.
@@ -660,21 +673,21 @@ export default function HomeScreen() {
 
   const shelfReorderGroups: ShelfReorderGroup[] = [
     {
-      key: 'decks',
-      label: openFolder ? 'Decks here' : 'Decks',
-      items: deckReorderItems,
-      onReorder: (from: number, to: number) => {
-        const entry = visibleDecks[from];
-        if (entry) void moveDeckTo(entry.deck.id, to);
-      },
-    },
-    {
       key: 'folders',
       label: openFolder ? 'Folders here' : 'Folders',
       items: folderReorderItems,
       onReorder: (from: number, to: number) => {
         const folder = visibleFolders[from];
         if (folder) void moveFolderTo(folder.id, to);
+      },
+    },
+    {
+      key: 'decks',
+      label: openFolder ? 'Decks here' : 'Unfiled decks',
+      items: deckReorderItems,
+      onReorder: (from: number, to: number) => {
+        const entry = visibleDecks[from];
+        if (entry) void moveDeckTo(entry.deck.id, to);
       },
     },
   ].filter((group) => group.items.length > 0);
@@ -689,31 +702,16 @@ export default function HomeScreen() {
     </View>
   );
 
-  // Folders and decks share one board but not one row: a 168px place beside an
-  // 88px item leaves a hole under the shorter card. The decks keep their own
-  // band and the folders open a second one, so the rhythm stays intentional.
+  // Folder-first: a level opens on the places it can enter, then lists the
+  // decks that live loose here. A folder is the primary organizing idea, so it
+  // should never sit under a pile of standalone cards.
 
   const decksSection = (
     <View>
-      {openFolder && (
-        <Pressable
-          onPress={() => setOpenFolderId(parentFolder?.id ?? null)}
-          accessibilityRole="button"
-          accessibilityLabel={`Back to ${parentFolder?.name ?? 'All decks'}`}
-          style={{
-            minHeight: heights.hit,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            marginBottom: 2,
-          }}
-        >
-          <MaterialIcons name="arrow-back" size={iconSize.md} color={colors.primary} />
-          <AppText variant="bodySm" weight="semibold" tone="accent">
-            {parentFolder?.name ?? 'All decks'}
-          </AppText>
-        </Pressable>
-      )}
+      <ShelfBreadcrumbs
+        trail={folderTrail}
+        onNavigate={(folderId) => setOpenFolderId(folderId)}
+      />
 
       <ShelfPanel style={{ padding: shelfInset }}>
         <ShelfHeader
@@ -730,7 +728,7 @@ export default function HomeScreen() {
           editingLayout={editingLayout}
         />
 
-        {!editingLayout && explorePicks.length > 0 ? (
+        {ready && !editingLayout && explorePicks.length > 0 ? (
           <ExploreEntry
             picks={explorePicks}
             decksById={decksById}
@@ -749,20 +747,13 @@ export default function HomeScreen() {
           scrollOffsetRef={homeScrollY}
         />
       ) : (
-        <View style={{ gap: desktop ? 0 : 20 }}>
-        {desktop ? (
-          visibleDecks.length > 0 || visibleFolders.length > 0 ? (
-            <View style={{ gap: 20 }}>
-              {visibleDecks.length > 0 && (
-                <View style={deckGridStyle}>
-                  {visibleDecks.map((entry) => (
-                    <View key={entry.deck.id} style={shelfCellStyle}>
-                      {renderDeck(entry)}
-                    </View>
-                  ))}
-                </View>
-              )}
-              {visibleFolders.length > 0 && (
+        <View style={{ gap: 20 }}>
+          {visibleFolders.length > 0 && (
+            <ShelfBand
+              label={openFolder ? 'Folders here' : 'Folders'}
+              count={visibleFolders.length}
+            >
+              {desktop ? (
                 <View style={deckGridStyle}>
                   {visibleFolders.map((folder) => (
                     <View key={folder.id} style={shelfCellStyle}>
@@ -772,6 +763,7 @@ export default function HomeScreen() {
                         color={folder.color}
                         deckCount={folder.decks}
                         due={folder.due}
+                        progress={folder.progress}
                         nestedFolders={folder.nestedFolders}
                         pinned={folder.pinnedAt != null}
                         onPress={() => setOpenFolderId(folder.id)}
@@ -779,59 +771,59 @@ export default function HomeScreen() {
                     </View>
                   ))}
                 </View>
+              ) : (
+                <View style={{ gap: 10 }}>
+                  {visibleFolders.map((folder) => {
+                    const entries = decksInFolder(folder.id);
+                    const subfolders = subfoldersIn(folder.id);
+                    return (
+                      <FolderGroup
+                        key={folder.id}
+                        name={folder.name}
+                        icon={folder.icon}
+                        color={folder.color}
+                        deckCount={folder.decks}
+                        directDecks={folder.directDecks}
+                        due={folder.due}
+                        progress={folder.progress}
+                        pinned={folder.pinnedAt != null}
+                        nestedFolders={folder.nestedFolders}
+                        expanded={!collapsedFolders.has(folder.id)}
+                        onToggle={() => toggleFolder(folder.id)}
+                        subfolders={subfolders}
+                        onOpenSubfolder={setOpenFolderId}
+                      >
+                        {entries.length > 0 ? (
+                          renderDeckList(entries)
+                        ) : subfolders.length === 0 ? (
+                          <AppText variant="caption" tone="muted">
+                            No decks directly inside yet.
+                          </AppText>
+                        ) : null}
+                      </FolderGroup>
+                    );
+                  })}
+                </View>
               )}
-            </View>
-          ) : null
-        ) : (
-          <>
-            {visibleDecks.length > 0 && (
-              <View style={{ gap: 8 }}>
-                <AppText variant="label" tone="tertiary" className="uppercase">
-                  {openFolder ? 'Decks here' : 'Top level · Standalone'}
-                </AppText>
-                {renderDeckList(visibleDecks)}
-              </View>
-            )}
+            </ShelfBand>
+          )}
 
-            {visibleFolders.map((folder) => {
-              const entries = decksInFolder(folder.id);
-              const subfolders = subfoldersIn(folder.id);
-              return (
-                <FolderGroup
-                  key={folder.id}
-                  name={folder.name}
-                  icon={folder.icon}
-                  color={folder.color}
-                  deckCount={folder.decks}
-                  directDecks={folder.directDecks}
-                  due={folder.due}
-                  pinned={folder.pinnedAt != null}
-                  nestedFolders={folder.nestedFolders}
-                  expanded={!collapsedFolders.has(folder.id)}
-                  onToggle={() => toggleFolder(folder.id)}
-                  subfolders={subfolders}
-                  onOpenSubfolder={setOpenFolderId}
-                >
-                  {entries.length > 0 ? (
-                    renderDeckList(entries)
-                  ) : subfolders.length === 0 ? (
-                    <AppText variant="caption" tone="muted">
-                      No decks directly inside yet.
-                    </AppText>
-                  ) : null}
-                </FolderGroup>
-              );
-            })}
-          </>
-        )}
+          {visibleDecks.length > 0 && (
+            <ShelfBand
+              label={openFolder ? 'Decks here' : 'Unfiled decks'}
+              count={visibleDecks.length}
+            >
+              {renderDeckList(visibleDecks)}
+            </ShelfBand>
+          )}
 
-        {visibleDecks.length === 0 && visibleFolders.length === 0 && (
-          <AppText variant="body" tone="muted">
-            {openFolder
-              ? 'This folder is empty. Move a deck in from the deck’s options, or add a folder.'
-              : 'No decks yet.'}
-          </AppText>
-        )}
+          {visibleDecks.length === 0 && visibleFolders.length === 0 && (
+            <AppText variant="body" tone="muted">
+              {openFolder
+                ? 'This folder is empty. Move a deck in from the deck’s options, or add a folder.'
+                : 'No decks yet.'}
+            </AppText>
+          )}
         </View>
       )}
       </ShelfPanel>

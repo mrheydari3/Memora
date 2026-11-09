@@ -448,3 +448,84 @@ test('the hero deck is excluded, so a one-deck library has nothing to explore', 
 
   assert.deepEqual(picks, []);
 });
+
+test('almost there caps the near-finished window at five cards or ten percent', () => {
+  // Ten percent of 60 is six, so six cards left still qualifies and seven does not.
+  const nearCards = [...studiedCards('near', 54), ...Array.from({ length: 6 }, (_, index) =>
+    makeCard('near', `near-new-${index}`, { state: 'New' })
+  )];
+  const edgeCards = [...studiedCards('edge', 53), ...Array.from({ length: 7 }, (_, index) =>
+    makeCard('edge', `edge-new-${index}`, { state: 'New' })
+  )];
+
+  const near = buildExplorePicks(
+    makeInput({
+      decks: [makeDeck('near')],
+      cards: { near: nearCards },
+      stats: [makeStats('near', 6, 6)],
+    })
+  );
+  const edge = buildExplorePicks(
+    makeInput({
+      decks: [makeDeck('edge')],
+      cards: { edge: edgeCards },
+      stats: [makeStats('edge', 7, 7)],
+    })
+  );
+
+  assert.deepEqual(
+    near.map((pick) => [pick.deckId, pick.kind, pick.reason]),
+    [['near', 'almost', '90% studied · 6 cards left']]
+  );
+  assert.deepEqual(edge, []);
+});
+
+test('ties prefer the deck with the oldest last review', () => {
+  const decks = [makeDeck('younger'), makeDeck('older')];
+  const cards = {
+    younger: studiedCards('younger', 30),
+    older: studiedCards('older', 30),
+  };
+  const stats = [makeStats('younger', 0), makeStats('older', 0)];
+  const reviews = [
+    ...makeReviews('younger', 30, { lapses: 6, reviewedAt: NOW - DAY }),
+    ...makeReviews('older', 30, { lapses: 6, reviewedAt: NOW - 5 * DAY }),
+  ];
+
+  const picks = buildExplorePicks(makeInput({ decks, cards, stats, reviews }));
+
+  assert.deepEqual(
+    picks.map((pick) => pick.deckId),
+    ['older']
+  );
+  assert.equal(picks[0].kind, 'care');
+});
+
+test('ties prefer the higher due count, then the deck name and id', () => {
+  const decks = [makeDeck('beta', 'Beta'), makeDeck('alpha', 'Alpha')];
+  const cards = {
+    beta: studiedCards('beta', 30),
+    alpha: studiedCards('alpha', 30),
+  };
+  const stats = [makeStats('beta', 3), makeStats('alpha', 7)];
+  const reviews = [
+    ...makeReviews('beta', 30, { lapses: 6, reviewedAt: NOW - 5 * DAY }),
+    ...makeReviews('alpha', 30, { lapses: 6, reviewedAt: NOW - 5 * DAY }),
+  ];
+
+  const picks = buildExplorePicks(makeInput({ decks, cards, stats, reviews }));
+
+  assert.deepEqual(
+    picks.map((pick) => [pick.deckId, pick.kind, pick.reason]),
+    [['alpha', 'care', '6 lapses in 30 reviews']]
+  );
+});
+
+test('empty input returns an empty list', () => {
+  assert.deepEqual(
+    buildExplorePicks(
+      makeInput({ decks: [], cards: {}, stats: [] })
+    ),
+    []
+  );
+});

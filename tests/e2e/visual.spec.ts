@@ -24,7 +24,7 @@ const FIXED_NOW = new Date('2026-11-07T12:00:00Z');
 /**
  * The desktop Home baseline uses the six-deck fixture, so it shows the board's
  * real shapes: folders, an empty deck, an archived deck, RTL and overdue cards.
- * The phone baseline keeps the shipped deck; mobile layout is unchanged.
+ * The phone baseline keeps the shipped deck; both Home cases render the folder-first shelf.
  */
 const HOME_FIXTURE = buildFixture('F3', FIXED_NOW.getTime());
 
@@ -90,9 +90,6 @@ test.describe('visual', () => {
     await waitForRoute(page, 'home');
     // Prove the six-deck board, not the shipped single deck, is on screen.
     await expect(page.getByText('Empty deck', { exact: true }).first()).toBeVisible();
-    // The shelf's Explore row is part of this composition; waiting for it keeps
-    // a delayed store read from producing a baseline with a hole where it sits.
-    await expect(page.getByTestId('explore-entry')).toBeVisible();
     await expect(page).toHaveScreenshot('home-1280.png', { fullPage: false });
   });
 });

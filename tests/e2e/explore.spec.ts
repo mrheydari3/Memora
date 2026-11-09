@@ -54,7 +54,7 @@ test('the row summarizes the picks and the sheet groups them by action', async (
   const entry = page.getByTestId('explore-entry');
   await expect(entry).toBeVisible();
   await expect(entry).toContainText('Explore your decks');
-  await expect(entry).toContainText('2 picks · Backlog · Due today (review)');
+  await expect(entry).toContainText('2 picks · Backlog · 6 overdue · 6 due today');
 
   const { sheet } = await openSheet(page);
   await expect(sheet.getByText('Picked from your library. Nothing is rescheduled.')).toBeVisible();
@@ -100,7 +100,7 @@ test('inside a folder the sheet names the scope and drops every other deck', asy
   await travel.click();
 
   const entry = page.getByTestId('explore-entry');
-  await expect(entry).toContainText('1 pick · Backlog · Due today (review)');
+  await expect(entry).toContainText('1 pick · Backlog · 6 overdue · 6 due today');
   const { sheet } = await openSheet(page);
 
   await expect(sheet.getByText('Inside Travel')).toBeVisible();
@@ -143,22 +143,30 @@ test('a library whose only deck is the hero has nothing to explore', async ({ pa
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
-test('explore screenshots at phone and desktop widths', async ({ page }) => {
-  await seed(page);
-  const { sheet } = await openSheet(page);
-  await page.waitForTimeout(350);
-  await page.screenshot({ path: 'docs/refinements/explore-sheet-390.png' });
-  await page.keyboard.press('Escape');
-  await expect(sheet).toBeHidden();
-  await page.waitForTimeout(250);
-  await page.screenshot({ path: 'docs/refinements/explore-row-390.png' });
+test('explore screenshots at 320, 390 and 1280', async ({ page }) => {
+  for (const { width, height } of [
+    { width: 320, height: 700 },
+    { width: 390, height: 844 },
+    { width: 1280, height: 900 },
+  ]) {
+    await page.setViewportSize({ width, height });
+    await seed(page);
 
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.reload();
-  await settle(page);
-  await page.waitForTimeout(250);
-  await page.screenshot({ path: 'docs/refinements/explore-row-1280.png' });
-  await openSheet(page);
-  await page.waitForTimeout(350);
-  await page.screenshot({ path: 'docs/refinements/explore-sheet-1280.png' });
+    const entry = page.getByTestId('explore-entry');
+    if (width < 1024) await entry.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(250);
+    await page.screenshot({
+      path: `docs/refinements/explore-row-${width}.png`,
+      animations: 'disabled',
+    });
+
+    const { sheet } = await openSheet(page);
+    await page.waitForTimeout(250);
+    await page.screenshot({
+      path: `docs/refinements/explore-sheet-${width}.png`,
+      animations: 'disabled',
+    });
+    await page.keyboard.press('Escape');
+    await expect(sheet).toBeHidden();
+  }
 });

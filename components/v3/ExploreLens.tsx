@@ -75,14 +75,10 @@ export function ExploreEntry({ picks, decksById, onPress }: ExploreEntryProps) {
   const top = picks[0];
   if (!top) return null;
 
-  const subtitle = `${countLabel(picks.length)} · ${KIND_LABEL[top.kind]} · ${deckName(
-    top,
-    decksById
-  )}`;
-  const label = `Explore your decks. ${countLabel(picks.length)}. Top pick: ${deckName(
-    top,
-    decksById
-  )}, ${KIND_LABEL[top.kind]}.`;
+  const subtitle = `${countLabel(picks.length)} · ${KIND_LABEL[top.kind]} · ${top.reason}`;
+  const label = `Explore your decks. ${countLabel(picks.length)}. ${KIND_LABEL[
+    top.kind
+  ]}: ${deckName(top, decksById)}. ${top.reason}.`;
 
   return (
     <View
@@ -305,7 +301,6 @@ export function ExploreSheet({
       title="Explore your decks"
       subtitle="Picked from your library. Nothing is rescheduled."
       desktopLayout={desktopLayout}
-      desktopMaxWidth={560}
       focusKey={`explore-${picks.map((pick) => pick.deckId).join('-')}`}
     >
       <SheetScrollView

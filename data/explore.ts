@@ -193,14 +193,12 @@ export function buildExplorePicks(input: ExploreInput): ExplorePick[] {
     let score = 0;
     let reason = '';
 
-    if (overdue > 0 || (stats.due > 0 && dueWork >= 5)) {
+    if (overdue > 0 || dueWork >= 5) {
       kind = 'backlog';
       score = clamp01(overdue / 10) * 0.6 + clamp01(stats.due / 40) * 0.4;
       reason =
         overdue > 0
-          ? stats.due > 0
-            ? `${num(overdue)} overdue · ${num(stats.due)} due today`
-            : `${num(overdue)} overdue`
+          ? `${num(overdue)} overdue · ${num(stats.due)} due today`
           : `${num(stats.due)} due today`;
     } else if (sample >= MIN_DECK_SAMPLE && lapseRate >= CARE_RATE) {
       kind = 'care';
@@ -212,7 +210,9 @@ export function buildExplorePicks(input: ExploreInput): ExplorePick[] {
       cards.length >= 5 &&
       progress >= ALMOST_SHARE &&
       remaining > 0 &&
-      remaining <= Math.max(5, Math.ceil(cards.length * 0.1))
+      // Ten percent is a ceiling, not a rounded-up allowance: 11 cards leave
+      // one, not two, inside the near-finished window.
+      remaining <= Math.max(5, cards.length * 0.1)
     ) {
       kind = 'almost';
       score = progress * 0.6 + (1 - remaining / cards.length) * 0.4;
