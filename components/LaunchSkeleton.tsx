@@ -18,6 +18,7 @@ import {
   heights,
   iconSize,
   radii,
+  rims,
   spacing,
   tabBar,
 } from '../theme/tokens';
@@ -81,7 +82,7 @@ export function LaunchSkeleton({ pathname = '/' }: { pathname?: string }) {
         <LaunchBody variant={variant} />
       </View>
 
-      {tabRoute && <LaunchDock bottom={Math.max(insets.bottom, tabBar.gutter)} />}
+      {tabRoute && <LaunchDock bottom={Math.max(insets.bottom, v3.appBar.floatGap)} />}
     </View>
   );
 }
@@ -359,9 +360,10 @@ function HomeLaunchSkeleton() {
 }
 
 /**
- * The floating dock in its pre-tab state: the same 64px capsule, 292px
- * content width (four 70px cells plus 6px padding), 52px pill and selected
- * lens. It is a static skeleton, not a second navigator — nothing is focusable.
+ * The floating dock in its pre-tab state: the same 68px pill and soft rim as
+ * the live dock, 300px content width (four 72px cells plus 6px padding), 56px
+ * tile and a matching selection lens. It is a static skeleton, not a second
+ * navigator — nothing is focusable.
  */
 function LaunchDock({ bottom }: { bottom: number }) {
   const lensInset = 3;
@@ -385,7 +387,9 @@ function LaunchDock({ bottom }: { bottom: number }) {
           flexDirection: 'row',
           alignItems: 'center',
           borderRadius: tabBar.height / 2,
-          backgroundColor: glass.tab,
+          borderWidth: 1,
+          borderColor: rims.soft,
+          backgroundColor: glass.appBar,
         }}
       >
         <View
@@ -395,7 +399,7 @@ function LaunchDock({ bottom }: { bottom: number }) {
             top: tabBar.padding,
             width: tabBar.cell - lensInset * 2,
             height: tabBar.pill,
-            borderRadius: tabBar.tileRadius,
+            borderRadius: tabBar.pill / 2,
             backgroundColor: colors.selectionSurface,
           }}
         />

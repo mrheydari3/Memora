@@ -11,7 +11,8 @@ import {
 import type { LayoutChangeEvent } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { AppText } from './AppText';
-import { colors, glass, iconSize, motion, shadow, tabBar } from '../theme/tokens';
+import { colors, glass, iconSize, motion, rims, shadow, tabBar } from '../theme/tokens';
+import { v3 } from '../theme/v3';
 import { prefersReducedMotion, springLiquidTo } from '../motion';
 import { useRtl } from '../services/direction';
 
@@ -125,13 +126,17 @@ function TabItem({
 }
 
 /**
- * LiquidTabBar — the floating iOS 26-style glass capsule.
+ * LiquidTabBar — the floating tab dock.
  *
- * A borderless dock: a solid ink fill carries the material and a rounded accent
- * tile marks the active tab, whose glyph and caption turn accent at the same
- * time. The bar draws no shadow and no lower shade; every colour and geometry
- * value comes from the design tokens, so the capsule, the tile and the glyph
- * step stay in sync.
+ * The dock carries the app bar's material — the same 40px refraction under the
+ * 85% ink wash, the same 1px soft rim, the same 12px float — but keeps its own
+ * silhouette: a 68px pill, rounded by height ÷ 2, so it reads as the dock and
+ * not as a second header. The active tab is a travelling lens at the same
+ * pill radius (56 ÷ 2), sitting one padding step inside the bar.
+ *
+ * The bar draws no shadow and no lower shade; every colour and geometry value
+ * comes from the design tokens, so the dock, the lens and the app bar stay in
+ * sync.
  *
  * The lens is placed from the tabs' own measured boxes rather than from slot
  * arithmetic: a tab that grows to fit a longer label still gets a lens exactly
@@ -447,7 +452,7 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
   return (
     <Animated.View
       pointerEvents="box-none"
-      style={[styles.dock, { bottom: Math.max(insets.bottom, tabBar.gutter) }, dockStyle]}
+      style={[styles.dock, { bottom: Math.max(insets.bottom, v3.appBar.floatGap) }, dockStyle]}
     >
       <View
         ref={(node) => {
@@ -458,14 +463,11 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
         accessibilityLabel="Primary tabs"
         {...panResponder.panHandlers}
       >
-        {/*
-          The material: a real blur under a tinted ink wash, exactly how a
-          native tab bar reads the content behind it. v3 draws no rim: the lens
-          and the fill ladder carry the edge.
-        */}
+        {/* The app bar's material, one continuous surface: a 40px refraction
+            under the 85% ink wash, inside the bar's own soft rim. */}
         <View pointerEvents="none" style={styles.clip}>
-          <BlurView intensity={glass.blurTab} tint="dark" style={StyleSheet.absoluteFill} />
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: glass.tabOverlay }]} />
+          <BlurView intensity={glass.blurHeader} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: glass.appBar }]} />
         </View>
 
         <View
@@ -537,8 +539,8 @@ const styles = StyleSheet.create({
     zIndex: 50,
   },
   bar: {
-    // Intrinsic width: the rail hugs its cells and never stretches with the
-    // viewport, so the selection tile always sits exactly on a tab.
+    // Intrinsic width: the dock hugs its cells and never stretches with the
+    // viewport, so the selection lens always sits exactly on a tab.
     alignSelf: 'center',
     maxWidth: tabBar.maxWidth,
     minHeight: tabBar.height,
@@ -546,7 +548,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderRadius: tabBar.height / 2,
     borderCurve: 'continuous',
-    backgroundColor: glass.tab,
+    borderWidth: 1,
+    borderColor: rims.soft,
+    overflow: 'hidden',
     boxShadow: shadow.liquidTab,
   },
   clip: {
@@ -569,8 +573,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     // The lens is the tab's own tile, so the selection reads as a segment
-    // rather than a floating dot.
-    borderRadius: tabBar.tileRadius,
+    // rather than a floating dot: a pill inside the bar's pill.
+    borderRadius: tabBar.pill / 2,
     overflow: 'hidden',
   },
   tab: {
@@ -582,6 +586,6 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: tabBar.tileRadius,
+    borderRadius: tabBar.pill / 2,
   },
 });

@@ -126,13 +126,6 @@ const glass = {
   appBar: 'rgba(10, 14, 20, 0.20)',
   /** The blue tint of a hero/accent pane — one value for every selected pane. */
   accent: '#1c3450',
-  /**
-   * Floating icon-only tab capsule: a near-black ink tint plus the layer that
-   * pulls expo-blur back to the app's navy. Opaque enough to stay fully dark
-   * over bright content, while the strong blur still softens the edge.
-   */
-  tab: 'rgba(6, 9, 15, 0.55)',
-  tabOverlay: 'rgba(0, 0, 0, 0.22)',
   /** The flashcard face reads a touch brighter than a normal pane. */
   cardFace: '#171e29',
   /**
@@ -143,12 +136,9 @@ const glass = {
   /** The two panes peeking out under the flashcard. */
   stackNear: '#0d121a',
   stackFar: '#090d13',
-  // The dock is the one surface that keeps its blur: iOS reads it as material
-  // behind the interface rather than as a painted strip.
   blur: 0,
   blurStrong: 0,
-  blurTab: 80,
-  /** The floating page header: a soft refraction, lighter than the dock. */
+  /** The floating app bar and the tab dock: one refraction for both surfaces. */
   blurHeader: 40,
   /** The selection lens: a denser blur than the rail around it. */
   blurLens: 40,
@@ -215,8 +205,8 @@ const iconSize = {
   md: 18,
   lg: 20,
   xl: 22,
-  /** The bottom dock's glyphs: one step up from xl, sized for a taller capsule. */
-  nav: 24,
+  /** The bottom dock's glyphs: one step up from xl, sized for the taller pill. */
+  nav: 26,
   display: 28,
 };
 
@@ -398,27 +388,25 @@ const menu = {
 
 const tabBar = {
   /**
-   * The dock is sized by its content, not by the viewport: three fixed cells
-   * plus the rail's padding. A percentage width made the same dock look narrow
+   * The dock is sized by its content, not by the viewport: four fixed cells
+   * plus the dock's padding. A percentage width made the same dock look narrow
    * on phones and stretched on tablets, and it forced the selection tile to
    * float inside a slot wider than itself.
    */
   // Four tabs, so the cell is narrower than the three-tab dock was. A full cell
   // remains a comfortable target and the labels still fit at 200% text size.
-  cell: 70,
-  height: 64,
+  cell: 72,
+  height: 68,
   /**
-   * The dock's ceiling. Four full cells plus padding is 292; the small headroom
-   * is for a label that grows at 200% text size, so a caption takes the slack
-   * from its neighbours instead of truncating.
+   * The dock's ceiling. Four full cells plus the dock's padding is 300, so a
+   * 320px phone still keeps a 9px margin at each edge; the 20px of headroom is
+   * for a label that grows at 200% text size, so a caption takes the slack from
+   * its neighbours instead of truncating.
    */
-  maxWidth: 300,
-  gutter: 12,
+  maxWidth: 320,
   padding: 6,
-  /** The tappable tile that holds one glyph and its caption. */
-  pill: 52,
-  /** Half a tile's height (52 / 2): the selection tile is a pill, fully round. */
-  tileRadius: 26,
+  /** The tappable tile that holds one glyph and its caption; height − 2 padding. */
+  pill: 56,
 };
 
 module.exports = {

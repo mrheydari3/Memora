@@ -75,15 +75,12 @@ type Palette = {
     strong: string;
     appBar: string;
     accent: string;
-    tab: string;
-    tabOverlay: string;
     cardFace: string;
     sheet: string;
     stackNear: string;
     stackFar: string;
     blur: number;
     blurStrong: number;
-    blurTab: number;
     blurHeader: number;
     blurLens: number;
     lensWash: string;
@@ -194,10 +191,8 @@ type Palette = {
     cell: number;
     height: number;
     maxWidth: number;
-    gutter: number;
     padding: number;
     pill: number;
-    tileRadius: number;
   };
 };
 

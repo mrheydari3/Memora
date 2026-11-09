@@ -64,9 +64,10 @@ export function PageHeader({
       >
         {brand ? (
           <>
-            {/* The dark mark carries its own light ink, so it needs no plate. */}
+            {/* The light-on-dark rendition: same geometry as the supplied
+                mark, fills lifted so it holds on the ink canvas with no plate. */}
             <Image
-              source={require('../../assets/brand-koala.png')}
+              source={require('../../assets/brand-mark-dark.png')}
               style={{
                 width: v3.appBar.brandTile,
                 height: v3.appBar.brandTile,
