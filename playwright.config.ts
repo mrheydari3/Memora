@@ -1,6 +1,14 @@
+import { join } from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 
 const externalBaseURL = process.env.BASE_URL;
+
+// Linux's chrome-headless-shell aborts in Skia when a glyph needs a system
+// fallback but fontconfig has no configuration. The app already ships every
+// face it renders, so point the browser at those files.
+if (process.platform === 'linux' && !process.env.FONTCONFIG_FILE) {
+  process.env.FONTCONFIG_FILE = join(__dirname, 'tests/e2e/fontconfig.conf');
+}
 
 /**
  * Playwright config for the audit's regression suite.
