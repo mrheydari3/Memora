@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Animated, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
@@ -9,12 +10,6 @@ import { FolderGlass } from './FolderGlass';
 import { FolderGlyph } from './FolderGlyph';
 
 const NUMERIC = { fontVariant: ['tabular-nums'] as const };
-
-/**
- * A folder is a place, not a row: its tile stands taller than a deck card so
- * the board reads as places and their contents, not as one flat list.
- */
-const FOLDER_HEIGHT = 168;
 
 type FolderCardProps = {
   name: string;
@@ -52,25 +47,34 @@ export function FolderCard({
   onPress,
 }: FolderCardProps) {
   const press = usePressFeedback({ scale: 0.985 });
+  const [hovered, setHovered] = useState(false);
   const tint = color ?? colors.primary;
   const empty = deckCount === 0;
   const deckLabel = deckCount === 1 ? 'deck' : 'decks';
   const folderLabel = nestedFolders === 1 ? 'folder' : 'folders';
-  const meta = empty
-    ? 'Folder · empty'
-    : nestedFolders > 0
-      ? `Folder · ${deckCount} ${deckLabel} · ${nestedFolders} ${folderLabel}`
-      : `Folder · ${deckCount} ${deckLabel}`;
+  // The illustration already says "folder"; the meta line only carries what
+  // the tile holds, so a name and a count do not compete.
+  const meta = [
+    empty ? 'No decks' : `${deckCount} ${deckLabel}`,
+    nestedFolders > 0 ? `${nestedFolders} ${folderLabel}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <Animated.View style={[press.style, { width: '100%' }]}>
-      <FolderGlass style={{ width: '100%', minHeight: FOLDER_HEIGHT }}>
+      <FolderGlass
+        hovered={hovered}
+        style={{ width: '100%', minHeight: v3.heights.folderCard }}
+      >
         <HintPressable
           hint="Open folder"
           testID="folder-card"
           onPress={onPress}
           onPressIn={press.onPressIn}
           onPressOut={press.onPressOut}
+          onHoverIn={() => setHovered(true)}
+          onHoverOut={() => setHovered(false)}
           accessibilityRole="button"
           accessibilityLabel={`Open folder ${name}, ${deckCount} ${deckLabel}, ${due} due`}
           style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}

@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import type { ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { alpha, colors, glass, radii } from '../../theme/tokens';
+import { alpha, colors, fills, glass, radii } from '../../theme/tokens';
 
 type FolderGlassProps = {
   children: React.ReactNode;
@@ -9,6 +9,8 @@ type FolderGlassProps = {
   radius?: number;
   padding?: number;
   testID?: string;
+  /** Light the jacket while a pointer is over it (desktop hover). */
+  hovered?: boolean;
 };
 
 /**
@@ -25,6 +27,7 @@ export function FolderGlass({
   radius = radii.pane,
   padding = 16,
   testID,
+  hovered = false,
 }: FolderGlassProps) {
   return (
     <View testID={testID} style={[styles.shell, { borderRadius: radius, padding }, style]}>
@@ -32,7 +35,9 @@ export function FolderGlass({
           backdrop-filter layer is not clipped by an ancestor's rounded corners
           in Chromium, so a square layer left a second corner inside the card. */}
       <BlurView
-        intensity={glass.blurScene}
+        // A folder is a small surface, so its refraction is a touch firmer than
+        // the Today scene and never as strong as the hero behind it.
+        intensity={glass.blurFolder}
         tint="dark"
         pointerEvents="none"
         style={[StyleSheet.absoluteFill, { borderRadius: radius }]}
@@ -41,6 +46,12 @@ export function FolderGlass({
         pointerEvents="none"
         style={[StyleSheet.absoluteFill, styles.wash, { borderRadius: radius }]}
       />
+      {hovered ? (
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, styles.hover, { borderRadius: radius }]}
+        />
+      ) : null}
       {children}
     </View>
   );
@@ -55,5 +66,8 @@ const styles = StyleSheet.create({
   },
   wash: {
     backgroundColor: alpha(colors.surfaceCardFace, 0.55),
+  },
+  hover: {
+    backgroundColor: fills.subtle,
   },
 });

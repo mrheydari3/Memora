@@ -323,8 +323,12 @@ test.describe('Phase 5 — behaviour', () => {
     await settle(page);
     const parentGroup = page.getByTestId('folder-group').filter({ hasText: 'Nest Parent' });
     await expect(parentGroup).toBeVisible();
-    await page.getByRole('button', { name: /1 folder inside/ }).click();
-    await expect(page.getByTestId('folder-group').filter({ hasText: 'Nest Child' })).toBeVisible();
+    // The child folder is listed inside its parent as a sub-item; opening it
+    // drills into its level, where the shelf header names it.
+    const childItem = page.getByTestId('folder-subitem').filter({ hasText: 'Nest Child' });
+    await expect(childItem).toBeVisible();
+    await childItem.click();
+    await expect(page.getByTestId('shelf-panel')).toContainText('Nest Child');
 
     // Re-parent the child back to the root; the parent must not disappear.
     await page.getByRole('button', { name: 'New folder' }).click();

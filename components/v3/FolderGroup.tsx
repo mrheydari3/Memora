@@ -1,11 +1,25 @@
-import { Platform, View } from 'react-native';
+import { useState } from 'react';
+import { Platform, useWindowDimensions, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { colors, iconSize, radii } from '../../theme/tokens';
+import { alpha, colors, fills, iconSize, radii } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { FolderGlass } from './FolderGlass';
 import { FolderGlyph } from './FolderGlyph';
+
+/** A folder directly inside this one, shown as a sub-item in the group. */
+const NUMERIC = { fontVariant: ['tabular-nums'] as const };
+
+export type FolderSubItem = {
+  id: string;
+  name: string;
+  icon?: string;
+  color?: string;
+  /** Decks anywhere in the subfolder's subtree. */
+  decks: number;
+  due: number;
+};
 
 type FolderGroupProps = {
   name: string;
@@ -20,22 +34,24 @@ type FolderGroupProps = {
   /** Cards those decks want today, rolled through the subtree. */
   due: number;
   pinned?: boolean;
-  /** Folders nested one level below, still reachable by opening the folder. */
+  /** How many folders sit one level below, for the header split. */
   nestedFolders?: number;
+  /** Those folders, listed under the group as sub-items. */
+  subfolders?: FolderSubItem[];
+  onOpenSubfolder?: (id: string) => void;
   expanded: boolean;
   onToggle: () => void;
-  /** Opens the folder itself (nested folders live one level in). */
-  onOpen?: () => void;
   children?: React.ReactNode;
 };
 
 /**
  * FolderGroup — the phone's folder group.
  *
- * The header is a small glass jacket with illustrated folder artwork, so the
+ * The header is a tall glass jacket with illustrated folder artwork, so the
  * chosen icon sits on the folder rather than replacing it. It remains an
  * accordion control, not a card: the count and chevron stay on the same line,
- * and its children sit under the quiet guide line.
+ * and its children sit under the quiet guide line. Child folders are listed
+ * there as real sub-items, not collapsed into an "N folders inside" link.
  */
 export function FolderGroup({
   name,
@@ -45,10 +61,10 @@ export function FolderGroup({
   directDecks = deckCount,
   due,
   pinned = false,
-  nestedFolders = 0,
+  subfolders = [],
+  onOpenSubfolder,
   expanded,
   onToggle,
-  onOpen,
   children,
 }: FolderGroupProps) {
   // React Native Web maps DOM ARIA props, not `accessibilityState`, onto a
@@ -56,139 +72,149 @@ export function FolderGroup({
   // assistive tech on web as `aria-expanded`.
   const webExpanded: object =
     Platform.OS === 'web' ? { 'aria-expanded': expanded } : {};
+  const [hovered, setHovered] = useState(false);
+  const { width } = useWindowDimensions();
+  const narrow = width < 380;
 
-  const caughtUp = due === 0;
+  const empty = deckCount === 0;
+  const caughtUp = due === 0 && !empty;
   const deckLabel = deckCount === 1 ? 'deck' : 'decks';
   const nestedDecks = Math.max(0, deckCount - directDecks);
-  const countLabel = `${deckCount} ${deckLabel} · ${due} due`;
   // A parent with no direct decks is not empty: name what it actually holds.
-  // The due figure moves to its own line so the direct/nested split stays
-  // readable at 320 without pushing the folder name out of the row.
-  const splitLabel =
-    nestedDecks > 0 ? `${directDecks} direct · ${nestedDecks} nested` : countLabel;
+  // Child folders are listed below, so their count never needs a spot here.
+  const counts =
+    nestedDecks > 0
+      ? `${directDecks} direct · ${nestedDecks} nested`
+      : `${deckCount} ${deckLabel}`;
+  // At 320 a 48px glyph, the status tile and the chevron would leave the name
+  // under 100px, so the due figure folds into the meta line instead.
+  const metaLabel = narrow
+    ? empty
+      ? 'Empty folder'
+      : `${deckCount} ${deckLabel} · ${due} due`
+    : counts;
 
   return (
     <View>
       <FolderGlass
-        radius={14}
+        radius={radii.pane}
         padding={0}
+        hovered={hovered}
         style={{ width: '100%' }}
       >
         <HintPressable
           hint={expanded ? 'Collapse folder' : 'Expand folder'}
+          onHoverIn={() => setHovered(true)}
+          onHoverOut={() => setHovered(false)}
           testID="folder-group"
           onPress={onToggle}
           accessibilityRole="button"
           accessibilityState={{ expanded }}
           {...webExpanded}
           style={{
-            minHeight: 48,
+            // A folder group is a place, not a row: it stands taller than a
+            // deck card and carries the same 48px folder art as the board.
+            minHeight: v3.heights.folderGroup,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 10,
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderRadius: 14,
+            gap: 12,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderRadius: radii.pane,
           }}
         >
           <View
             style={{
               flexDirection: 'row',
-              alignItems: 'center',
-              gap: 8,
-              flexShrink: 1,
-              minWidth: 0,
-            }}
-          >
-            <FolderGlyph icon={icon} color={color} size={34} />
-            {nestedDecks > 0 ? (
-              <View style={{ minWidth: 0, flexShrink: 1 }}>
-                <AppText
-                  variant="body"
-                  weight="semibold"
-                  numberOfLines={1}
-                  style={{ flexShrink: 1, letterSpacing: -0.1 }}
-                >
-                  {name}
-                </AppText>
-                <View
-                  style={{
-                    alignSelf: 'flex-start',
-                    maxWidth: '100%',
-                    marginTop: 2,
-                    paddingHorizontal: 8,
-                    paddingVertical: 2,
-                    borderRadius: radii.pill,
-                    backgroundColor: colors.surfaceControl,
-                  }}
-                >
-                  <AppText
-                    variant="caption"
-                    weight="semibold"
-                    tone={caughtUp ? 'success' : 'accent'}
-                    className="uppercase"
-                    numberOfLines={2}
-                    style={{ letterSpacing: 0.5 }}
-                  >
-                    {splitLabel}
-                  </AppText>
-                </View>
-              </View>
-            ) : (
-              <>
-                <AppText
-                  variant="body"
-                  weight="semibold"
-                  numberOfLines={1}
-                  style={{ flexShrink: 1, letterSpacing: -0.1 }}
-                >
-                  {name}
-                </AppText>
-                <View
-                  style={{
-                    paddingHorizontal: 8,
-                    paddingVertical: 2,
-                    borderRadius: radii.pill,
-                    backgroundColor: colors.surfaceControl,
-                  }}
-                >
-                  <AppText
-                    variant="caption"
-                    weight="semibold"
-                    tone={caughtUp ? 'success' : 'accent'}
-                    className="uppercase"
-                    numberOfLines={1}
-                    style={{ letterSpacing: 0.5 }}
-                  >
-                    {countLabel}
-                  </AppText>
-                </View>
-              </>
-            )}
+              alignItems: 'center',            gap: 12,
+            flexShrink: 1,
+            minWidth: 0,
+          }}
+        >
+            <FolderGlyph icon={icon} color={color} size={48} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <AppText
+                variant="bodyLg"
+                weight="semibold"
+                numberOfLines={narrow ? 2 : 1}
+                style={{ letterSpacing: -0.1 }}
+              >
+                {name}
+              </AppText>
+              <AppText
+                variant="caption"
+                tone="tertiary"
+                numberOfLines={1}
+                style={{ marginTop: 2 }}
+              >
+                {metaLabel}
+              </AppText>
+            </View>
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-            {nestedDecks > 0 && (
-              <View
-                style={{
-                  minWidth: 36,
-                  paddingHorizontal: 6,
-                  paddingVertical: 2,
-                  borderRadius: 10,
-                  backgroundColor: colors.surfaceControl,
-                }}
-              >
-                <AppText
-                  variant="caption"
-                  weight="semibold"
-                  tone={caughtUp ? 'success' : 'accent'}
-                  style={{ textAlign: 'center', lineHeight: 14, fontVariant: ['tabular-nums'] }}
-                >
-                  {due}
-                  {'\n'}due
-                </AppText>
-              </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            {/* One status tile, the same one the desktop folder carries: the
+                large figure answers "what is waiting here", so the meta line
+                never has to repeat the due count. */}
+            {!narrow && (
+            <View
+              style={{
+                minWidth: 44,
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                borderRadius: radii.control,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: empty
+                  ? fills.inset
+                  : due > 0
+                    ? alpha(colors.primary, 0.1)
+                    : alpha(colors.success, 0.1),
+              }}
+            >
+              {empty ? (
+                <>
+                  <AppText variant="headline" weight="semibold" tone="tertiary" style={NUMERIC}>
+                    —
+                  </AppText>
+                  <AppText
+                    variant="label"
+                    tone="muted"
+                    className="uppercase"
+                    style={{ lineHeight: 14, letterSpacing: 0.6 }}
+                  >
+                    empty
+                  </AppText>
+                </>
+              ) : due > 0 ? (
+                <>
+                  <AppText variant="headline" weight="semibold" tone="accent" style={NUMERIC}>
+                    {due}
+                  </AppText>
+                  <AppText
+                    variant="label"
+                    tone="accent"
+                    className="uppercase"
+                    style={{ lineHeight: 14, letterSpacing: 0.6 }}
+                  >
+                    due
+                  </AppText>
+                </>
+              ) : (
+                <>
+                  <MaterialIcons name="done-all" size={18} color={colors.success} />
+                  <AppText
+                    variant="label"
+                    tone="success"
+                    className="uppercase"
+                    style={{ lineHeight: 14, letterSpacing: 0.6 }}
+                  >
+                    clear
+                  </AppText>
+                </>
+              )}
+            </View>
             )}
             {pinned && <MaterialIcons name="push-pin" size={iconSize.sm} color={colors.outline} />}
             <View style={{ transform: [{ rotate: expanded ? '0deg' : '-90deg' }] }}>
@@ -211,26 +237,44 @@ export function FolderGroup({
         >
           {children}
 
-          {nestedFolders > 0 && (
+          {subfolders.map((subfolder) => (
             <HintPressable
+              key={subfolder.id}
               hint="Open folder"
-              onPress={onOpen}
+              testID="folder-subitem"
+              onPress={() => onOpenSubfolder?.(subfolder.id)}
               accessibilityRole="button"
+              accessibilityLabel={`Open folder ${subfolder.name}, ${subfolder.decks} ${
+                subfolder.decks === 1 ? 'deck' : 'decks'
+              }, ${subfolder.due} due`}
               style={{
-                minHeight: 44,
+                minHeight: v3.heights.subfolderRow,
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 8,
-                paddingHorizontal: 4,
+                gap: 10,
+                paddingHorizontal: 6,
+                paddingVertical: 6,
+                borderRadius: radii.control,
               }}
             >
-              <MaterialIcons name="folder-open" size={iconSize.sm} color={colors.outline} />
-              <AppText variant="caption" tone="tertiary" style={{ flexShrink: 1 }}>
-                {nestedFolders} {nestedFolders === 1 ? 'folder' : 'folders'} inside
-              </AppText>
+              <FolderGlyph icon={subfolder.icon} color={subfolder.color} size={34} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
+                  {subfolder.name}
+                </AppText>
+                <AppText
+                  variant="caption"
+                  tone="tertiary"
+                  numberOfLines={1}
+                  style={{ marginTop: 1 }}
+                >
+                  {subfolder.decks} {subfolder.decks === 1 ? 'deck' : 'decks'} ·{' '}
+                  {subfolder.due} due
+                </AppText>
+              </View>
               <MaterialIcons name="chevron-right" size={iconSize.sm} color={colors.outline} />
             </HintPressable>
-          )}
+          ))}
         </View>
       )}
     </View>

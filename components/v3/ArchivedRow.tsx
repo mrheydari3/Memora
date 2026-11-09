@@ -19,10 +19,14 @@ type ArchivedRowProps = {
 /**
  * ArchivedRow — a retired deck, exactly as the mockup draws it:
  *
- *   pane at 60% with a 30% outline border, p-4; glyph tile 44 on
- *   surface-control at 70%; name 17/500 in the muted ink with a 12px
- *   "Archived" chip; meta 13 outline; and a "0 due" chip on 40% surface-control
- *   instead of a live figure, because an archived deck cannot ask for anything.
+ *   pane at 60% with a 30% outline border, p-4; glyph tile 38 on
+ *   surface-control at 70%; name 15/500 in the muted ink; meta 13 outline.
+ *   There is no due figure: an archived deck cannot ask for anything, and a
+ *   permanent zero would only take width away from the name at 320px.
+ *
+ * The section heading and the archive glyph already say "archived", so the row
+ * carries no second badge: a retired deck reads quieter than an active one and
+ * its name keeps the room the badge used to take.
  */
 export function ArchivedRow({ name, cardCount, onPress, onOptions, optionsMenu }: ArchivedRowProps) {
   return (
@@ -48,16 +52,16 @@ export function ArchivedRow({ name, cardCount, onPress, onOptions, optionsMenu }
       >
         <View
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 12,
+            width: 38,
+            height: 38,
+            borderRadius: v3.radii.tile,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: alpha(colors.surfaceControl, 0.7),
             flexShrink: 0,
           }}
         >
-          <MaterialIcons name="archive" size={iconSize.xl} color={colors.outline} />
+          <MaterialIcons name="archive" size={iconSize.lg} color={colors.outline} />
         </View>
 
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -66,47 +70,16 @@ export function ArchivedRow({ name, cardCount, onPress, onOptions, optionsMenu }
               weight="medium"
               tone="muted"
               numberOfLines={1}
-              style={[v3.type.deckName, { flexShrink: 1 }]}
+              style={[v3.type.deckTitle, { flexShrink: 1 }]}
             >
               {name}
             </AppText>
-            <View
-              style={{
-                paddingHorizontal: 8,
-                paddingVertical: 2,
-                borderRadius: 999,
-                backgroundColor: colors.surfaceControl,
-              }}
-            >
-              <AppText variant="caption" tone="tertiary">
-                Archived
-              </AppText>
-            </View>
           </View>
           <AppText variant="bodySm" tone="tertiary" numberOfLines={1} style={{ marginTop: 2 }}>
             {cardCount.toLocaleString('en-US')} {cardCount === 1 ? 'card' : 'cards'}
           </AppText>
         </View>
       </HintPressable>
-
-      <View
-        style={{
-          paddingHorizontal: 10,
-          paddingVertical: 4,
-          borderRadius: 12,
-          backgroundColor: alpha(colors.surfaceControl, 0.4),
-        }}
-      >
-        <AppText
-          variant="caption"
-          weight="semibold"
-          tone="tertiary"
-          className="uppercase"
-          style={{ letterSpacing: 0.6 }}
-        >
-          0 due
-        </AppText>
-      </View>
 
       {optionsMenu ??
         (onOptions && <RowOptions label={`Options for deck ${name}`} onPress={onOptions} />)}

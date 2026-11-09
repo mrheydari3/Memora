@@ -1,6 +1,9 @@
+import type { ComponentRef, Ref } from 'react';
 import { TextInput, View } from 'react-native';
 import { AppText } from './AppText';
 import { colors, fills, heights, radii } from '../theme/tokens';
+
+export type FieldInputRef = ComponentRef<typeof TextInput>;
 
 type FieldProps = {
   label?: string;
@@ -14,6 +17,8 @@ type FieldProps = {
   minHeight?: number;
   maxLength?: number;
   autoFocus?: boolean;
+  /** Handle for a control that jumps the user back to this field. */
+  inputRef?: Ref<FieldInputRef>;
   accessibilityLabel?: string;
   className?: string;
 };
@@ -32,6 +37,7 @@ export function Field({
   minHeight,
   maxLength,
   autoFocus = false,
+  inputRef,
   accessibilityLabel,
   className = '',
 }: FieldProps) {
@@ -58,6 +64,7 @@ export function Field({
         multiline={multiline}
         maxLength={maxLength}
         autoFocus={autoFocus}
+        ref={inputRef}
         accessibilityLabel={accessibilityLabel ?? label ?? placeholder}
       />
     </View>

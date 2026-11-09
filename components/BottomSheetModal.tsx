@@ -159,6 +159,8 @@ type BottomSheetModalProps = {
    * corners. Phone and tablet keep the bottom-docked sheet unchanged.
    */
   desktopLayout?: boolean;
+  /** Narrower desktop dialog, for a short option list rather than a form. */
+  desktopMaxWidth?: number;
   children: React.ReactNode;
 };
 
@@ -204,6 +206,7 @@ export function BottomSheetModal({
   onEscape,
   compact = false,
   desktopLayout = false,
+  desktopMaxWidth,
   children,
 }: BottomSheetModalProps) {
   const { mounted, value } = usePresence(visible, { duration: motion.base });
@@ -344,6 +347,7 @@ export function BottomSheetModal({
       style={[
         styles.panel,
         isDesktop ? styles.desktopPanel : null,
+        isDesktop && desktopMaxWidth ? { maxWidth: desktopMaxWidth } : null,
         {
           maxHeight,
           // A short sheet still reads as a surface rather than a strip,

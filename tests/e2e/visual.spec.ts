@@ -90,6 +90,9 @@ test.describe('visual', () => {
     await waitForRoute(page, 'home');
     // Prove the six-deck board, not the shipped single deck, is on screen.
     await expect(page.getByText('Empty deck', { exact: true }).first()).toBeVisible();
+    // The shelf's Explore row is part of this composition; waiting for it keeps
+    // a delayed store read from producing a baseline with a hole where it sits.
+    await expect(page.getByTestId('explore-entry')).toBeVisible();
     await expect(page).toHaveScreenshot('home-1280.png', { fullPage: false });
   });
 });

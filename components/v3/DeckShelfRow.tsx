@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { Animated, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { alpha, colors, iconSize, radii, stateColors } from '../../theme/tokens';
+import { alpha, colors, fills, heights, iconSize, radii, stateColors } from '../../theme/tokens';
 import { RowOptions } from './RowOptions';
 import { Surface } from './Surface';
 import { v3 } from '../../theme/v3';
@@ -52,6 +53,7 @@ export function DeckShelfRow({
   onPress,
 }: DeckShelfRowProps) {
   const press = usePressFeedback({ scale: 0.985 });
+  const [hovered, setHovered] = useState(false);
   const clamped = Math.max(0, Math.min(1, progress));
   const percent = Math.round(clamped * 100);
   const cardLabel = cardCount === 1 ? 'card' : 'cards';
@@ -70,19 +72,35 @@ export function DeckShelfRow({
         style={{
           width: '100%',
           // The shelf's rows stay low: a deck is an item inside the board, and
-          // folders carry the taller tile. The controls still fit at 88.
-          minHeight: 88,
+          // folders carry the taller tile.
+          minHeight: v3.heights.deckRow,
           paddingTop: 12,
           paddingBottom: 12,
           position: 'relative',
         }}
       >
+        {hovered && (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
+              borderRadius: v3.radii.card,
+              backgroundColor: fills.subtle,
+            }}
+          />
+        )}
         <HintPressable
           hint="Open deck"
           testID="deck-row"
           onPress={onPress}
           onPressIn={press.onPressIn}
           onPressOut={press.onPressOut}
+          onHoverIn={() => setHovered(true)}
+          onHoverOut={() => setHovered(false)}
           accessibilityRole="button"
           style={{ flex: 1, minWidth: 0, paddingRight: 56 }}
         >
@@ -91,9 +109,9 @@ export function DeckShelfRow({
               accessibilityElementsHidden
               importantForAccessibility="no-hide-descendants"
               style={{
-                width: 38,
-                height: 38,
-                borderRadius: 10,
+                width: heights.icon,
+                height: heights.icon,
+                borderRadius: v3.radii.tile,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: alpha(color, 0.12),
@@ -122,7 +140,7 @@ export function DeckShelfRow({
                 )}
               </View>
 
-              <AppText variant="caption" tone="tertiary" numberOfLines={2} style={{ marginTop: 2 }}>
+              <AppText variant="caption" tone="tertiary" numberOfLines={1} style={{ marginTop: 2 }}>
                 {cardCountLabel} {cardLabel} · {scheduler}
               </AppText>
 
@@ -131,8 +149,8 @@ export function DeckShelfRow({
                 importantForAccessibility="no-hide-descendants"
                 style={{
                   height: v3.rail.deck,
-                  marginTop: 8,
-                  maxWidth: 200,
+                  marginTop: 6,
+                  maxWidth: v3.layout.deckRail,
                   borderRadius: radii.pill,
                   backgroundColor: colors.surfaceControl,
                   overflow: 'hidden',

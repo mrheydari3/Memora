@@ -115,6 +115,14 @@ export const v3 = {
   },
 
   heights: {
+    /** A deck row on the shelf: an item, deliberately shorter than a folder. */
+    deckRow: 88,
+    /** The phone's folder group header: a place, just above a deck row. */
+    folderGroup: 92,
+    /** A desktop folder tile: taller than a row, without a second band of air. */
+    folderCard: 144,
+    /** One folder listed inside its parent group. */
+    subfolderRow: 56,
     /** One study rating key. */
     ratingKey: 80,
     /** One quiz answer pad. */

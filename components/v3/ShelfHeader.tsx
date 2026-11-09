@@ -2,14 +2,13 @@ import { useWindowDimensions, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { alpha, colors, iconSize } from '../../theme/tokens';
+import { alpha, colors, iconSize, radii } from '../../theme/tokens';
 import { SectionHeading } from './SectionHeading';
+import { NewFolderButton } from './NewFolderButton';
 
 type ShelfHeaderProps = {
   /** The section's name; defaults to "Your decks". */
   title?: string;
-  /** The count chip beside the title, e.g. "6 decks". */
-  countLabel: string;
   /** The quiet line under the title, e.g. "6 decks · 18 due". */
   meta: string;
   /** Right-aligned status, e.g. "1 caught up". */
@@ -22,15 +21,13 @@ type ShelfHeaderProps = {
 /**
  * ShelfHeader — the Home shelf's specialized section header.
  *
- * The label, count chip and folder actions come from `SectionHeading`; the
- * shelf adds the meta line and closes with the same 20% rule. On a narrow
- * canvas the layout action is icon-only so the "New folder" affordance keeps
- * its readable label; below 360px the count chip steps aside (the meta line
- * carries the same totals) so the section title never truncates.
+ * The label and folder actions come from `SectionHeading`; the shelf adds the
+ * meta line and closes with the same 20% rule. The folder action is one plus
+ * icon at every width — the meta line carries the totals — and the layout
+ * action keeps its label while there is room for it.
  */
 export function ShelfHeader({
   title = 'Your decks',
-  countLabel,
   meta,
   statusLabel,
   onNewFolder,
@@ -39,14 +36,12 @@ export function ShelfHeader({
 }: ShelfHeaderProps) {
   const { width } = useWindowDimensions();
   const compact = width < 480;
-  const narrow = width < 360;
-  const actionFill = alpha(colors.surfaceControl, 0.4);
+  const actionFill = alpha(colors.surfaceControl, 0.6);
 
   return (
     <View>
       <SectionHeading
         label={title}
-        count={narrow ? undefined : countLabel}
         rule={false}
         className="mb-2"
         action={
@@ -63,7 +58,7 @@ export function ShelfHeader({
                 justifyContent: 'center',
                 gap: 6,
                 paddingHorizontal: 10,
-                borderRadius: 8,
+                borderRadius: radii.control,
                 backgroundColor: alpha(colors.primary, 0.14),
               }}
             >
@@ -74,31 +69,7 @@ export function ShelfHeader({
             </HintPressable>
           ) : (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <HintPressable
-                hint="New folder"
-                onPress={onNewFolder}
-                accessibilityRole="button"
-                accessibilityLabel="New folder"
-                style={{
-                  minHeight: 44,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  paddingHorizontal: 8,
-                  borderRadius: 8,
-                  backgroundColor: actionFill,
-                }}
-              >
-                <MaterialIcons
-                  name="create-new-folder"
-                  size={iconSize.sm}
-                  color={colors.primary}
-                />
-                <AppText variant="caption" weight="semibold" tone="accent">
-                  New folder
-                </AppText>
-              </HintPressable>
+              <NewFolderButton onPress={onNewFolder} />
 
               <HintPressable
                 hint="Edit layout"
@@ -114,7 +85,7 @@ export function ShelfHeader({
                   justifyContent: 'center',
                   gap: 6,
                   paddingHorizontal: compact ? 0 : 8,
-                  borderRadius: 8,
+                  borderRadius: radii.control,
                   backgroundColor: actionFill,
                 }}
               >

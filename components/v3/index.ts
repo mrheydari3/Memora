@@ -22,9 +22,11 @@ export { FolderGroup } from './FolderGroup';
 export { ArchivedRow } from './ArchivedRow';
 export { RowOptions } from './RowOptions';
 export { ShelfHeader } from './ShelfHeader';
+export { NewFolderButton } from './NewFolderButton';
 export { ShelfPanel } from './ShelfPanel';
 export { ShelfReorder } from './ShelfReorder';
 export type { ShelfReorderGroup, ShelfReorderItem } from './ShelfReorder';
+export { ExploreEntry, ExploreSheet } from './ExploreLens';
 export { HeaderIcon } from './HeaderIcon';
 export {
   SettingsChapter,
