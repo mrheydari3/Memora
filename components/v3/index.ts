@@ -12,6 +12,8 @@ export type { RatingKey } from './RatingKeys';
 export { StudyCard } from './StudyCard';
 export { StudyTray } from './StudyTray';
 export { TodayPane } from './TodayPane';
+export { LibraryPane } from './LibraryPane';
+export { FolderCard } from './FolderCard';
 export { DeckShelfRow } from './DeckShelfRow';
 export { FolderGroup } from './FolderGroup';
 export { ArchivedRow } from './ArchivedRow';

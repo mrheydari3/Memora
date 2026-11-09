@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, useWindowDimensions, View } from 'react-native';
+import type { ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
 import { useDeckStore } from '../../store/useDeckStore';
@@ -46,8 +47,10 @@ import {
   ShelfHeader,
   Surface,
   TodayPane,
+  LibraryPane,
+  FolderCard,
 } from '../../components/v3';
-import { colors, fills, heights, iconSize, radii } from '../../theme/tokens';
+import { colors, fills, heights, iconSize, radii, spacing } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -59,6 +62,8 @@ type DeckQueue = {
   total: number;
   /** Studied share, 0–1. */
   progress: number;
+  /** Cards that already carry at least one review. */
+  studiedCount: number;
   newCount: number;
   learningCount: number;
   reviewCount: number;
@@ -99,6 +104,14 @@ type FolderSheetMode = 'list' | 'edit' | 'location';
 export default function HomeScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
+
+  // A desktop canvas gets its own composition: the today grid with a library
+  // rail, then a two-up shelf. Below 1024 the page keeps the single phone
+  // column, so every existing mobile behaviour and measurement is untouched.
+  const desktop = width >= 1024;
+  const contentMaxWidth = desktop
+    ? v3.layout.homeDesktopMaxWidth
+    : v3.layout.contentMaxWidth;
 
   const decks = useDeckStore((s) => s.decks);
   const cardsByDeck = useDeckStore((s) => s.cardsByDeck);
@@ -176,6 +189,7 @@ export default function HomeScreen() {
             cardCount: cards.length,
             total: queue.total,
             progress: cards.length > 0 ? studied / cards.length : 0,
+            studiedCount: studied,
             newCount: queue.newCards.length,
             learningCount,
             reviewCount: queue.dueCards.length - learningCount,
@@ -190,6 +204,25 @@ export default function HomeScreen() {
   );
   const dueDecks = deckQueues.filter((entry) => entry.total > 0).length;
   const minutes = Math.max(1, Math.round(totalDue / 4));
+
+  // The desktop rail summarizes the same queues the shelf renders, so the
+  // library it describes and the rows below it can never disagree.
+  const libraryCards = deckQueues.reduce((sum, entry) => sum + entry.cardCount, 0);
+  const libraryStudied = deckQueues.reduce((sum, entry) => sum + entry.studiedCount, 0);
+  const libraryProgress = libraryCards > 0 ? libraryStudied / libraryCards : 0;
+  const caughtUpDecks = deckQueues.filter(
+    (entry) => entry.cardCount > 0 && entry.total === 0
+  ).length;
+
+  // The desktop board needs an exact cell width, not a percentage: the last
+  // row keeps the same three-column rhythm instead of stretching its remaining
+  // tiles to half the page. `spacing.screen` is the Screen gutter on each side.
+  const gridColumns = width >= 1200 ? 3 : 2;
+  const gridGap = 12;
+  const gridWidth = Math.min(width, contentMaxWidth) - spacing.screen * 2;
+  const deckCellWidth = desktop
+    ? Math.max(0, (gridWidth - gridGap * (gridColumns - 1)) / gridColumns)
+    : undefined;
 
   const lastStudiedDeckId = useMemo(() => {
     let latest: { deckId: string; reviewedAt: number } | null = null;
@@ -367,6 +400,7 @@ export default function HomeScreen() {
   const header = (
     <PageHeader
       brand
+      maxWidth={contentMaxWidth}
       meta={
         width >= 360 ? (
           <View
@@ -454,7 +488,9 @@ export default function HomeScreen() {
   // count that must reconcile with the hero.
   const shelfMeta = openFolder
     ? `${folderCountLabel} · ${cardCountLabel} · ${dueLabel}`
-    : `${deckCountLabel} · ${dueLabel}`;
+    : desktop
+      ? `${cardCountLabel} · ${dueLabel}`
+      : `${deckCountLabel} · ${dueLabel}`;
 
   // Pin and move stay open after acting: they are repeatable shelf operations,
   // and the same menu is used for the row's overflow and right-click actions.
@@ -508,6 +544,49 @@ export default function HomeScreen() {
     />
   );
 
+  // Three cards share a desktop row once there is room for them; the
+  // two-column board carries 1024–1199, and a phone keeps the one-column shelf.
+  const deckGridStyle: ViewStyle = desktop
+    ? { flexDirection: 'row', flexWrap: 'wrap', columnGap: gridGap, rowGap: gridGap }
+    : { gap: 8 };
+  const deckCellStyle: ViewStyle = desktop
+    ? { width: deckCellWidth, minWidth: 0 }
+    : { width: '100%' };
+
+  const renderDeckList = (entries: DeckQueue[]) => (
+    <View style={deckGridStyle}>
+      {entries.map((entry) => (
+        <View key={entry.deck.id} style={deckCellStyle}>
+          {renderDeck(entry)}
+        </View>
+      ))}
+    </View>
+  );
+
+  // On desktop a folder is a navigable tile in the same board as a deck,
+  // rather than a full-width accordion. Opening one turns the board into that
+  // folder's level, with the existing back link above it.
+  const desktopShelf = desktop
+    ? [
+        ...visibleDecks.map((entry) => ({ key: entry.deck.id, node: renderDeck(entry) })),
+        ...visibleFolders.map((folder) => ({
+          key: folder.id,
+          node: (
+            <FolderCard
+              name={folder.name}
+              icon={folder.icon}
+              color={folder.color}
+              deckCount={folder.decks}
+              due={folder.due}
+              nestedFolders={folder.nestedFolders}
+              pinned={folder.pinnedAt != null}
+              onPress={() => setOpenFolderId(folder.id)}
+            />
+          ),
+        })),
+      ]
+    : [];
+
   const decksSection = (
     <View>
       {openFolder && (
@@ -547,47 +626,57 @@ export default function HomeScreen() {
           numbers from the things they count; the rows below it are the library
           itself, with no drawing between them. */}
 
-      <View style={{ gap: 20 }}>
-        {visibleDecks.length > 0 && (
-          <View style={{ gap: 8 }}>
-            <AppText
-              variant="label"
-              tone="tertiary"
-              className="uppercase"
-            >
-              {openFolder ? 'Decks here' : 'Top level · Standalone'}
-            </AppText>
-            {visibleDecks.map(renderDeck)}
-          </View>
-        )}
-
-        {visibleFolders.map((folder) => {
-          const entries = decksInFolder(folder.id);
-          return (
-            <FolderGroup
-              key={folder.id}
-              name={folder.name}
-              icon={folder.icon}
-              color={folder.color}
-              deckCount={folder.decks}
-              directDecks={folder.directDecks}
-              due={folder.due}
-              pinned={folder.pinnedAt != null}
-              nestedFolders={folder.nestedFolders}
-              expanded={!collapsedFolders.has(folder.id)}
-              onToggle={() => toggleFolder(folder.id)}
-              onOpen={() => setOpenFolderId(folder.id)}
-            >
-              {entries.length > 0 ? (
-                entries.map(renderDeck)
-              ) : (
-                <AppText variant="caption" tone="muted">
-                  No decks directly inside yet.
+      <View style={{ gap: desktop ? 0 : 20 }}>
+        {desktop ? (
+          desktopShelf.length > 0 ? (
+            <View style={deckGridStyle}>
+              {desktopShelf.map((item) => (
+                <View key={item.key} style={deckCellStyle}>
+                  {item.node}
+                </View>
+              ))}
+            </View>
+          ) : null
+        ) : (
+          <>
+            {visibleDecks.length > 0 && (
+              <View style={{ gap: 8 }}>
+                <AppText variant="label" tone="tertiary" className="uppercase">
+                  {openFolder ? 'Decks here' : 'Top level · Standalone'}
                 </AppText>
-              )}
-            </FolderGroup>
-          );
-        })}
+                {renderDeckList(visibleDecks)}
+              </View>
+            )}
+
+            {visibleFolders.map((folder) => {
+              const entries = decksInFolder(folder.id);
+              return (
+                <FolderGroup
+                  key={folder.id}
+                  name={folder.name}
+                  icon={folder.icon}
+                  color={folder.color}
+                  deckCount={folder.decks}
+                  directDecks={folder.directDecks}
+                  due={folder.due}
+                  pinned={folder.pinnedAt != null}
+                  nestedFolders={folder.nestedFolders}
+                  expanded={!collapsedFolders.has(folder.id)}
+                  onToggle={() => toggleFolder(folder.id)}
+                  onOpen={() => setOpenFolderId(folder.id)}
+                >
+                  {entries.length > 0 ? (
+                    renderDeckList(entries)
+                  ) : (
+                    <AppText variant="caption" tone="muted">
+                      No decks directly inside yet.
+                    </AppText>
+                  )}
+                </FolderGroup>
+              );
+            })}
+          </>
+        )}
 
         {visibleDecks.length === 0 && visibleFolders.length === 0 && (
           <AppText variant="body" tone="muted">
@@ -611,22 +700,25 @@ export default function HomeScreen() {
               {archivedDecks.length} {archivedDecks.length === 1 ? 'deck' : 'decks'}
             </AppText>
           </View>
-          {archivedDecks.map(({ deck, cards }) => (
-            <ArchivedRow
-              key={deck.id}
-              name={deck.name}
-              cardCount={cards}
-              onPress={() => pushOnce(router, `/deck/${deck.id}`)}
-              optionsMenu={
-                <ActionMenu
-                  label={`Options for deck ${deck.name}`}
-                  sheetTitle={deck.name}
-                  sheetSubtitle="Pinned decks stay above the others in their folder."
-                  actions={deckActions(deck)}
+          <View style={deckGridStyle}>
+            {archivedDecks.map(({ deck, cards }) => (
+              <View key={deck.id} style={deckCellStyle}>
+                <ArchivedRow
+                  name={deck.name}
+                  cardCount={cards}
+                  onPress={() => pushOnce(router, `/deck/${deck.id}`)}
+                  optionsMenu={
+                    <ActionMenu
+                      label={`Options for deck ${deck.name}`}
+                      sheetTitle={deck.name}
+                      sheetSubtitle="Pinned decks stay above the others in their folder."
+                      actions={deckActions(deck)}
+                    />
+                  }
                 />
-              }
-            />
-          ))}
+              </View>
+            ))}
+          </View>
         </View>
       )}
     </View>
@@ -637,7 +729,7 @@ export default function HomeScreen() {
       scroll
       gutter
       tabClearance
-      contentMaxWidth={v3.layout.contentMaxWidth}
+      contentMaxWidth={contentMaxWidth}
       header={header}
     >
       {!ready ? (
@@ -655,6 +747,13 @@ export default function HomeScreen() {
         </>
       ) : deckQueues.length === 0 ? (
         <RevealItem index={0}>
+          <View
+            style={
+              desktop
+                ? { width: '100%', maxWidth: 620, alignSelf: 'center' }
+                : undefined
+            }
+          >
           <Surface tone="pane">
             <EmptyState
               icon="library-books"
@@ -672,30 +771,60 @@ export default function HomeScreen() {
               }
             />
           </Surface>
+          </View>
         </RevealItem>
       ) : continueEntry ? (
         <View>
           <RevealItem index={0}>
-              <View style={{ marginTop: 12 }}>
-              <TodayPane
-                due={totalDue}
-                deckCount={dueDecks}
-                minutes={minutes}
-                nextDeck={continueEntry.deck.name}
-                // The rail describes the deck the button opens, not the whole
-                // library: the due count above it is the library total, so
-                // library-wide segments here read as if one deck held them all.
-                newCount={continueEntry.newCount}
-                learningCount={continueEntry.learningCount}
-                reviewCount={continueEntry.reviewCount}
-                label={totalDue === 0 ? 'Nothing due today' : resuming ? 'Continue' : 'Start session'}
-                disabled={totalDue === 0}
-                onStart={() => pushOnce(router, `/study/${continueEntry.deck.id}`)}
-              />
+            <View
+              style={
+                desktop
+                  ? {
+                      marginTop: 12,
+                      flexDirection: 'row',
+                      alignItems: 'stretch',
+                      gap: v3.layout.homeGap,
+                    }
+                  : { marginTop: 12 }
+              }
+            >
+              <View style={desktop ? { flex: 1, minWidth: 0 } : { width: '100%' }}>
+                <TodayPane
+                  due={totalDue}
+                  deckCount={dueDecks}
+                  minutes={minutes}
+                  nextDeck={continueEntry.deck.name}
+                  // The rail describes the deck the button opens, not the whole
+                  // library: the due count above it is the library total, so
+                  // library-wide segments here read as if one deck held them all.
+                  newCount={continueEntry.newCount}
+                  learningCount={continueEntry.learningCount}
+                  reviewCount={continueEntry.reviewCount}
+                  label={
+                    totalDue === 0 ? 'Nothing due today' : resuming ? 'Continue' : 'Start session'
+                  }
+                  disabled={totalDue === 0}
+                  onStart={() => pushOnce(router, `/study/${continueEntry.deck.id}`)}
+                />
               </View>
+
+              {desktop ? (
+                <View style={{ width: v3.layout.homeRail, flexShrink: 0 }}>
+                  <LibraryPane
+                    decks={deckQueues.length}
+                    cards={libraryCards}
+                    folders={folders.length}
+                    studied={libraryStudied}
+                    progress={libraryProgress}
+                    caughtUpDecks={caughtUpDecks}
+                    archived={archivedDecks.length}
+                  />
+                </View>
+              ) : null}
+            </View>
           </RevealItem>
 
-          <View style={{ marginTop: 28 }}>
+          <View style={{ marginTop: desktop ? 32 : 28 }}>
             <RevealItem index={1}>{decksSection}</RevealItem>
           </View>
         </View>

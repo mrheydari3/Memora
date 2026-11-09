@@ -128,6 +128,18 @@ export const v3 = {
   layout: {
     /** The reading column on a wide canvas. */
     contentMaxWidth: 960,
+    /**
+     * The Home page's desktop column. Home is the one workspace that gets a
+     * full-width composition — the today grid plus a card board of decks and
+     * folders — so it leaves the single reading column behind once the canvas
+     * can hold it. Capped below the widest screens so the hero stays a pane,
+     * not a banner.
+     */
+    homeDesktopMaxWidth: 1320,
+    /** The Home today grid's library rail. */
+    homeRail: 360,
+    /** The gap between the today pane and its rail. */
+    homeGap: 24,
     /** The card composer is one card wide, not one page wide. */
     composerMaxWidth: 420,
     /** A deck row's studied rail stops here, so its % never sits under the due tile. */

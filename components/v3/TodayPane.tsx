@@ -38,6 +38,10 @@ const NUMERIC = { fontVariant: ['tabular-nums'] as const };
  *   gaps between segments; legend dots 8px; CTA 52px pill in the accent fill
  *   with a 20px arrow.
  *
+ * From 1200px the hero splits: the day's figure owns the left, and the deck
+ * it will open plus the action own a fixed right column. That keeps the card
+ * from reading as a stretched phone banner on a desktop canvas.
+ *
  * Order follows the mockup: the rail belongs to the next deck, so it sits above
  * the action rather than under it. The scene pane and the pill are the shared
  * v3 primitives; this file only composes them.
@@ -56,6 +60,7 @@ export function TodayPane({
 }: TodayPaneProps) {
   const { width } = useWindowDimensions();
   const wide = width >= 900;
+  const split = width >= 1200;
   const date = new Date().toLocaleDateString('en-GB', {
     weekday: 'short',
     day: 'numeric',
@@ -69,13 +74,131 @@ export function TodayPane({
   ];
   const total = segments.reduce((sum, segment) => sum + segment.value, 0);
 
+  const dueBlock = (
+    <View>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
+        <AppText
+          variant="display"
+          style={[wide ? v3.type.heroWide : v3.type.hero, NUMERIC]}
+          accessibilityLabel={`${due} cards due today`}
+        >
+          {due}
+        </AppText>
+        <AppText variant="headline" weight="semibold" tone="tertiary" numberOfLines={1}>
+          cards due
+        </AppText>
+      </View>
+      <AppText variant="bodySm" tone="tertiary" style={{ marginTop: 2 }}>
+        {due > 0
+          ? `${deckCount} ${deckCount === 1 ? 'deck' : 'decks'} · estimated ${minutes} minutes`
+          : 'Nothing waiting — you are all caught up'}
+      </AppText>
+    </View>
+  );
+
+  const nextBlock = total > 0 ? (
+    <View style={{ gap: 8 }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+        }}
+      >
+        <AppText variant="bodySm" weight="medium" numberOfLines={1} style={{ flexShrink: 1 }}>
+          Next up · {nextDeck}
+        </AppText>
+        <AppText variant="caption" tone="tertiary" style={NUMERIC}>
+          {total} total
+        </AppText>
+      </View>
+
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{
+          flexDirection: 'row',
+          gap: 2,
+          height: v3.rail.hero,
+          maxWidth: 320,
+          borderRadius: radii.pill,
+          backgroundColor: colors.surfaceControl,
+          overflow: 'hidden',
+        }}
+      >
+        {segments.map((segment, index) => {
+          // Destructured on purpose: `.value` inside a JSX style object
+          // trips Reanimated's babel heuristic, which cannot tell data
+          // from a shared value.
+          const { value, color } = segment;
+          return (
+            <View
+              key={segment.label}
+              style={{
+                flex: value,
+                backgroundColor: color,
+                borderTopStartRadius: index === 0 ? radii.pill : 0,
+                borderBottomStartRadius: index === 0 ? radii.pill : 0,
+                borderTopEndRadius: index === segments.length - 1 ? radii.pill : 0,
+                borderBottomEndRadius: index === segments.length - 1 ? radii.pill : 0,
+              }}
+            />
+          );
+        })}
+      </View>
+
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 4 }}>
+        {segments.map((segment) => (
+          <View
+            key={segment.label}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+          >
+            <View
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: segment.color,
+              }}
+            />
+            <AppText variant="caption" tone="tertiary" style={NUMERIC}>
+              {segment.value} {segment.label}
+            </AppText>
+          </View>
+        ))}
+      </View>
+    </View>
+  ) : null;
+
+  const action = (
+    <ActionButton
+      label={label}
+      onPress={onStart}
+      disabled={disabled}
+      icon="arrow-forward"
+    />
+  );
+
   return (
-    <Surface tone="scene" padding="none" testID="today-panel" style={{ overflow: 'hidden' }}>
+    <Surface
+      tone="scene"
+      padding="none"
+      testID="today-panel"
+      style={{ overflow: 'hidden', flexGrow: 1 }}
+    >
       <View
         testID="today-panel-body"
-        style={{ padding: v3.spacing.panel, gap: v3.spacing.panel }}
+        style={{ padding: v3.spacing.panel, gap: v3.spacing.panel, flexGrow: 1 }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 10,
+          }}
+        >
           <AppText
             variant="label"
             weight="semibold"
@@ -108,100 +231,21 @@ export function TodayPane({
           </View>
         </View>
 
-        <View>
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
-            <AppText
-              variant="display"
-              style={[wide ? v3.type.heroWide : v3.type.hero, NUMERIC]}
-              accessibilityLabel={`${due} cards due today`}
-            >
-              {due}
-            </AppText>
-            <AppText variant="headline" weight="semibold" tone="tertiary" numberOfLines={1}>
-              cards due
-            </AppText>
-          </View>
-          <AppText variant="bodySm" tone="tertiary" style={{ marginTop: 2 }}>
-            {due > 0
-              ? `${deckCount} ${deckCount === 1 ? 'deck' : 'decks'} · estimated ${minutes} minutes`
-              : 'Nothing waiting — you are all caught up'}
-          </AppText>
-        </View>
-
-        {total > 0 && (
-          <View style={{ gap: 8, paddingTop: 4 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-              <AppText variant="bodySm" weight="medium" numberOfLines={1} style={{ flexShrink: 1 }}>
-                Next up · {nextDeck}
-              </AppText>
-              <AppText variant="caption" tone="tertiary" style={NUMERIC}>
-                {total} total
-              </AppText>
-            </View>
-
-            <View
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-              style={{
-                flexDirection: 'row',
-                gap: 2,
-                height: v3.rail.hero,
-                maxWidth: 320,
-                borderRadius: radii.pill,
-                backgroundColor: colors.surfaceControl,
-                overflow: 'hidden',
-              }}
-            >
-              {segments.map((segment, index) => {
-                // Destructured on purpose: `.value` inside a JSX style object
-                // trips Reanimated's babel heuristic, which cannot tell data
-                // from a shared value.
-                const { value, color } = segment;
-                return (
-                  <View
-                    key={segment.label}
-                    style={{
-                      flex: value,
-                      backgroundColor: color,
-                      borderTopStartRadius: index === 0 ? radii.pill : 0,
-                      borderBottomStartRadius: index === 0 ? radii.pill : 0,
-                      borderTopEndRadius: index === segments.length - 1 ? radii.pill : 0,
-                      borderBottomEndRadius: index === segments.length - 1 ? radii.pill : 0,
-                    }}
-                  />
-                );
-              })}
-            </View>
-
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 4 }}>
-              {segments.map((segment) => (
-                <View
-                  key={segment.label}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
-                >
-                  <View
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: 4,
-                      backgroundColor: segment.color,
-                    }}
-                  />
-                  <AppText variant="caption" tone="tertiary" style={NUMERIC}>
-                    {segment.value} {segment.label}
-                  </AppText>
-                </View>
-              ))}
+        {split ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 28, flex: 1 }}>
+            <View style={{ flex: 1, minWidth: 0 }}>{dueBlock}</View>
+            <View style={{ width: 300, gap: 16 }}>
+              {nextBlock}
+              {action}
             </View>
           </View>
+        ) : (
+          <>
+            {dueBlock}
+            {nextBlock}
+            {action}
+          </>
         )}
-
-        <ActionButton
-          label={label}
-          onPress={onStart}
-          disabled={disabled}
-          icon="arrow-forward"
-        />
       </View>
     </Surface>
   );
