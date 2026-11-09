@@ -1,6 +1,7 @@
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import type { ViewStyle } from 'react-native';
-import { alpha, colors, glassFill } from '../../theme/tokens';
+import { BlurView } from 'expo-blur';
+import { alpha, colors, glass, glassFill } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
 export type SurfaceTone = 'scene' | 'pane' | 'inset' | 'control';
@@ -19,6 +20,8 @@ type SurfaceProps = {
   radius?: SurfaceRadius;
   padding?: SurfacePadding;
   style?: ViewStyle | ViewStyle[];
+  /** Frost the scene's backdrop. For the Today and Game glass heroes. */
+  frosted?: boolean;
   testID?: string;
   children: React.ReactNode;
 };
@@ -30,7 +33,8 @@ type SurfaceProps = {
  * the single 1px lit rim that v3 allows. `pane` is the smoked glass row/card
  * fill, `inset` is content nested inside a pane, and `control` is a chip, rail
  * or icon tile. Radii are roles, not numbers: 14 for a control, 22 for a card,
- * 24 for a pane.
+ * 24 for a pane. `frosted` is the one exception: it turns a scene hero into a
+ * real backdrop-blurred glass card while keeping the scene rim.
  *
  * Nothing else in the app writes the scene fill or its rim. A screen composes
  * one `scene` at most, then panes and insets beneath it, so depth comes from
@@ -41,11 +45,19 @@ export function Surface({
   radius = 'pane',
   padding = 'md',
   style,
+  frosted = false,
   testID,
   children,
 }: SurfaceProps) {
-  const fill: ViewStyle =
-    tone === 'scene'
+  const frostedScene = tone === 'scene' && frosted;
+  const fill: ViewStyle = frostedScene
+    ? {
+        borderWidth: 1,
+        // A frosted edge needs a brighter rim than an opaque scene: the card
+        // has to read from its light edge, not from a solid fill.
+        borderColor: alpha(colors.outlineSoft, 0.52),
+      }
+    : tone === 'scene'
       ? {
           backgroundColor: colors.surfaceCardFace,
           borderWidth: 1,
@@ -64,9 +76,27 @@ export function Surface({
         tone === 'pane' ? glassFill : null,
         { borderRadius: RADIUS[radius], padding: PADDING[padding] },
         fill,
+        frostedScene ? { overflow: 'hidden' } : null,
         style,
       ]}
     >
+      {frostedScene ? (
+        <>
+          <BlurView
+            intensity={glass.blurScene}
+            tint="dark"
+            pointerEvents="none"
+            style={StyleSheet.absoluteFill}
+          />
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: alpha(colors.surfaceCardFace, 0.55) },
+            ]}
+          />
+        </>
+      ) : null}
       {children}
     </View>
   );

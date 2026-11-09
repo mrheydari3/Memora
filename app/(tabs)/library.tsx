@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, useWindowDimensions, View } from 'react-native';
-import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
@@ -13,6 +12,7 @@ import { folderPath } from '../../data/folders';
 import { AppText, EmptyState, RevealItem, Screen } from '../../components';
 import {
   ActionButton,
+  HeroAura,
   PageHeader,
   Surface,
 } from '../../components/v3';
@@ -484,27 +484,13 @@ export default function GameScreen() {
     );
   }
 
-  const hero = (
+  const heroCard = (
     <Surface
       tone="scene"
+      frosted
       testID="game-hero"
-      style={{ padding: roomy ? 24 : 20, gap: 20, overflow: 'hidden' }}
+      style={{ padding: roomy ? 24 : 20, gap: 20 }}
     >
-      <Svg
-        pointerEvents="none"
-        width={224}
-        height={224}
-        style={{ position: 'absolute', right: -8, top: -64 }}
-      >
-        <Defs>
-          <RadialGradient id="game-glow" cx="50%" cy="50%" r="50%">
-            <Stop offset="0%" stopColor={colors.primary} stopOpacity={0.18} />
-            <Stop offset="100%" stopColor={colors.primary} stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Circle cx={112} cy={112} r={112} fill="url(#game-glow)" />
-      </Svg>
-
       <View style={{ gap: 8 }}>
         <View style={{ flexDirection: 'row' }}>
           <View
@@ -625,6 +611,13 @@ export default function GameScreen() {
         disabled={!selected}
       />
     </Surface>
+  );
+
+  const hero = (
+    <View style={{ position: 'relative' }}>
+      <HeroAura id="game-aura" />
+      <View style={{ position: 'relative', zIndex: 1 }}>{heroCard}</View>
+    </View>
   );
 
   const deckPicker = (

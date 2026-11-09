@@ -31,9 +31,11 @@ const NUMERIC = { fontVariant: ['tabular-nums'] as const };
 /**
  * TodayPane — the mockup's hero, measured against its own classes:
  *
- *   rounded-[24px] p-5 gap-5, the one raised scene pane, an inset top rim;
- *   eyebrow 12/600 uppercase accent; status chip on the control fill with a
- *   6px learning dot; figure 40/44 (56 on wide) and its unit at 20/600 outline;
+ *   rounded-[24px] p-5 gap-5, the one raised scene pane, now frosted glass so
+ *   the day reads as a live surface rather than an opaque slab; an inset top
+ *   rim; eyebrow 12/600 uppercase accent; status chip on the control fill with
+ *   a 6px learning dot; figure 40/44 (56 on wide) and its unit at 20/600
+ *   outline;
  *   context 13 outline; "Next up" row 13 + 12 tabular; rail 6px, 320 cap, 2px
  *   gaps between segments; legend dots 8px; CTA 52px pill in the accent fill
  *   with a 20px arrow.
@@ -183,6 +185,7 @@ export function TodayPane({
   return (
     <Surface
       tone="scene"
+      frosted
       padding="none"
       testID="today-panel"
       style={{ overflow: 'hidden', flexGrow: 1 }}

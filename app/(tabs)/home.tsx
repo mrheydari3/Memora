@@ -47,6 +47,7 @@ import {
   ShelfHeader,
   Surface,
   TodayPane,
+  HeroAura,
   LibraryPane,
   FolderCard,
 } from '../../components/v3';
@@ -853,24 +854,41 @@ export default function HomeScreen() {
                   : { marginTop: 12 }
               }
             >
-              <View style={desktop ? { flex: 1, minWidth: 0 } : { width: '100%' }}>
-                <TodayPane
-                  due={totalDue}
-                  deckCount={dueDecks}
-                  minutes={minutes}
-                  nextDeck={continueEntry.deck.name}
-                  // The rail describes the deck the button opens, not the whole
-                  // library: the due count above it is the library total, so
-                  // library-wide segments here read as if one deck held them all.
-                  newCount={continueEntry.newCount}
-                  learningCount={continueEntry.learningCount}
-                  reviewCount={continueEntry.reviewCount}
-                  label={
-                    totalDue === 0 ? 'Nothing due today' : resuming ? 'Continue' : 'Start session'
+              <View
+                style={
+                  desktop
+                    ? { flex: 1, minWidth: 0, position: 'relative' }
+                    : { width: '100%', position: 'relative' }
+                }
+              >
+                {/* The frosted card needs a light field behind it; the aura is
+                    decorative and never enters the accessibility tree. */}
+                <HeroAura id="today-aura" />
+                <View
+                  style={
+                    desktop
+                      ? { flex: 1, position: 'relative', zIndex: 1 }
+                      : { position: 'relative', zIndex: 1 }
                   }
-                  disabled={totalDue === 0}
-                  onStart={() => pushOnce(router, `/study/${continueEntry.deck.id}`)}
-                />
+                >
+                  <TodayPane
+                    due={totalDue}
+                    deckCount={dueDecks}
+                    minutes={minutes}
+                    nextDeck={continueEntry.deck.name}
+                    // The rail describes the deck the button opens, not the whole
+                    // library: the due count above it is the library total, so
+                    // library-wide segments here read as if one deck held them all.
+                    newCount={continueEntry.newCount}
+                    learningCount={continueEntry.learningCount}
+                    reviewCount={continueEntry.reviewCount}
+                    label={
+                      totalDue === 0 ? 'Nothing due today' : resuming ? 'Continue' : 'Start session'
+                    }
+                    disabled={totalDue === 0}
+                    onStart={() => pushOnce(router, `/study/${continueEntry.deck.id}`)}
+                  />
+                </View>
               </View>
 
               {desktop ? (

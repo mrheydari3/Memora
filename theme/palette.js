@@ -138,6 +138,11 @@ const glass = {
   stackFar: '#090d13',
   blur: 0,
   blurStrong: 0,
+  /**
+   * The frosted Today scene; stronger than the bar so the glass reads against
+   * the flat canvas rather than disappearing into it.
+   */
+  blurScene: 80,
   /** The floating app bar and the tab dock: one refraction for both surfaces. */
   blurHeader: 40,
   /** The selection lens: a denser blur than the rail around it. */
