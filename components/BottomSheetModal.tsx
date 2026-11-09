@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from './AppText';
 import { IconButton } from './IconButton';
 import { glass, glassFillStrong, iconSize, motion, radii, sheet, veil } from '../theme/tokens';
+import { v3 } from '../theme/v3';
 import { usePresence } from '../motion';
 
 type SheetPanelProps = {
@@ -31,7 +32,7 @@ type SheetPanelProps = {
   onBodyLayout?: (event: LayoutChangeEvent) => void;
   /** Scrolls the body instead of letting a long sheet grow past the viewport. */
   scroll?: boolean;
-  /** A centred desktop dialog: more gutter, all four corners, no bottom docking. */
+  /** A centred desktop dialog with the page gutter and all four corners. */
   desktop?: boolean;
 };
 
@@ -79,7 +80,7 @@ export function SheetPanel({
 
   return (
     <View
-      className={`rounded-t-2xl ${desktop ? 'px-8 pb-8' : 'px-5 pb-8'} ${
+      className={`rounded-t-2xl px-5 pb-8 ${
         hasHeader ? (desktop ? 'pt-7' : 'pt-6') : 'pt-3'
       } ${className}`}
       style={[glassFillStrong, { backgroundColor: glass.sheet }, style as ViewStyle]}
@@ -437,7 +438,8 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   desktopPanel: {
-    maxWidth: 960,
+    // Match the Game/Settings desktop column, including its 20px page gutter.
+    maxWidth: v3.layout.contentMaxWidth,
     // A dialog is a complete surface: unlike the docked sheet, it rounds both
     // ends so it reads as centred on the canvas rather than sliding under it.
     borderBottomLeftRadius: radii.sheet,

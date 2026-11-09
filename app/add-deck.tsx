@@ -23,7 +23,8 @@ import {
 } from '../components';
 import { MaterialIcons } from '../components/Icon';
 import { ActionButton, Surface } from '../components/v3';
-import { alpha, colors, glass, iconSize, radii, sheet, veil } from '../theme/tokens';
+import { alpha, colors, glass, iconSize, radii, sheet, spacing, veil } from '../theme/tokens';
+import { v3 } from '../theme/v3';
 
 /**
  * Web focus management, typed narrowly because this file should not need the
@@ -278,7 +279,8 @@ export default function AddDeckScreen() {
         accessibilityViewIsModal
         style={{
           width: '100%',
-          maxWidth: desktop ? 960 : undefined,
+          // The same column as the desktop Game and Settings pages.
+          maxWidth: desktop ? v3.layout.contentMaxWidth : undefined,
           height: desktop ? desktopPanelHeight : undefined,
           maxHeight: desktop ? desktopPanelHeight : maxHeight,
           overflow: 'hidden',
@@ -293,7 +295,7 @@ export default function AddDeckScreen() {
         <View
           style={{
             minHeight: desktop ? 78 : 64,
-            paddingHorizontal: desktop ? 28 : 20,
+            paddingHorizontal: spacing.screen,
             flexDirection: 'row',
             alignItems: 'center',
             gap: desktop ? 12 : 0,
@@ -342,7 +344,7 @@ export default function AddDeckScreen() {
         <ScrollView
           style={desktop ? { flex: 1, minHeight: 0 } : { flexShrink: 1, minHeight: 0 }}
           contentContainerStyle={{
-            paddingHorizontal: desktop ? 28 : 20,
+            paddingHorizontal: spacing.screen,
             paddingTop: 4,
             paddingBottom: 16,
           }}
@@ -378,7 +380,7 @@ export default function AddDeckScreen() {
             flexDirection: desktop ? 'row' : 'column',
             justifyContent: desktop ? 'flex-end' : undefined,
             alignItems: desktop ? 'center' : undefined,
-            paddingHorizontal: desktop ? 28 : 20,
+            paddingHorizontal: spacing.screen,
             paddingTop: 12,
             paddingBottom: desktop ? 24 : Math.max(20, insets.bottom + 12),
             borderTopWidth: desktop ? 1 : 0,
