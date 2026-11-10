@@ -3,13 +3,23 @@ import { Animated, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { alpha, colors, fills, heights, iconSize, radii, stateColors } from '../../theme/tokens';
+import { alpha, colors, fills, iconSize, radii, stateColors } from '../../theme/tokens';
 import { RowOptions } from './RowOptions';
+import { ShelfStatusPill } from './ShelfStatusPill';
 import { Surface } from './Surface';
 import { v3 } from '../../theme/v3';
 import { usePressFeedback } from '../../motion';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
+
+type DeckComposition = {
+  /** Cards the queue will show as new. */
+  newCount: number;
+  /** Cards still in the learning or relearning steps. */
+  learningCount: number;
+  /** Cards back for a scheduled review. */
+  reviewCount: number;
+};
 
 type DeckShelfRowProps = {
   name: string;
@@ -22,6 +32,14 @@ type DeckShelfRowProps = {
   due: number;
   /** Studied share, 0–1. */
   progress: number;
+  /**
+   * Today's queue split. A deck that lives loose on the shelf wears this
+   * segmented rail instead of the studied one; a deck that asks for nothing
+   * today keeps the studied rail, so the card always states something true.
+   */
+  composition?: DeckComposition;
+  /** Nested in a folder's well: a flat row, not its own pane. */
+  flat?: boolean;
   pinned?: boolean;
   onOptions?: () => void;
   /** An ActionMenu node, rendered instead of the built-in options control. */
@@ -30,14 +48,20 @@ type DeckShelfRowProps = {
 };
 
 const NUMERIC = { fontVariant: ['tabular-nums'] as const };
+const GLYPH = 36;
+/** The options target beside the card; the rail keeps its line above it. */
+const OPTIONS_RAIL = 44;
 
 /**
- * DeckShelfRow — the shelf's quiet deck card.
+ * DeckShelfRow — the shelf's deck card.
  *
- * The card is one compact line: a 38px glyph, a 15/20 name, one 12px meta line
- * and a 4px studied rail. The due or clear status is a single 30px circle in
- * the top-right corner; the options target sits below it. That keeps the
- * status legible at a glance without giving the card a second block of chrome.
+ * The design gives a deck one line of identity and one line of evidence: the
+ * 36px glyph, the name and its scheduler, then the due pill at the trailing
+ * edge with the options target beside it. Under them sits one rail: the queue's
+ * new / learning / review split for a loose deck with work today, otherwise the
+ * studied share with its percentage spelled out. Nothing draws a frame, a spine
+ * or a second accent — the tile carries the deck's colour and the rail carries
+ * its numbers.
  */
 export function DeckShelfRow({
   name,
@@ -47,6 +71,8 @@ export function DeckShelfRow({
   schedulerLabel,
   due,
   progress,
+  composition,
+  flat = false,
   pinned = false,
   onOptions,
   optionsMenu,
@@ -60,152 +86,263 @@ export function DeckShelfRow({
   const cardCountLabel = cardCount.toLocaleString('en-US');
   // Keep scheduler names such as FSRS-6 in one piece when the meta wraps.
   const scheduler = schedulerLabel.replace(/-/g, '\u2011');
-  const statusLabel = due > 0 ? `${due} due` : 'all clear';
-  const progressLabel = percent > 0 ? `${percent}% studied` : 'not studied yet';
+
+  const segments = composition
+    ? [
+        { key: 'new', label: 'new', value: composition.newCount, color: stateColors.New },
+        {
+          key: 'learning',
+          label: 'learn',
+          value: composition.learningCount,
+          color: stateColors.Learning,
+        },
+        { key: 'review', label: 'review', value: composition.reviewCount, color: stateColors.Review },
+      ]
+    : [];
+  const composedTotal = segments.reduce((sum, segment) => sum + segment.value, 0);
+
+  // The card is named by its own contents, never by a parallel aria-label.
+  // axe's label-content-name check compares the visible run — separators and
+  // the non-breaking scheduler hyphen included — with the accessible name, and a
+  // hand-written description drifts the moment a line changes. HintPressable
+  // still supplies "Open deck" through aria-describedby.
+
+  // The percentage stays its own text node: the shelf's data tests read the
+  // exact share off the card, and screen readers benefit from a number that is
+  // not glued to a word.
+  const percentNode = (
+    <AppText
+      variant="caption"
+      weight="semibold"
+      tone={percent > 0 ? 'accent' : 'tertiary'}
+      style={[NUMERIC, { minWidth: 26, textAlign: 'right' }]}
+    >
+      {percent === 0 ? '—' : `${percent}%`}
+    </AppText>
+  );
+
+  const rail = composition ? (
+    <View style={{ marginTop: 10, gap: 7 }}>
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{
+          flexDirection: 'row',
+          gap: 2,
+          height: v3.rail.composition,
+          borderRadius: radii.pill,
+          backgroundColor: colors.surfaceControl,
+          overflow: 'hidden',
+        }}
+      >
+        {segments.map((segment) => (
+          <View
+            key={segment.key}
+            style={{
+              flex: composedTotal > 0 ? segment.value : 1,
+              backgroundColor: composedTotal > 0 ? segment.color : 'transparent',
+            }}
+          />
+        ))}
+      </View>
+
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            columnGap: 10,
+            rowGap: 2,
+            flexShrink: 1,
+            minWidth: 0,
+          }}
+        >
+          {segments.map((segment) => (
+            <View
+              key={segment.key}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
+            >
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: segment.color,
+                }}
+              />
+              <AppText variant="caption" tone="tertiary" style={NUMERIC}>
+                {`${segment.value} ${segment.label}`}
+              </AppText>
+            </View>
+          ))}
+        </View>
+        {percentNode}
+      </View>
+    </View>
+  ) : (
+    <View style={{ marginTop: 10, gap: 6 }}>
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{
+          height: v3.rail.deck,
+          borderRadius: radii.pill,
+          backgroundColor: colors.surfaceControl,
+          overflow: 'hidden',
+        }}
+      >
+        <View
+          style={{
+            width: `${percent}%`,
+            height: '100%',
+            backgroundColor: stateColors.Review,
+          }}
+        />
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
+        {percentNode}
+        <AppText variant="caption" tone="tertiary">
+          {percent === 0 ? 'not studied yet' : 'mastered'}
+        </AppText>
+      </View>
+    </View>
+  );
+
+  const content = (
+    <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+      <HintPressable
+        hint="Open deck"
+        testID="deck-row"
+        onPress={onPress}
+        onPressIn={press.onPressIn}
+        onPressOut={press.onPressOut}
+        onHoverIn={() => setHovered(true)}
+        onHoverOut={() => setHovered(false)}
+        accessibilityRole="button"
+        style={{
+          flex: 1,
+          minWidth: 0,
+          paddingLeft: 12,
+          paddingRight: 2,
+          paddingVertical: 11,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 11 }}>
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{
+              width: GLYPH,
+              height: GLYPH,
+              borderRadius: v3.radii.tile,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: alpha(color, 0.14),
+              flexShrink: 0,
+            }}
+          >
+            <MaterialIcons name={icon} size={iconSize.lg} color={color} />
+          </View>
+
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <AppText
+                weight="semibold"
+                numberOfLines={2}
+                style={[v3.type.deckTitle, { flexShrink: 1 }]}
+              >
+                {name}
+              </AppText>
+              {pinned && (
+                <View
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                >
+                  <MaterialIcons name="push-pin" size={iconSize.xs} color={colors.outline} />
+                </View>
+              )}
+            </View>
+
+            <AppText
+              variant="caption"
+              tone="tertiary"
+              numberOfLines={1}
+              style={{ marginTop: 2 }}
+            >
+              {cardCountLabel} {cardLabel} · {scheduler}
+            </AppText>
+          </View>
+
+          <View style={{ marginTop: 2 }}>
+            <ShelfStatusPill due={due} split />
+          </View>
+        </View>
+
+        {rail}
+      </HintPressable>
+
+      <View style={{ width: OPTIONS_RAIL, paddingTop: 8, alignItems: 'center', flexShrink: 0 }}>
+        {optionsMenu ??
+          (onOptions && (
+            <RowOptions label={`Options for deck ${name}`} onPress={onOptions} />
+          ))}
+      </View>
+    </View>
+  );
+
+  const hoverWash = hovered ? (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+        backgroundColor: fills.subtle,
+      }}
+    />
+  ) : null;
 
   return (
     <Animated.View style={[press.style, { width: '100%' }]}>
-      <Surface
-        tone="pane"
-        radius="card"
-        padding="sm"
-        style={{
-          width: '100%',
-          // The shelf's rows stay low: a deck is an item inside the board, and
-          // folders carry the taller tile.
-          minHeight: v3.heights.deckRow,
-          paddingTop: 12,
-          paddingBottom: 12,
-          position: 'relative',
-        }}
-      >
-        {hovered && (
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              bottom: 0,
-              left: 0,
-              borderRadius: v3.radii.card,
-              backgroundColor: fills.subtle,
-            }}
-          />
-        )}
-        <HintPressable
-          hint="Open deck"
-          testID="deck-row"
-          onPress={onPress}
-          onPressIn={press.onPressIn}
-          onPressOut={press.onPressOut}
-          onHoverIn={() => setHovered(true)}
-          onHoverOut={() => setHovered(false)}
-          accessibilityRole="button"
-          style={{ flex: 1, minWidth: 0, paddingRight: 56 }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-            <View
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-              style={{
-                width: heights.icon,
-                height: heights.icon,
-                borderRadius: v3.radii.tile,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: alpha(color, 0.12),
-                flexShrink: 0,
-              }}
-            >
-              <MaterialIcons name={icon} size={iconSize.lg} color={color} />
-            </View>
-
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <AppText
-                  weight="semibold"
-                  numberOfLines={2}
-                  style={[v3.type.deckTitle, { flexShrink: 1 }]}
-                >
-                  {name}
-                </AppText>
-                {pinned && (
-                  <View
-                    accessibilityElementsHidden
-                    importantForAccessibility="no-hide-descendants"
-                  >
-                    <MaterialIcons name="push-pin" size={iconSize.xs} color={colors.outline} />
-                  </View>
-                )}
-              </View>
-
-              <AppText variant="caption" tone="tertiary" numberOfLines={1} style={{ marginTop: 2 }}>
-                {cardCountLabel} {cardLabel} · {scheduler}
-              </AppText>
-
-              <View
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-                style={{
-                  height: v3.rail.deck,
-                  marginTop: 6,
-                  maxWidth: v3.layout.deckRail,
-                  borderRadius: radii.pill,
-                  backgroundColor: colors.surfaceControl,
-                  overflow: 'hidden',
-                }}
-              >
-                <View
-                  style={{
-                    width: `${percent}%`,
-                    height: '100%',
-                    backgroundColor: stateColors.Review,
-                  }}
-                />
-              </View>
-            </View>
-          </View>
-
-          <AppText
-            variant="caption"
-            style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }}
-          >
-            {progressLabel}. {statusLabel}.{pinned ? ' Pinned.' : ''}
-          </AppText>
-        </HintPressable>
-
+      {flat ? (
         <View
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          pointerEvents="none"
           style={{
-            position: 'absolute',
-            top: 10,
-            right: 10,
-            width: 30,
-            height: 30,
-            borderRadius: radii.pill,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: due > 0 ? alpha(colors.primary, 0.14) : alpha(colors.success, 0.14),
+            width: '100%',
+            minHeight: v3.heights.deckRow,
+            borderRadius: radii.control,
+            overflow: 'hidden',
+            position: 'relative',
           }}
         >
-
-          {due > 0 ? (
-            <AppText variant="caption" weight="semibold" tone="accent" style={NUMERIC}>
-              {due}
-            </AppText>
-          ) : (
-            <MaterialIcons name="check" size={iconSize.sm} color={colors.success} />
-          )}
+          {hoverWash}
+          {content}
         </View>
-
-        <View style={{ position: 'absolute', top: 42, right: 8 }}>
-          {optionsMenu ??
-            (onOptions && <RowOptions label={`Options for deck ${name}`} onPress={onOptions} />)}
-        </View>
-      </Surface>
+      ) : (
+        <Surface
+          tone="pane"
+          radius="card"
+          padding="none"
+          style={{
+            width: '100%',
+            minHeight: v3.heights.deckRow,
+            overflow: 'hidden',
+            position: 'relative',
+          }}
+        >
+          {hoverWash}
+          {content}
+        </Surface>
+      )}
     </Animated.View>
   );
 }

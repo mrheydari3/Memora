@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import { Platform, useWindowDimensions, View } from 'react-native';
 import type { ScrollViewInstance, ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
 import { buildStudyQueue } from '../../data/session';
-import { buildExplorePicks } from '../../data/explore';
 import { schedulerLabel } from '../../data/schedulers';
 import { computeStreak } from '../../data/streak';
 import {
@@ -38,6 +37,7 @@ import {
 } from '../../components';
 import type { MenuAction } from '../../components';
 import { MaterialIcons } from '../../components/Icon';
+import { HintPressable } from '../../components/HintPressable';
 import {
   ArchivedRow,
   DeckShelfRow,
@@ -57,8 +57,6 @@ import {
   NewFolderButton,
   ShelfBand,
   ShelfBreadcrumbs,
-  ExploreEntry,
-  ExploreSheet,
 } from '../../components/v3';
 import type { ShelfReorderGroup } from '../../components/v3';
 import type { FieldInputRef } from '../../components/Field';
@@ -162,8 +160,6 @@ export default function HomeScreen() {
   // Folders are a browsing layer: creating one is local, deleting one only
   // moves its decks and subfolders up, so neither can touch a card or a review.
   const [folderSheet, setFolderSheet] = useState(false);
-  // Explore is a read-only lens; opening it never writes, moves or reschedules.
-  const [exploreOpen, setExploreOpen] = useState(false);
   const [folderSheetMode, setFolderSheetMode] = useState<FolderSheetMode>('list');
   const [folderDraft, setFolderDraft] = useState('');
   const [folderError, setFolderError] = useState<string | null>(null);
@@ -183,6 +179,9 @@ export default function HomeScreen() {
   // Edit layout replaces the shelf board with a fixed-row drag list; it never
   // changes the underlying folder navigation or opens a deck by accident.
   const [editingLayout, setEditingLayout] = useState(false);
+  // Archived decks are retired: they stay one tap away behind their own count
+  // instead of taking shelf space from the decks that can still be studied.
+  const [archiveOpen, setArchiveOpen] = useState(false);
   const homeScrollRef = useRef<ScrollViewInstance>(null);
   // The drag list needs the live scroll offset so holding at an edge can move
   // the page and the row together. Screen owns the only ScrollView.
@@ -285,40 +284,6 @@ export default function HomeScreen() {
     lastStudiedEntry ??
     deckQueues[0];
   const resuming = Boolean(lastStudiedEntry && continueEntry?.deck.id === lastStudiedEntry.deck.id);
-
-  // Explore reads the same capped queues as the shelf, so its reasons can never
-  // disagree with the due figures beside them. The engine is memoized and only
-  // receives the light queue stats; Home does not build the full intelligence
-  // report for one row. The hero deck is excluded so the row never repeats it.
-  const decksById = useMemo(() => new Map(decks.map((deck) => [deck.id, deck])), [decks]);
-  const explorePicks = useMemo(() => {
-    if (!ready) return [];
-    return buildExplorePicks({
-      decks,
-      cardsByDeck,
-      statsByDeck: deckQueues.map((entry) => ({
-        deckId: entry.deck.id,
-        due: entry.total,
-        newCount: entry.newCount,
-        learningCount: entry.learningCount,
-        reviewCount: entry.reviewCount,
-      })),
-      reviewLog,
-      folders,
-      scopeFolderId: openFolderId,
-      excludeDeckIds: continueEntry ? [continueEntry.deck.id] : [],
-      now: Date.now(),
-    });
-  }, [
-    ready,
-    decks,
-    cardsByDeck,
-    deckQueues,
-    reviewLog,
-    folders,
-    openFolderId,
-    continueEntry,
-  ]);
 
   // A folder deleted from the sheet falls back to its parent instead of hiding
   // the level it was on.
@@ -611,7 +576,10 @@ export default function HomeScreen() {
     },
   ];
 
-  const renderDeck = (entry: DeckQueue) => (
+  const renderDeck = (
+    entry: DeckQueue,
+    options: { flat?: boolean; composition?: boolean } = {}
+  ) => (
     <DeckShelfRow
       key={entry.deck.id}
       name={entry.deck.name}
@@ -621,6 +589,18 @@ export default function HomeScreen() {
       schedulerLabel={schedulerLabel(entry.deck.algorithmPreset)}
       due={entry.total}
       progress={entry.progress}
+      flat={options.flat}
+      // The split describes today's queue, so a deck that asks for nothing
+      // keeps its studied rail rather than a rail of three zeroes.
+      composition={
+        options.composition && entry.total > 0
+          ? {
+              newCount: entry.newCount,
+              learningCount: entry.learningCount,
+              reviewCount: entry.reviewCount,
+            }
+          : undefined
+      }
       pinned={entry.deck.pinnedAt != null}
       optionsMenu={
         <ActionMenu
@@ -692,11 +672,14 @@ export default function HomeScreen() {
     },
   ].filter((group) => group.items.length > 0);
 
-  const renderDeckList = (entries: DeckQueue[]) => (
+  const renderDeckList = (
+    entries: DeckQueue[],
+    options: { flat?: boolean; composition?: boolean } = {}
+  ) => (
     <View style={deckGridStyle}>
       {entries.map((entry) => (
         <View key={entry.deck.id} style={deckCellStyle}>
-          {renderDeck(entry)}
+          {renderDeck(entry, options)}
         </View>
       ))}
     </View>
@@ -728,14 +711,6 @@ export default function HomeScreen() {
           editingLayout={editingLayout}
         />
 
-        {ready && !editingLayout && explorePicks.length > 0 ? (
-          <ExploreEntry
-            picks={explorePicks}
-            decksById={decksById}
-            onPress={() => setExploreOpen(true)}
-          />
-        ) : null}
-
         {/* The shelf is one quiet glass partition. Its rule separates the
             section's numbers from the things they count; the rows below it are
             the library itself. */}
@@ -752,6 +727,7 @@ export default function HomeScreen() {
             <ShelfBand
               label={openFolder ? 'Folders here' : 'Folders'}
               count={visibleFolders.length}
+              hint="Hierarchical"
             >
               {desktop ? (
                 <View style={deckGridStyle}>
@@ -785,7 +761,6 @@ export default function HomeScreen() {
                         deckCount={folder.decks}
                         directDecks={folder.directDecks}
                         due={folder.due}
-                        progress={folder.progress}
                         pinned={folder.pinnedAt != null}
                         nestedFolders={folder.nestedFolders}
                         expanded={!collapsedFolders.has(folder.id)}
@@ -794,7 +769,7 @@ export default function HomeScreen() {
                         onOpenSubfolder={setOpenFolderId}
                       >
                         {entries.length > 0 ? (
-                          renderDeckList(entries)
+                          renderDeckList(entries, { flat: true })
                         ) : subfolders.length === 0 ? (
                           <AppText variant="caption" tone="muted">
                             No decks directly inside yet.
@@ -812,8 +787,9 @@ export default function HomeScreen() {
             <ShelfBand
               label={openFolder ? 'Decks here' : 'Unfiled decks'}
               count={visibleDecks.length}
+              hint={openFolder ? 'In this folder' : 'Root level'}
             >
-              {renderDeckList(visibleDecks)}
+              {renderDeckList(visibleDecks, { composition: true })}
             </ShelfBand>
           )}
 
@@ -829,37 +805,64 @@ export default function HomeScreen() {
       </ShelfPanel>
 
       {!openFolder && archivedDecks.length > 0 && (
-        <View style={{ marginTop: 28, gap: 10 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 4 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ marginTop: 28 }}>
+          <Surface tone="pane" radius="pane" padding="none" style={{ overflow: 'hidden' }}>
+            <HintPressable
+              hint={archiveOpen ? 'Collapse archived decks' : 'Expand archived decks'}
+              onPress={() => setArchiveOpen((next) => !next)}
+              accessibilityRole="button"
+              accessibilityLabel={`Archived decks, ${archivedDecks.length}`}
+              accessibilityState={{ expanded: archiveOpen }}
+              {...(Platform.OS === 'web' ? { 'aria-expanded': archiveOpen } : {})}
+              style={{
+                minHeight: 52,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+              }}
+            >
               <MaterialIcons name="inventory-2" size={iconSize.sm} color={colors.outline} />
-              <AppText variant="label" tone="tertiary" className="uppercase">
+              <AppText
+                variant="label"
+                weight="semibold"
+                tone="muted"
+                className="uppercase"
+                style={{ letterSpacing: 0.9 }}
+              >
                 Archived
               </AppText>
-            </View>
-            <AppText variant="caption" tone="tertiary">
-              {archivedDecks.length} {archivedDecks.length === 1 ? 'deck' : 'decks'}
-            </AppText>
-          </View>
-          <View style={deckGridStyle}>
-            {archivedDecks.map(({ deck, cards }) => (
-              <View key={deck.id} style={deckCellStyle}>
-                <ArchivedRow
-                  name={deck.name}
-                  cardCount={cards}
-                  onPress={() => pushOnce(router, `/deck/${deck.id}`)}
-                  optionsMenu={
-                    <ActionMenu
-                      label={`Options for deck ${deck.name}`}
-                      sheetTitle={deck.name}
-                      sheetSubtitle="Pinned decks stay above the others in their folder."
-                      actions={deckActions(deck)}
-                    />
-                  }
-                />
+              <AppText variant="caption" tone="tertiary">
+                {archivedDecks.length} {archivedDecks.length === 1 ? 'deck' : 'decks'}
+              </AppText>
+              <View style={{ flex: 1 }} />
+              <View style={{ transform: [{ rotate: archiveOpen ? '180deg' : '0deg' }] }}>
+                <MaterialIcons name="expand-more" size={iconSize.lg} color={colors.outline} />
               </View>
-            ))}
-          </View>
+            </HintPressable>
+
+            {archiveOpen ? (
+              <View style={{ padding: 8, gap: 8 }}>
+                {archivedDecks.map(({ deck, cards }) => (
+                  <ArchivedRow
+                    key={deck.id}
+                    name={deck.name}
+                    cardCount={cards}
+                    onPress={() => pushOnce(router, `/deck/${deck.id}`)}
+                    optionsMenu={
+                      <ActionMenu
+                        label={`Options for deck ${deck.name}`}
+                        sheetTitle={deck.name}
+                        sheetSubtitle="Pinned decks stay above the others in their folder."
+                        actions={deckActions(deck)}
+                      />
+                    }
+                  />
+                ))}
+              </View>
+            ) : null}
+          </Surface>
         </View>
       )}
     </View>
@@ -1351,19 +1354,6 @@ export default function HomeScreen() {
           )}
         </SheetScrollView>
       </BottomSheetModal>
-
-      <ExploreSheet
-        visible={exploreOpen}
-        onClose={() => setExploreOpen(false)}
-        picks={explorePicks}
-        decksById={decksById}
-        scopeName={openFolder?.name ?? null}
-        desktopLayout={desktop}
-        onOpenDeck={(deckId) => {
-          setExploreOpen(false);
-          pushOnce(router, `/deck/${deckId}`);
-        }}
-      />
     </Screen>
   );
 }

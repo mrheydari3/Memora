@@ -3,13 +3,12 @@ import { Animated, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { alpha, colors, fills, iconSize, stateColors } from '../../theme/tokens';
+import { colors, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { usePressFeedback } from '../../motion';
 import { FolderGlass } from './FolderGlass';
 import { FolderGlyph } from './FolderGlyph';
-
-const NUMERIC = { fontVariant: ['tabular-nums'] as const };
+import { ShelfStatusPill } from './ShelfStatusPill';
 
 type FolderCardProps = {
   name: string;
@@ -32,11 +31,11 @@ type FolderCardProps = {
 /**
  * FolderCard — the desktop library board's folder tile.
  *
- * A folder is a place, not a deck, so it trades the studied rail for an "Open
- * folder" affordance. Its glass jacket and folder-shaped glyph frame make it
- * read as a folder beside the darker deck panes, while the due tile keeps the
- * folder's waiting cards legible. The mobile shelf keeps the accordion; this
- * card is only composed at desktop widths.
+ * The folder is a place, so it keeps its glass jacket and illustrated glyph,
+ * but its body now mirrors a deck card: name and subtree counts at the top, the
+ * shared due pill at the trailing edge, and the quiet "Open folder" footer.
+ * It deliberately draws no studied rail: progress belongs to the decks that can
+ * be studied, not to the label that groups them.
  */
 export function FolderCard({
   name,
@@ -82,14 +81,16 @@ export function FolderCard({
           onHoverIn={() => setHovered(true)}
           onHoverOut={() => setHovered(false)}
           accessibilityRole="button"
-          accessibilityLabel={`Open folder ${name}, ${deckCount} ${deckLabel}, ${due} due${progressLabel ? `, ${progressLabel}` : ''}`}
-          style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}
+          accessibilityLabel={`Open folder ${name}, ${deckCount} ${deckLabel}, ${
+            empty ? 'empty' : `${due} due`
+          }${progressLabel ? `, ${progressLabel}` : ''}`}
+          style={{ flex: 1, minWidth: 0, justifyContent: 'space-between', gap: 12 }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
             <FolderGlyph icon={icon} color={tint} size={48} />
 
             <View style={{ flex: 1, minWidth: 0 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                 <AppText
                   weight="semibold"
                   numberOfLines={2}
@@ -97,126 +98,33 @@ export function FolderCard({
                 >
                   {name}
                 </AppText>
-                {pinned && <MaterialIcons name="push-pin" size={13} color={colors.outline} />}
+                {pinned && (
+                  <MaterialIcons name="push-pin" size={iconSize.xs} color={colors.outline} />
+                )}
               </View>
 
-              <AppText variant="bodySm" tone="tertiary" numberOfLines={1} style={{ marginTop: 2 }}>
+              <AppText
+                variant="bodySm"
+                tone="tertiary"
+                numberOfLines={2}
+                style={{ marginTop: 3 }}
+              >
                 {meta}
               </AppText>
-
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 5,
-                  marginTop: 8,
-                }}
-              >
-                <MaterialIcons
-                  name="folder-open"
-                  size={iconSize.sm}
-                  color={colors.primary}
-                />
-                <AppText variant="caption" tone="accent" weight="semibold">
-                  Open folder
-                </AppText>
-                <MaterialIcons name="chevron-right" size={iconSize.sm} color={colors.outline} />
-              </View>
             </View>
 
-            <View
-              style={{
-                minWidth: 44,
-                alignItems: 'center',
-                justifyContent: 'center',
-                paddingHorizontal: 10,
-                paddingVertical: 4,
-                borderRadius: 12,
-                backgroundColor: empty
-                  ? fills.inset
-                  : due > 0
-                    ? alpha(colors.primary, 0.1)
-                    : alpha(colors.success, 0.1),
-                flexShrink: 0,
-              }}
-            >
-              {empty ? (
-                <>
-                  <AppText
-                    variant="title"
-                    tone="tertiary"
-                    style={[v3.type.stat, NUMERIC]}
-                  >
-                    —
-                  </AppText>
-                  <AppText
-                    variant="caption"
-                    weight="semibold"
-                    tone="muted"
-                    className="uppercase"
-                    style={{ lineHeight: 14, letterSpacing: 0.6 }}
-                  >
-                    empty
-                  </AppText>
-                </>
-              ) : due > 0 ? (
-                <>
-                  <AppText variant="title" tone="accent" style={[v3.type.stat, NUMERIC]}>
-                    {due}
-                  </AppText>
-                  <AppText
-                    variant="caption"
-                    weight="semibold"
-                    tone="accent"
-                    className="uppercase"
-                    style={{ lineHeight: 14, letterSpacing: 0.6 }}
-                  >
-                    due
-                  </AppText>
-                </>
-              ) : (
-                <>
-                  <MaterialIcons name="done-all" size={18} color={colors.success} />
-                  <AppText
-                    variant="caption"
-                    weight="semibold"
-                    tone="success"
-                    className="uppercase"
-                    style={{ lineHeight: 14, letterSpacing: 0.6 }}
-                  >
-                    clear
-                  </AppText>
-                </>
-              )}
-            </View>
+            <ShelfStatusPill due={due} empty={empty} />
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <MaterialIcons name="folder-open" size={iconSize.sm} color={colors.primary} />
+            <AppText variant="caption" tone="accent" weight="semibold">
+              Open folder
+            </AppText>
+            <MaterialIcons name="chevron-right" size={iconSize.sm} color={colors.outline} />
           </View>
         </HintPressable>
 
-        {/* A folder is a place with a completion state too: the same quiet
-            studied rail as its decks, summed through the subtree. */}
-        {deckCount > 0 && (
-          <View
-            pointerEvents="none"
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: 3,
-              backgroundColor: colors.surfaceControl,
-            }}
-          >
-            <View
-              style={{
-                width: `${percent}%`,
-                height: '100%',
-                backgroundColor: stateColors.Review,
-              }}
-            />
-          </View>
-        )}
       </FolderGlass>
     </Animated.View>
   );

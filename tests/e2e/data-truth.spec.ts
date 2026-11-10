@@ -16,9 +16,10 @@ import type { Deck, DeckFolder, Flashcard, GameRecord, ReviewLogEntry } from '..
  * Counting semantics this suite pins down:
  *   - Home's hero is library-wide: every active deck's `buildStudyQueue` total,
  *     and the number of those decks that actually have something waiting.
- *   - The shelf caption at the root covers every active deck, including decks
- *     filed inside folders; inside a folder it covers that folder's subtree.
- *     Folder rows roll up the same subtree and name their direct/nested split.
+ *   - The shelf's meta line at the root covers every active deck and every root
+ *     folder, including decks filed inside folders; inside a folder it covers
+ *     that folder's subtree. Folder headers roll up the same subtree and name
+ *     their direct/nested split.
  *   - Archived decks are out of Home, the shelf, Game and Statistics.
  *   - XP is 10 per review on an active deck; a level is 1000 XP.
  */
@@ -120,13 +121,15 @@ const dueByDeck = (store: Store) =>
 const plural = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
 
-const shelfDeckCaption = (decks: number, due: number) =>
-  `${plural(decks, 'deck', 'decks')} · ${due > 0 ? `${due} due` : 'all caught up'}`;
-
-const shelfFolderCaption = (folders: number, cards: number, due: number) =>
+/**
+ * The shelf header's meta line: decks in scope, folders in scope, and the due
+ * figure those decks roll up. The card count left this line when the shelf
+ * became a library index (`home.tsx` `shelfMeta`).
+ */
+const shelfMeta = (decks: number, folders: number, due: number) =>
   [
+    plural(decks, 'deck', 'decks'),
     plural(folders, 'folder', 'folders'),
-    `${cards.toLocaleString('en-US')} ${cards === 1 ? 'card' : 'cards'}`,
     due > 0 ? `${due} due` : 'all caught up',
   ].join(' · ');
 
@@ -186,7 +189,7 @@ test.describe('Phase 7 — data truth', () => {
     expect(active.length).toBe(5);
     expect(rootDue).toBe(40);
     await expect(
-      page.getByText(shelfDeckCaption(active.length, rootDue), { exact: true })
+      page.getByText(shelfMeta(active.length, store.folders.length, rootDue), { exact: true })
     ).toBeVisible();
 
     // Languages has no direct decks, but its German child owns two. The header
@@ -194,28 +197,24 @@ test.describe('Phase 7 — data truth', () => {
     const languages = page.getByTestId('folder-group').filter({ hasText: 'Languages' });
     await expect(languages).toContainText('0 direct · 2 nested');
     await expect(languages).toContainText('30 due');
-    // The header expands; the "folder inside" control opens the level. Only
-    // Languages has a child folder, so it is the level we can actually enter.
-    await page.getByRole('button', { name: /1 folder inside/ }).click();
+    // The child folder is a sub-item inside its parent's well; opening it drills
+    // into that level, where the header names the folder and its own totals.
+    const germanItem = page.getByTestId('folder-subitem').filter({ hasText: 'German' });
+    await expect(germanItem).toContainText('2 decks · 30 due');
+    await expect(germanItem).not.toContainText('direct');
+    await germanItem.click();
     await settle(page);
 
     const childFolders = store.folders.filter((folder) => folder.parentId === 'fold-lang');
+    const germanChildren = store.folders.filter((folder) => folder.parentId === 'fold-de');
     const language = subtrees.get('fold-lang');
+    expect(childFolders.length).toBe(1);
     expect(language).toEqual({ decks: 2, due: 30, nestedFolders: 1 });
-    const languageCards = active
-      .filter((deck) => deck.folderId === 'fold-de')
-      .reduce((sum, deck) => sum + (store.cards[deck.id] ?? []).length, 0);
     await expect(
-      page.getByText(shelfFolderCaption(childFolders.length, languageCards, language!.due), {
+      page.getByText(shelfMeta(language!.decks, germanChildren.length, language!.due), {
         exact: true,
       })
     ).toBeVisible();
-
-    // German is where those decks actually live: two decks, 30 due. Its leaf
-    // level is already open, so the rows sit under its header.
-    const german = page.getByTestId('folder-group').filter({ hasText: 'German' });
-    await expect(german).toContainText('2 decks · 30 due');
-    await expect(german).not.toContainText('direct');
 
     // The two nested decks are the remaining per-deck totals: German and the
     // long-named deck. Their rows must agree with their own queues.
@@ -566,8 +565,9 @@ test.describe('Phase 7 — data truth', () => {
     const heroText = await panel.innerText();
     const store = await readStore(page);
     const active = activeDecks(store);
-    const caption = shelfDeckCaption(
+    const caption = shelfMeta(
       active.length,
+      store.folders.length,
       activeQueues(store).reduce((sum, entry) => sum + entry.queue.total, 0)
     );
 

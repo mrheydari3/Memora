@@ -40,6 +40,8 @@ export const v3 = {
     deckName: { fontSize: size(17), lineHeight: size(24), letterSpacing: 0 },
     /** A shelf deck's name: quieter than a folder title, still easy to scan. */
     deckTitle: { fontSize: size(15), lineHeight: size(20), letterSpacing: 0 },
+    /** The library masthead: the shelf's one page-scale title. */
+    shelfTitle: { fontSize: size(22), lineHeight: size(28), letterSpacing: -0.5 },
     /** A section-opening line, e.g. the Game hero's "Beat the clock.". */
     headlineMd: { fontSize: size(24), lineHeight: size(30), letterSpacing: -0.5 },
     /** The composer's prompt: the card's front, written on the card itself. */
@@ -100,6 +102,8 @@ export const v3 = {
     hero: 6,
     /** A deck row's studied share. */
     deck: 4,
+    /** A loose deck's new / learning / review split. */
+    composition: 6,
     /** The Statistics activity chart's tallest bar. */
     activity: 64,
     /** Its 92px plot, including the value and label rows. */
@@ -115,12 +119,12 @@ export const v3 = {
   },
 
   heights: {
-    /** A deck row on the shelf: an item, deliberately shorter than a folder. */
-    deckRow: 88,
-    /** The phone's folder group header: a place, just above a deck row. */
-    folderGroup: 92,
-    /** A desktop folder tile: taller than a row, without a second band of air. */
-    folderCard: 144,
+    /** A deck card on the shelf: one identity line and one rail line. */
+    deckRow: 96,
+    /** The phone's folder group header: a place, above a deck card. */
+    folderGroup: 76,
+    /** A desktop folder tile: taller than a card, without a second band of air. */
+    folderCard: 128,
     /** One folder listed inside its parent group. */
     subfolderRow: 56,
     /** One study rating key. */

@@ -24,7 +24,6 @@ export { RowOptions } from './RowOptions';
 export { ShelfHeader } from './ShelfHeader';
 export { ShelfBand } from './ShelfBand';
 export { ShelfBreadcrumbs } from './ShelfBreadcrumbs';
-export { ExploreEntry, ExploreSheet } from './ExploreLens';
 export { NewFolderButton } from './NewFolderButton';
 export { ShelfPanel } from './ShelfPanel';
 export { ShelfReorder } from './ShelfReorder';

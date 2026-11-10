@@ -6,17 +6,20 @@ type ShelfBandProps = {
   label: string;
   /** How many items the band holds. */
   count: number;
+  /** A quiet right-aligned hint, e.g. "Hierarchical" or "Root level". */
+  hint?: string;
   children: React.ReactNode;
 };
 
 /**
- * ShelfBand — the shelf's quiet section marker.
+ * ShelfBand — the shelf's section marker.
  *
- * Home now reads folder-first: a level names its folders before its loose
- * decks. The count sits at the far edge so the label stays a label, not a
- * second heading competing with the shelf's title.
+ * The design draws a band as one line of small caps: the name, its count in
+ * brackets, and a quiet hint at the far edge. There is no tick, no count pill
+ * and no rule any more — the shelf's title is the only page-scale type, and the
+ * cards themselves separate the bands with their own fill and air.
  */
-export function ShelfBand({ label, count, children }: ShelfBandProps) {
+export function ShelfBand({ label, count, hint, children }: ShelfBandProps) {
   return (
     <View style={{ gap: 10 }}>
       <View
@@ -27,13 +30,41 @@ export function ShelfBand({ label, count, children }: ShelfBandProps) {
           gap: 12,
         }}
       >
-        <AppText variant="label" tone="tertiary" className="uppercase">
-          {label}
-        </AppText>
-        <AppText variant="caption" tone="tertiary">
-          {count}
-        </AppText>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'baseline',
+            gap: 6,
+            flexShrink: 1,
+            minWidth: 0,
+          }}
+        >
+          <AppText
+            variant="label"
+            weight="semibold"
+            tone="muted"
+            className="uppercase"
+            numberOfLines={1}
+            style={{ letterSpacing: 0.9 }}
+          >
+            {label}
+          </AppText>
+          <AppText
+            variant="caption"
+            tone="tertiary"
+            style={{ fontVariant: ['tabular-nums'] }}
+          >
+            {`(${count})`}
+          </AppText>
+        </View>
+
+        {hint ? (
+          <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+            {hint}
+          </AppText>
+        ) : null}
       </View>
+
       {children}
     </View>
   );

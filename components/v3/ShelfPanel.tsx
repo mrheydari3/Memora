@@ -1,7 +1,5 @@
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import type { ViewStyle } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { alpha, colors, glass, radii } from '../../theme/tokens';
 
 type ShelfPanelProps = {
   children: React.ReactNode;
@@ -10,12 +8,13 @@ type ShelfPanelProps = {
 };
 
 /**
- * ShelfPanel — the full-width glass partition around Home's library shelf.
+ * ShelfPanel — the section frame around Home's library index.
  *
- * Today is the page's one hero scene. The shelf sits one level below it: a
- * quieter blur, a very low-alpha wash and one hairline rim. The wash is painted
- * above the blur (not as the parent's background) so the partition still reads
- * as a layer floating over the canvas.
+ * The shelf used to be a bordered glass tray, which boxed the library in a
+ * second surface directly under the hero and broke the fill-only depth rule.
+ * The redesign opens it: the masthead, bands and cards now sit on the canvas,
+ * and the cards' own fills carry the depth. The frame remains as the section's
+ * semantic and test hook, not as another pane.
  */
 export function ShelfPanel({
   children,
@@ -23,28 +22,8 @@ export function ShelfPanel({
   testID = 'shelf-panel',
 }: ShelfPanelProps) {
   return (
-    <View testID={testID} style={[styles.panel, style]}>
-      <BlurView
-        intensity={glass.blurShelf}
-        tint="dark"
-        pointerEvents="none"
-        style={StyleSheet.absoluteFill}
-      />
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.wash]} />
+    <View testID={testID} style={style}>
       {children}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  panel: {
-    position: 'relative',
-    overflow: 'hidden',
-    borderRadius: radii.pane,
-    borderWidth: 1,
-    borderColor: alpha(colors.outlineSoft, 0.24),
-  },
-  wash: {
-    backgroundColor: glass.shelf,
-  },
-});

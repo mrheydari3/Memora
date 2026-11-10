@@ -3,13 +3,13 @@ import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
 import { alpha, colors, iconSize, radii } from '../../theme/tokens';
-import { SectionHeading } from './SectionHeading';
+import { v3 } from '../../theme/v3';
 import { NewFolderButton } from './NewFolderButton';
 
 type ShelfHeaderProps = {
   /** The section's name; defaults to "Your decks". */
   title?: string;
-  /** The quiet line under the title, e.g. "6 decks · 18 due". */
+  /** The quiet line under the title, e.g. "6 decks · 4 folders · 18 due". */
   meta: string;
   /** Right-aligned status, e.g. "1 caught up". */
   statusLabel?: string;
@@ -19,12 +19,14 @@ type ShelfHeaderProps = {
 };
 
 /**
- * ShelfHeader — the Home shelf's specialized section header.
+ * ShelfHeader — the library's masthead.
  *
- * The label and folder actions come from `SectionHeading`; the shelf adds the
- * meta line and closes with the same 20% rule. The folder action is one plus
- * icon at every width — the meta line carries the totals — and the layout
- * action keeps its label while there is room for it.
+ * The shelf used to open with the same 12px uppercase label as every other
+ * section, which made the largest thing on the page — a whole library — read
+ * like a footnote. The masthead now has three tiers: a quiet eyebrow that also
+ * carries the shelf's actions, the section title at page scale, and the honest
+ * caption with the caught-up mark. The rule below it is the only line the shelf
+ * draws, so the cards beneath it are the page's content, not a boxed-in list.
  */
 export function ShelfHeader({
   title = 'Your decks',
@@ -35,17 +37,42 @@ export function ShelfHeader({
   editingLayout,
 }: ShelfHeaderProps) {
   const { width } = useWindowDimensions();
+  // The layout action keeps its label while the eyebrow has room for it; below
+  // that it stays a 44px tile with its accessible name.
   const compact = width < 480;
   const actionFill = alpha(colors.surfaceControl, 0.6);
 
   return (
     <View>
-      <SectionHeading
-        label={title}
-        rule={false}
-        className="mb-2"
-        action={
-          editingLayout ? (
+      <View style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{
+            width: 14,
+            height: 2,
+            borderRadius: 1,
+            backgroundColor: colors.primary,
+          }}
+        />
+        <AppText
+          variant="label"
+          weight="semibold"
+          tone="tertiary"
+          className="uppercase"
+          numberOfLines={1}
+          style={{ letterSpacing: 1.1 }}
+        >
+          Library
+        </AppText>
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ flex: 1, height: 1, backgroundColor: colors.hairlineRule }}
+        />
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          {editingLayout ? (
             <HintPressable
               hint="Done editing layout"
               onPress={onToggleLayout}
@@ -68,7 +95,7 @@ export function ShelfHeader({
               </AppText>
             </HintPressable>
           ) : (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <>
               <NewFolderButton onPress={onNewFolder} />
 
               <HintPressable
@@ -96,10 +123,19 @@ export function ShelfHeader({
                   </AppText>
                 )}
               </HintPressable>
-            </View>
-          )
-        }
-      />
+            </>
+          )}
+        </View>
+      </View>
+
+      <AppText
+        headingLevel={2}
+        weight="semibold"
+        numberOfLines={2}
+        style={[v3.type.shelfTitle, { marginTop: 2 }]}
+      >
+        {title}
+      </AppText>
 
       <View
         style={{
@@ -107,7 +143,8 @@ export function ShelfHeader({
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 12,
-          paddingBottom: 12,
+          marginTop: 6,
+          paddingBottom: 14,
         }}
       >
         <AppText
@@ -134,7 +171,7 @@ export function ShelfHeader({
         style={{
           height: 1,
           backgroundColor: colors.hairlineRule,
-          marginBottom: 16,
+          marginBottom: 18,
         }}
       />
     </View>
