@@ -18,6 +18,7 @@ import {
   normalizeFolderName,
   removeFolder,
   renameFolder,
+  siblingDecksIn,
   sortPinned,
 } from './folders';
 import type { Deck, DeckFolder } from './types';
@@ -180,6 +181,52 @@ test('pinned items sort first and moving swaps neighbours', () => {
   assert.deepEqual(pinnedMove.map((item) => item.id), ['d', 'b', 'a', 'c']);
   const clampedMove = moveSiblingTo(items, 'c', () => true, 0);
   assert.deepEqual(clampedMove.map((item) => item.id), ['b', 'd', 'c', 'a']);
+});
+
+test('one-step and drag deck moves both skip archived siblings', () => {
+  // Storage holds an archived deck between two active ones; the shelf renders
+  // only the active pair for that folder.
+  const decks = [
+    deck('a', { folderId: 'f1' }),
+    deck('archived', { folderId: 'f1', archivedAt: 5 }),
+    deck('b', { folderId: 'f1' }),
+  ];
+  const shelfOrder = (items: readonly Deck[]) =>
+    items.filter((entry) => !entry.archivedAt).map((entry) => entry.id);
+  const isSibling = siblingDecksIn('f1');
+
+  // The regression: a neighbour-based step spent the move on the archived deck,
+  // so the stored order changed while the shelf order did not move at all.
+  const naive = moveSibling(
+    decks,
+    'b',
+    (entry) => (entry.folderId ?? null) === 'f1',
+    -1
+  );
+  assert.deepEqual(naive.map((entry) => entry.id), ['a', 'b', 'archived']);
+  assert.deepEqual(shelfOrder(naive), ['a', 'b']);
+
+  // With the shared predicate the step crosses the archived slot and swaps the
+  // two decks the learner can actually see.
+  const stepped = moveSibling(decks, 'b', isSibling, -1);
+  assert.deepEqual(stepped.map((entry) => entry.id), ['b', 'archived', 'a']);
+  assert.deepEqual(shelfOrder(stepped), ['b', 'a']);
+
+  // The drag path takes the same group, so both routes land on one order.
+  const dragged = moveSiblingTo(decks, 'b', isSibling, 0);
+  assert.deepEqual(
+    dragged.map((entry) => entry.id),
+    stepped.map((entry) => entry.id)
+  );
+
+  // An archived deck is never a sibling, and neither is a deck in another
+  // folder or an unfiled one.
+  assert.equal(isSibling(decks[1]), false);
+  assert.equal(isSibling(deck('elsewhere', { folderId: 'f2' })), false);
+  assert.equal(isSibling(deck('loose')), false);
+  assert.equal(siblingDecksIn(null)(deck('loose')), true);
+  assert.equal(siblingDecksIn(null)(deck('filed', { folderId: 'f1' })), false);
+  assert.equal(siblingDecksIn(null)(deck('retired', { archivedAt: 2 })), false);
 });
 
 test('deleting a folder re-parents its children instead of hiding them', () => {

@@ -177,8 +177,16 @@ type WebKeyEvent = {
 
 type WebDocument = {
   activeElement: WebElement | null;
-  addEventListener: (type: 'keydown', listener: (event: WebKeyEvent) => void) => void;
-  removeEventListener: (type: 'keydown', listener: (event: WebKeyEvent) => void) => void;
+  addEventListener: (
+    type: 'keydown',
+    listener: (event: WebKeyEvent) => void,
+    capture?: boolean
+  ) => void;
+  removeEventListener: (
+    type: 'keydown',
+    listener: (event: WebKeyEvent) => void,
+    capture?: boolean
+  ) => void;
   body: { style: { overflow: string } };
 };
 
@@ -322,12 +330,16 @@ export function BottomSheetModal({
       if (event.key === 'Escape') (onEscapeRef.current ?? onCloseRef.current)();
     };
 
-    doc.addEventListener('keydown', onKeyDown);
+    // Capture phase: React Native Web's TextInput stops keydown propagation at
+    // the input, so a bubble listener never saw Escape while the user was
+    // typing in a sheet's field. Capture runs before the input's own handler,
+    // which makes Escape close the sheet from anywhere inside it.
+    doc.addEventListener('keydown', onKeyDown, true);
     const previousOverflow = doc.body.style.overflow;
     doc.body.style.overflow = 'hidden';
 
     return () => {
-      doc.removeEventListener('keydown', onKeyDown);
+      doc.removeEventListener('keydown', onKeyDown, true);
       doc.body.style.overflow = previousOverflow;
     };
   }, [visible]);

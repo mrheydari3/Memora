@@ -10,6 +10,7 @@ import {
   moveSiblingTo,
   removeFolder,
   renameFolder,
+  siblingDecksIn,
   type FolderError,
 } from '../data/folders';
 import { defaultFSRSState, sampleDecks, sampleCards } from '../data/seed';
@@ -257,12 +258,9 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     const deck = get().decks.find((entry) => entry.id === id);
     if (!deck) return;
     const folderId = deck.folderId ?? null;
-    const decks = moveSibling(
-      get().decks,
-      id,
-      (entry) => (entry.folderId ?? null) === folderId,
-      delta
-    );
+    // Archived decks are not on the shelf, so they are not siblings here
+    // either — the same rule the drag path uses.
+    const decks = moveSibling(get().decks, id, siblingDecksIn(folderId), delta);
     if (decks === get().decks) return;
     await repo.saveDecks(decks);
     set({ decks });
@@ -272,12 +270,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     const deck = get().decks.find((entry) => entry.id === id);
     if (!deck) return;
     const folderId = deck.folderId ?? null;
-    const decks = moveSiblingTo(
-      get().decks,
-      id,
-      (entry) => (entry.folderId ?? null) === folderId && !entry.archivedAt,
-      toIndex
-    );
+    const decks = moveSiblingTo(get().decks, id, siblingDecksIn(folderId), toIndex);
     if (decks === get().decks) return;
     await repo.saveDecks(decks);
     set({ decks });

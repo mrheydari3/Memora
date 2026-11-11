@@ -213,7 +213,11 @@ export function DeckShelfRow({
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
         {percentNode}
         <AppText variant="caption" tone="tertiary">
-          {percent === 0 ? 'not studied yet' : 'mastered'}
+          {percent === 0
+            ? cardCount === 0
+              ? 'no cards yet'
+              : 'not studied yet'
+            : 'mastered'}
         </AppText>
       </View>
     </View>
@@ -296,7 +300,12 @@ export function DeckShelfRow({
                 {cardCountLabel} {cardLabel} · {scheduler}
               </AppText>
               <View style={{ marginLeft: 'auto' }}>
-                <ShelfStatusPill due={due} split />
+                <ShelfStatusPill
+                  due={due}
+                  empty={cardCount === 0}
+                  emptyLabel="no cards"
+                  split
+                />
               </View>
 
               {context ? (

@@ -271,6 +271,18 @@ export function sortPinned<T extends { pinnedAt?: number | null }>(
 }
 
 /**
+ * The decks that share one shelf position: filed in the same folder (or both
+ * unfiled) and not archived.
+ *
+ * Move up/down and drag both take their sibling group from here, because the
+ * shelf never renders an archived deck: a step that lands on one changes the
+ * stored order while the visible order stays put. One predicate, one rule.
+ */
+export function siblingDecksIn(folderId: string | null): (deck: Deck) => boolean {
+  return (deck) => (deck.folderId ?? null) === folderId && !deck.archivedAt;
+}
+
+/**
  * Moves an item one step within its own siblings, in the order the shelf shows
  * them (pinned first, then stored order), and writes that order back into the
  * slots those siblings occupied. Returns the same array when the item cannot

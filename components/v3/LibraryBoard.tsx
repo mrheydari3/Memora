@@ -2,6 +2,7 @@ import { useDeferredValue, useMemo, useRef, useState } from 'react';
 import { FlatList, Platform, useWindowDimensions, View } from 'react-native';
 import type { ListRenderItemInfo } from 'react-native';
 import { AppText } from '../AppText';
+import { Button } from '../Button';
 import { MaterialIcons } from '../Icon';
 import { HintPressable } from '../HintPressable';
 import { Surface } from './Surface';
@@ -14,7 +15,7 @@ import { LibraryToolbar } from './LibraryToolbar';
 import type { LibraryFilter } from './LibraryToolbar';
 import { DeckShelfRow } from './DeckShelfRow';
 import { FolderCard } from './FolderCard';
-import { FolderGroup } from './FolderGroup';
+import { FolderBodySlice, FolderGroup, FolderSubitems } from './FolderGroup';
 import { ArchivedRow } from './ArchivedRow';
 import { colors, iconSize, spacing } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
@@ -40,7 +41,9 @@ type Row =
   | { key: string; kind: 'header' }
   | { key: string; kind: 'toolbar' }
   | { key: string; kind: 'band'; label: string; count: number; hint?: string }
-  | { key: string; kind: 'folderGroup'; id: string }
+  | { key: string; kind: 'folderGroup'; id: string; continued: boolean }
+  | { key: string; kind: 'folderDeck'; deckId: string; first: boolean; last: boolean }
+  | { key: string; kind: 'folderTail'; id: string; first: boolean }
   | { key: string; kind: 'folderCards'; ids: string[] }
   | { key: string; kind: 'searchFolder'; id: string }
   | { key: string; kind: 'deckCards'; ids: string[]; paths: boolean }
@@ -197,6 +200,17 @@ export function LibraryBoard({
       return chunks;
     };
 
+    if (editingLayout) {
+      // Layout editing owns the level. The search line is hidden, because a
+      // filter would otherwise hide the very rows being reordered, and the
+      // reorder list is always shown — even if a search was active on entry.
+      if (hero) out.push({ key: 'hero', kind: 'hero' });
+      if (openFolder) out.push({ key: 'breadcrumbs', kind: 'breadcrumbs' });
+      out.push({ key: 'header', kind: 'header' });
+      out.push({ key: 'reorder', kind: 'reorder' });
+      return out;
+    }
+
     if (searchActive) {
       out.push({ key: 'header', kind: 'header' });
       out.push({ key: 'toolbar', kind: 'toolbar' });
@@ -233,11 +247,6 @@ export function LibraryBoard({
     out.push({ key: 'header', kind: 'header' });
     out.push({ key: 'toolbar', kind: 'toolbar' });
 
-    if (editingLayout) {
-      out.push({ key: 'reorder', kind: 'reorder' });
-      return out;
-    }
-
     if (visibleFolders.length > 0) {
       out.push({
         key: 'folders-band',
@@ -247,7 +256,36 @@ export function LibraryBoard({
       });
       if (columns === 1) {
         for (const folder of visibleFolders) {
-          out.push({ key: `fg-${folder.id}`, kind: 'folderGroup', id: folder.id });
+          const decks = pinnedFirstEntries(library.byFolderId.get(folder.id) ?? []);
+          const subfolderCount = childFoldersOf(library, folder.id).length;
+          const expanded = !collapsedFolders.has(folder.id);
+          const hasBody = expanded && (decks.length > 0 || subfolderCount > 0);
+          out.push({
+            key: `fg-${folder.id}`,
+            kind: 'folderGroup',
+            id: folder.id,
+            continued: hasBody,
+          });
+          if (!expanded) continue;
+          // The decks are their own list rows, so the FlatList mounts a window
+          // of a long folder instead of every deck inside one giant row.
+          decks.forEach((entry, index) => {
+            out.push({
+              key: `fd-${folder.id}-${entry.deck.id}`,
+              kind: 'folderDeck',
+              deckId: entry.deck.id,
+              first: index === 0,
+              last: index === decks.length - 1 && subfolderCount === 0,
+            });
+          });
+          if (subfolderCount > 0 || decks.length === 0) {
+            out.push({
+              key: `ft-${folder.id}`,
+              kind: 'folderTail',
+              id: folder.id,
+              first: decks.length === 0,
+            });
+          }
         }
       } else {
         chunk(
@@ -287,6 +325,7 @@ export function LibraryBoard({
     columns,
     openFolder,
     editingLayout,
+    collapsedFolders,
     visibleFolders,
     visibleDecks,
     library.archived.length,
@@ -337,7 +376,10 @@ export function LibraryBoard({
     [visibleFolders, visibleDecks, openFolder, onReorderFolder, onReorderDeck]
   );
 
-  const scopeFolderCount = openFolder ? visibleFolders.length : folders.length;
+  // The masthead and the FOLDERS band name the same set: the folders listed at
+  // this level. Counting every folder in the library here made a nested folder
+  // show up in the meta line but not in the band ("4 folders" over "(3)").
+  const scopeFolderCount = visibleFolders.length;
   const aggregate = openFolder ? library.aggregates.get(openFolder.id) : undefined;
   const shelfDeckCount = openFolder ? aggregate?.decks ?? 0 : library.totals.decks;
   const shelfDue = openFolder ? aggregate?.due ?? 0 : library.totals.due;
@@ -360,6 +402,17 @@ export function LibraryBoard({
       setFilter('all');
     }
     onOpenFolder(id);
+  };
+
+  // Entering layout editing leaves search and filter behind: reordering a
+  // filtered list would move rows the user cannot see, and the search line is
+  // hidden while editing, so the two states must not overlap.
+  const handleToggleLayout = () => {
+    if (!editingLayout && searchActive) {
+      setQuery('');
+      setFilter('all');
+    }
+    onToggleLayout();
   };
 
   const deckContext = (entry: DeckSummary) => {
@@ -502,7 +555,7 @@ export function LibraryBoard({
             meta={meta}
             statusLabel={statusLabel}
             onNewFolder={onNewFolder}
-            onToggleLayout={onToggleLayout}
+            onToggleLayout={handleToggleLayout}
             editingLayout={editingLayout}
           />
         );
@@ -532,24 +585,8 @@ export function LibraryBoard({
       case 'folderGroup': {
         const folder = visibleFolders.find((entry) => entry.id === item.id);
         if (!folder) return null;
-        const decks = pinnedFirstEntries(library.byFolderId.get(item.id) ?? []);
-        const subfolders = sortPinned(childFoldersOf(library, item.id))
-          .flatMap((child) => {
-            const childAggregate = library.aggregates.get(child.id);
-            if (!childAggregate) return [];
-            return [
-              {
-                id: child.id,
-                name: child.name,
-                icon: child.icon,
-                color: child.color,
-                decks: childAggregate.decks,
-                due: childAggregate.due,
-              },
-            ];
-          });
         return (
-          <View style={{ marginBottom: 10 }}>
+          <View style={{ marginBottom: item.continued ? 0 : 10 }}>
             <FolderGroup
               name={folder.name}
               icon={folder.icon}
@@ -561,21 +598,48 @@ export function LibraryBoard({
               nestedFolders={folder.nestedFolders}
               expanded={!collapsedFolders.has(folder.id)}
               onToggle={() => onToggleFolder(folder.id)}
-              subfolders={subfolders}
-              onOpenSubfolder={openFolderAndReset}
-            >
-              {decks.length > 0 ? (
-                <View style={{ gap: 8 }}>
-                  {decks.map((entry) => (
-                    <View key={entry.deck.id}>{renderDeck(entry.deck.id, false)}</View>
-                  ))}
+              continued={item.continued}
+            />
+          </View>
+        );
+      }
+      case 'folderDeck':
+        return (
+          <FolderBodySlice first={item.first} last={item.last}>
+            {renderDeck(item.deckId, false)}
+          </FolderBodySlice>
+        );
+      case 'folderTail': {
+        const subfolders = sortPinned(childFoldersOf(library, item.id)).flatMap((child) => {
+          const childAggregate = library.aggregates.get(child.id);
+          if (!childAggregate) return [];
+          return [
+            {
+              id: child.id,
+              name: child.name,
+              icon: child.icon,
+              color: child.color,
+              decks: childAggregate.decks,
+              due: childAggregate.due,
+            },
+          ];
+        });
+        return (
+          <View style={{ marginBottom: 10 }}>
+            <FolderBodySlice first={item.first} last>
+              {subfolders.length > 0 ? (
+                <View style={{ gap: 6 }}>
+                  <FolderSubitems
+                    subfolders={subfolders}
+                    onOpenSubfolder={openFolderAndReset}
+                  />
                 </View>
-              ) : subfolders.length === 0 ? (
+              ) : (
                 <AppText variant="caption" tone="muted">
                   No decks directly inside yet.
                 </AppText>
-              ) : null}
-            </FolderGroup>
+              )}
+            </FolderBodySlice>
           </View>
         );
       }
@@ -626,6 +690,19 @@ export function LibraryBoard({
                 ? 'Switch to All, or clear the search to see the whole library.'
                 : 'Try another word, or clear the search.'}
             </AppText>
+            {/* The empty state carries its own way out: an instruction with no
+                reachable control is a dead end. Clearing restores the shelf,
+                so the Due filter is reset with the query. */}
+            <View style={{ flexDirection: 'row', marginTop: 8 }}>
+              <Button
+                label={query.trim() ? 'Clear search' : 'Show all decks'}
+                variant="secondary"
+                onPress={() => {
+                  setQuery('');
+                  setFilter('all');
+                }}
+              />
+            </View>
           </View>
         );
       case 'archive':

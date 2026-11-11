@@ -76,6 +76,15 @@ export function TodayPane({
   ];
   const total = segments.reduce((sum, segment) => sum + segment.value, 0);
 
+  // The estimate only describes real work: a caught-up library says so without
+  // inventing minutes, and one minute is not "1 minutes".
+  const estimate =
+    minutes > 0 ? `estimated ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}` : null;
+  const context =
+    due > 0
+      ? `${deckCount} ${deckCount === 1 ? 'deck' : 'decks'}${estimate ? ` · ${estimate}` : ''}`
+      : 'Nothing waiting — you are all caught up';
+
   const dueBlock = (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
@@ -91,9 +100,7 @@ export function TodayPane({
         </AppText>
       </View>
       <AppText variant="bodySm" tone="tertiary" style={{ marginTop: 2 }}>
-        {due > 0
-          ? `${deckCount} ${deckCount === 1 ? 'deck' : 'decks'} · estimated ${minutes} minutes`
-          : 'Nothing waiting — you are all caught up'}
+        {context}
       </AppText>
     </View>
   );

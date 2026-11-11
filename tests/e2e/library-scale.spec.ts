@@ -21,16 +21,16 @@ const SCALE = {
 };
 const library = buildScaleLibrary(SCALE, NOW);
 
-const seedScript = `(() => {
+const seedScriptFor = (source: ReturnType<typeof buildScaleLibrary>) => `(() => {
   for (let i = localStorage.length - 1; i >= 0; i -= 1) {
     const key = localStorage.key(i);
     if (key && key.indexOf('memory:') === 0) localStorage.removeItem(key);
   }
   const entries = {
-    decks: ${JSON.stringify(JSON.stringify(library.decks))},
-    folders: ${JSON.stringify(JSON.stringify(library.folders))},
-    cards: ${JSON.stringify(JSON.stringify(library.cardsByDeck))},
-    log: ${JSON.stringify(JSON.stringify(library.reviewLog))},
+    decks: ${JSON.stringify(JSON.stringify(source.decks))},
+    folders: ${JSON.stringify(JSON.stringify(source.folders))},
+    cards: ${JSON.stringify(JSON.stringify(source.cardsByDeck))},
+    log: ${JSON.stringify(JSON.stringify(source.reviewLog))},
   };
   localStorage.setItem(${JSON.stringify(K.decks)}, entries.decks);
   localStorage.setItem(${JSON.stringify(K.folders)}, entries.folders);
@@ -38,6 +38,8 @@ const seedScript = `(() => {
   localStorage.setItem(${JSON.stringify(K.reviewLog)}, entries.log);
   localStorage.setItem(${JSON.stringify(K.initialized)}, '1');
 })();`;
+
+const seedScript = seedScriptFor(library);
 
 test.use({ timezoneId: 'UTC' });
 
@@ -85,4 +87,30 @@ test('a 300-deck library mounts a window, searches, and does not overflow', asyn
   expect(overflow).toBeLessThanOrEqual(1);
 
   expect(errors).toEqual([]);
+});
+
+test('a single folder with many decks mounts only a window of its rows', async ({ page }) => {
+  const single = buildScaleLibrary(
+    { decks: 120, folders: 1, cardsPerDeck: 2, reviewsPerDeck: 2, seed: 0x5eed0004 },
+    NOW
+  );
+  // Replaces the 300-deck seed registered in beforeEach.
+  await page.addInitScript({ content: seedScriptFor(single) });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/home');
+  await page.waitForSelector('[role="main"]');
+  await page.getByRole('progressbar', { name: 'Loading Memora' }).waitFor({ state: 'detached' });
+  await page.waitForTimeout(900);
+
+  await expect(page.getByTestId('folder-group')).toHaveCount(1);
+  // The folder is expanded inline. Its hundred-odd decks are list rows, so only
+  // a window is mounted; before virtualization this one row mounted them all.
+  const mounted = await page.getByTestId('deck-row').count();
+  expect(mounted).toBeGreaterThan(0);
+  expect(mounted).toBeLessThan(60);
+
+  // The rest of the folder is still in the library and findable.
+  await page.getByLabel('Search your library').fill('Deck 118');
+  await expect(page.getByTestId('deck-row').filter({ hasText: 'Deck 118' })).toBeVisible();
 });

@@ -11,6 +11,11 @@ type FolderGlassProps = {
   testID?: string;
   /** Light the jacket while a pointer is over it (desktop hover). */
   hovered?: boolean;
+  /**
+   * Square the bottom corners where the surface continues into list rows
+   * beneath it (an expanded folder's decks).
+   */
+  squareBottom?: boolean;
 };
 
 /**
@@ -28,9 +33,21 @@ export function FolderGlass({
   padding = 16,
   testID,
   hovered = false,
+  squareBottom = false,
 }: FolderGlassProps) {
+  // The body under an expanded folder is made of list rows, so the jacket must
+  // not round its bottom edge above them.
+  const corners = squareBottom
+    ? {
+        borderTopLeftRadius: radius,
+        borderTopRightRadius: radius,
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+      }
+    : { borderRadius: radius };
+
   return (
-    <View testID={testID} style={[styles.shell, { borderRadius: radius, padding }, style]}>
+    <View testID={testID} style={[styles.shell, { padding }, corners, style]}>
       {/* The blur and its wash carry the shell's radius themselves: a
           backdrop-filter layer is not clipped by an ancestor's rounded corners
           in Chromium, so a square layer left a second corner inside the card. */}
@@ -40,17 +57,11 @@ export function FolderGlass({
         intensity={glass.blurFolder}
         tint="dark"
         pointerEvents="none"
-        style={[StyleSheet.absoluteFill, { borderRadius: radius }]}
+        style={[StyleSheet.absoluteFill, corners]}
       />
-      <View
-        pointerEvents="none"
-        style={[StyleSheet.absoluteFill, styles.wash, { borderRadius: radius }]}
-      />
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.wash, corners]} />
       {hovered ? (
-        <View
-          pointerEvents="none"
-          style={[StyleSheet.absoluteFill, styles.hover, { borderRadius: radius }]}
-        />
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.hover, corners]} />
       ) : null}
       {children}
     </View>

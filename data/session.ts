@@ -89,6 +89,16 @@ export function buildStudyQueue(
   return { newCards, dueCards, total: newCards.length + dueCards.length };
 }
 
+/**
+ * The hero's rough session length, derived from the queue alone. Nothing due
+ * means no estimate: a caught-up library must not be told to budget a minute
+ * for work that does not exist.
+ */
+export function estimateSessionMinutes(due: number): number {
+  if (due <= 0) return 0;
+  return Math.max(1, Math.round(due / 4));
+}
+
 /** Cards that count as "waiting today" for a deck, ignoring the daily caps. */
 export function dueNow(cards: Flashcard[], now: number = Date.now()): Flashcard[] {
   return cards.filter(

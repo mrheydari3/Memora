@@ -63,6 +63,27 @@ test('folder-first shelf exposes progress and a breadcrumb back to all decks', a
   await expect(page.getByTestId('folder-card')).toHaveCount(3);
 });
 
+test('closing the Folders sheet discards an abandoned draft', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHome(page);
+
+  const opener = page.getByRole('button', { name: 'New folder' });
+  await opener.click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet).toBeVisible();
+  await sheet.getByLabel('New folder').fill('Abandoned draft');
+
+  // Escape must dismiss even while the name field owns focus.
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+
+  await opener.click();
+  const reopened = page.getByRole('dialog');
+  // A cancelled draft must not come back on the next open.
+  await expect(reopened.getByLabel('New folder')).toHaveValue('');
+  await expect(reopened.getByRole('button', { name: 'Create folder' })).toBeDisabled();
+});
+
 test('the phone keeps folders above loose decks', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openHome(page);

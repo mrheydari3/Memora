@@ -79,9 +79,54 @@ test('an empty result explains itself and clears', async ({ page }) => {
   await expect(empty).toContainText('Nothing matches');
   await expect(page.getByTestId('deck-row')).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Clear search' }).click();
+  // The empty state itself offers the action: no dead-end instructions.
+  const clear = empty.getByRole('button', { name: 'Clear search' });
+  await expect(clear).toBeVisible();
+  await clear.click();
   await expect(page.getByTestId('library-no-results')).toHaveCount(0);
   await expect(page.getByTestId('folder-group').first()).toBeVisible();
+});
+
+test('the field clear control is hittable at phone width', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHome(page);
+
+  await page.getByLabel('Search your library').fill('Travel');
+  // Results, not the empty state: the field's own control is the only one.
+  const clear = page.getByRole('button', { name: 'Clear search' });
+  await expect(clear).toHaveCount(1);
+  await clear.click();
+  await expect(page.getByTestId('library-results-count')).toHaveCount(0);
+  // One column at 390px: folders render as grouped rows, not grid cards.
+  await expect(page.getByTestId('folder-group').filter({ hasText: 'Travel' })).toBeVisible();
+});
+
+test('Edit layout leaves search and shows the reorder surface', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHome(page);
+
+  await page.getByLabel('Search your library').fill('zzzz no match');
+  await expect(page.getByTestId('library-no-results')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Edit layout' }).click();
+
+  // The previously dead state: the layout editor takes over instead of leaving
+  // an unchanged empty result under a "Done" button.
+  await expect(page.getByTestId('reorder-group-folders')).toBeVisible();
+  await expect(page.getByTestId('library-no-results')).toHaveCount(0);
+  await expect(page.getByLabel('Search your library')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Done editing layout' }).click();
+  await expect(page.getByLabel('Search your library')).toBeVisible();
+  await expect(page.getByTestId('library-results-count')).toHaveCount(0);
+
+  // The Due filter is the other route into the same dead state.
+  await page.getByRole('button', { name: 'Due only' }).click();
+  await expect(page.getByTestId('library-results-count')).toBeVisible();
+  await page.getByRole('button', { name: 'Edit layout' }).click();
+  await expect(page.getByTestId('reorder-group-folders')).toBeVisible();
+  await page.getByRole('button', { name: 'Done editing layout' }).click();
+  await expect(page.getByTestId('library-results-count')).toHaveCount(0);
 });
 
 test('the Due filter keeps only decks with cards waiting', async ({ page }) => {

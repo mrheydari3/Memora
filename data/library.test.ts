@@ -14,7 +14,7 @@ import { buildStudyQueue } from './session';
 import { buildDevLibrary } from './devFixture';
 import { buildScaleLibrary, MEDIUM_SCALE, STRESS_SCALE } from './libraryFixture';
 import { folderSubtreeCounts } from './folders';
-import type { Deck, Flashcard, ReviewLogEntry } from './types';
+import type { Deck, DeckFolder, Flashcard, ReviewLogEntry } from './types';
 
 const NOW = new Date('2026-11-10T12:00:00Z').getTime();
 
@@ -82,6 +82,70 @@ test('fast repetition and learning states keep their exact split', () => {
       assertParity(target, library.cardsByDeck[deck.id], library.reviewLog, preset);
     }
   }
+});
+
+test('studied share is one rule across presets, fast repetition included', () => {
+  const deck: Deck = {
+    id: 'deck-fast',
+    name: 'Fast deck',
+    icon: 'bolt',
+    color: '#7CBBFF',
+    algorithmPreset: 'fast',
+    newCardsPerDay: 20,
+    maxCardsPerDay: 80,
+    shuffleCards: false,
+    learningSteps: [],
+    masteredIntervalMultiplier: 2.5,
+    createdAt: 1,
+  } as Deck;
+  const card = (id: string, reviewed: boolean): Flashcard => ({
+    id,
+    deckId: deck.id,
+    front: { text: 'a', direction: 'ltr' },
+    back: { text: 'b', direction: 'ltr' },
+    createdAt: 1,
+    fsrs: {
+      due: new Date(NOW).toISOString(),
+      stability: 1,
+      difficulty: 5,
+      elapsed_days: 0,
+      scheduled_days: 1,
+      reps: reviewed ? 2 : 0,
+      lapses: 0,
+      state: reviewed ? 'Review' : 'New',
+      last_review: reviewed ? new Date(NOW - 86_400_000).toISOString() : null,
+    },
+  });
+  const cards = [card('card-a', true), card('card-b', false)];
+  const folder: DeckFolder = { id: 'fold-share', name: 'Share', createdAt: 1 };
+
+  const index = buildLibraryIndex(
+    [{ ...deck, folderId: folder.id }],
+    [folder],
+    { [deck.id]: cards },
+    [],
+    { now: NOW }
+  );
+  const entry = index.entries[0];
+  const aggregate = index.aggregates.get(folder.id)!;
+
+  // The deck card, the folder rail and the library total read one count.
+  assert.equal(entry.studiedCount, 1);
+  assert.equal(entry.progress, 0.5);
+  assert.equal(aggregate.studied, 1);
+  assert.equal(aggregate.progress, 0.5);
+  assert.equal(index.totals.studied, 1);
+  assert.equal(index.totals.progress, 0.5);
+
+  // The preset changes what a session offers, never how much is studied.
+  const fsrs = buildLibraryIndex(
+    [{ ...deck, algorithmPreset: 'fsrs' }],
+    [],
+    { [deck.id]: cards },
+    [],
+    { now: NOW }
+  );
+  assert.equal(fsrs.entries[0].progress, entry.progress);
 });
 
 test('folder aggregates equal the per-folder subtree walk', () => {

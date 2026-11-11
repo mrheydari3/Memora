@@ -19,6 +19,11 @@ export type FolderSubItem = {
   due: number;
 };
 
+export type FolderSubitemsProps = {
+  subfolders: FolderSubItem[];
+  onOpenSubfolder?: (id: string) => void;
+};
+
 type FolderGroupProps = {
   name: string;
   /** The folder's own glyph; the neutral folder until one is chosen. */
@@ -39,6 +44,8 @@ type FolderGroupProps = {
   onOpenSubfolder?: (id: string) => void;
   expanded: boolean;
   onToggle: () => void;
+  /** Square the bottom edge when the decks continue as their own list rows. */
+  continued?: boolean;
   children?: React.ReactNode;
 };
 
@@ -64,6 +71,7 @@ export function FolderGroup({
   onOpenSubfolder,
   expanded,
   onToggle,
+  continued = false,
   children,
 }: FolderGroupProps) {
   // React Native Web maps DOM ARIA props, not `accessibilityState`, onto a
@@ -88,7 +96,13 @@ export function FolderGroup({
   const hasContents = Boolean(children) || subfolders.length > 0;
 
   return (
-    <FolderGlass radius={radii.pane} padding={0} hovered={hovered} style={{ width: '100%' }}>
+    <FolderGlass
+      radius={radii.pane}
+      padding={0}
+      hovered={hovered}
+      squareBottom={continued}
+      style={{ width: '100%' }}
+    >
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingRight: 8 }}>
         <HintPressable
           hint={expanded ? 'Collapse folder' : 'Expand folder'}
@@ -173,47 +187,94 @@ export function FolderGroup({
           >
             {children}
 
-            {subfolders.map((subfolder) => (
-              <HintPressable
-                key={subfolder.id}
-                hint="Open folder"
-                testID="folder-subitem"
-                onPress={() => onOpenSubfolder?.(subfolder.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`Open folder ${subfolder.name}, ${subfolder.decks} ${
-                  subfolder.decks === 1 ? 'deck' : 'decks'
-                }, ${subfolder.due} due`}
-                style={{
-                  minHeight: v3.heights.subfolderRow,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 10,
-                  paddingHorizontal: 6,
-                  paddingVertical: 6,
-                  borderRadius: radii.control,
-                }}
-              >
-                <FolderGlyph icon={subfolder.icon} color={subfolder.color} size={32} />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
-                    {subfolder.name}
-                  </AppText>
-                  <AppText
-                    variant="caption"
-                    tone="tertiary"
-                    numberOfLines={1}
-                    style={{ marginTop: 1 }}
-                  >
-                    {subfolder.decks} {subfolder.decks === 1 ? 'deck' : 'decks'} ·{' '}
-                    {subfolder.due} due
-                  </AppText>
-                </View>
-                <MaterialIcons name="chevron-right" size={iconSize.sm} color={colors.outline} />
-              </HintPressable>
-            ))}
+            <FolderSubitems subfolders={subfolders} onOpenSubfolder={onOpenSubfolder} />
           </View>
         </View>
       ) : null}
     </FolderGlass>
+  );
+}
+
+/**
+ * The child-folder rows of a folder. Shared by the inline body above and by the
+ * list-owned tail, so both draw the same row.
+ */
+export function FolderSubitems({ subfolders, onOpenSubfolder }: FolderSubitemsProps) {
+  return (
+    <>
+      {subfolders.map((subfolder) => (
+        <HintPressable
+          key={subfolder.id}
+          hint="Open folder"
+          testID="folder-subitem"
+          onPress={() => onOpenSubfolder?.(subfolder.id)}
+          accessibilityRole="button"
+          accessibilityLabel={`Open folder ${subfolder.name}, ${subfolder.decks} ${
+            subfolder.decks === 1 ? 'deck' : 'decks'
+          }, ${subfolder.due} due`}
+          style={{
+            minHeight: v3.heights.subfolderRow,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            paddingHorizontal: 6,
+            paddingVertical: 6,
+            borderRadius: radii.control,
+          }}
+        >
+          <FolderGlyph icon={subfolder.icon} color={subfolder.color} size={32} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
+              {subfolder.name}
+            </AppText>
+            <AppText
+              variant="caption"
+              tone="tertiary"
+              numberOfLines={1}
+              style={{ marginTop: 1 }}
+            >
+              {subfolder.decks} {subfolder.decks === 1 ? 'deck' : 'decks'} ·{' '}
+              {subfolder.due} due
+            </AppText>
+          </View>
+          <MaterialIcons name="chevron-right" size={iconSize.sm} color={colors.outline} />
+        </HintPressable>
+      ))}
+    </>
+  );
+}
+
+/**
+ * One slice of a folder's recessed body. A folder's decks are their own list
+ * rows, so a long folder mounts a window instead of every deck; consecutive
+ * slices share the inset fill and only the first and last carry the rounded
+ * caps, which keeps the body reading as one well.
+ */
+export function FolderBodySlice({
+  first = false,
+  last = false,
+  children,
+}: {
+  first?: boolean;
+  last?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={{ paddingHorizontal: 8 }}>
+      <View
+        style={{
+          backgroundColor: fills.inset,
+          paddingHorizontal: 6,
+          paddingTop: first ? 6 : 3,
+          paddingBottom: last ? 6 : 3,
+          borderTopLeftRadius: first ? v3.radii.control : 0,
+          borderTopRightRadius: first ? v3.radii.control : 0,
+          borderBottomLeftRadius: last ? v3.radii.control : 0,
+          borderBottomRightRadius: last ? v3.radii.control : 0,
+        }}
+      >
+        {children}
+      </View>
+    </View>
   );
 }

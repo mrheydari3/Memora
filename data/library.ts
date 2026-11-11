@@ -171,11 +171,16 @@ export function summarizeQueue(
   const cardCount = cards.length;
 
   if (deck.algorithmPreset === 'fast') {
+    const studiedCount = countStudied(cards);
     return {
       cardCount,
       total: cardCount,
-      studiedCount: countStudied(cards),
-      progress: 0,
+      studiedCount,
+      // One rule for every preset: the studied share is the cards that carry a
+      // review over all cards. Fast repetition changes what a session offers,
+      // never how much of the deck has been studied — and the folder and
+      // library totals are built from the same `studiedCount`.
+      progress: roundShare(studiedCount, cardCount),
       newCount: cardCount,
       learningCount: 0,
       reviewCount: 0,

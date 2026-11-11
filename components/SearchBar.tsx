@@ -42,7 +42,7 @@ export function SearchBar({
   return (
     <View
       className="flex-row items-center rounded-md pl-3 pr-1.5"
-      style={{ backgroundColor: fills.control, height: heights.field }}
+      style={{ backgroundColor: fills.control, height: heights.field, minWidth: 0 }}
     >
       <Animated.View
         pointerEvents="none"
@@ -61,7 +61,10 @@ export function SearchBar({
       <MaterialIcons name="search" size={iconSize.md} color={colors.outline} />
       <TextInput
         className="ml-2 flex-1 text-body font-inter-regular text-on-surface"
-        style={{ minHeight: heights.field }}
+        // The web input keeps an intrinsic minimum width unless it is told it
+        // may shrink; without this a long query pushes the clear control out
+        // from under the field and beneath the toolbar chips.
+        style={{ minHeight: heights.field, minWidth: 0 }}
         value={value}
         onChangeText={onChangeText}
         onFocus={() => setFocused(true)}

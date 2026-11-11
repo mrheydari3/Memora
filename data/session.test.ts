@@ -5,7 +5,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildStudyQueue } from './session';
+import { buildStudyQueue, estimateSessionMinutes } from './session';
 import type { Deck, Flashcard, FSRSState, ReviewLogEntry } from './types';
 
 const NOW = new Date('2026-03-10T12:00:00Z').getTime();
@@ -238,4 +238,12 @@ test('cards that are not due yet stay out of the session', () => {
     ['new']
   );
   assert.equal(queue.total, 2);
+});
+
+test('a caught-up library gets no session estimate', () => {
+  assert.equal(estimateSessionMinutes(0), 0, 'nothing due must not budget a minute');
+  assert.equal(estimateSessionMinutes(-2), 0);
+  assert.equal(estimateSessionMinutes(1), 1);
+  assert.equal(estimateSessionMinutes(4), 1);
+  assert.equal(estimateSessionMinutes(40), 10);
 });

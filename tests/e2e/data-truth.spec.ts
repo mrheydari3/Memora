@@ -177,6 +177,47 @@ test.describe('Phase 7 — data truth', () => {
     await expect(panel).toContainText(String(review));
   });
 
+  test('home: a caught-up library never prints an estimate', async ({ page }) => {
+    await boot(page, 'F2');
+    const future = Date.now() + 30 * DAY;
+    // Make every card wait a month and give every deck no new-card budget: the
+    // library is genuinely caught up, not merely "nothing reviewed today".
+    await page.evaluate(
+      ({ keys, due }) => {
+        const cards = JSON.parse(localStorage.getItem(keys.cards) ?? '{}') as Record<
+          string,
+          Array<{ fsrs?: { due: string } }>
+        >;
+        for (const list of Object.values(cards)) {
+          for (const card of list) if (card.fsrs) card.fsrs.due = new Date(due).toISOString();
+        }
+        localStorage.setItem(keys.cards, JSON.stringify(cards));
+        const decks = JSON.parse(localStorage.getItem(keys.decks) ?? '[]') as Array<{
+          newCardsPerDay: number;
+          maxCardsPerDay: number;
+        }>;
+        for (const deck of decks) {
+          deck.newCardsPerDay = 0;
+          deck.maxCardsPerDay = 0;
+        }
+        localStorage.setItem(keys.decks, JSON.stringify(decks));
+      },
+      { keys: { cards: K.allCards, decks: K.decks }, due: future }
+    );
+    await page.reload();
+    await settle(page);
+
+    const store = await readStore(page);
+    const pending = activeQueues(store).reduce((sum, entry) => sum + entry.queue.total, 0);
+    expect(pending).toBe(0);
+
+    const panel = page.getByTestId('today-panel');
+    await expect(panel).toContainText('Nothing waiting — you are all caught up');
+    // No fabricated session length when there is nothing to study.
+    await expect(panel).not.toContainText('estimated');
+    await expect(panel).not.toContainText('minute');
+  });
+
   test('home: the shelf totals and folder headers roll up each subtree', async ({ page }) => {
     await boot(page, 'F2');
     const store = await readStore(page);
@@ -186,11 +227,17 @@ test.describe('Phase 7 — data truth', () => {
     const subtrees = folderSubtreeCounts(store.folders, store.decks, dueByDeck(store));
 
     expect(rootFolders.length).toBe(4);
+    expect(store.folders.length).toBeGreaterThan(rootFolders.length);
     expect(active.length).toBe(5);
     expect(rootDue).toBe(40);
     await expect(
-      page.getByText(shelfMeta(active.length, store.folders.length, rootDue), { exact: true })
+      page.getByText(shelfMeta(active.length, rootFolders.length, rootDue), { exact: true })
     ).toBeVisible();
+    // The band below the masthead lists exactly those folders, so it carries the
+    // same number: a nested folder must not appear in one count and not the other.
+    await expect(
+      page.getByTestId('shelf-band').filter({ hasText: 'Folders' })
+    ).toContainText(`(${rootFolders.length})`);
 
     // Languages has no direct decks, but its German child owns two. The header
     // must name both sides of that split rather than claiming the folder is empty.
@@ -244,6 +291,11 @@ test.describe('Phase 7 — data truth', () => {
       await expect(row).toContainText(plural(cards.length, 'card', 'cards'));
       if (queue.total > 0) {
         await expect(row.getByText(String(queue.total), { exact: true })).toBeVisible();
+      } else if (cards.length === 0) {
+        // A deck with no cards is empty, not finished: it must state that and
+        // must not borrow the green "clear" of a caught-up deck.
+        await expect(row).toContainText('no cards');
+        await expect(row).not.toContainText('clear');
       } else {
         // The due tile deliberately shows a clear mark, not a misleading zero.
         await expect(row).toContainText('clear');
@@ -567,7 +619,7 @@ test.describe('Phase 7 — data truth', () => {
     const active = activeDecks(store);
     const caption = shelfMeta(
       active.length,
-      store.folders.length,
+      store.folders.filter((folder) => !folder.parentId).length,
       activeQueues(store).reduce((sum, entry) => sum + entry.queue.total, 0)
     );
 

@@ -6,6 +6,7 @@ import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
 import { buildLibraryIndex } from '../../data/library';
 import { computeStreak } from '../../data/streak';
+import { estimateSessionMinutes } from '../../data/session';
 import { folderDescendantIds, folderPath } from '../../data/folders';
 import { FOLDER_DEFAULT_ICON } from '../../data/appearance';
 import type { Deck } from '../../data/types';
@@ -149,7 +150,7 @@ export default function HomeScreen() {
 
   const totalDue = library.totals.due;
   const dueDecks = library.totals.dueDecks;
-  const minutes = Math.max(1, Math.round(totalDue / 4));
+  const minutes = estimateSessionMinutes(totalDue);
   const libraryCards = library.totals.cards;
   const libraryStudied = library.totals.studied;
   const libraryProgress = library.totals.progress;
@@ -201,6 +202,13 @@ export default function HomeScreen() {
     setEditingFolderId(null);
     setFolderError(null);
     setEditError(null);
+    // Closing discards the new-folder draft. Reopening the sheet must start
+    // clean instead of resurrecting a name, icon and colour that were
+    // abandoned — those fields were previously reset only after a successful
+    // create, so a cancelled draft came back on the next open.
+    setFolderDraft('');
+    setFolderIcon(FOLDER_DEFAULT_ICON);
+    setFolderColor(COLOR_CHOICES[0]);
   };
 
   const openFolderEditor = (id: string) => {
