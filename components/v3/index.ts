@@ -28,6 +28,9 @@ export { NewFolderButton } from './NewFolderButton';
 export { ShelfPanel } from './ShelfPanel';
 export { ShelfReorder } from './ShelfReorder';
 export type { ShelfReorderGroup, ShelfReorderItem } from './ShelfReorder';
+export { LibraryBoard } from './LibraryBoard';
+export { LibraryToolbar } from './LibraryToolbar';
+export type { LibraryFilter } from './LibraryToolbar';
 export { HeaderIcon } from './HeaderIcon';
 export {
   SettingsChapter,

@@ -37,8 +37,12 @@ test('folder-first shelf exposes progress and a breadcrumb back to all decks', a
   await openHome(page);
 
   const shelf = page.getByTestId('shelf-panel');
-  await expect(shelf.getByText('Folders', { exact: true })).toBeVisible();
-  await expect(shelf.getByText('Unfiled decks', { exact: true })).toBeVisible();
+  await expect(
+    shelf.getByTestId('shelf-band').filter({ hasText: 'Folders' })
+  ).toBeVisible();
+  await expect(
+    shelf.getByTestId('shelf-band').filter({ hasText: 'Unfiled decks' })
+  ).toBeVisible();
 
   const folderCards = page.getByTestId('folder-card');
   await expect(folderCards).toHaveCount(3);
@@ -53,7 +57,7 @@ test('folder-first shelf exposes progress and a breadcrumb back to all decks', a
 
   await travel.click();
   await expect(page.getByRole('button', { name: 'All decks' })).toBeVisible();
-  await expect(shelf.getByText('Decks here', { exact: true })).toBeVisible();
+  await expect(shelf.getByTestId('shelf-band').filter({ hasText: 'Decks here' })).toBeVisible();
 
   await page.getByRole('button', { name: 'All decks' }).click();
   await expect(page.getByTestId('folder-card')).toHaveCount(3);
@@ -64,8 +68,8 @@ test('the phone keeps folders above loose decks', async ({ page }) => {
   await openHome(page);
 
   const shelf = page.getByTestId('shelf-panel');
-  const folders = shelf.getByText('Folders', { exact: true });
-  const looseDecks = shelf.getByText('Unfiled decks', { exact: true });
+  const folders = shelf.getByTestId('shelf-band').filter({ hasText: 'Folders' });
+  const looseDecks = shelf.getByTestId('shelf-band').filter({ hasText: 'Unfiled decks' });
   await expect(folders).toBeVisible();
   await expect(looseDecks).toBeVisible();
 

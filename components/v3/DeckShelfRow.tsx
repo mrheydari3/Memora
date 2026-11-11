@@ -41,6 +41,8 @@ type DeckShelfRowProps = {
   /** Nested in a folder's well: a flat row, not its own pane. */
   flat?: boolean;
   pinned?: boolean;
+  /** Where the deck lives, printed under the meta line in search results. */
+  context?: string;
   onOptions?: () => void;
   /** An ActionMenu node, rendered instead of the built-in options control. */
   optionsMenu?: React.ReactNode;
@@ -74,6 +76,7 @@ export function DeckShelfRow({
   composition,
   flat = false,
   pinned = false,
+  context,
   onOptions,
   optionsMenu,
   onPress,
@@ -271,18 +274,42 @@ export function DeckShelfRow({
               )}
             </View>
 
-            <AppText
-              variant="caption"
-              tone="tertiary"
-              numberOfLines={1}
-              style={{ marginTop: 2 }}
+            {/* One meta line, one status mark. The due pill lives here — never
+                in the title row — so at 320px or 200% text it wraps under the
+                count instead of narrowing the name. */}
+            <View
+              style={{
+                marginTop: 4,
+                flexDirection: 'row',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                columnGap: 10,
+                rowGap: 4,
+              }}
             >
-              {cardCountLabel} {cardLabel} · {scheduler}
-            </AppText>
-          </View>
+              <AppText
+                variant="caption"
+                tone="tertiary"
+                numberOfLines={2}
+                style={{ flexShrink: 1, minWidth: 0 }}
+              >
+                {cardCountLabel} {cardLabel} · {scheduler}
+              </AppText>
+              <View style={{ marginLeft: 'auto' }}>
+                <ShelfStatusPill due={due} split />
+              </View>
 
-          <View style={{ marginTop: 2 }}>
-            <ShelfStatusPill due={due} split />
+              {context ? (
+                <AppText
+                  variant="caption"
+                  tone="tertiary"
+                  numberOfLines={1}
+                  style={{ width: '100%' }}
+                >
+                  {context}
+                </AppText>
+              ) : null}
+            </View>
           </View>
         </View>
 

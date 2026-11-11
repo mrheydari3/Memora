@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Platform, useWindowDimensions, View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
@@ -72,8 +72,6 @@ export function FolderGroup({
   const webExpanded: object =
     Platform.OS === 'web' ? { 'aria-expanded': expanded } : {};
   const [hovered, setHovered] = useState(false);
-  const { width } = useWindowDimensions();
-  const narrow = width < 380;
 
   const empty = deckCount === 0;
   const deckLabel = deckCount === 1 ? 'deck' : 'decks';
@@ -84,7 +82,9 @@ export function FolderGroup({
     nestedDecks > 0
       ? `${directDecks} direct · ${nestedDecks} nested`
       : `${deckCount} ${deckLabel}`;
-  const metaLabel = empty ? 'Empty folder' : `${counts} · ${due} due`;
+  // The due pill is the folder's one status mark; the meta line states what
+  // the folder holds, so the number is never printed twice in one header.
+  const metaLabel = empty ? 'Empty folder' : counts;
   const hasContents = Boolean(children) || subfolders.length > 0;
 
   return (
@@ -120,7 +120,7 @@ export function FolderGroup({
               <AppText
                 variant="bodyLg"
                 weight="semibold"
-                numberOfLines={narrow ? 2 : 1}
+                numberOfLines={2}
                 style={{ letterSpacing: -0.1, flexShrink: 1 }}
               >
                 {name}
@@ -130,17 +130,29 @@ export function FolderGroup({
               )}
             </View>
 
-            <AppText
-              variant="caption"
-              tone="tertiary"
-              numberOfLines={2}
-              style={{ marginTop: 2 }}
+            <View
+              style={{
+                marginTop: 2,
+                flexDirection: 'row',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                columnGap: 8,
+                rowGap: 4,
+              }}
             >
-              {metaLabel}
-            </AppText>
+              <AppText
+                variant="caption"
+                tone="tertiary"
+                numberOfLines={2}
+                style={{ flexShrink: 1, minWidth: 0 }}
+              >
+                {metaLabel}
+              </AppText>
+              <View style={{ marginLeft: 'auto' }}>
+                <ShelfStatusPill due={due} empty={empty} />
+              </View>
+            </View>
           </View>
-
-          <ShelfStatusPill due={due} empty={empty} />
 
           <View style={{ transform: [{ rotate: expanded ? '0deg' : '-90deg' }] }}>
             <MaterialIcons name="expand-more" size={iconSize.lg} color={colors.outline} />

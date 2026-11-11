@@ -132,7 +132,7 @@ export function ShelfHeader({
         headingLevel={2}
         weight="semibold"
         numberOfLines={2}
-        style={[v3.type.shelfTitle, { marginTop: 2 }]}
+        style={[v3.type.shelfTitle, { marginTop: 6 }]}
       >
         {title}
       </AppText>
@@ -144,7 +144,7 @@ export function ShelfHeader({
           justifyContent: 'space-between',
           gap: 12,
           marginTop: 6,
-          paddingBottom: 14,
+          paddingBottom: 4,
         }}
       >
         <AppText
@@ -164,16 +164,6 @@ export function ShelfHeader({
           </View>
         )}
       </View>
-
-      <View
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={{
-          height: 1,
-          backgroundColor: colors.hairlineRule,
-          marginBottom: 18,
-        }}
-      />
     </View>
   );
 }

@@ -38,6 +38,8 @@ type ReorderRowProps = {
   maxIndex: number;
   onReorder: (from: number, to: number) => void;
   scrollRef?: React.RefObject<ScrollViewInstance | null>;
+  /** The owning list's programmatic scroll, used for edge auto-scroll. */
+  scrollTo?: (y: number) => void;
   scrollOffsetRef?: React.RefObject<number>;
   viewportHeight: number;
 };
@@ -49,6 +51,7 @@ function ReorderRow({
   maxIndex,
   onReorder,
   scrollRef,
+  scrollTo,
   scrollOffsetRef,
   viewportHeight,
 }: ReorderRowProps) {
@@ -108,7 +111,7 @@ function ReorderRow({
 
     const tick = () => {
       const scroller = scrollRef?.current;
-      if (!scroller || !scrollOffsetRef) return;
+      if ((!scroller && !scrollTo) || !scrollOffsetRef) return;
 
       const currentScroll = scrollOffsetRef.current ?? 0;
       const observedScroll = currentScroll - lastScrollYRef.current;
@@ -142,7 +145,8 @@ function ReorderRow({
 
       const nextScroll = Math.max(0, currentScroll + direction);
       if (nextScroll !== currentScroll) {
-        scroller.scrollTo({ y: nextScroll, animated: false });
+        if (scrollTo) scrollTo(nextScroll);
+        else scroller?.scrollTo({ y: nextScroll, animated: false });
       }
     };
 
@@ -159,7 +163,7 @@ function ReorderRow({
         scrollDeltaRef.current = 0;
         lastScrollYRef.current = scrollOffsetRef?.current ?? 0;
         if (autoScrollTimer.current) clearInterval(autoScrollTimer.current);
-        if (scrollRef?.current && scrollOffsetRef) {
+        if ((scrollRef?.current || scrollTo) && scrollOffsetRef) {
           autoScrollTimer.current = setInterval(tick, AUTO_SCROLL_INTERVAL);
         }
       },
@@ -172,7 +176,7 @@ function ReorderRow({
       onPanResponderTerminate: finish,
       onPanResponderTerminationRequest: () => false,
     });
-  }, [index, maxIndex, minIndex, onReorder, scrollOffsetRef, scrollRef, viewportHeight]);
+  }, [index, maxIndex, minIndex, onReorder, scrollOffsetRef, scrollRef, scrollTo, viewportHeight]);
 
   const tint = item.color ?? colors.primary;
   const isFolder = item.kind === 'folder';
@@ -273,6 +277,8 @@ type ShelfReorderProps = {
   groups: ShelfReorderGroup[];
   /** Home's body ScrollView, used only for edge auto-scroll while dragging. */
   scrollRef?: React.RefObject<ScrollViewInstance | null>;
+  /** A virtualized list's scroll command, used instead of `scrollRef`. */
+  scrollTo?: (y: number) => void;
   /** The live scroll offset, tracked by the owning screen's onScroll. */
   scrollOffsetRef?: React.RefObject<number>;
 };
@@ -286,7 +292,7 @@ type ShelfReorderProps = {
  * Holding a row near the viewport edge scrolls the page and carries the row's
  * offset and target with it, so a long list can be rearranged in one gesture.
  */
-export function ShelfReorder({ groups, scrollRef, scrollOffsetRef }: ShelfReorderProps) {
+export function ShelfReorder({ groups, scrollRef, scrollTo, scrollOffsetRef }: ShelfReorderProps) {
   const { height } = useWindowDimensions();
   const populated = groups.filter((group) => group.items.length > 0);
 
@@ -341,6 +347,7 @@ export function ShelfReorder({ groups, scrollRef, scrollOffsetRef }: ShelfReorde
                 }
                 onReorder={group.onReorder}
                 scrollRef={scrollRef}
+                scrollTo={scrollTo}
                 scrollOffsetRef={scrollOffsetRef}
                 viewportHeight={height}
               />

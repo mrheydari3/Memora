@@ -47,7 +47,9 @@ async function holdAtBottom(page: Page, row: Locator) {
 
   const x = box!.x + box!.width / 2;
   const y = box!.y + box!.height / 2;
-  const scroller = page.getByTestId('screen-scroll');
+  // Home's virtualized board owns the scroll now; the old Screen wrapper no
+  // longer scrolls, so auto-scroll has to advance this list.
+  const scroller = page.getByTestId('shelf-panel');
   const before = await scroller.evaluate((node) => node.scrollTop);
   await page.mouse.move(x, y);
   await page.mouse.down();

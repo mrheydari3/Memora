@@ -14,7 +14,13 @@ export type StudyQueue = {
   total: number;
 };
 
-const STATE_OF = (entry: ReviewLogEntry) =>
+/**
+ * The card's state before a review. Exported because the Home library index
+ * has to count today's review entries by the same rule `buildStudyQueue` uses;
+ * two copies of this expression would drift and the shelf would disagree with
+ * the session it describes.
+ */
+export const reviewStateOf = (entry: ReviewLogEntry) =>
   entry.fsrs?.state ?? entry.stateBefore ?? (entry.cardWasNew ? 'New' : 'Review');
 
 /**
@@ -58,7 +64,7 @@ export function buildStudyQueue(
   const newReviewedToday = new Set(
     todaysLogs.filter((e) => e.cardWasNew).map((e) => e.cardId)
   ).size;
-  const reviewsToday = todaysLogs.filter((e) => STATE_OF(e) === 'Review').length;
+  const reviewsToday = todaysLogs.filter((e) => reviewStateOf(e) === 'Review').length;
 
   const dueAt = (card: Flashcard) => new Date(card.fsrs.due).getTime();
 

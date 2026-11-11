@@ -488,7 +488,9 @@ test.describe('Phase 5 — behaviour', () => {
 
     let options = await openOptions('Order Deck B');
     await options.getByRole('button', { name: 'Move up' }).click();
-    await page.getByRole('button', { name: 'Close sheet' }).click();
+    // Reordering moves the row that owns this menu, so the sheet closes with
+    // the move; Escape is safe whether it is still open or already gone.
+    await page.keyboard.press('Escape');
     let names = await deckNames();
     expect(names.indexOf('Order Deck B')).toBeLessThan(names.indexOf('Order Deck A'));
 
@@ -496,7 +498,7 @@ test.describe('Phase 5 — behaviour', () => {
     await settle(page);
     options = await openOptions('Order Deck B');
     await options.getByRole('button', { name: 'Move down' }).click();
-    await page.getByRole('button', { name: 'Close sheet' }).click();
+    await page.keyboard.press('Escape');
     await page.reload();
     await settle(page);
     names = await deckNames();

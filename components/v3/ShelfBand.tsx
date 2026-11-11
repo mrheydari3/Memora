@@ -8,7 +8,8 @@ type ShelfBandProps = {
   count: number;
   /** A quiet right-aligned hint, e.g. "Hierarchical" or "Root level". */
   hint?: string;
-  children: React.ReactNode;
+  /** Omitted for a band that only names a region rendered by the parent. */
+  children?: React.ReactNode;
 };
 
 /**
@@ -21,7 +22,7 @@ type ShelfBandProps = {
  */
 export function ShelfBand({ label, count, hint, children }: ShelfBandProps) {
   return (
-    <View style={{ gap: 10 }}>
+    <View testID="shelf-band" style={{ gap: 10 }}>
       <View
         style={{
           flexDirection: 'row',
@@ -65,7 +66,7 @@ export function ShelfBand({ label, count, hint, children }: ShelfBandProps) {
         ) : null}
       </View>
 
-      {children}
+      {children ?? null}
     </View>
   );
 }

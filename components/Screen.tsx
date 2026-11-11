@@ -47,6 +47,12 @@ type ScreenProps = {
   scrollRef?: React.Ref<ScrollViewInstance>;
   /** Called as the body scrolls; pair with `scrollRef` for drag auto-scroll. */
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  /**
+   * Reports the measured header height. A screen that owns its own scroll
+   * container (a virtualized list) has to pad the content by this itself; the
+   * hook keeps that number from being guessed a second time.
+   */
+  onHeaderHeight?: (height: number) => void;
 };
 
 /**
@@ -81,6 +87,7 @@ export function Screen({
   backgroundInert = false,
   scrollRef,
   onScroll,
+  onHeaderHeight,
 }: ScreenProps) {
   const focused = useIsFocused();
   // A pass counter, not the boolean: returning to a tab must replay the entrance.
@@ -102,6 +109,10 @@ export function Screen({
 
   const reveal = useReveal(pass, { distance: 8, duration: motion.base });
   const screenRef = useRef<React.ComponentRef<typeof SafeAreaView>>(null);
+
+  useEffect(() => {
+    onHeaderHeight?.(headerHeight);
+  }, [headerHeight, onHeaderHeight]);
 
   // The attribute, not just aria-hidden, is what removes the shell from the web
   // tab order. Cleanup restores it when the dialog closes or the route changes.
