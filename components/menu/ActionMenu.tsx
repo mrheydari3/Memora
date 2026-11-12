@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { Menu } from './Menu';
-import type { IconName, MenuAction } from './types';
+import type { AnchorRect, IconName, MenuAction } from './types';
 import { alpha, colors, iconSize } from '../../theme/tokens';
 
 type ActionMenuProps = {
@@ -17,6 +17,21 @@ type ActionMenuProps = {
   width?: number;
   disabled?: boolean;
   testID?: string;
+  /**
+   * Host the menu outside the trigger and receive its measured anchor. A deck
+   * row that reorders (pin, move up/down) can be remounted by the list; a menu
+   * owned by that row would close with it.
+   */
+  onOpen?: (anchor: AnchorRect) => void;
+  /** `aria-expanded` when the caller owns the menu's open state. */
+  expanded?: boolean;
+};
+
+type MeasurableNode = {
+  measureInWindow?: (
+    callback: (x: number, y: number, width: number, height: number) => void
+  ) => void;
+  getBoundingClientRect?: () => { left: number; top: number; width: number; height: number };
 };
 
 /**
@@ -36,24 +51,45 @@ export function ActionMenu({
   width,
   disabled = false,
   testID,
+  onOpen,
+  expanded = false,
 }: ActionMenuProps) {
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const anchorRef = useRef<React.ComponentRef<typeof View>>(null);
 
+  const openMenu = () => {
+    if (disabled) return;
+    const node = anchorRef.current as unknown as MeasurableNode | null;
+    if (!onOpen) {
+      setOpen(true);
+      return;
+    }
+    if (node?.measureInWindow) {
+      node.measureInWindow((x, y, width, height) => onOpen({ x, y, width, height }));
+      return;
+    }
+    if (node?.getBoundingClientRect) {
+      const rect = node.getBoundingClientRect();
+      onOpen({ x: rect.left, y: rect.top, width: rect.width, height: rect.height });
+      return;
+    }
+    onOpen({ x: 0, y: 0, width: 44, height: 44 });
+  };
+
   return (
     <View ref={anchorRef} collapsable={false} style={{ flexShrink: 0 }}>
       <Pressable
         testID={testID}
-        onPress={disabled ? undefined : () => setOpen(true)}
+        onPress={disabled ? undefined : openMenu}
         onHoverIn={() => !disabled && setHovered(true)}
         onHoverOut={() => setHovered(false)}
         disabled={disabled}
         accessibilityRole="button"
         accessibilityLabel={label}
-        accessibilityState={{ disabled, expanded: open }}
+        accessibilityState={{ disabled, expanded: onOpen ? expanded : open }}
         aria-haspopup="menu"
-        aria-expanded={open}
+        aria-expanded={onOpen ? expanded : open}
         style={{
           width: 44,
           height: 44,
@@ -80,16 +116,18 @@ export function ActionMenu({
         </View>
       </Pressable>
 
-      <Menu
-        open={open}
-        onClose={() => setOpen(false)}
-        anchorRef={anchorRef}
-        label={label}
-        title={sheetTitle ?? label}
-        subtitle={sheetSubtitle}
-        actions={actions}
-        width={width}
-      />
+      {onOpen ? null : (
+        <Menu
+          open={open}
+          onClose={() => setOpen(false)}
+          anchorRef={anchorRef}
+          label={label}
+          title={sheetTitle ?? label}
+          subtitle={sheetSubtitle}
+          actions={actions}
+          width={width}
+        />
+      )}
     </View>
   );
 }

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { buildFixture, fixtureInitScript } from '../ui/fixtures';
 
 /**
  * The shared menu contract.
@@ -171,5 +172,65 @@ test.describe('compact sheet fallback', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog', { name: DECK })).toBeHidden();
     await expect(trigger).toBeFocused();
+  });
+});
+
+const COMPACT_FIXTURE = buildFixture('F3', new Date('2026-11-07T12:00:00Z').getTime());
+
+test.describe('compact deck options sheet', () => {
+  // A phone width gets the sheet fallback; the tall viewport keeps every shelf
+  // row mounted, so the test is about the row reordering, not about scrolling.
+  test.use({ viewport: { width: 390, height: 1400 }, reducedMotion: 'reduce' });
+
+  test('repeatable deck actions keep the sheet open while the row moves', async ({ page }) => {
+    // The saved browser state holds a single deck, so pinning cannot move it.
+    // Seed the library fixture: its two unfiled decks give the row somewhere
+    // to go when it is pinned.
+    await page.addInitScript({ content: fixtureInitScript(COMPACT_FIXTURE) });
+    await page.goto('/home');
+    await settle(page);
+
+    // An unfiled deck is its own list row at one column, so pinning it changes
+    // which row holds it — the case that used to unmount the open sheet.
+    const trigger = page.getByRole('button', { name: 'Options for deck Empty deck', exact: true });
+    await trigger.click();
+    const sheet = page.getByRole('dialog', { name: 'Empty deck' });
+    await expect(sheet).toBeVisible();
+
+    await sheet.getByRole('button', { name: /^(Pin deck|Unpin deck)/ }).click();
+    await expect(sheet).toBeVisible();
+
+    await sheet.getByRole('button', { name: 'Move down', exact: true }).click();
+    await expect(sheet).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(sheet).toBeHidden();
+  });
+
+  test('pinning a deck inside a folder keeps its sheet open', async ({ page }) => {
+    // A folder deck is a different row shape from an unfiled one, and its
+    // options sheet is hosted by the same Home-level menu. German's decks only
+    // mount once its parent folder's subitem is opened.
+    await page.addInitScript({ content: fixtureInitScript(COMPACT_FIXTURE) });
+    await page.goto('/home');
+    await settle(page);
+    await page.getByRole('button', { name: /^Open folder German,/ }).click();
+    await settle(page);
+
+    const trigger = page.getByRole('button', { name: `Options for deck ${DECK}`, exact: true });
+    await trigger.click();
+    const sheet = page.getByRole('dialog', { name: DECK });
+    await expect(sheet).toBeVisible();
+
+    await sheet.getByRole('button', { name: /^Pin deck/ }).click();
+    await expect(sheet).toBeVisible();
+    // The reopen-free guarantee includes the action label reflecting the store.
+    await expect(sheet.getByRole('button', { name: /^Unpin deck/ })).toBeVisible();
+
+    await sheet.getByRole('button', { name: 'Move down', exact: true }).click();
+    await expect(sheet).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(sheet).toBeHidden();
   });
 });

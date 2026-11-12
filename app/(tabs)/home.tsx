@@ -10,6 +10,8 @@ import { estimateSessionMinutes } from '../../data/session';
 import { folderDescendantIds, folderPath } from '../../data/folders';
 import { FOLDER_DEFAULT_ICON } from '../../data/appearance';
 import type { Deck } from '../../data/types';
+import { Menu } from '../../components/menu/Menu';
+import type { AnchorRect } from '../../components/menu/types';
 import {
   AppearancePicker,
   AppText,
@@ -120,6 +122,10 @@ export default function HomeScreen() {
   const [editError, setEditError] = useState<string | null>(null);
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() => new Set());
   const [editingLayout, setEditingLayout] = useState(false);
+  // The deck menu lives at screen level, not in the row: Pin/Move reorder the
+  // shelf, and a menu owned by a row that changes position would unmount with
+  // it, closing between two repeatable operations.
+  const [deckMenu, setDeckMenu] = useState<{ deckId: string; anchor: AnchorRect } | null>(null);
   // The board pads its own content by the measured bar height; Screen reports it.
   const [headerHeight, setHeaderHeight] = useState(heights.pageHeader);
   const handleHeaderHeight = useCallback((next: number) => {
@@ -303,6 +309,10 @@ export default function HomeScreen() {
       return next;
     });
 
+  const deckMenuDeck = deckMenu
+    ? decks.find((deck) => deck.id === deckMenu.deckId) ?? null
+    : null;
+
   // Pin and move stay open after acting: they are repeatable shelf operations,
   // and the same menu is used for the row's overflow and right-click actions.
   const deckActions = (deck: Deck): MenuAction[] => [
@@ -470,7 +480,8 @@ export default function HomeScreen() {
           </View>
         </ScrollView>
       ) : (
-        <LibraryBoard
+        <>
+          <LibraryBoard
           library={library}
           folders={folders}
           hero={
@@ -557,11 +568,23 @@ export default function HomeScreen() {
               sheetTitle={deck.name}
               sheetSubtitle="Pinned decks stay above the others in their folder."
               actions={deckActions(deck)}
+              expanded={deckMenu?.deckId === deck.id}
+              onOpen={(anchor) => setDeckMenu({ deckId: deck.id, anchor })}
             />
           )}
           headerHeight={headerHeight}
           contentMaxWidth={contentMaxWidth}
         />
+        <Menu
+          open={deckMenuDeck != null}
+          onClose={() => setDeckMenu(null)}
+          anchorRect={deckMenu?.anchor ?? null}
+          label={deckMenuDeck ? `Options for deck ${deckMenuDeck.name}` : 'Deck options'}
+          title={deckMenuDeck?.name ?? 'Deck options'}
+          subtitle="Pinned decks stay above the others in their folder."
+          actions={deckMenuDeck ? deckActions(deckMenuDeck) : []}
+        />
+        </>
       )}
 
       <BottomSheetModal
