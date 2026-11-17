@@ -340,7 +340,14 @@ function VolumeBars({ bars, total }: { bars: VolumeBar[]; total: number }) {
           gap: 6,
         }}
       >
-        {bars.map((bar, index) => (
+        {bars.map((bar, index) => {
+          // Hoisted out of the style object: Reanimated's babel heuristic warns
+          // on any `.value` it finds inline, even a plain data field.
+          const barHeight = Math.max(
+            v3.rail.activityMin,
+            Math.round((bar.value / max) * v3.rail.activity)
+          );
+          return (
           <View
             key={`${bar.label}-${index}`}
             style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}
@@ -361,10 +368,7 @@ function VolumeBars({ bars, total }: { bars: VolumeBar[]; total: number }) {
               style={{
                 width: '100%',
                 maxWidth: 40,
-                height: Math.max(
-                  v3.rail.activityMin,
-                  Math.round((bar.value / max) * v3.rail.activity)
-                ),
+                height: barHeight,
                 borderRadius: 6,
                 backgroundColor: bar.highlight
                   ? colors.primaryContainer
@@ -372,7 +376,8 @@ function VolumeBars({ bars, total }: { bars: VolumeBar[]; total: number }) {
               }}
             />
           </View>
-        ))}
+          );
+        })}
       </View>
       <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
         {bars.map((bar, index) => (

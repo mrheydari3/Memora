@@ -221,16 +221,22 @@ export function DeckRow({
                 overflow: 'hidden',
               }}
             >
-              {segments.map((segment) => (
-                <View
-                  key={segment.key}
-                  style={{
-                    flexGrow: segment.value,
-                    flexBasis: 0,
-                    backgroundColor: segment.color,
-                  }}
-                />
-              ))}
+              {segments.map((segment) => {
+                // A data weight, not an animated value: the read is hoisted
+                // anyway because Reanimated's babel heuristic warns on any
+                // `.value` it finds inside an inline style object.
+                const weight = segment.value;
+                return (
+                  <View
+                    key={segment.key}
+                    style={{
+                      flexGrow: weight,
+                      flexBasis: 0,
+                      backgroundColor: segment.color,
+                    }}
+                  />
+                );
+              })}
             </View>
           ) : hasCards ? (
             <View
