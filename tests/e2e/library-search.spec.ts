@@ -46,11 +46,11 @@ test('search finds a deck across folders and prints its path', async ({ page }) 
   await expect(row).toBeVisible();
   await expect(row).toContainText('Languages / German');
   // The matching folder's own card is filtered out; only the deck's path names it.
-  await expect(page.getByTestId('folder-group')).toHaveCount(0);
+  await expect(page.getByTestId('folder-card')).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Clear search' }).click();
   await expect(page.getByTestId('library-results-count')).toHaveCount(0);
-  await expect(page.getByTestId('folder-group').filter({ hasText: 'Travel' })).toBeVisible();
+  await expect(page.getByTestId('folder-card').filter({ hasText: 'Travel' })).toBeVisible();
   await expect(page.getByTestId('deck-row').filter({ hasText: 'Schritt Plus Neu' })).toHaveCount(0);
 });
 
@@ -59,7 +59,7 @@ test('a folder name is searchable and opens from the result', async ({ page }) =
   await openHome(page);
 
   await page.getByLabel('Search your library').fill('Travel');
-  const folder = page.getByTestId('folder-result').filter({ hasText: 'Travel' });
+  const folder = page.getByTestId('folder-card').filter({ hasText: 'Travel' });
   await expect(folder).toBeVisible();
   await folder.click();
   await expect(page).toHaveURL(/\/home$/);
@@ -105,17 +105,10 @@ test('Edit layout leaves search and shows the reorder surface', async ({ page })
   await page.setViewportSize({ width: 390, height: 844 });
   await openHome(page);
 
-  // V4 hosts the shelf's library actions in the header menu.
-  const openEditLayout = async () => {
-    await page.getByRole('button', { name: 'More actions' }).click();
-    // A sheet item's accessible name also carries its description.
-    await page.getByRole('button', { name: /^Edit layout/ }).click();
-  };
-
   await page.getByLabel('Search your library').fill('zzzz no match');
   await expect(page.getByTestId('library-no-results')).toBeVisible();
 
-  await openEditLayout();
+  await page.getByRole('button', { name: 'Edit layout' }).click();
 
   // The previously dead state: the layout editor takes over instead of leaving
   // an unchanged empty result under a "Done" button.
@@ -123,26 +116,16 @@ test('Edit layout leaves search and shows the reorder surface', async ({ page })
   await expect(page.getByTestId('library-no-results')).toHaveCount(0);
   await expect(page.getByLabel('Search your library')).toHaveCount(0);
 
-  // The header menu's own "Done editing layout" item is still leaving the DOM;
-  // the shelf's control is the one that ends the mode.
-  await page
-    .getByTestId('shelf-panel')
-    .getByRole('button', { name: 'Done editing layout' })
-    .click();
+  await page.getByRole('button', { name: 'Done editing layout' }).click();
   await expect(page.getByLabel('Search your library')).toBeVisible();
   await expect(page.getByTestId('library-results-count')).toHaveCount(0);
 
   // The Due filter is the other route into the same dead state.
   await page.getByRole('button', { name: 'Due only' }).click();
   await expect(page.getByTestId('library-results-count')).toBeVisible();
-  await openEditLayout();
+  await page.getByRole('button', { name: 'Edit layout' }).click();
   await expect(page.getByTestId('reorder-group-folders')).toBeVisible();
-  // The header menu's own "Done editing layout" item is still leaving the DOM;
-  // the shelf's control is the one that ends the mode.
-  await page
-    .getByTestId('shelf-panel')
-    .getByRole('button', { name: 'Done editing layout' })
-    .click();
+  await page.getByRole('button', { name: 'Done editing layout' }).click();
   await expect(page.getByTestId('library-results-count')).toHaveCount(0);
 });
 

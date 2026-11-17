@@ -122,15 +122,16 @@ const plural = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
 
 /**
- * The masthead's summary line: today's due total, decks in scope, folders in
- * scope. The order and separators mirror the V4 masthead.
+ * The shelf header's meta line: decks in scope, folders in scope, and the due
+ * figure those decks roll up. The card count left this line when the shelf
+ * became a library index (`home.tsx` `shelfMeta`).
  */
 const shelfMeta = (decks: number, folders: number, due: number) =>
   [
-    `${due} due today`,
     plural(decks, 'deck', 'decks'),
     plural(folders, 'folder', 'folders'),
-  ].join(' / ');
+    due > 0 ? `${due} due` : 'all caught up',
+  ].join(' · ');
 
 /** The deck the hero points at, mirroring Home's own choice rule. */
 function continueDeck(store: Store) {
@@ -229,28 +230,24 @@ test.describe('Phase 7 — data truth', () => {
     expect(store.folders.length).toBeGreaterThan(rootFolders.length);
     expect(active.length).toBe(5);
     expect(rootDue).toBe(40);
-    // V4 prints the summary as one line of facts joined by slashes.
-    await expect(page.getByTestId('library-summary')).toContainText(
-      shelfMeta(active.length, rootFolders.length, rootDue)
-    );
+    await expect(
+      page.getByText(shelfMeta(active.length, rootFolders.length, rootDue), { exact: true })
+    ).toBeVisible();
     // The band below the masthead lists exactly those folders, so it carries the
     // same number: a nested folder must not appear in one count and not the other.
     await expect(
       page.getByTestId('shelf-band').filter({ hasText: 'Folders' })
-    ).toContainText(String(rootFolders.length));
+    ).toContainText(`(${rootFolders.length})`);
 
     // Languages has no direct decks, but its German child owns two. The header
     // must name both sides of that split rather than claiming the folder is empty.
     const languages = page.getByTestId('folder-group').filter({ hasText: 'Languages' });
     await expect(languages).toContainText('0 direct · 2 nested');
-    await expect(languages.getByTestId('folder-due')).toHaveText('30');
-    await expect(languages.getByTestId('folder-due-label')).toHaveText('due');
+    await expect(languages).toContainText('30 due');
     // The child folder is a sub-item inside its parent's well; opening it drills
     // into that level, where the header names the folder and its own totals.
     const germanItem = page.getByTestId('folder-subitem').filter({ hasText: 'German' });
-    await expect(germanItem).toContainText('2 decks');
-    await expect(germanItem.getByTestId('subfolder-due')).toHaveText('30');
-    await expect(germanItem.getByTestId('subfolder-due-label')).toHaveText('due');
+    await expect(germanItem).toContainText('2 decks · 30 due');
     await expect(germanItem).not.toContainText('direct');
     await germanItem.click();
     await settle(page);
@@ -260,9 +257,11 @@ test.describe('Phase 7 — data truth', () => {
     const language = subtrees.get('fold-lang');
     expect(childFolders.length).toBe(1);
     expect(language).toEqual({ decks: 2, due: 30, nestedFolders: 1 });
-    await expect(page.getByTestId('library-summary')).toContainText(
-      shelfMeta(language!.decks, germanChildren.length, language!.due)
-    );
+    await expect(
+      page.getByText(shelfMeta(language!.decks, germanChildren.length, language!.due), {
+        exact: true,
+      })
+    ).toBeVisible();
 
     // The two nested decks are the remaining per-deck totals: German and the
     // long-named deck. Their rows must agree with their own queues.
@@ -301,16 +300,13 @@ test.describe('Phase 7 — data truth', () => {
         // The due tile deliberately shows a clear mark, not a misleading zero.
         await expect(row).toContainText('clear');
       }
-      // V4 prints the share as a percentage; a deck with no cards has no share
-      // to print and says so instead of drawing a zero.
+      // v3 renders the share as a percentage, and an unstarted share as an
+      // em dash rather than a v2 "Not started" label.
       const studied = cards.filter((card) => card.fsrs.last_review != null).length;
       const progress = cards.length > 0 ? Math.round((studied / cards.length) * 100) : 0;
-      if (cards.length === 0) {
-        await expect(row).toContainText('Not studied yet');
-      } else {
-        await expect(row.getByText(`${progress}%`, { exact: true })).toBeVisible();
-        await expect(row).toContainText('studied');
-      }
+      await expect(
+        row.getByText(studied === 0 ? '—' : `${progress}%`, { exact: true })
+      ).toBeVisible();
     }
   });
 
@@ -630,7 +626,7 @@ test.describe('Phase 7 — data truth', () => {
     await page.reload();
     await settle(page);
     await expect.poll(async () => (await panel.innerText()).trim()).toBe(heroText.trim());
-    await expect(page.getByTestId('library-summary')).toContainText(caption);
+    await expect(page.getByText(caption, { exact: true })).toBeVisible();
 
     // A direct link to a deck, then Back, must return to the same shelf totals.
     await page.goto('/deck/deck-persian');
@@ -638,6 +634,6 @@ test.describe('Phase 7 — data truth', () => {
     await page.getByRole('button', { name: 'Go back' }).click();
     await expect(page).toHaveURL(/\/home$/);
     await expect.poll(async () => (await panel.innerText()).trim()).toBe(heroText.trim());
-    await expect(page.getByTestId('library-summary')).toContainText(caption);
+    await expect(page.getByText(caption, { exact: true })).toBeVisible();
   });
 });

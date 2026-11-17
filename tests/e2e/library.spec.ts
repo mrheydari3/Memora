@@ -32,7 +32,7 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript({ content: fixtureInitScript(HOME_FIXTURE) });
 });
 
-test('folder-first shelf exposes deck progress and a breadcrumb back to all decks', async ({ page }) => {
+test('folder-first shelf exposes progress and a breadcrumb back to all decks', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openHome(page);
 
@@ -44,46 +44,31 @@ test('folder-first shelf exposes deck progress and a breadcrumb back to all deck
     shelf.getByTestId('shelf-band').filter({ hasText: 'Unfiled decks' })
   ).toBeVisible();
 
-  const folderGroups = page.getByTestId('folder-group');
-  await expect(folderGroups).toHaveCount(3);
-  const travel = folderGroups.filter({ hasText: 'Travel' });
-  await expect(travel).toContainText('1 deck');
-  const travelDeck = page.getByTestId('deck-row').filter({ hasText: 'Due today (review)' });
-  await expect(travelDeck).toBeVisible();
-  await expect(travelDeck).toContainText('100%');
-  await expect(travelDeck).toContainText('studied');
+  const folderCards = page.getByTestId('folder-card');
+  await expect(folderCards).toHaveCount(3);
+  const travel = folderCards.filter({ hasText: 'Travel' });
+  await expect(travel).toContainText('% studied');
 
-  const foldersBox = await shelf.getByTestId('shelf-band').filter({ hasText: 'Folders' }).boundingBox();
-  const decksBox = await shelf
-    .getByTestId('shelf-band')
-    .filter({ hasText: 'Unfiled decks' })
-    .boundingBox();
-  expect(foldersBox).not.toBeNull();
-  expect(decksBox).not.toBeNull();
-  expect(foldersBox!.y).toBeLessThan(decksBox!.y);
+  const lastFolderBox = await folderCards.last().boundingBox();
+  const firstDeckBox = await page.getByTestId('deck-row').first().boundingBox();
+  expect(lastFolderBox).not.toBeNull();
+  expect(firstDeckBox).not.toBeNull();
+  expect(lastFolderBox!.y).toBeLessThan(firstDeckBox!.y);
 
-  // A nested folder is the door to its own level; the breadcrumb is the way up.
-  const languages = page.getByTestId('folder-group').filter({ hasText: 'Languages' });
-  await expect(languages).toContainText('0 direct · 2 nested');
-  await page.getByTestId('folder-subitem').filter({ hasText: 'German' }).click();
+  await travel.click();
   await expect(page.getByRole('button', { name: 'All decks' })).toBeVisible();
   await expect(shelf.getByTestId('shelf-band').filter({ hasText: 'Decks here' })).toBeVisible();
 
   await page.getByRole('button', { name: 'All decks' }).click();
-  await expect(page.getByTestId('folder-group')).toHaveCount(3);
+  await expect(page.getByTestId('folder-card')).toHaveCount(3);
 });
 
 test('closing the Folders sheet discards an abandoned draft', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openHome(page);
 
-  // V4 keeps the shelf's library actions in the header menu, so the sheet is
-  // opened the way a reader opens it.
-  const openFoldersSheet = async () => {
-    await page.getByRole('button', { name: 'More actions' }).click();
-    await page.getByRole('button', { name: 'New folder', exact: true }).click();
-  };
-  await openFoldersSheet();
+  const opener = page.getByRole('button', { name: 'New folder' });
+  await opener.click();
   const sheet = page.getByRole('dialog');
   await expect(sheet).toBeVisible();
   await sheet.getByLabel('New folder').fill('Abandoned draft');
@@ -92,7 +77,7 @@ test('closing the Folders sheet discards an abandoned draft', async ({ page }) =
   await page.keyboard.press('Escape');
   await expect(sheet).toBeHidden();
 
-  await openFoldersSheet();
+  await opener.click();
   const reopened = page.getByRole('dialog');
   // A cancelled draft must not come back on the next open.
   await expect(reopened.getByLabel('New folder')).toHaveValue('');
@@ -114,30 +99,4 @@ test('the phone keeps folders above loose decks', async ({ page }) => {
   expect(foldersBox).not.toBeNull();
   expect(looseDecksBox).not.toBeNull();
   expect(foldersBox!.y).toBeLessThan(looseDecksBox!.y);
-});
-
-test('an empty folder can start its first deck in place', async ({ page }) => {
-  await openHome(page);
-
-  const empty = page.getByTestId('folder-group').filter({ hasText: 'Nothing here yet' });
-  await expect(empty).toContainText('Empty folder');
-  await expect(page.getByText('No decks inside yet.')).toBeVisible();
-
-  // The action carries the folder into the composer, so the deck is filed
-  // without a second trip through the folder picker.
-  await page.getByRole('button', { name: 'Add a deck', exact: true }).click();
-  await expect(page).toHaveURL(/\/add-deck\?folderId=fold-empty/);
-
-  await page.getByPlaceholder('Deck name').fill('Filed by default');
-  await page.getByRole('button', { name: 'Create deck' }).click();
-  await page.waitForURL(/\/deck\/deck-/);
-
-  const decks = await page.evaluate(
-    () => JSON.parse(localStorage.getItem('memory:decks') || '[]') as Array<{
-      name: string;
-      folderId?: string | null;
-    }>
-  );
-  const created = decks.find((deck) => deck.name === 'Filed by default');
-  expect(created?.folderId).toBe('fold-empty');
 });

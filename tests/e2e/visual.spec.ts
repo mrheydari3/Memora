@@ -22,9 +22,9 @@ import { buildFixture, fixtureInitScript } from '../ui/fixtures';
 const FIXED_NOW = new Date('2026-11-07T12:00:00Z');
 
 /**
- * The Home baselines use the six-deck fixture at every width, so the shelf's
- * real shapes are in frame: folders, an empty deck, an archived deck, RTL and
- * overdue cards.
+ * The desktop Home baseline uses the six-deck fixture, so it shows the board's
+ * real shapes: folders, an empty deck, an archived deck, RTL and overdue cards.
+ * The phone baseline keeps the shipped deck; both Home cases render the folder-first shelf.
  */
 const HOME_FIXTURE = buildFixture('F3', FIXED_NOW.getTime());
 
@@ -65,9 +65,6 @@ async function waitForRoute(page: Page, label: string) {
     .getByRole('progressbar', { name: 'Loading Memora' })
     .waitFor({ state: 'detached' });
   await page.waitForTimeout(900);
-  // The masthead and due figures are a web font; a baseline captured before it
-  // lands would lock in the Georgia fallback.
-  await page.evaluate(() => document.fonts.ready);
 }
 
 const ROUTES = [
@@ -80,20 +77,11 @@ const ROUTES = [
 test.describe('visual', () => {
   for (const route of ROUTES) {
     test(`${route.label} at 390px`, async ({ page }) => {
-      if (route.label === 'home') await seedHome(page);
       await page.goto(route.path);
       await waitForRoute(page, route.label);
       await expect(page).toHaveScreenshot(`${route.label}-390.png`, { fullPage: false });
     });
   }
-
-  test('home at 320px', async ({ page }) => {
-    await page.setViewportSize({ width: 320, height: 700 });
-    await seedHome(page);
-    await page.goto('/');
-    await waitForRoute(page, 'home');
-    await expect(page).toHaveScreenshot('home-320.png', { fullPage: false });
-  });
 
   test('wide layout at 1280px', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });

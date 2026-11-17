@@ -39,12 +39,6 @@ async function rowName(row: Locator) {
   return (await row.getByTestId('reorder-name').innerText()).trim();
 }
 
-async function openEditLayout(page: Page) {
-  await page.getByRole('button', { name: 'More actions' }).click();
-  await page.getByRole('menuitem', { name: 'Edit layout' }).click();
-  await page.waitForTimeout(250);
-}
-
 async function holdAtBottom(page: Page, row: Locator) {
   const handle = row.getByTestId('reorder-handle');
   await handle.scrollIntoViewIfNeeded();
@@ -83,7 +77,7 @@ test('edit layout drags decks and folders and persists the order', async ({ page
   await page.goto('/');
   await settle(page);
 
-  await openEditLayout(page);
+  await page.getByRole('button', { name: 'Edit layout' }).click();
   const decks = page.getByTestId('reorder-group-decks').getByTestId('reorder-row');
   const folders = page.getByTestId('reorder-group-folders').getByTestId('reorder-row');
   await expect(decks).toHaveCount(2);
@@ -106,7 +100,7 @@ test('edit layout drags decks and folders and persists the order', async ({ page
   await page.getByRole('button', { name: 'Done editing layout' }).click();
   await page.reload();
   await settle(page);
-  await openEditLayout(page);
+  await page.getByRole('button', { name: 'Edit layout' }).click();
 
   await expect(
     page.getByTestId('reorder-group-decks').getByTestId('reorder-row').first().getByTestId('reorder-name')
@@ -124,7 +118,7 @@ test('edit layout auto-scrolls while the drag stays at the edge', async ({ page 
   await page.goto('/');
   await settle(page);
 
-  await openEditLayout(page);
+  await page.getByRole('button', { name: 'Edit layout' }).click();
   const decks = page.getByTestId('reorder-group-decks').getByTestId('reorder-row');
   await expect(decks).toHaveCount(100);
 
