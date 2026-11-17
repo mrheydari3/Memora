@@ -443,6 +443,8 @@ async function main() {
             .getByText(action.text, { exact: false })
             .first()
             .waitFor({ state: 'visible', timeout: 10_000 });
+        } else if (action.kind === 'wait') {
+          await page.waitForTimeout(action.ms);
         }
         await page.waitForTimeout(250);
       }

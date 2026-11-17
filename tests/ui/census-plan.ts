@@ -21,7 +21,8 @@ export type CensusAction =
   | { kind: 'fill'; label: string; value: string }
   | { kind: 'press'; key: string }
   | { kind: 'scroll'; text: string }
-  | { kind: 'expect'; text: string };
+  | { kind: 'expect'; text: string }
+  | { kind: 'wait'; ms: number };
 
 export type CensusState = 'base' | 'triggered' | 'not-automated';
 
@@ -39,6 +40,7 @@ const fill = (label: string, value: string): CensusAction => ({ kind: 'fill', la
 const press = (key: string): CensusAction => ({ kind: 'press', key });
 const scroll = (text: string): CensusAction => ({ kind: 'scroll', text });
 const expect = (text: string): CensusAction => ({ kind: 'expect', text });
+const wait = (ms: number): CensusAction => ({ kind: 'wait', ms });
 
 function deckFor(surface: Surface): string {
   if (surface.id === 'DK-02' || surface.id === 'SD-06' || surface.id === 'QZ-09') {
@@ -88,24 +90,36 @@ export function censusUrl(surface: Surface): string {
 function actionsFor(surface: Surface): CensusAction[] {
   switch (surface.id) {
     case 'HM-06':
-      // German is nested inside Languages; open the top-level folder first.
-      return [click('Languages', false)];
+      // German is nested inside Languages; the root accordion lists it as a
+      // subfolder door, and opening the door enters that level.
+      return [click('German', false)];
     case 'HM-07':
-      return [click('Nothing here yet', false)];
+      // The empty folder is expanded by default; close and reopen it so the
+      // census records the actual open state rather than the initial one.
+      return [click('Nothing here yet', false), click('Nothing here yet', false)];
     case 'HM-08':
-      return [click('New folder')];
+      return [click('More actions'), click('New folder'), wait(400)];
     case 'HM-09':
       return [
+        click('More actions'),
         click('New folder'),
+        wait(400),
         fill('New folder', 'Languages'),
         click('Create folder'),
         expect('A folder with that name already exists.'),
       ];
     case 'HM-10':
-      return [click('New folder'), click('Options for folder Languages')];
+      return [
+        click('More actions'),
+        click('New folder'),
+        wait(400),
+        click('Options for folder Languages'),
+      ];
     case 'HM-11':
       return [
+        click('More actions'),
         click('New folder'),
+        wait(400),
         click('Options for folder Languages'),
         click('Location', false),
       ];

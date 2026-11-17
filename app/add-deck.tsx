@@ -8,7 +8,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDeckStore } from '../store/useDeckStore';
 import { goBackOr } from '../services/navigation';
@@ -58,10 +58,16 @@ function webDocument(): WebDocument | null {
 
 export default function AddDeckScreen() {
   const router = useRouter();
+  const { folderId: folderParam } = useLocalSearchParams<{ folderId?: string | string[] }>();
+  const requestedFolderId = Array.isArray(folderParam) ? folderParam[0] : folderParam;
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const desktop = windowWidth >= 1024;
   const decks = useDeckStore((state) => state.decks);
+  const folders = useDeckStore((state) => state.folders);
+  const targetFolder = requestedFolderId
+    ? folders.find((folder) => folder.id === requestedFolderId) ?? null
+    : null;
   const panelRef = useRef<React.ComponentRef<typeof View>>(null);
   const returnFocus = useRef<WebNode | null>(null);
   const [name, setName] = useState('');
@@ -146,6 +152,7 @@ export default function AddDeckScreen() {
         icon,
         color,
         parentId: null,
+        folderId: targetFolder?.id ?? null,
         algorithmPreset: 'fsrs',
         newCardsPerDay: 20,
         maxCardsPerDay: 80,

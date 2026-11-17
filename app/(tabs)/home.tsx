@@ -10,15 +10,11 @@ import { estimateSessionMinutes } from '../../data/session';
 import { folderDescendantIds, folderPath } from '../../data/folders';
 import { FOLDER_DEFAULT_ICON } from '../../data/appearance';
 import type { Deck } from '../../data/types';
-import { Menu } from '../../components/menu/Menu';
-import type { AnchorRect } from '../../components/menu/types';
 import {
   AppearancePicker,
   AppText,
   BottomSheetModal,
   COLOR_CHOICES,
-  DeckShelfSkeleton,
-  EmptyState,
   Field,
   GhostButton,
   HeroSkeleton,
@@ -35,14 +31,13 @@ import {
   FolderGlyph,
   HeaderIcon,
   HeroAura,
-  LibraryBoard,
   LibraryPane,
   NewFolderButton,
   PageHeader,
   SectionHeading,
-  Surface,
   TodayPane,
 } from '../../components/v3';
+import { EmptyLibrary, ShelfBoard, ShelfSkeleton } from '../../components/v4';
 import type { FieldInputRef } from '../../components/Field';
 import { colors, heights, radii, spacing } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
@@ -58,11 +53,11 @@ type FolderSheetMode = 'list' | 'edit' | 'location';
  * The page answers "what do I study now?" before "what do I own?": the day
  * label ("Today") is the h1 and the due number is the canvas's one display-sized
  * element, one primary action opens the session, and the day's new/learning/
- * review split sits underneath. The library is browsed level by level: the top
- * level holds root folders and unfiled decks, and every folder opens into its
- * own subfolders and decks.
+ * review split sits underneath. The library reads as a printed index: root
+ * folders expand inline to show their decks and child-folder doors, nested
+ * folders keep the breadcrumb path, and unfiled decks sit below the folders.
  *
- * The body is one virtualized list (`LibraryBoard`): the hero, breadcrumbs,
+ * The body is one virtualized list (`ShelfBoard`): the hero, breadcrumbs,
  * masthead, search, folder groups and deck rows are all rows of the same
  * FlatList, so Home mounts a window of the library instead of every card, and
  * no `buildStudyQueue` runs per deck. Every number still comes from the same
@@ -73,9 +68,10 @@ export default function HomeScreen() {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
 
-  // A desktop canvas gets its own composition: the today grid with a library
-  // rail, then a two-up shelf. Below 1024 the page keeps the single phone
-  // column, so every existing mobile behaviour and measurement is untouched.
+  // A desktop canvas keeps the wider page and the today hero's library rail.
+  // The shelf below stays one editorial column at every width, with its deck
+  // copy capped in `theme/v4.ts`, so mobile and wide share the same reading
+  // order and only the surrounding chrome changes.
   const desktop = width >= 1024;
   const contentMaxWidth = desktop ? v3.layout.homeDesktopMaxWidth : v3.layout.contentMaxWidth;
   const folderSheetBodyMaxHeight = desktop
@@ -122,10 +118,6 @@ export default function HomeScreen() {
   const [editError, setEditError] = useState<string | null>(null);
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() => new Set());
   const [editingLayout, setEditingLayout] = useState(false);
-  // The deck menu lives at screen level, not in the row: Pin/Move reorder the
-  // shelf, and a menu owned by a row that changes position would unmount with
-  // it, closing between two repeatable operations.
-  const [deckMenu, setDeckMenu] = useState<{ deckId: string; anchor: AnchorRect } | null>(null);
   // The board pads its own content by the measured bar height; Screen reports it.
   const [headerHeight, setHeaderHeight] = useState(heights.pageHeader);
   const handleHeaderHeight = useCallback((next: number) => {
@@ -251,6 +243,42 @@ export default function HomeScreen() {
     setFolderSheetMode('list');
   };
 
+  const openFolderSheetFromMenu = () => {
+    // The header menu restores focus to More actions as it closes. Waiting for
+    // that hand-off before opening the folder sheet keeps the sheet's own
+    // focus return pointing at the header control, not at a menu item.
+    const delay = width < 640 ? 250 : 50;
+    setTimeout(() => {
+      setFolderSheetMode('list');
+      setFolderSheet(true);
+    }, delay);
+  };
+
+  const headerMenuActions: MenuAction[] = [
+    {
+      key: 'discover',
+      label: 'Discover',
+      description: 'Find shared decks to add',
+      icon: 'explore',
+      onPress: () => pushOnce(router, '/discover'),
+    },
+    {
+      key: 'new-folder',
+      label: 'New folder',
+      icon: 'create-new-folder',
+      onPress: openFolderSheetFromMenu,
+    },
+    {
+      key: 'edit-layout',
+      label: editingLayout ? 'Done editing layout' : 'Edit layout',
+      description: editingLayout
+        ? 'Return to the shelf'
+        : 'Rearrange folders and unfiled decks',
+      icon: 'drag-indicator',
+      onPress: () => setEditingLayout((next) => !next),
+    },
+  ];
+
   const header = (
     <PageHeader
       brand
@@ -285,16 +313,17 @@ export default function HomeScreen() {
       actions={
         <>
           <HeaderIcon
-            icon="explore"
-            label="Discover"
-            raised
-            onPress={() => pushOnce(router, '/discover')}
-          />
-          <HeaderIcon
             icon="add"
             label="Add deck"
             emphasized
             onPress={() => pushOnce(router, '/add-deck')}
+          />
+          <ActionMenu
+            label="More actions"
+            sheetTitle="Library"
+            sheetSubtitle="Browse, create and arrange the shelf."
+            actions={headerMenuActions}
+            testID="home-more-actions"
           />
         </>
       }
@@ -308,10 +337,6 @@ export default function HomeScreen() {
       else next.add(id);
       return next;
     });
-
-  const deckMenuDeck = deckMenu
-    ? decks.find((deck) => deck.id === deckMenu.deckId) ?? null
-    : null;
 
   // Pin and move stay open after acting: they are repeatable shelf operations,
   // and the same menu is used for the row's overflow and right-click actions.
@@ -452,36 +477,15 @@ export default function HomeScreen() {
             <HeroSkeleton />
           </View>
           <View style={{ marginTop: v3.spacing.page }}>
-            <DeckShelfSkeleton count={2} />
+            <ShelfSkeleton />
           </View>
         </ScrollView>
       ) : deckQueues.length === 0 ? (
         <ScrollView contentContainerStyle={scrollContentStyle} showsVerticalScrollIndicator={false}>
-          <View
-            style={desktop ? { width: '100%', maxWidth: 620, alignSelf: 'center' } : undefined}
-          >
-            <Surface tone="pane">
-              <EmptyState
-                icon="library-books"
-                title="No decks yet"
-                description="Create your first deck to start building a memory."
-                className="py-6"
-                action={
-                  <View className="w-52">
-                    <PrimaryButton
-                      label="Create a deck"
-                      icon="add"
-                      onPress={() => pushOnce(router, '/add-deck')}
-                    />
-                  </View>
-                }
-              />
-            </Surface>
-          </View>
+          <EmptyLibrary onCreateDeck={() => pushOnce(router, '/add-deck')} />
         </ScrollView>
       ) : (
-        <>
-          <LibraryBoard
+        <ShelfBoard
           library={library}
           folders={folders}
           hero={
@@ -554,37 +558,17 @@ export default function HomeScreen() {
           collapsedFolders={collapsedFolders}
           onToggleFolder={toggleFolder}
           editingLayout={editingLayout}
-          onNewFolder={() => {
-            setFolderSheetMode('list');
-            setFolderSheet(true);
-          }}
-          onToggleLayout={() => setEditingLayout((next) => !next)}
+          onDoneEditingLayout={() => setEditingLayout(false)}
           onReorderFolder={(id, to) => void moveFolderTo(id, to)}
           onReorderDeck={(id, to) => void moveDeckTo(id, to)}
           onOpenDeck={(id) => pushOnce(router, `/deck/${id}`)}
-          deckOptions={(deck) => (
-            <ActionMenu
-              label={`Options for deck ${deck.name}`}
-              sheetTitle={deck.name}
-              sheetSubtitle="Pinned decks stay above the others in their folder."
-              actions={deckActions(deck)}
-              expanded={deckMenu?.deckId === deck.id}
-              onOpen={(anchor) => setDeckMenu({ deckId: deck.id, anchor })}
-            />
-          )}
+          onAddDeckInFolder={(folderId) =>
+            pushOnce(router, `/add-deck?folderId=${encodeURIComponent(folderId)}`)
+          }
+          deckActions={deckActions}
           headerHeight={headerHeight}
           contentMaxWidth={contentMaxWidth}
         />
-        <Menu
-          open={deckMenuDeck != null}
-          onClose={() => setDeckMenu(null)}
-          anchorRect={deckMenu?.anchor ?? null}
-          label={deckMenuDeck ? `Options for deck ${deckMenuDeck.name}` : 'Deck options'}
-          title={deckMenuDeck?.name ?? 'Deck options'}
-          subtitle="Pinned decks stay above the others in their folder."
-          actions={deckMenuDeck ? deckActions(deckMenuDeck) : []}
-        />
-        </>
       )}
 
       <BottomSheetModal

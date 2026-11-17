@@ -64,7 +64,17 @@ type Palette = {
     | 'accentFaint'
     | 'accentSoft'
     | 'accentLine'
-    | 'accentActive',
+    | 'accentActive'
+    | 'v4Saffron'
+    | 'v4SaffronWash'
+    | 'v4Line'
+    | 'v4LineStrong'
+    | 'v4Rule'
+    | 'v4Wash'
+    | 'v4Field'
+    | 'v4Tile'
+    | 'v4TileHover'
+    | 'v4Teal',
     string
   >;
   fills: Record<'subtle' | 'inset' | 'tile' | 'control' | 'track', string>;

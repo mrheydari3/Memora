@@ -23,8 +23,9 @@ const settle = async (page: Page) => {
 };
 
 async function createFolder(page: Page, name: string) {
-  await page.getByRole('button', { name: 'New folder' }).click();
-  const sheet = page.getByRole('dialog');
+  await page.getByRole('button', { name: 'More actions' }).click();
+  await page.getByRole('button', { name: 'New folder', exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: 'Folders' });
   await expect(sheet).toBeVisible();
 
   await sheet.getByLabel('New folder').fill(name);
@@ -66,7 +67,7 @@ test('a folder group hint expands and collapses that folder', async ({ page }) =
 
   await row.click();
   await expect(row).toHaveAttribute('aria-expanded', 'true');
-  await expect(page.getByText('No decks directly inside yet.')).toBeVisible();
+  await expect(page.getByText('No decks inside yet.')).toBeVisible();
 });
 
 test('a card row hint expands and collapses the full card', async ({ page }) => {

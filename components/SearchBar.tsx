@@ -11,6 +11,10 @@ type SearchBarProps = {
   placeholder?: string;
   /** Contextual name for the input, e.g. "Search icons". */
   accessibilityLabel?: string;
+  /** The resting field fill; defaults to the system control fill. */
+  fillColor?: string;
+  /** The focus ring; defaults to the primary accent. */
+  focusColor?: string;
 };
 
 /**
@@ -31,6 +35,8 @@ export function SearchBar({
   onChangeText,
   placeholder = 'Search…',
   accessibilityLabel = 'Search',
+  fillColor = fills.control,
+  focusColor = colors.primary,
 }: SearchBarProps) {
   const [focused, setFocused] = useState(false);
   const focus = useRef(new Animated.Value(0)).current;
@@ -42,7 +48,7 @@ export function SearchBar({
   return (
     <View
       className="flex-row items-center rounded-md pl-3 pr-1.5"
-      style={{ backgroundColor: fills.control, height: heights.field, minWidth: 0 }}
+      style={{ backgroundColor: fillColor, height: heights.field, minWidth: 0 }}
     >
       <Animated.View
         pointerEvents="none"
@@ -53,7 +59,7 @@ export function SearchBar({
           right: 0,
           bottom: 0,
           borderWidth: 1,
-          borderColor: colors.primary,
+          borderColor: focusColor,
           borderRadius: radii.control,
           opacity: focus,
         }}

@@ -38,6 +38,10 @@ const FACES = [
   // showed four answers of empty boxes). Registered here rather than through a
   // CSS @font-face so it follows the same proven path as the other faces.
   { family: 'Vazirmatn', url: '/fonts/Vazirmatn-Regular.ttf' },
+  // The Your decks masthead and its due figures. A static web face only: the
+  // v4 serif is an editorial accent on the shelf, not a UI family used by
+  // native screens, and the fallback stack keeps a book face on iOS.
+  { family: 'InstrumentSerif', url: '/fonts/InstrumentSerif-Regular.ttf' },
 ] as const;
 
 type LoadableFontFace = { load: () => Promise<unknown> };

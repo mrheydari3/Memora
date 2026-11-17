@@ -82,6 +82,32 @@ const colors = {
   accentSoft: 'rgba(124, 187, 255, 0.12)',
   accentLine: 'rgba(124, 187, 255, 0.34)',
   accentActive: 'rgba(124, 187, 255, 0.14)',
+
+  /**
+   * v4 "Library Desk": the shelf's warm editorial layer.
+   *
+   * The rest of the app stays on the blue-black ink canvas. Your decks alone
+   * borrows the paper-and-saffron language of the direction: warm hairlines,
+   * a saffron due figure and a teal clear mark. Text still uses the accessible
+   * `onSurface`/`onSurfaceVariant`/`outline` trio, never the mockup's faint grey.
+   */
+  v4Saffron: '#E8B44E',
+  v4SaffronWash: 'rgba(232, 180, 78, 0.12)',
+  /** The row hairline between decks and folders. */
+  v4Line: 'rgba(239, 235, 223, 0.085)',
+  /** The section rule and the folder-body guide. */
+  v4LineStrong: 'rgba(239, 235, 223, 0.17)',
+  /** The quiet slash between summary facts. */
+  v4Rule: 'rgba(239, 235, 223, 0.25)',
+  /** A deck row's hover wash. */
+  v4Wash: 'rgba(239, 235, 223, 0.022)',
+  /** The search field's resting fill. */
+  v4Field: 'rgba(239, 235, 223, 0.055)',
+  /** A quiet control tile on the v4 canvas. */
+  v4Tile: 'rgba(239, 235, 223, 0.05)',
+  v4TileHover: 'rgba(239, 235, 223, 0.09)',
+  /** The clear mark: a caught-up deck or empty folder. */
+  v4Teal: '#74C7B4',
 };
 
 /**

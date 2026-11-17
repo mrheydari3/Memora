@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your decks — concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=Vazirmatn:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0b1422;
+    --ink-raised: #0f1a2b;
+    --paper: #efebdf;
+    --muted: #a2aec0;
+    --faint: #73839a;
+    --line: rgba(239, 235, 223, 0.085);
+    --line-strong: rgba(239, 235, 223, 0.17);
+    --saffron: #e8b44e;
+    --saffron-wash: rgba(232, 180, 78, 0.12);
+    --teal: #74c7b4;
+    --sky: #86aaf7;
+    --rose: #e28c8c;
+    --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+    --sans: "Inter", system-ui, -apple-system, sans-serif;
+    --fa: "Vazirmatn", "Segoe UI", Tahoma, sans-serif;
+    --gutter: 20px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body { min-height: 100vh; }
+
+  button, input { font: inherit; color: inherit; }
+
+  :focus-visible {
+    outline: 2px solid var(--saffron);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  .shell { width: 100%; }
+
+  /* ---------------------------------------------------------------- top bar */
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 12px var(--gutter) 0;
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .brand svg { color: var(--sky); flex: none; }
+
+  .top-actions { display: flex; align-items: center; gap: 6px; }
+
+  .streak {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(239, 235, 223, 0.05);
+    color: var(--saffron);
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .streak svg { opacity: 0.95; }
+
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 10px;
+    background: rgba(239, 235, 223, 0.05);
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .icon-btn:hover { color: var(--paper); background: rgba(239, 235, 223, 0.09); }
+
+  /* --------------------------------------------------------------- masthead */
+
+  .library {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 10px var(--gutter) 96px;
+  }
+
+  .masthead { padding-top: 22px; }
+
+  h1 {
+    margin: 0;
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(40px, 10vw, 56px);
+    line-height: 0.98;
+    letter-spacing: -0.018em;
+  }
+
+  .summary {
+    margin: 12px 0 0;
+    color: var(--faint);
+    font-size: 12.5px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+  }
+
+  .summary .due-total { color: var(--saffron); font-weight: 500; }
+  .summary .sep { color: rgba(239, 235, 223, 0.25); }
+
+  .tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+
+  .search {
+    flex: 1 1 200px;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 44px;
+    padding: 0 13px;
+    border-radius: 12px;
+    background: rgba(239, 235, 223, 0.055);
+    color: var(--faint);
+  }
+
+  .search:focus-within { box-shadow: 0 0 0 2px var(--saffron); }
+
+  .search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: none;
+    color: var(--paper);
+    font-size: 13.5px;
+  }
+
+  .search input::placeholder { color: var(--faint); }
+
+  .filters { display: flex; gap: 2px; }
+
+  .filters button {
+    height: 38px;
+    padding: 0 13px;
+    border: 0;
+    border-radius: 9px;
+    background: none;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .filters button:hover { color: var(--paper); }
+
+  .filters button[aria-pressed="true"] {
+    background: var(--saffron-wash);
+    color: var(--saffron);
+  }
+
+  /* ---------------------------------------------------------------- sections */
+
+  .section { margin-top: 38px; }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding-bottom: 9px;
+    border-bottom: 1px solid var(--line-strong);
+  }
+
+  .section-head h2 {
+    margin: 0;
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 25px;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+
+  .section-head .count {
+    color: var(--faint);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ------------------------------------------------------------------ folder */
+
+  .folder { border-bottom: 1px solid var(--line); }
+  .folder:last-child { border-bottom: 0; }
+
+  .folder-head {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) auto 16px;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 15px 2px;
+    border: 0;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .folder-head:hover .fh-name { color: #fff; }
+
+  .folder-glyph { display: block; }
+
+  .fh-main { min-width: 0; }
+
+  .fh-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: 15.5px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+
+  .fh-name .n {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pin { color: var(--faint); flex: none; }
+
+  .fh-meta {
+    margin-top: 3px;
+    color: var(--faint);
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chev {
+    color: var(--faint);
+    transition: transform 180ms ease;
+  }
+
+  .folder.is-closed .chev { transform: rotate(-90deg); }
+  .folder.is-closed .folder-body { display: none; }
+
+  .folder-body {
+    padding-left: 34px;
+    border-left: 1px solid var(--line-strong);
+    margin-left: 9px;
+    margin-bottom: 6px;
+  }
+
+  /* -------------------------------------------------------------------- due */
+
+  .due {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    min-width: 52px;
+    padding-left: 8px;
+  }
+
+  .due b {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 34px;
+    line-height: 0.86;
+    letter-spacing: -0.02em;
+    color: var(--saffron);
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+
+  .due small {
+    margin-top: 4px;
+    font-size: 10px;
+    letter-spacing: 0.02em;
+    color: var(--faint);
+  }
+
+  .due.is-clear b { color: var(--faint); }
+  .due.is-clear small { color: var(--teal); }
+
+  .folder-head .due b { font-size: 24px; }
+  .folder-head .due small { font-size: 9.5px; margin-top: 3px; }
+
+  /* --------------------------------------------------------------- deck rows */
+
+  .deck {
+    display: grid;
+    grid-template-columns: 3px minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 14px;
+    /* Keeps the deck's due numeral on the same vertical line as a folder's,
+       clearing the disclosure column the folder headers carry. */
+    padding: 15px 30px 16px 0;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .folder-body > .deck:last-child { border-bottom: 0; }
+  .section > .deck:last-child { border-bottom: 0; }
+
+  .deck:hover { background: rgba(239, 235, 223, 0.022); }
+
+  .spine {
+    width: 3px;
+    align-self: stretch;
+    min-height: 42px;
+    margin-top: 2px;
+    border-radius: 2px;
+    background: var(--c, var(--sky));
+    opacity: 0.9;
+  }
+
+  .deck-body { min-width: 0; }
+
+  .deck-name {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.32;
+    letter-spacing: -0.007em;
+    overflow-wrap: anywhere;
+  }
+
+  .deck-name.fa {
+    font-family: var(--fa);
+    font-size: 15.5px;
+    font-weight: 500;
+    line-height: 1.55;
+    /* Persian reads RTL, but the shelf's left edge stays the spine. */
+    text-align: left;
+  }
+
+  .deck-sub {
+    display: block;
+    margin-top: 3px;
+    color: var(--faint);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rail {
+    display: flex;
+    gap: 2px;
+    height: 3px;
+    max-width: 250px;
+    margin-top: 11px;
+    border-radius: 2px;
+    overflow: hidden;
+    background: rgba(239, 235, 223, 0.07);
+  }
+
+  .rail i { display: block; height: 100%; }
+
+  .legend {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    margin-top: 8px;
+    color: var(--faint);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .legend .k { display: inline-flex; align-items: center; gap: 5px; }
+
+  .legend .k::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--c, var(--faint));
+  }
+
+  .legend .pct {
+    margin-left: auto;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* ------------------------------------------------------------- subfolder row */
+
+  .subfolder {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) auto 14px;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    padding: 13px 2px;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    background: none;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .subfolder:hover .sf-name { color: #fff; }
+
+  .sf-main { min-width: 0; }
+  .sf-name {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sf-meta { margin-top: 2px; color: var(--faint); font-size: 11.5px; }
+
+  .subfolder .due { min-width: 42px; }
+  .subfolder .due b { font-size: 20px; }
+  .subfolder .due small { font-size: 9px; margin-top: 2px; }
+
+  /* --------------------------------------------------------------- empty state */
+
+  .empty {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 18px 2px;
+    color: var(--faint);
+    font-size: 12.5px;
+  }
+
+  .add-link {
+    border: 0;
+    background: none;
+    padding: 4px 0;
+    color: var(--saffron);
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .add-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+  /* ------------------------------------------------------------------ archive */
+
+  .archive {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin-top: 44px;
+    padding: 16px 2px;
+    border: 0;
+    border-top: 1px solid var(--line-strong);
+    background: none;
+    color: var(--muted);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .archive .label { font-size: 13px; font-weight: 500; }
+  .archive .count { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .archive .chev { margin-left: auto; }
+
+  .vault {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 26px 0 0;
+    color: var(--faint);
+    font-size: 11px;
+    letter-spacing: 0.01em;
+  }
+
+  .vault svg { color: var(--teal); }
+
+  /* ---------------------------------------------------------------- feedback */
+
+  .no-results {
+    padding: 34px 2px;
+    color: var(--muted);
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+
+  .no-results q { color: var(--paper); font-style: normal; }
+
+  .no-results .add-link { display: block; margin-top: 8px; }
+
+  [hidden] { display: none !important; }
+
+  /* ------------------------------------------------------------------ desktop */
+
+  @media (min-width: 760px) {
+    .topbar { padding-top: 18px; }
+    .library { padding-top: 18px; }
+    h1 { font-size: 56px; }
+    .summary { font-size: 13px; }
+    .tools { margin-top: 28px; gap: 10px; }
+    .search { flex-basis: 340px; flex-grow: 0; }
+    .section { margin-top: 44px; }
+    .deck { padding: 17px 30px 18px 0; gap: 18px; }
+    .deck-name { font-size: 17px; }
+    .deck-body { max-width: 560px; }
+    .due { min-width: 64px; }
+    .due b { font-size: 38px; }
+    .folder-head { padding: 17px 2px; }
+  }
+
+  @media (min-width: 980px) {
+    .library { padding-bottom: 120px; }
+    .masthead {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      column-gap: 28px;
+    }
+    .masthead .summary { justify-content: flex-end; margin: 0 0 6px; }
+    .tools { grid-column: 1 / -1; }
+    .folder-body { padding-left: 46px; margin-left: 11px; }
+    .rail { max-width: 320px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <span class="brand">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <path d="M3 14.5V8.2L9 3l6 5.2v6.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M6.5 14.5V10h5v4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Memora
+    </span>
+    <div class="top-actions">
+      <span class="streak">
+        <svg width="12" height="14" viewBox="0 0 12 14" fill="currentColor" aria-hidden="true">
+          <path d="M6.7.3c.2 2.4-1.2 3.5-2.4 4.8C3.1 6.4 2.3 7.7 2.3 9.2A4.4 4.4 0 0 0 6.8 14a4.5 4.5 0 0 0 4.4-4.7c0-2.6-1.6-4.1-2.6-5.4C7.7 2.6 7.2 1.6 7.3.3c-.2-.1-.4-.1-.6 0Z"/>
+        </svg>
+        13d
+      </span>
+      <button class="icon-btn" type="button" aria-label="Add deck">
+        <svg width="17" height="17" viewBox="0 0 17 17" fill="none" aria-hidden="true">
+          <path d="M8.5 3v11M3 8.5h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button class="icon-btn" type="button" aria-label="More actions">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <circle cx="8" cy="3" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="8" cy="13" r="1.4"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="library">
+    <div class="masthead">
+      <h1>Your decks</h1>
+      <p class="summary">
+        <span class="due-total">40 due today</span>
+        <span class="sep">/</span>
+        <span>5 decks</span>
+        <span class="sep">/</span>
+        <span>4 folders</span>
+      </p>
+      <div class="tools">
+        <label class="search">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="7" cy="7" r="4.6" stroke="currentColor" stroke-width="1.5"/>
+            <path d="m10.5 10.5 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <input id="q" type="search" placeholder="Search decks and folders" autocomplete="off">
+        </label>
+        <div class="filters" role="group" aria-label="Filter decks">
+          <button type="button" data-filter="all" aria-pressed="true">All</button>
+          <button type="button" data-filter="due" aria-pressed="false">Due</button>
+        </div>
+      </div>
+    </div>
+
+    <section class="section" aria-labelledby="folders-heading">
+      <div class="section-head">
+        <h2 id="folders-heading">Folders</h2>
+        <span class="count">3</span>
+      </div>
+
+      <!-- Travel -->
+      <div class="folder" data-name="travel" data-due="6" data-empty="false">
+        <button class="folder-head" type="button" aria-expanded="true" aria-controls="travel-body">
+          <svg class="folder-glyph" width="20" height="16" viewBox="0 0 20 16" fill="#86aaf7" aria-hidden="true">
+            <path d="M1.6 3.4c0-1.1.9-2 2-2h3c.6 0 1.1.3 1.5.8l.8 1h7.4c1.1 0 2 .9 2 2v7.2c0 1.1-.9 2-2 2H3.6c-1.1 0-2-.9-2-2V3.4Z" opacity=".9"/>
+          </svg>
+          <span class="fh-main">
+            <span class="fh-name">
+              <span class="n">Travel</span>
+              <svg class="pin" width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-label="Pinned">
+                <path d="M9.3 1.6a1 1 0 0 1 1.4 0l3.7 3.7a1 1 0 0 1-.4 1.7l-1.9.5-3.2 3.2.1 1.9a1 1 0 0 1-1.7.8L4 10.5l-2.8 2.8a.8.8 0 0 1-1.1-1.1L2.9 9.4.2 6.1A1 1 0 0 1 1 4.4l1.9.1L6.1 1.3l.5-1.9Z"/>
+              </svg>
+            </span>
+            <span class="fh-meta">1 deck</span>
+          </span>
+          <span class="due"><b>6</b><small>due</small></span>
+          <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="m4 6 4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <div class="folder-body" id="travel-body">
+          <a class="deck" href="#" data-name="due today review" data-due="6">
+            <span class="spine" style="--c:#e28c8c"></span>
+            <span class="deck-body">
+              <span class="deck-name">Due today (review)</span>
+              <span class="deck-sub">6 cards · FSRS-6</span>
+              <span class="rail" aria-hidden="true">
+                <i style="flex:0 0 0%;background:#86aaf7"></i>
+                <i style="flex:0 0 0%;background:#e8b44e"></i>
+                <i style="flex:1 1 100%;background:#74c7b4"></i>
+              </span>
+              <span class="legend">
+                <span class="k" style="--c:#86aaf7">0 new</span>
+                <span class="k" style="--c:#e8b44e">0 learn</span>
+                <span class="k" style="--c:#74c7b4">6 review</span>
+                <span class="pct">100% studied</span>
+              </span>
+            </span>
+            <span class="due"><b>6</b><small>due</small></span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Languages -->
+      <div class="folder" data-name="languages" data-due="30" data-empty="false">
+        <button class="folder-head" type="button" aria-expanded="true" aria-controls="languages-body">
+          <svg class="folder-glyph" width="20" height="16" viewBox="0 0 20 16" fill="#e8b44e" aria-hidden="true">
+            <path d="M1.6 3.4c0-1.1.9-2 2-2h3c.6 0 1.1.3 1.5.8l.8 1h7.4c1.1 0 2 .9 2 2v7.2c0 1.1-.9 2-2 2H3.6c-1.1 0-2-.9-2-2V3.4Z" opacity=".9"/>
+          </svg>
+          <span class="fh-main">
+            <span class="fh-name"><span class="n">Languages</span></span>
+            <span class="fh-meta">2 nested folders</span>
+          </span>
+          <span class="due"><b>30</b><small>due</small></span>
+          <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="m4 6 4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <div class="folder-body" id="languages-body">
+          <button class="subfolder" type="button" aria-label="Open folder German">
+            <svg width="18" height="14" viewBox="0 0 20 16" fill="#74c7b4" aria-hidden="true">
+              <path d="M1.6 3.4c0-1.1.9-2 2-2h3c.6 0 1.1.3 1.5.8l.8 1h7.4c1.1 0 2 .9 2 2v7.2c0 1.1-.9 2-2 2H3.6c-1.1 0-2-.9-2-2V3.4Z" opacity=".9"/>
+            </svg>
+            <span class="sf-main">
+              <span class="sf-name">German</span>
+              <span class="sf-meta">2 decks</span>
+            </span>
+            <span class="due"><b>30</b><small>due</small></span>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="color:#73839a">
+              <path d="m6 4 4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty folder -->
+      <div class="folder" data-name="nothing here yet" data-due="0" data-empty="true">
+        <button class="folder-head" type="button" aria-expanded="true" aria-controls="empty-body">
+          <svg class="folder-glyph" width="20" height="16" viewBox="0 0 20 16" fill="#73839a" aria-hidden="true">
+            <path d="M1.6 3.4c0-1.1.9-2 2-2h3c.6 0 1.1.3 1.5.8l.8 1h7.4c1.1 0 2 .9 2 2v7.2c0 1.1-.9 2-2 2H3.6c-1.1 0-2-.9-2-2V3.4Z" opacity=".55"/>
+          </svg>
+          <span class="fh-main">
+            <span class="fh-name"><span class="n">Nothing here yet</span></span>
+            <span class="fh-meta">Empty folder</span>
+          </span>
+          <span class="due is-clear"><b>—</b><small>empty</small></span>
+          <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="m4 6 4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="folder-body" id="empty-body">
+          <div class="empty">
+            <span>No decks inside yet.</span>
+            <button class="add-link" type="button">Add a deck</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="unfiled-heading">
+      <div class="section-head">
+        <h2 id="unfiled-heading">Unfiled decks</h2>
+        <span class="count">2</span>
+      </div>
+
+      <a class="deck" href="#" data-name="empty deck" data-due="0">
+        <span class="spine" style="--c:#73839a"></span>
+        <span class="deck-body">
+          <span class="deck-name">Empty deck</span>
+          <span class="deck-sub">0 cards · FSRS-6</span>
+          <span class="legend">
+            <span class="pct" style="margin-left:0">Not studied yet</span>
+          </span>
+        </span>
+        <span class="due is-clear"><b>—</b><small>clear</small></span>
+      </a>
+
+      <a class="deck" href="#" data-name="فارسی کارت‌های راست‌به‌چپ" data-due="4">
+        <span class="spine" style="--c:#86aaf7"></span>
+        <span class="deck-body">
+          <span class="deck-name fa" lang="fa" dir="rtl">فارسی — کارت‌های راست‌به‌چپ</span>
+          <span class="deck-sub">4 cards · FSRS-6</span>
+          <span class="rail" aria-hidden="true">
+            <i style="flex:1 1 100%;background:#86aaf7"></i>
+            <i style="flex:0 0 0%;background:#e8b44e"></i>
+            <i style="flex:0 0 0%;background:#74c7b4"></i>
+          </span>
+          <span class="legend">
+            <span class="k" style="--c:#86aaf7">4 new</span>
+            <span class="k" style="--c:#e8b44e">0 learn</span>
+            <span class="k" style="--c:#74c7b4">0 review</span>
+            <span class="pct">0% studied</span>
+          </span>
+        </span>
+        <span class="due"><b>4</b><small>due</small></span>
+      </a>
+    </section>
+
+    <p class="no-results" id="no-results" hidden aria-live="polite">
+      Nothing matches <q id="no-results-q"></q>.
+      <button class="add-link" type="button" id="clear">Clear search</button>
+    </p>
+
+    <button class="archive" type="button" aria-expanded="false">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="color:#73839a">
+        <path d="M2 5h12v9H2zM1.5 2.5h13V5h-13zM6.5 8h3" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+      </svg>
+      <span class="label">Archived</span>
+      <span class="count">1 deck</span>
+      <svg class="chev" width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="m4 6 4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+
+    <p class="vault">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <rect x="3" y="7" width="10" height="7" rx="2" stroke="currentColor" stroke-width="1.3"/>
+        <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" stroke="currentColor" stroke-width="1.3"/>
+      </svg>
+      Your library stays on this device.
+    </p>
+  </main>
+</div>
+
+<script>
+  (() => {
+    const search = document.getElementById('q');
+    const clear = document.getElementById('clear');
+    const noResults = document.getElementById('no-results');
+    const noResultsQ = document.getElementById('no-results-q');
+    const sections = [...document.querySelectorAll('.section')];
+    const filterButtons = [...document.querySelectorAll('.filters button')];
+    const folders = [...document.querySelectorAll('.folder')];
+    const decks = [...document.querySelectorAll('.deck')];
+    let filter = 'all';
+
+    const matches = (haystack, q) => haystack.toLowerCase().includes(q);
+
+    function apply() {
+      const q = search.value.trim().toLowerCase();
+      let visibleDecks = 0;
+
+      folders.forEach((folder) => {
+        const folderHit = q && matches(folder.dataset.name || '', q);
+        const inside = [...folder.querySelectorAll('.deck')];
+        let shown = 0;
+        inside.forEach((deck) => {
+          const hit = (!q || folderHit || matches(deck.dataset.name || '', q)) &&
+            (filter === 'all' || Number(deck.dataset.due) > 0);
+          deck.hidden = !hit;
+          if (hit) shown += 1;
+        });
+        visibleDecks += shown;
+        const empty = folder.dataset.empty === 'true';
+        const folderDue = Number(folder.dataset.due || 0);
+        folder.hidden = (empty && (Boolean(q) || filter === 'due')) ||
+          (Boolean(q) && !folderHit && shown === 0) ||
+          (filter === 'due' && folderDue === 0 && shown === 0);
+      });
+
+      decks.forEach((deck) => {
+        if (deck.closest('.folder')) return;
+        const hit = (!q || matches(deck.dataset.name || '', q)) &&
+          (filter === 'all' || Number(deck.dataset.due) > 0);
+        deck.hidden = !hit;
+        if (hit) visibleDecks += 1;
+      });
+
+      const emptySection = (section) => {
+        const rows = [...section.querySelectorAll('.deck')].filter((deck) => !deck.hidden);
+        const emptyFolder = [...section.querySelectorAll('.folder')].some((f) => !f.hidden && f.dataset.empty === 'true');
+        return rows.length === 0 && !emptyFolder;
+      };
+
+      sections.forEach((section) => { section.hidden = emptySection(section); });
+
+      const nothing = visibleDecks === 0 && !folders.some((f) => !f.hidden && f.dataset.empty === 'true');
+      noResults.hidden = !nothing;
+      noResultsQ.textContent = q || (filter === 'due' ? 'that filter' : '');
+    }
+
+    filterButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        filter = button.dataset.filter;
+        filterButtons.forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
+        apply();
+      });
+    });
+
+    search.addEventListener('input', apply);
+    clear.addEventListener('click', () => {
+      search.value = '';
+      search.focus();
+      apply();
+    });
+
+    document.querySelectorAll('.folder-head').forEach((button) => {
+      button.addEventListener('click', () => {
+        const folder = button.closest('.folder');
+        const closed = folder.classList.toggle('is-closed');
+        button.setAttribute('aria-expanded', String(!closed));
+      });
+    });
+  })();
+</script>
+</body>
+</html>

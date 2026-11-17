@@ -108,13 +108,13 @@ export const SURFACES: readonly Surface[] = [
   }),
   s('HM-05', 'Deck shelf at the root', '/home', ['F2']),
   s('HM-06', 'Folder opened one level', '/home', ['F2'], ALL_GATES, {
-    trigger: 'tap a folder row',
+    trigger: 'tap the German subfolder inside Languages',
   }),
   s('HM-07', 'Empty folder', '/home', ['F2'], ALL_GATES, {
-    trigger: 'open "Nothing here yet"',
+    trigger: 'expand "Nothing here yet"',
   }),
   s('HM-08', 'Folders sheet: list and create', '/home', ['F2'], ALL_GATES, {
-    trigger: 'Folders button in the Home header',
+    trigger: 'More actions → New folder',
     overlay: true,
   }),
   s('HM-09', 'Folder create validation error', '/home', ['F2'], ALL_GATES, {
@@ -122,7 +122,7 @@ export const SURFACES: readonly Surface[] = [
     overlay: true,
   }),
   s('HM-10', 'Folder editor: name, icon, colour, pin', '/home', ['F2'], ALL_GATES, {
-    trigger: 'options on an existing folder',
+    trigger: 'More actions → New folder → options on an existing folder',
     overlay: true,
   }),
   s('HM-11', 'Folder move / location', '/home', ['F2'], ALL_GATES, {
