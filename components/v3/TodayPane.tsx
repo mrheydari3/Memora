@@ -118,7 +118,12 @@ export function TodayPane({
         <AppText variant="bodySm" weight="medium" numberOfLines={1} style={{ flexShrink: 1 }}>
           Next up · {nextDeck}
         </AppText>
-        <AppText variant="caption" tone="tertiary" style={NUMERIC}>
+        <AppText
+          variant="caption"
+          tone="tertiary"
+          numberOfLines={1}
+          style={[NUMERIC, { flexShrink: 0 }]}
+        >
           {total} total
         </AppText>
       </View>

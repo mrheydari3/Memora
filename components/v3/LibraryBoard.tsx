@@ -218,7 +218,9 @@ export function LibraryBoard({
       out.push({
         key: 'results',
         kind: 'band',
-        label: 'Search results',
+        // The Due chip narrows without searching, so naming that state "Search
+        // results" describes a query that was never typed.
+        label: deferredQuery.trim() ? 'Search results' : 'Due today',
         count: total,
         hint: `${plural(search.folderHits.length, 'folder', 'folders')} · ${plural(
           search.deckHits.length,
@@ -321,6 +323,7 @@ export function LibraryBoard({
     return out;
   }, [
     searchActive,
+    deferredQuery,
     search,
     columns,
     openFolder,

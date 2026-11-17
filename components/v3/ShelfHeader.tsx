@@ -106,22 +106,22 @@ export function ShelfHeader({
                 accessibilityState={{ expanded: editingLayout }}
                 style={{
                   minHeight: 44,
-                  width: compact ? 44 : undefined,
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 6,
-                  paddingHorizontal: compact ? 0 : 8,
+                  paddingHorizontal: 8,
                   borderRadius: radii.control,
                   backgroundColor: actionFill,
                 }}
               >
                 <MaterialIcons name="drag-indicator" size={iconSize.sm} color={colors.outline} />
-                {!compact && (
-                  <AppText variant="caption" weight="semibold" tone="muted">
-                    Edit layout
-                  </AppText>
-                )}
+                {/* The glyph alone read as an overflow menu beside the plus
+                    tile, so the control always names itself; the short word
+                    keeps the eyebrow's rule intact on a phone. */}
+                <AppText variant="caption" weight="semibold" tone="muted">
+                  {compact ? 'Layout' : 'Edit layout'}
+                </AppText>
               </HintPressable>
             </>
           )}

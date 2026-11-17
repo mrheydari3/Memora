@@ -124,6 +124,11 @@ export function DeckShelfRow({
     </AppText>
   );
 
+  // The share never travels alone: beside a new/learning/review legend a bare
+  // "100%" reads as the queue's own share, when it states the studied one.
+  const percentLabel =
+    percent === 0 ? (cardCount === 0 ? 'no cards yet' : 'not studied yet') : 'mastered';
+
   const rail = composition ? (
     <View style={{ marginTop: 10, gap: 7 }}>
       <View
@@ -187,7 +192,12 @@ export function DeckShelfRow({
             </View>
           ))}
         </View>
-        {percentNode}
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5, flexShrink: 0 }}>
+          {percentNode}
+          <AppText variant="caption" tone="tertiary">
+            {percentLabel}
+          </AppText>
+        </View>
       </View>
     </View>
   ) : (
@@ -213,11 +223,7 @@ export function DeckShelfRow({
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
         {percentNode}
         <AppText variant="caption" tone="tertiary">
-          {percent === 0
-            ? cardCount === 0
-              ? 'no cards yet'
-              : 'not studied yet'
-            : 'mastered'}
+          {percentLabel}
         </AppText>
       </View>
     </View>
