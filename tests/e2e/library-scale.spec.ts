@@ -110,9 +110,9 @@ test('a single folder with many decks mounts only a window of its rows', async (
   const mounted = await page.getByTestId('deck-row').count();
   expect(mounted).toBeGreaterThan(0);
   // The board mounts the window around the viewport, never the whole folder.
-  // The old 60 bound described the v4 board, which capped a folder's inline
-  // decks; v3 windows the same decks as rows, so the folder's own total is
-  // the honest ceiling.
+  // An earlier bound of 60 described the old inline-capped board; the shelf
+  // windows the same decks as rows, so the folder's own total is the honest
+  // ceiling.
   expect(mounted).toBeLessThan(DECK_COUNT);
 
   // The rest of the folder is still in the library and findable.

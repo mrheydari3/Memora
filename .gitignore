@@ -3,6 +3,9 @@
 # dependencies
 node_modules/
 
+# stale clone of this repo left inside the project — never tracked
+/Memora/
+
 # Expo
 .expo/
 dist/

@@ -53,7 +53,7 @@ type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 type FolderSheetMode = 'list' | 'edit' | 'location';
 
 /**
- * Home — design v4, "Today first" with a folder-first library.
+ * Home — "Today first", with a folder-first library.
  *
  * The page answers "what do I study now?" before "what do I own?": the day
  * label ("Today") is the h1 and the due number is the canvas's one display-sized
