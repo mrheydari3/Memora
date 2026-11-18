@@ -43,7 +43,6 @@ export type MenuAction = {
 /** A focusable DOM element, typed narrowly so no file needs the DOM lib. */
 export type WebFocusable = {
   focus: () => void;
-  closest?: (selector: string) => WebFocusable | null;
 };
 
 /** One open nested level. */

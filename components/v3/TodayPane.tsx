@@ -25,7 +25,9 @@ type TodayPaneProps = {
   newCount: number;
   learningCount: number;
   reviewCount: number;
-  /** Start session, Continue, or Nothing due today. */
+  /** How many other decks still have cards due today. */
+  otherDueDecks: number;
+  /** Study this deck, Continue this deck, or Nothing due today. */
   label: string;
   disabled?: boolean;
   onStart: () => void;
@@ -55,7 +57,7 @@ const makeSegments = (newCount: number, learningCount: number, reviewCount: numb
  *   outline;
  *   context 13 outline; next-deck label/count 12, deck name 13, rail 6px,
  *   320 cap, 2px gaps between segments; legend dots 8px; CTA 52px pill in the
- *   accent fill with a 20px arrow. The rail is scoped under "Next deck" so it
+ *   accent fill with a 20px arrow. The rail is scoped under "Start with" so it
  *   cannot be mistaken for the library-wide figure above it.
  *
  * From 1200px the hero splits: the day's figure owns the left, and the deck
@@ -75,6 +77,7 @@ export function TodayPane({
   newCount,
   learningCount,
   reviewCount,
+  otherDueDecks,
   label,
   disabled = false,
   onStart,
@@ -161,6 +164,12 @@ export function TodayPane({
   // inventing minutes, and one minute is not "1 minutes".
   const estimate =
     minutes > 0 ? `estimated ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}` : null;
+  const otherDueLabel =
+    otherDueDecks > 0
+      ? otherDueDecks === 1
+        ? '1 other deck is due today'
+        : `${otherDueDecks} other decks are due today`
+      : null;
   const context =
     due > 0
       ? `${deckCount} ${deckCount === 1 ? 'deck' : 'decks'}${estimate ? ` · ${estimate}` : ''}`
@@ -191,7 +200,7 @@ export function TodayPane({
       <View style={{ gap: 8 }}>
         <HintPressable
           testID="today-plan-trigger"
-          hint="Choose which due deck to study"
+          hint="Choose which due deck to study first"
           onPress={onOpenPlan}
           onPressIn={planPress.onPressIn}
           onPressOut={planPress.onPressOut}
@@ -222,7 +231,7 @@ export function TodayPane({
                     numberOfLines={1}
                     style={{ letterSpacing: 0.8 }}
                   >
-                    Next deck
+                    Start with
                   </AppText>
                   <View accessible={false} importantForAccessibility="no-hide-descendants">
                     <MaterialIcons name="expand-more" size={14} color={colors.outline} />
@@ -311,6 +320,16 @@ export function TodayPane({
         disabled={disabled}
         icon="arrow-forward"
       />
+      {otherDueLabel && !disabled ? (
+        <AppText
+          variant="caption"
+          tone="tertiary"
+          align="center"
+          style={{ marginTop: 8 }}
+        >
+          {otherDueLabel}
+        </AppText>
+      ) : null}
     </Animated.View>
   );
 

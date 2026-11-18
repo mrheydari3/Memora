@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
+import { ScrollView, useWindowDimensions, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
 import { useDeckStore } from '../../store/useDeckStore';
@@ -115,6 +115,7 @@ export default function HomeScreen() {
   // unfiles its decks, so neither can touch a card or a review.
   const [folderSheet, setFolderSheet] = useState(false);
   const [folderSheetMode, setFolderSheetMode] = useState<FolderSheetMode>('list');
+  const [focusNewFolder, setFocusNewFolder] = useState(false);
   const [folderDraft, setFolderDraft] = useState('');
   const [folderError, setFolderError] = useState<string | null>(null);
   const [openFolderId, setOpenFolderId] = useState<string | null>(null);
@@ -143,7 +144,6 @@ export default function HomeScreen() {
   const [plannedDeckId, setPlannedDeckId] = useState<string | null>(null);
   const folderDraftRef = useRef<FieldInputRef>(null);
   const createMenuAnchorRef = useRef<React.ComponentRef<typeof View>>(null);
-  const createMenuTriggerRef = useRef<React.ComponentRef<typeof Pressable>>(null);
   const pendingCreateRef = useRef<'deck' | 'folder' | null>(null);
 
   // One index per data change: review buckets, queue summaries, folder
@@ -201,6 +201,16 @@ export default function HomeScreen() {
   const plannedEntry =
     dueEntries.find((entry) => entry.deck.id === plannedDeckId) ?? continueEntry;
   const resuming = Boolean(lastStudiedEntry && plannedEntry?.deck.id === lastStudiedEntry.deck.id);
+  // The study engine is deck-scoped: caps, scheduler and the completion summary
+  // all belong to one deck. Home makes that explicit instead of implying the
+  // CTA clears every due deck. The other due decks remain one tap away in the
+  // plan chooser.
+  const startLabel =
+    totalDue === 0
+      ? 'Nothing due today'
+      : resuming
+        ? 'Continue this deck'
+        : 'Study this deck';
 
   // A folder deleted from the sheet falls back to the flat list instead of
   // hiding the level it was on.
@@ -215,6 +225,7 @@ export default function HomeScreen() {
 
   const closeFolders = () => {
     setFolderSheet(false);
+    setFocusNewFolder(false);
     setFolderSheetMode('list');
     setEditingFolderId(null);
     setFolderError(null);
@@ -232,6 +243,7 @@ export default function HomeScreen() {
     const folder = folders.find((entry) => entry.id === id);
     if (!folder) return;
     setFolderSheet(true);
+    setFocusNewFolder(false);
     setEditingFolderId(id);
     setEditName(folder.name);
     setEditIcon(folder.icon ?? FOLDER_DEFAULT_ICON);
@@ -240,14 +252,15 @@ export default function HomeScreen() {
     setFolderSheetMode('edit');
   };
 
-  const focusCreateTrigger = () => {
-    (
-      createMenuTriggerRef.current as unknown as { focus?: () => void } | null
-    )?.focus?.();
-  };
-
   const openNewFolder = () => {
     setFolderSheetMode('list');
+    setFocusNewFolder(true);
+    setFolderSheet(true);
+  };
+
+  const openFolderManager = () => {
+    setFolderSheetMode('list');
+    setFocusNewFolder(false);
     setFolderSheet(true);
   };
 
@@ -255,7 +268,6 @@ export default function HomeScreen() {
     const action = pendingCreateRef.current;
     if (!action) return;
     pendingCreateRef.current = null;
-    focusCreateTrigger();
     if (action === 'deck') pushOnce(router, '/add-deck');
     else openNewFolder();
   };
@@ -286,7 +298,6 @@ export default function HomeScreen() {
       icon: 'library-books',
       onPress: () => {
         pendingCreateRef.current = 'deck';
-        setCreateMenu(false);
       },
     },
     {
@@ -296,7 +307,6 @@ export default function HomeScreen() {
       icon: 'create-new-folder',
       onPress: () => {
         pendingCreateRef.current = 'folder';
-        setCreateMenu(false);
       },
     },
   ];
@@ -342,7 +352,6 @@ export default function HomeScreen() {
             <HeaderIcon
               icon="add"
               label="Create new"
-              controlRef={createMenuTriggerRef}
               emphasized
               ariaExpanded={createMenu}
               ariaHasPopup="menu"
@@ -562,13 +571,8 @@ export default function HomeScreen() {
                       newCount={plannedEntry.newCount}
                       learningCount={plannedEntry.learningCount}
                       reviewCount={plannedEntry.reviewCount}
-                      label={
-                        totalDue === 0
-                          ? 'Nothing due today'
-                          : resuming
-                            ? 'Continue'
-                            : 'Start session'
-                      }
+                      otherDueDecks={Math.max(0, dueEntries.length - 1)}
+                      label={startLabel}
                       disabled={totalDue === 0}
                       onStart={() => pushOnce(router, `/study/${plannedEntry.deck.id}`)}
                       onOpenPlan={() => setPlanSheet(true)}
@@ -601,6 +605,7 @@ export default function HomeScreen() {
           closingFolders={closingFolders}
           onToggleFolder={toggleFolder}
           editingLayout={editingLayout}
+          onManageFolders={openFolderManager}
           onToggleLayout={() => setEditingLayout((next) => !next)}
           onReorderFolder={(id, to) => void moveFolderTo(id, to)}
           onReorderDeck={(id, to) => void moveDeckTo(id, to)}
@@ -654,6 +659,11 @@ export default function HomeScreen() {
       <BottomSheetModal
         visible={folderSheet}
         onClose={closeFolders}
+        initialFocus={
+          focusNewFolder && folderSheetMode === 'list'
+            ? () => folderDraftRef.current?.focus()
+            : undefined
+        }
         desktopLayout={desktop}
         focusKey={`${folderSheetMode}-${editingFolderId ?? 'list'}`}
         title={

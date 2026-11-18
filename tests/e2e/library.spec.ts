@@ -72,6 +72,7 @@ test('closing the Folders sheet discards an abandoned draft', async ({ page }) =
   await page.getByRole('button', { name: /^New folder/ }).click();
   const sheet = page.getByRole('dialog');
   await expect(sheet).toBeVisible();
+  await expect(sheet.getByLabel('New folder')).toBeFocused();
   await sheet.getByLabel('New folder').fill('Abandoned draft');
 
   // Escape must dismiss even while the name field owns focus.
@@ -82,8 +83,21 @@ test('closing the Folders sheet discards an abandoned draft', async ({ page }) =
   await page.getByRole('button', { name: /^New folder/ }).click();
   const reopened = page.getByRole('dialog');
   // A cancelled draft must not come back on the next open.
+  await expect(reopened.getByLabel('New folder')).toBeFocused();
   await expect(reopened.getByLabel('New folder')).toHaveValue('');
   await expect(reopened.getByRole('button', { name: 'Create folder' })).toBeDisabled();
+});
+
+test('the Library opens folder management separately from folder creation', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHome(page);
+
+  await page.getByRole('button', { name: 'Manage folders' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Folders' });
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByRole('button', { name: 'Close sheet' })).toBeFocused();
+  await expect(sheet.getByRole('button', { name: 'Options for folder Travel' })).toBeVisible();
+  await expect(sheet.getByLabel('New folder')).not.toBeFocused();
 });
 
 test('the phone keeps folders above loose decks', async ({ page }) => {

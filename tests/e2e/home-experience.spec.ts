@@ -82,9 +82,12 @@ test.describe('Home experience', () => {
     await expect(page.getByRole('button', { name: /^New folder/ })).toBeVisible();
 
     await page.getByRole('button', { name: /^New folder/ }).click();
-    await expect(page.getByRole('dialog', { name: 'Folders' })).toBeVisible();
+    const folders = page.getByRole('dialog', { name: 'Folders' });
+    await expect(folders).toBeVisible();
+    await expect(folders.getByLabel('New folder')).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(create).toBeFocused();
 
     await create.click();
     await page.getByRole('button', { name: /^New deck/ }).click();
@@ -123,12 +126,14 @@ test.describe('Home experience', () => {
     await expect(deck).toHaveCount(1);
   });
 
-  test('the hero names the next deck queue separately from the global due total', async ({ page }) => {
+  test('the hero scopes the CTA to one deck and names the other decks still due', async ({ page }) => {
     await boot(page);
 
     const panel = page.getByTestId('today-panel');
-    await expect(panel.getByText('Next deck', { exact: true })).toBeVisible();
+    await expect(panel.getByText('Start with', { exact: true })).toBeVisible();
     await expect(panel.getByText(/\d+ in queue$/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Continue this deck' })).toBeVisible();
+    await expect(panel.getByText('3 other decks are due today', { exact: true })).toBeVisible();
   });
 
   test('the plan sheet defaults to the last-studied due deck and routes the CTA to the chosen deck', async ({
@@ -155,7 +160,7 @@ test.describe('Home experience', () => {
 
     const trigger = page.getByTestId('today-plan-trigger');
     await expect(trigger).toHaveAttribute('aria-expanded', 'false');
-    await expect(page.getByRole('button', { name: 'Continue' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Continue this deck' })).toBeVisible();
     await trigger.click();
 
     const dialog = page.getByRole('dialog', { name: "Today's plan" });
@@ -180,7 +185,7 @@ test.describe('Home experience', () => {
     await expect(dialog).toBeHidden();
     await expect(trigger).toHaveAttribute('aria-expanded', 'false');
     await expect(page.getByTestId('today-panel')).toContainText('Due today (review)');
-    await expect(page.getByRole('button', { name: 'Start session' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Study this deck' })).toBeVisible();
     expect(await storageSnapshot()).toEqual(scheduledBefore);
 
     // Reopening shows the explicit choice, not the last-studied default.
@@ -192,9 +197,65 @@ test.describe('Home experience', () => {
     await expect(dialog).toBeHidden();
     await expect(trigger).toBeFocused();
 
-    await page.getByRole('button', { name: 'Start session' }).click();
+    await page.getByRole('button', { name: 'Study this deck' }).click();
     await expect(page).toHaveURL(/\/study\/deck-due$/);
     expect(await storageSnapshot()).toEqual(scheduledBefore);
+  });
+
+  test('the hero drops the remaining-deck line when only one deck is due', async ({ page }) => {
+    await boot(page);
+
+    await page.evaluate(
+      ({ decksKey, logKey }) => {
+        const decks = JSON.parse(localStorage.getItem(decksKey) ?? '[]') as Array<{
+          id: string;
+          archivedAt?: number | null;
+        }>;
+        const archivedAt = Date.now();
+        for (const deck of decks) {
+          if (deck.id !== 'deck-german-a2b1') deck.archivedAt = archivedAt;
+        }
+        localStorage.setItem(decksKey, JSON.stringify(decks));
+        localStorage.setItem(logKey, '[]');
+      },
+      { decksKey: K.decks, logKey: K.reviewLog }
+    );
+    await page.reload();
+    await page.waitForSelector('[role="main"]', { timeout: 30_000 });
+
+    const panel = page.getByTestId('today-panel');
+    await expect(panel).toBeVisible({ timeout: 20_000 });
+    await expect(panel).toContainText('1 deck · estimated');
+    await expect(page.getByRole('button', { name: 'Study this deck' })).toBeVisible();
+    await expect(panel).not.toContainText('other deck');
+  });
+
+  test('the hero names one other due deck in the singular', async ({ page }) => {
+    await boot(page);
+
+    await page.evaluate(
+      ({ decksKey, logKey }) => {
+        const keep = new Set(['deck-german-a2b1', 'deck-due']);
+        const decks = JSON.parse(localStorage.getItem(decksKey) ?? '[]') as Array<{
+          id: string;
+          archivedAt?: number | null;
+        }>;
+        const archivedAt = Date.now();
+        for (const deck of decks) {
+          if (!keep.has(deck.id)) deck.archivedAt = archivedAt;
+        }
+        localStorage.setItem(decksKey, JSON.stringify(decks));
+        localStorage.setItem(logKey, '[]');
+      },
+      { decksKey: K.decks, logKey: K.reviewLog }
+    );
+    await page.reload();
+    await page.waitForSelector('[role="main"]', { timeout: 30_000 });
+
+    const panel = page.getByTestId('today-panel');
+    await expect(panel).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('button', { name: 'Study this deck' })).toBeVisible();
+    await expect(panel.getByText('1 other deck is due today', { exact: true })).toBeVisible();
   });
 
   test.describe('320px phone', () => {
@@ -328,6 +389,15 @@ test.describe('Home experience', () => {
       await expect(page.getByTestId('today-panel')).toBeVisible();
       await expect(page.getByText('Your decks', { exact: true })).toBeVisible();
       await expect(page.getByLabel('Loading Memora')).toHaveCount(0);
+    });
+
+    test('the wide create menu still opens its destination', async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await boot(page);
+
+      await page.getByRole('button', { name: 'Create new' }).click();
+      await page.getByRole('menuitem', { name: /^New deck/ }).click();
+      await expect(page).toHaveURL(/\/add-deck$/);
     });
   });
 });

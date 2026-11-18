@@ -56,6 +56,9 @@ test.beforeEach(async ({ page }) => {
  */
 async function waitForRoute(page: Page, label: string) {
   await page.waitForSelector('[role="main"]');
+  // Expo's Fast Refresh badge is injected by the dev server only; a production
+  // export does not have it, so it must not become part of a baseline.
+  await page.addStyleTag({ content: '.__expo_fast_refresh { display: none !important; }' });
   if (label === 'home') {
     await page.waitForSelector('[data-testid="today-panel"]');
   }

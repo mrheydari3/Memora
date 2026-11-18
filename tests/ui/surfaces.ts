@@ -114,19 +114,19 @@ export const SURFACES: readonly Surface[] = [
     trigger: 'open "Nothing here yet"',
   }),
   s('HM-08', 'Folders sheet: list and create', '/home', ['F2'], ALL_GATES, {
-    trigger: 'Folders button in the Home header',
+    trigger: 'Folders button in the Library header',
     overlay: true,
   }),
   s('HM-09', 'Folder create validation error', '/home', ['F2'], ALL_GATES, {
-    trigger: 'submit an empty or duplicate folder name',
+    trigger: 'New folder from the create menu, then submit a duplicate name',
     overlay: true,
   }),
   s('HM-10', 'Folder editor: name, icon, colour, pin', '/home', ['F2'], ALL_GATES, {
-    trigger: 'options on an existing folder',
+    trigger: 'options on an existing folder in the Folders sheet',
     overlay: true,
   }),
   s('HM-11', 'Folder order: one flat list', '/home', ['F2'], ALL_GATES, {
-    trigger: 'Move up/down rows in the folder editor',
+    trigger: 'Move up/down rows in the Folders sheet',
     overlay: true,
   }),
   s('HM-12', 'Deck options sheet (pin and move)', '/home', ['F2'], ALL_GATES, {

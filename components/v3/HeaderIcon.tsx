@@ -12,8 +12,6 @@ type HeaderIconProps = {
   icon: IconName;
   label: string;
   onPress: () => void;
-  /** The underlying pressable, for callers that need to move focus to it. */
-  controlRef?: React.Ref<React.ComponentRef<typeof Pressable>>;
   disabled?: boolean;
   /** Disclosure state for a bar control that opens a menu. */
   ariaExpanded?: boolean;
@@ -35,7 +33,6 @@ export function HeaderIcon({
   icon,
   label,
   onPress,
-  controlRef,
   disabled = false,
   ariaExpanded,
   ariaHasPopup,
@@ -54,7 +51,6 @@ export function HeaderIcon({
 
   return (
     <Pressable
-      ref={controlRef}
       onPress={
         disabled
           ? undefined

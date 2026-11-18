@@ -76,6 +76,7 @@ export type LibraryBoardProps = {
   closingFolders: ReadonlySet<string>;
   onToggleFolder: (id: string) => void;
   editingLayout: boolean;
+  onManageFolders: () => void;
   onToggleLayout: () => void;
   onReorderFolder: (id: string, to: number) => void;
   onReorderDeck: (id: string, to: number) => void;
@@ -129,6 +130,7 @@ export function LibraryBoard({
   closingFolders,
   onToggleFolder,
   editingLayout,
+  onManageFolders,
   onToggleLayout,
   onReorderFolder,
   onReorderDeck,
@@ -743,6 +745,7 @@ export function LibraryBoard({
             title={openFolder ? openFolder.name : 'Your decks'}
             meta={meta}
             statusLabel={statusLabel}
+            onManageFolders={onManageFolders}
             onToggleLayout={handleToggleLayout}
             editingLayout={editingLayout}
           />

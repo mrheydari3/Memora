@@ -46,14 +46,8 @@ const readStorage = async <T>(page: Page, key: string, fallback: T): Promise<T> 
 const reviewCount = (page: Page) =>
   readStorage<unknown[]>(page, STORAGE_KEYS.reviewLog, []).then((entries) => entries.length);
 
-const openCreateMenu = async (page: Page) => {
-  await page.getByRole('button', { name: 'Create new' }).click();
-  await expect(page.getByRole('button', { name: /^New deck/ })).toBeVisible();
-};
-
 const openFolderSheet = async (page: Page) => {
-  await openCreateMenu(page);
-  await page.getByRole('button', { name: /^New folder/ }).click();
+  await page.getByRole('button', { name: 'Manage folders' }).click();
   const sheet = page.getByRole('dialog').filter({ hasText: 'New folder' });
   await expect(sheet).toBeVisible();
   return sheet;
@@ -1248,9 +1242,8 @@ test.describe('Phase 5 — behaviour', () => {
 
   test('sheets: scrim click closes the folder sheet and returns focus', async ({ page }) => {
     await go(page, '/home');
-    const trigger = page.getByRole('button', { name: 'Create new' });
-    await openCreateMenu(page);
-    await page.getByRole('button', { name: /^New folder/ }).click();
+    const trigger = page.getByRole('button', { name: 'Manage folders' });
+    await trigger.click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.mouse.click(8, 140);
     await expect(page.getByRole('dialog')).toBeHidden();
@@ -1259,9 +1252,8 @@ test.describe('Phase 5 — behaviour', () => {
 
   test('sheets: Escape closes the folder sheet and returns focus', async ({ page }) => {
     await go(page, '/home');
-    const trigger = page.getByRole('button', { name: 'Create new' });
-    await openCreateMenu(page);
-    await page.getByRole('button', { name: /^New folder/ }).click();
+    const trigger = page.getByRole('button', { name: 'Manage folders' });
+    await trigger.click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toBeHidden();
@@ -1350,9 +1342,8 @@ test.describe('Phase 5 — behaviour', () => {
     page,
   }) => {
     await go(page, '/home');
-    const opener = page.getByRole('button', { name: 'Create new' });
-    await openCreateMenu(page);
-    await page.getByRole('button', { name: /^New folder/ }).click();
+    const opener = page.getByRole('button', { name: 'Manage folders' });
+    await opener.click();
     const sheet = page.getByRole('dialog');
     await expect(sheet).toBeVisible();
     await addFolderToSheet(sheet, 'Sheet Edit Folder');

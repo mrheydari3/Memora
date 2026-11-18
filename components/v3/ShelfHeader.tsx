@@ -12,6 +12,7 @@ type ShelfHeaderProps = {
   meta: string;
   /** Right-aligned status, e.g. "1 caught up". */
   statusLabel?: string;
+  onManageFolders: () => void;
   onToggleLayout: () => void;
   editingLayout: boolean;
 };
@@ -30,6 +31,7 @@ export function ShelfHeader({
   title = 'Your decks',
   meta,
   statusLabel,
+  onManageFolders,
   onToggleLayout,
   editingLayout,
 }: ShelfHeaderProps) {
@@ -93,6 +95,28 @@ export function ShelfHeader({
             </HintPressable>
           ) : (
             <>
+              <HintPressable
+                hint="Manage folders"
+                onPress={onManageFolders}
+                accessibilityRole="button"
+                accessibilityLabel="Manage folders"
+                style={{
+                  minHeight: 44,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  paddingHorizontal: 8,
+                  borderRadius: radii.control,
+                  backgroundColor: actionFill,
+                }}
+              >
+                <MaterialIcons name="folder-open" size={iconSize.sm} color={colors.outline} />
+                <AppText variant="caption" weight="semibold" tone="muted">
+                  Folders
+                </AppText>
+              </HintPressable>
+
               <HintPressable
                 hint="Edit layout"
                 onPress={onToggleLayout}

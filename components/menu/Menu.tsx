@@ -54,7 +54,6 @@ type WebElement = {
   getAttribute?: (name: string) => string | null;
   click?: () => void;
   getBoundingClientRect?: () => { left: number; top: number; width: number; height: number };
-  closest?: (selector: string) => WebElement | null;
 };
 
 type WebEvent = {
@@ -70,7 +69,6 @@ type WebEvent = {
 
 type WebDocument = {
   activeElement: WebElement | null;
-  querySelectorAll?: (selector: string) => ArrayLike<WebElement>;
   addEventListener: (type: string, listener: (event: WebEvent) => void, capture?: boolean) => void;
   removeEventListener: (type: string, listener: (event: WebEvent) => void, capture?: boolean) => void;
 };
@@ -322,7 +320,6 @@ function AnchoredMenu({
   const hasOpenedRef = useRef(false);
   const afterCloseRef = useRef(onAfterClose);
   afterCloseRef.current = onAfterClose;
-  const closeNotifiedRef = useRef(false);
 
   // Measure the trigger every time the menu opens; a page scroll, a filter or
   // a re-render can all move it.
@@ -400,34 +397,26 @@ function AnchoredMenu({
   useEffect(() => {
     const doc = webDocument();
     if (open && !wasOpenRef.current) {
-      hasOpenedRef.current = true;
-      closeNotifiedRef.current = false;
       returnFocusRef.current = doc?.activeElement ?? null;
     }
     if (!open && wasOpenRef.current) {
       const target = returnFocusRef.current;
       returnFocusRef.current = null;
-      setTimeout(() => {
-        const doc = webDocument();
-        const dialogSelector = '[role="dialog"], [aria-modal="true"]';
-        const targetDialog = target?.closest?.(dialogSelector) ?? null;
-        const anotherDialog = Array.from(
-          doc?.querySelectorAll?.(dialogSelector) ?? []
-        ).some((dialog) => dialog !== targetDialog);
-        // An action can open another surface before the menu finishes closing;
-        // returning focus to the trigger would pull it out of that new dialog.
-        if (anotherDialog) return;
-        target?.focus();
-      }, 0);
+      setTimeout(() => target?.focus(), 0);
     }
     wasOpenRef.current = open;
   }, [open]);
 
   useEffect(() => {
-    if (open) return;
-    if (!hasOpenedRef.current || presence.mounted || closeNotifiedRef.current) return;
-    closeNotifiedRef.current = true;
-    afterCloseRef.current?.();
+    if (open) {
+      hasOpenedRef.current = true;
+      return;
+    }
+    if (!hasOpenedRef.current || presence.mounted) return;
+    // The focus-return timer is scheduled first; let it land before a follow-up
+    // action opens the next surface (reduced motion can unmount in one frame).
+    const timer = setTimeout(() => afterCloseRef.current?.(), 0);
+    return () => clearTimeout(timer);
   }, [open, presence.mounted]);
 
   // A menu is anchored to a spot on the page: scrolling or resizing the page
