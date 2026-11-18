@@ -1,12 +1,12 @@
 /**
- * Folders — a light grouping over decks, and now a tree of folders.
+ * Folders — one flat grouping level over decks.
  *
  * A folder is a *view*, not a container: a deck keeps its cards, its schedule and
- * its reviews, and only gains a `folderId`. Deleting a folder therefore never
- * deletes a deck — the decks (and any child folders) move up one level.
+ * its reviews, and only gains a `folderId`. Folders never hold other folders;
+ * deleting one therefore never deletes a deck — its decks become unfiled.
  *
  * Everything here is pure so it can be unit-tested without AsyncStorage or React,
- * and so the store and the screens agree on what a valid folder tree is.
+ * and so the store and the screens agree on what a folder is.
  */
 
 import type { Deck, DeckFolder } from './types';
@@ -14,7 +14,7 @@ import type { Deck, DeckFolder } from './types';
 /** Long enough for a language or a subject, short enough for a chip. */
 export const FOLDER_NAME_MAX = 40;
 
-export type FolderError = 'empty' | 'duplicate' | 'cycle';
+export type FolderError = 'empty' | 'duplicate';
 
 export type FolderResult =
   | { ok: true; folder: DeckFolder; folders: DeckFolder[] }
@@ -45,66 +45,6 @@ export function nextFolderId(now: number = Date.now()): string {
   return `folder-${now}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-/** A folder's parent; a missing field means the top level. */
-export function folderParentId(folder: DeckFolder): string | null {
-  return folder.parentId ?? null;
-}
-
-/** Folders directly inside `parentId`; null is the top level. */
-export function childFolders(
-  folders: readonly DeckFolder[],
-  parentId?: string | null
-): DeckFolder[] {
-  const parent = parentId ?? null;
-  return folders.filter((folder) => folderParentId(folder) === parent);
-}
-
-/** Every folder from the top level down to `id`, inclusive. */
-export function folderPath(folders: readonly DeckFolder[], id: string): DeckFolder[] {
-  const byId = new Map(folders.map((folder) => [folder.id, folder]));
-  const path: DeckFolder[] = [];
-  const seen = new Set<string>();
-  let current = byId.get(id);
-
-  while (current && !seen.has(current.id)) {
-    seen.add(current.id);
-    path.unshift(current);
-    current = current.parentId ? byId.get(current.parentId) : undefined;
-  }
-
-  return path;
-}
-
-/** Ids of every folder below `id`, so a folder can never be nested into itself. */
-export function folderDescendantIds(
-  folders: readonly DeckFolder[],
-  id: string
-): Set<string> {
-  const descendants = new Set<string>();
-  const walk = (parentId: string) => {
-    for (const folder of folders) {
-      if (folderParentId(folder) === parentId && !descendants.has(folder.id)) {
-        descendants.add(folder.id);
-        walk(folder.id);
-      }
-    }
-  };
-  walk(id);
-  return descendants;
-}
-
-/** True when `id` may be moved under `parentId` (or to the top level). */
-export function canNestFolder(
-  folders: readonly DeckFolder[],
-  id: string,
-  parentId: string | null
-): boolean {
-  if (parentId === null) return true;
-  if (parentId === id) return false;
-  if (!folders.some((folder) => folder.id === parentId)) return false;
-  return !folderDescendantIds(folders, id).has(parentId);
-}
-
 export function createFolder(
   folders: readonly DeckFolder[],
   rawName: string,
@@ -113,7 +53,6 @@ export function createFolder(
     now?: number;
     icon?: string;
     color?: string;
-    parentId?: string | null;
   } = {}
 ): FolderResult {
   const name = normalizeFolderName(rawName);
@@ -129,7 +68,6 @@ export function createFolder(
     // shelf falls back to the neutral folder glyph.
     ...(options.icon ? { icon: options.icon } : {}),
     ...(options.color ? { color: options.color } : {}),
-    ...(options.parentId ? { parentId: options.parentId } : {}),
   };
   return { ok: true, folder, folders: [...folders, folder] };
 }
@@ -156,32 +94,21 @@ export function removeFolder(folders: readonly DeckFolder[], id: string): DeckFo
   return folders.filter((folder) => folder.id !== id);
 }
 
-/** Re-parents the folders that pointed at `id`, so deleting one keeps its tree. */
-export function detachChildFolders(
-  folders: readonly DeckFolder[],
-  id: string,
-  parentId: string | null
-): DeckFolder[] {
-  return folders.map((folder) =>
-    folderParentId(folder) === id ? { ...folder, parentId } : folder
-  );
-}
-
 /**
- * Clears `folderId` (or moves it to the deleted folder's parent) for every deck
- * that pointed at a deleted folder. Returns the same array reference when
- * nothing changed, so the caller can skip a write.
+ * Clears `folderId` for every deck that pointed at a deleted folder: with one
+ * flat level there is no parent to move them up to, so they become unfiled.
+ * Returns the same array reference when nothing changed, so the caller can skip
+ * a write.
  */
 export function detachDecksFromFolder(
   decks: readonly Deck[],
-  id: string,
-  parentId: string | null = null
+  id: string
 ): Deck[] {
   let changed = false;
   const next = decks.map((deck) => {
     if (deck.folderId !== id) return deck;
     changed = true;
-    return { ...deck, folderId: parentId };
+    return { ...deck, folderId: null };
   });
   return changed ? next : (decks as Deck[]);
 }
@@ -194,68 +121,29 @@ export function folderDeckCount(decks: readonly Deck[], folderId: string): numbe
   );
 }
 
-export type FolderSubtreeCount = { decks: number; due: number; nestedFolders: number };
+/**
+ * A folder as saved before the flat model: it may still carry a `parentId`.
+ * Only the load migration and its tests should need this shape.
+ */
+export type LegacyFolder = DeckFolder & { parentId?: string | null };
 
 /**
- * Every folder's whole visible subtree: decks filed directly inside it plus
- * everything filed in its descendants, their study-queue totals, and how many
- * child folders its group can open onto. Archived decks are never counted.
- *
- * A corrupt parent cycle must not hang the shelf, so each walk stops when it
- * reaches a folder it has already visited. The map has an entry for every
- * folder, including empty leaves.
+ * Drops the legacy parent link from every folder, keeping its icon, colour,
+ * pin and place in the order. Decks are untouched: they still point at the
+ * same folder id, which is now a top-level folder. Returns the same array
+ * reference when there was nothing to migrate, so load only writes when needed.
  */
-export function folderSubtreeCounts(
-  folders: readonly DeckFolder[],
-  decks: readonly Deck[],
-  dueByDeck: Readonly<Record<string, number>>
-): Map<string, FolderSubtreeCount> {
-  const childrenByParent = new Map<string, DeckFolder[]>();
-  for (const folder of folders) {
-    const parentId = folderParentId(folder);
-    if (!parentId) continue;
-    const siblings = childrenByParent.get(parentId) ?? [];
-    siblings.push(folder);
-    childrenByParent.set(parentId, siblings);
-  }
-
-  const visibleDecksByFolder = new Map<string, Deck[]>();
-  for (const deck of decks) {
-    if (deck.archivedAt || !deck.folderId) continue;
-    const list = visibleDecksByFolder.get(deck.folderId) ?? [];
-    list.push(deck);
-    visibleDecksByFolder.set(deck.folderId, list);
-  }
-
-  const counts = new Map<string, FolderSubtreeCount>();
-  for (const folder of folders) {
-    const visited = new Set<string>();
-    const pending = [folder.id];
-    let deckCount = 0;
-    let due = 0;
-
-    while (pending.length > 0) {
-      const id = pending.pop()!;
-      if (visited.has(id)) continue;
-      visited.add(id);
-
-      for (const deck of visibleDecksByFolder.get(id) ?? []) {
-        deckCount += 1;
-        due += dueByDeck[deck.id] ?? 0;
-      }
-      for (const child of childrenByParent.get(id) ?? []) {
-        if (!visited.has(child.id)) pending.push(child.id);
-      }
-    }
-
-    counts.set(folder.id, {
-      decks: deckCount,
-      due,
-      nestedFolders: childrenByParent.get(folder.id)?.length ?? 0,
-    });
-  }
-
-  return counts;
+export function flattenLegacyFolders(
+  folders: readonly LegacyFolder[]
+): { folders: DeckFolder[]; changed: boolean } {
+  let changed = false;
+  const next = folders.map((folder) => {
+    if (!('parentId' in folder)) return folder as DeckFolder;
+    changed = true;
+    const { parentId: _parentId, ...flat } = folder;
+    return flat;
+  });
+  return { folders: next, changed };
 }
 
 /**
@@ -359,7 +247,8 @@ export function moveSiblingTo<T extends { id: string; pinnedAt?: number | null }
 
 /**
  * The library tab's flat grouping: every folder in stored order, then the
- * unfiled decks. Home uses `childFolders` for the nested view instead.
+ * unfiled decks. Folders are one flat level, so no folder is nested under
+ * another here either.
  */
 export function groupDecksByFolder(
   decks: readonly Deck[],

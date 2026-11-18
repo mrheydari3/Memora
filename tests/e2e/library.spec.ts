@@ -45,7 +45,7 @@ test('folder-first shelf exposes progress and a breadcrumb back to all decks', a
   ).toBeVisible();
 
   const folderCards = page.getByTestId('folder-card');
-  await expect(folderCards).toHaveCount(3);
+  await expect(folderCards).toHaveCount(4);
   const travel = folderCards.filter({ hasText: 'Travel' });
   await expect(travel).toContainText('% studied');
 
@@ -60,7 +60,7 @@ test('folder-first shelf exposes progress and a breadcrumb back to all decks', a
   await expect(shelf.getByTestId('shelf-band').filter({ hasText: 'Decks here' })).toBeVisible();
 
   await page.getByRole('button', { name: 'All decks' }).click();
-  await expect(page.getByTestId('folder-card')).toHaveCount(3);
+  await expect(page.getByTestId('folder-card')).toHaveCount(4);
 });
 
 test('closing the Folders sheet discards an abandoned draft', async ({ page }) => {

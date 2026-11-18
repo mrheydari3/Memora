@@ -271,7 +271,6 @@ function normalizeBackupDeck(value: unknown): Deck | null {
     icon: firstString(value.icon) ?? 'style',
     color: firstString(value.color) ?? '#7CBBFF',
     ...(typeof value.rating === 'number' ? { rating: value.rating } : {}),
-    parentId: value.parentId === null ? null : firstString(value.parentId) ?? null,
     algorithmPreset,
     newCardsPerDay: clamp(asNumber(value.newCardsPerDay, 20), 0, 99_999),
     maxCardsPerDay: clamp(asNumber(value.maxCardsPerDay, 80), 0, 99_999),
@@ -303,7 +302,6 @@ function normalizeBackupFolder(value: unknown): DeckFolder | null {
     createdAt: asNumber(value.createdAt, Date.now()),
     ...(firstString(value.icon) ? { icon: firstString(value.icon) } : {}),
     ...(firstString(value.color) ? { color: firstString(value.color) } : {}),
-    parentId: value.parentId === null ? null : firstString(value.parentId) ?? null,
     pinnedAt: asNullableNumber(value.pinnedAt),
   };
 }

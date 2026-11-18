@@ -85,6 +85,9 @@ export function DeckShelfRow({
   const [hovered, setHovered] = useState(false);
   const clamped = Math.max(0, Math.min(1, progress));
   const percent = Math.round(clamped * 100);
+  // A flat folder row uses the same 40px icon column as the folder header, so
+  // both glyphs and both title columns share one left edge.
+  const glyphSlot = flat ? 40 : GLYPH;
   const cardLabel = cardCount === 1 ? 'card' : 'cards';
   const cardCountLabel = cardCount.toLocaleString('en-US');
   // Keep scheduler names such as FSRS-6 in one piece when the meta wraps.
@@ -158,8 +161,12 @@ export function DeckShelfRow({
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 10,
+          // The legend and the studied share wrap as two blocks, not as one
+          // squeezed line: at 390 the share drops under the legend and keeps
+          // its trailing edge instead of splitting the legend in half.
+          flexWrap: 'wrap',
+          columnGap: 10,
+          rowGap: 4,
         }}
       >
         <View
@@ -192,7 +199,15 @@ export function DeckShelfRow({
             </View>
           ))}
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5, flexShrink: 0 }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'baseline',
+            gap: 5,
+            flexShrink: 0,
+            marginLeft: 'auto',
+          }}
+        >
           {percentNode}
           <AppText variant="caption" tone="tertiary">
             {percentLabel}
@@ -243,26 +258,28 @@ export function DeckShelfRow({
         style={{
           flex: 1,
           minWidth: 0,
-          paddingLeft: 12,
+          paddingLeft: flat ? 4 : 12,
           paddingRight: 2,
           paddingVertical: 11,
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 11 }}>
-          <View
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            style={{
-              width: GLYPH,
-              height: GLYPH,
-              borderRadius: v3.radii.tile,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: alpha(color, 0.14),
-              flexShrink: 0,
-            }}
-          >
-            <MaterialIcons name={icon} size={iconSize.lg} color={color} />
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: flat ? 12 : 11 }}>
+          <View style={{ width: glyphSlot, height: GLYPH, flexShrink: 0 }}>
+            <View
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={{
+                width: GLYPH,
+                height: GLYPH,
+                borderRadius: v3.radii.tile,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: alpha(color, 0.14),
+                flexShrink: 0,
+              }}
+            >
+              <MaterialIcons name={icon} size={iconSize.lg} color={color} />
+            </View>
           </View>
 
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -355,13 +372,16 @@ export function DeckShelfRow({
   ) : null;
 
   return (
-    <Animated.View style={[press.style, { width: '100%' }]}>
+    <Animated.View
+      testID={flat ? 'deck-row-shell-flat' : 'deck-row-shell'}
+      style={[press.style, { width: '100%' }]}
+    >
       {flat ? (
         <View
           style={{
             width: '100%',
             minHeight: v3.heights.deckRow,
-            borderRadius: radii.control,
+            borderRadius: v3.radii.control,
             overflow: 'hidden',
             position: 'relative',
           }}

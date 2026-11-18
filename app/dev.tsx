@@ -193,7 +193,7 @@ export default function DevDataScreen() {
                 icon="folder"
                 tone={colors.info}
                 title="Six decks, 47 cards"
-                subtitle="Nesting, empty, archived, long names, RTL and overdue."
+                subtitle="Flat folders, empty, archived, long names, RTL and overdue."
               />
               <SettingsLine
                 icon="insights"

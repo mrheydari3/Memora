@@ -1,6 +1,14 @@
 # Your Decks — Debug & Verification Plan
 
-**Status:** active (opened 2026-11-10, after the shelf redesign landed).
+> **Historical record (superseded 2026-11-18).** This plan was opened after the
+> 2026-11-10 shelf redesign and is kept as audit history. The current folder
+> model is one flat list: no folder nests in another, counts cover only decks
+> filed directly in that folder, and there is no Location/parent picker. The
+> current contract is in §2; the measured reports remain history. See
+> `README.md` and `docs/design-language.md` for the current spec.
+
+**Status:** historical (opened 2026-11-10; superseded by the flat-folder
+redesign on 2026-11-18).
 **Scope:** the Home shelf only — `app/(tabs)/home.tsx` and the four v3 primitives it
 drives (`ShelfHeader`, `ShelfBand`, `Foldergroup`, `DeckShelfRow`, `ArchivedRow`,
 `FolderCard`). The Today pane, the deck screen and the sheets are out of scope;
@@ -37,23 +45,24 @@ sweep. They are caught by the probe in §3.
 
 ---
 
-## 2. Ground truth (measured 2026-11-10, do not regress)
+## 2. Current folder contract (flat model, 2026-11-18)
 
 | Contract | Value | Where |
 | --- | --- | --- |
-| Section bands | uppercase label + `(count)` + quiet hint (`Hierarchical` / `Root level` / `In this folder`); no tick, no count pill, no hairline | `ShelfBand` |
+| Folder model | one flat order-wide list; no `parentId`, no child folders, no roll-up | store, `data/folders.ts`, `LibraryBoard` |
+| Section bands | uppercase label + `(count)` + quiet hint; no tick, no count pill, no hairline | `ShelfBand` |
 | Shelf has no *Explore your decks* row | the shelf starts with the breadcrumb and then the first band (row removed 2026-11-10) | `home.tsx` |
-| Folder pane | header banner (glyph 40, name, pin, `N deck(s) · M due` or `N direct · M nested · X due`, due pill, chevron) over a recessed well | `FolderGroup` |
+| Folder pane | one continuous jacket: header (glyph 40, name, pin, `N deck(s) · M due`, due pill, chevron) and its deck rows share one surface; counts only decks filed directly in it | `FolderGroup` |
 | Folder height | 76 collapsed header, no rail, no guide line | measured 390 |
 | Deck card | identity line (glyph 36, name, pin, due pill, options rail) + one rail line | `DeckShelfRow` |
 | Deck height | 96 min; 98–101 at 1280; 118 only when the name wraps | measured |
 | Loose deck with work today | segmented rail `n new / n learn / n review` + studied `%` or `—` | `composition` |
 | Loose deck with nothing due | studied rail + `%` + `mastered` / `not studied yet` | `DeckShelfRow` |
-| Folder deck (nested) | `flat` row inside the well, studied rail, no composition | `renderDeck({flat: true})` |
+| Folder deck row | flat row inside that folder's well, studied rail, no composition | `renderDeck({ flat: true })` |
 | Archive | pane header `ARCHIVED · 1 deck`, `aria-expanded="false"` by default, rows on open | `home.tsx` |
-| Desktop board | `FolderCard` grid, 3 tiles for the dev library, `% studied` on the tile, untouched by the redesign | `FolderCard` |
-| Strings | `Your decks`, `Folders`, `Unfiled decks`, `Folders here`, `Decks here`, `N cards · FSRS-6`, `N direct · M nested · X due`, `N deck(s) · M due`, `%`, `—`, `clear` | pinned by `tests/e2e/data-truth.spec.ts` |
-| Semantics | `shelf-panel`, `folder-group`, `folder-subitem`, `deck-row`, `folder-card`; hints `Open deck`, `Collapse folder`/`Expand folder`; **zero nested interactive elements** | all specs |
+| Desktop board | `FolderCard` grid, every folder a top-level peer, `% studied` on the tile | `FolderCard` |
+| Strings | `Your decks`, `Folders`, `Unfiled decks`, `N cards · FSRS-6`, `N deck(s) · M due`, `%`, `—`, `clear` | pinned by `tests/e2e/data-truth.spec.ts` |
+| Semantics | `shelf-panel`, `folder-group`, `deck-row`, `folder-card`; hints `Open deck`, `Collapse folder`/`Expand folder`; no interactive element inside another | all specs |
 
 ---
 
@@ -230,7 +239,7 @@ The shelf is "debugged" when, in one pass on the same commit:
 
 ## 7. Known open defects from the 2026-11-10 pass
 
-- **Folder meta wraps at 390** for long counts (`0 direct · 2 nested · 30 due`).
+- **Folder meta wraps at 390** for long counts (`12 decks · 30 due`).
   Accepted for now: the alternative was dropping the due pill or the chevron.
   Revisit if a folder name also has to wrap in the same header.
 - **Long deck names grow the card to 118.** Accepted: the name is real content and

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { buildFixture, fixtureInitScript } from '../ui/fixtures';
 
 /**
  * Hint regression suite.
@@ -14,6 +15,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 const DECK = 'Schritt Plus Neu A2/B1';
 const FOLDER = 'Travel';
+const HOME_FIXTURE = buildFixture('F3', new Date('2026-11-07T12:00:00Z').getTime());
 
 test.use({ reducedMotion: 'reduce' });
 
@@ -21,19 +23,6 @@ const settle = async (page: Page) => {
   await page.waitForSelector('[role="main"]', { timeout: 30_000 });
   await page.waitForTimeout(900);
 };
-
-async function createFolder(page: Page, name: string) {
-  await page.getByRole('button', { name: 'New folder' }).click();
-  const sheet = page.getByRole('dialog');
-  await expect(sheet).toBeVisible();
-
-  await sheet.getByLabel('New folder').fill(name);
-  await sheet.getByRole('button', { name: 'Create folder' }).click();
-  await expect(sheet.getByText(name, { exact: true })).toBeVisible();
-
-  await sheet.getByRole('button', { name: 'Close sheet' }).click();
-  await expect(sheet).toBeHidden();
-}
 
 test('a deck row hint opens that deck', async ({ page }) => {
   await page.goto('/');
@@ -48,13 +37,15 @@ test('a deck row hint opens that deck', async ({ page }) => {
 });
 
 test('a folder group hint expands and collapses that folder', async ({ page }) => {
+  // A folder with decks is the only expandable group, so use the fixture's
+  // Travel folder (one deck) rather than creating an empty one.
+  await page.addInitScript({ content: fixtureInitScript(HOME_FIXTURE) });
   await page.goto('/');
   await settle(page);
-  await createFolder(page, FOLDER);
 
   // v3 shows a folder's decks inline: the header is an accordion control, so
   // its hint and state describe expansion rather than navigating to a page.
-  // A new folder starts expanded, so the first press collapses it.
+  // Travel starts expanded, so the first press collapses it.
   const row = page.getByTestId('folder-group').filter({ hasText: FOLDER });
   await expect(row).toBeVisible();
   await expect(row).toHaveAccessibleDescription('Collapse folder');
@@ -63,10 +54,15 @@ test('a folder group hint expands and collapses that folder', async ({ page }) =
 
   await expect(row).toHaveAttribute('aria-expanded', 'false');
   await expect(row).toHaveAccessibleDescription('Expand folder');
+  await expect(
+    page.getByTestId('deck-row').filter({ hasText: 'Due today (review)' })
+  ).toHaveCount(0);
 
   await row.click();
   await expect(row).toHaveAttribute('aria-expanded', 'true');
-  await expect(page.getByText('No decks directly inside yet.')).toBeVisible();
+  await expect(
+    page.getByTestId('deck-row').filter({ hasText: 'Due today (review)' })
+  ).toBeVisible();
 });
 
 test('a card row hint expands and collapses the full card', async ({ page }) => {

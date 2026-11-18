@@ -81,12 +81,8 @@ export function buildScaleLibrary(
 ): ScaleLibrary {
   const random = mulberry32(spec.seed);
   const folders: DeckFolder[] = [];
-  const roots = Math.max(1, Math.ceil(spec.folders / 6));
 
   for (let i = 0; i < spec.folders; i += 1) {
-    // Earlier folders only, so the tree is acyclic by construction. Every ninth
-    // folder hangs off the one before it, which produces deep chains quickly.
-    const parentIndex = i < roots ? null : i % 9 === 0 ? i - 1 : Math.floor(random() * i);
     folders.push({
       id: `fold-${i}`,
       name:
@@ -98,7 +94,6 @@ export function buildScaleLibrary(
       createdAt: now - (spec.folders - i) * DAY,
       icon: i % 3 === 0 ? 'folder' : 'translate',
       color: '#FFD54F',
-      parentId: parentIndex === null ? null : `fold-${parentIndex}`,
       pinnedAt: i % 17 === 0 ? now : null,
     });
   }

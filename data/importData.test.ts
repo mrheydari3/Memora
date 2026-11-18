@@ -90,6 +90,9 @@ test('a full backup preserves decks, folders, cards and review history', () => {
   assert.equal(result.value.decks.length, 1);
   assert.equal(result.value.decks[0]?.name, 'French');
   assert.equal(result.value.folders.length, 1);
+  // A legacy backup may carry `parentId`; folders are flat now, so import
+  // drops the link instead of restoring a tree.
+  assert.equal('parentId' in result.value.folders[0]!, false);
   assert.equal(result.value.cardsByDeck['deck-fr']?.length, 2);
   assert.equal(result.value.cardsByDeck['deck-fr']?.[1]?.fsrs.state, 'Review');
   assert.equal(result.value.reviewLog.length, 1);

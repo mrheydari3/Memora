@@ -59,7 +59,7 @@ const colors = {
   /** The Game hero's raised card face (#171E29). */
   surfaceCardFace: '#171E29',
   surfaceControl: '#222831',
-  /** Inset grouping fills: folder headers and nested wells (#1D232D). */
+  /** Inset grouping fills: folder body wells and grouped content (#1D232D). */
   surfaceInset: '#1D232D',
   /** Interactive option tiles (#20252F). */
   surfaceTile: '#20252F',

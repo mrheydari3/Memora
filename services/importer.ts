@@ -38,7 +38,6 @@ export async function importCardsToDeck(
     ...(description ? { description } : {}),
     icon: 'file-download',
     color: colors.info,
-    parentId: null,
     algorithmPreset: 'fsrs',
     newCardsPerDay: 20,
     maxCardsPerDay: 80,

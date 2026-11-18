@@ -1,6 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
 import { buildFixture, fixtureInitScript } from '../ui/fixtures';
-import { folderSubtreeCounts } from '../../data/folders';
 import { buildStudyQueue } from '../../data/session';
 import { computeStreak, startOfLocalDay } from '../../data/streak';
 import { STORAGE_KEYS as K } from '../../data/storageKeys';
@@ -16,10 +15,9 @@ import type { Deck, DeckFolder, Flashcard, GameRecord, ReviewLogEntry } from '..
  * Counting semantics this suite pins down:
  *   - Home's hero is library-wide: every active deck's `buildStudyQueue` total,
  *     and the number of those decks that actually have something waiting.
- *   - The shelf's meta line at the root covers every active deck and every root
- *     folder, including decks filed inside folders; inside a folder it covers
- *     that folder's subtree. Folder headers roll up the same subtree and name
- *     their direct/nested split.
+ *   - The shelf's meta line covers every active deck and every folder, all
+ *     listed flat; inside a folder it covers the decks filed directly there.
+ *     Folders are one flat level, so no header aggregates another folder.
  *   - Archived decks are out of Home, the shelf, Game and Statistics.
  *   - XP is 10 per review on an active deck; a level is 1000 XP.
  */
@@ -114,9 +112,6 @@ const queueFor = (deck: Deck, store: Store) =>
 
 const activeQueues = (store: Store) =>
   activeDecks(store).map((deck) => ({ deck, queue: queueFor(deck, store) }));
-
-const dueByDeck = (store: Store) =>
-  Object.fromEntries(activeQueues(store).map(({ deck, queue }) => [deck.id, queue.total]));
 
 const plural = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
@@ -218,57 +213,49 @@ test.describe('Phase 7 — data truth', () => {
     await expect(panel).not.toContainText('minute');
   });
 
-  test('home: the shelf totals and folder headers roll up each subtree', async ({ page }) => {
+  test('home: the flat shelf lists every folder and migrates nesting away', async ({ page }) => {
     await boot(page, 'F2');
     const store = await readStore(page);
     const active = activeDecks(store);
-    const rootFolders = store.folders.filter((folder) => !folder.parentId);
+    const allFolders = store.folders;
     const rootDue = activeQueues(store).reduce((sum, entry) => sum + entry.queue.total, 0);
-    const subtrees = folderSubtreeCounts(store.folders, store.decks, dueByDeck(store));
 
-    expect(rootFolders.length).toBe(4);
-    expect(store.folders.length).toBeGreaterThan(rootFolders.length);
+    expect(allFolders.length).toBe(5);
+    // F2 is written with German pointing at Languages. Load must persist the
+    // flat shape, not only hide the nesting at render time.
+    expect(allFolders.every((folder) => !('parentId' in folder))).toBe(true);
     expect(active.length).toBe(5);
     expect(rootDue).toBe(40);
     await expect(
-      page.getByText(shelfMeta(active.length, rootFolders.length, rootDue), { exact: true })
+      page.getByText(shelfMeta(active.length, allFolders.length, rootDue), { exact: true })
     ).toBeVisible();
-    // The band below the masthead lists exactly those folders, so it carries the
-    // same number: a nested folder must not appear in one count and not the other.
+    // The band counts the same flat set.
     await expect(
       page.getByTestId('shelf-band').filter({ hasText: 'Folders' })
-    ).toContainText(`(${rootFolders.length})`);
+    ).toContainText(`(${allFolders.length})`);
 
-    // Languages has no direct decks, but its German child owns two. The header
-    // must name both sides of that split rather than claiming the folder is empty.
+    // Languages is now an empty peer, not a parent: it rolls up nothing and
+    // German is never drawn as a row inside it.
     const languages = page.getByTestId('folder-group').filter({ hasText: 'Languages' });
-    await expect(languages).toContainText('0 direct · 2 nested');
-    await expect(languages).toContainText('30 due');
-    // The child folder is a sub-item inside its parent's well; opening it drills
-    // into that level, where the header names the folder and its own totals.
-    const germanItem = page.getByTestId('folder-subitem').filter({ hasText: 'German' });
-    await expect(germanItem).toContainText('2 decks · 30 due');
-    await expect(germanItem).not.toContainText('direct');
-    await germanItem.click();
-    await settle(page);
+    await expect(languages).toContainText('Empty folder');
+    await expect(languages).not.toContainText('due');
+    await expect(languages).not.toContainText('nested');
+    await expect(page.getByTestId('folder-subitem')).toHaveCount(0);
 
-    const childFolders = store.folders.filter((folder) => folder.parentId === 'fold-lang');
-    const germanChildren = store.folders.filter((folder) => folder.parentId === 'fold-de');
-    const language = subtrees.get('fold-lang');
-    expect(childFolders.length).toBe(1);
-    expect(language).toEqual({ decks: 2, due: 30, nestedFolders: 1 });
-    await expect(
-      page.getByText(shelfMeta(language!.decks, germanChildren.length, language!.due), {
-        exact: true,
-      })
-    ).toBeVisible();
+    // German keeps every deck and every due card: flattening moved a folder's
+    // place in the list, never its decks.
+    const german = page.getByTestId('folder-group').filter({ hasText: 'German' });
+    await german.scrollIntoViewIfNeeded();
+    await expect(german).toContainText('2 decks');
+    await expect(german).toContainText('30 due');
 
-    // The two nested decks are the remaining per-deck totals: German and the
-    // long-named deck. Their rows must agree with their own queues.
+    // Both decks stay filed in German, and their rows agree with the queue each
+    // stored deck implies.
     const germanDecks = active.filter((deck) => deck.folderId === 'fold-de');
     expect(germanDecks.length).toBe(2);
     for (const deck of germanDecks) {
       const row = page.getByTestId('deck-row').filter({ hasText: deck.name });
+      await row.scrollIntoViewIfNeeded();
       await expect(row).toBeVisible();
       await expect(row).toContainText(
         plural((store.cards[deck.id] ?? []).length, 'card', 'cards')
@@ -619,7 +606,7 @@ test.describe('Phase 7 — data truth', () => {
     const active = activeDecks(store);
     const caption = shelfMeta(
       active.length,
-      store.folders.filter((folder) => !folder.parentId).length,
+      store.folders.length,
       activeQueues(store).reduce((sum, entry) => sum + entry.queue.total, 0)
     );
 

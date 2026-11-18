@@ -1,5 +1,12 @@
 # Your Decks — debug pass, tasks 2–7 (measured)
 
+> **Historical record (superseded 2026-11-18).** This measured the pre-flat
+> shelf and folder tree; the numbers and nested-folder cases below are kept as
+> audit history. The current model is one flat folder list: every folder is a
+> top-level peer, counts cover only decks filed directly in that folder, and
+> there is no Location/parent picker. See `README.md` and
+> `docs/design-language.md`.
+
 **Date:** 2026-11-10
 **Tree:** uncommitted shelf redesign + the 2026-11-10 Explore-row removal (9 modified files, 1 new `ShelfStatusPill.tsx`).
 **Plan:** `docs/superpowers/plans/2026-11-10-your-decks-debug-plan.md`.

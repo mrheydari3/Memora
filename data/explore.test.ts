@@ -30,8 +30,8 @@ function makeDeck(id: string, name = id, extra: Partial<Deck> = {}): Deck {
   };
 }
 
-function makeFolder(id: string, name = id, parentId: string | null = null): DeckFolder {
-  return { id, name, createdAt: NOW - 60 * DAY, parentId };
+function makeFolder(id: string, name = id): DeckFolder {
+  return { id, name, createdAt: NOW - 60 * DAY };
 }
 
 function makeCard(
@@ -346,21 +346,15 @@ test('a deck gets one signal and one row, even when several qualify', () => {
   assert.equal(new Set(picks.map((pick) => pick.deckId)).size, picks.length);
 });
 
-test('scope follows descendant folders, and the root sees the whole library', () => {
-  const folders = [makeFolder('root'), makeFolder('child', 'Child', 'root'), makeFolder('other')];
+test('scope is exactly one folder, and the root sees the whole library', () => {
+  const folders = [makeFolder('root'), makeFolder('other')];
   const decks = [
     makeDeck('root-deck', 'Root', { folderId: 'root' }),
-    makeDeck('child-deck', 'Child deck', { folderId: 'child' }),
     makeDeck('unfiled', 'Unfiled'),
     makeDeck('other-deck', 'Other', { folderId: 'other' }),
   ];
   const cards = {
     'root-deck': studiedCards('root-deck', 8),
-    'child-deck': [
-      ...studiedCards('child-deck', 8),
-      makeCard('child-deck', 'child-new-1', { state: 'New' }),
-      makeCard('child-deck', 'child-new-2', { state: 'New' }),
-    ],
     unfiled: Array.from({ length: 10 }, (_, index) =>
       makeCard('unfiled', `unfiled-${index}`, { state: 'New' })
     ),
@@ -373,13 +367,11 @@ test('scope follows descendant folders, and the root sees the whole library', ()
   };
   const stats = [
     makeStats('root-deck', 6, 0, 0, 6),
-    makeStats('child-deck', 2, 2),
     makeStats('unfiled', 10, 10),
     makeStats('other-deck', 5, 5),
   ];
   const reviews = [
     ...makeReviews('root-deck', 8),
-    ...makeReviews('child-deck', 8),
     ...makeReviews('other-deck', 5, { reviewedAt: NOW - 10 * DAY }),
   ];
 
@@ -388,13 +380,13 @@ test('scope follows descendant folders, and the root sees the whole library', ()
   );
   assert.deepEqual(
     scoped.map((pick) => pick.deckId),
-    ['root-deck', 'child-deck']
+    ['root-deck']
   );
 
   const all = buildExplorePicks(makeInput({ decks, cards, stats, reviews, folders }));
   assert.deepEqual(
     all.map((pick) => pick.deckId),
-    ['root-deck', 'child-deck', 'other-deck', 'unfiled']
+    ['root-deck', 'other-deck', 'unfiled']
   );
 });
 

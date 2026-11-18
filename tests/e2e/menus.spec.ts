@@ -209,12 +209,11 @@ test.describe('compact deck options sheet', () => {
 
   test('pinning a deck inside a folder keeps its sheet open', async ({ page }) => {
     // A folder deck is a different row shape from an unfiled one, and its
-    // options sheet is hosted by the same Home-level menu. German's decks only
-    // mount once its parent folder's subitem is opened.
+    // options sheet is hosted by the same Home-level menu. Folders are flat on
+    // the shelf, so German's decks are mounted at the root without opening a
+    // parent folder first.
     await page.addInitScript({ content: fixtureInitScript(COMPACT_FIXTURE) });
     await page.goto('/home');
-    await settle(page);
-    await page.getByRole('button', { name: /^Open folder German,/ }).click();
     await settle(page);
 
     const trigger = page.getByRole('button', { name: `Options for deck ${DECK}`, exact: true });

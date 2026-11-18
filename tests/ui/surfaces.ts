@@ -125,8 +125,8 @@ export const SURFACES: readonly Surface[] = [
     trigger: 'options on an existing folder',
     overlay: true,
   }),
-  s('HM-11', 'Folder move / location', '/home', ['F2'], ALL_GATES, {
-    trigger: 'Location row in the folder editor',
+  s('HM-11', 'Folder order: one flat list', '/home', ['F2'], ALL_GATES, {
+    trigger: 'Move up/down rows in the folder editor',
     overlay: true,
   }),
   s('HM-12', 'Deck options sheet (pin and move)', '/home', ['F2'], ALL_GATES, {

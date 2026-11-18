@@ -4,7 +4,7 @@ import { AppText } from '../AppText';
 import { alpha, colors, fills, iconSize, radii } from '../../theme/tokens';
 
 type ShelfStatusPillProps = {
-  /** Cards waiting in this deck or folder subtree. */
+  /** Cards waiting in this deck, or in the decks filed in this folder. */
   due: number;
   /** Nothing inside at all: a folder with no decks, a deck with no cards. */
   empty?: boolean;

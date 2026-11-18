@@ -15,7 +15,6 @@ export { TodayPane } from './TodayPane';
 export { HeroAura } from './HeroAura';
 export { LibraryPane } from './LibraryPane';
 export { FolderCard } from './FolderCard';
-export { FolderGlass } from './FolderGlass';
 export { FolderGlyph } from './FolderGlyph';
 export { DeckShelfRow } from './DeckShelfRow';
 export { FolderGroup } from './FolderGroup';

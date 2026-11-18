@@ -15,12 +15,12 @@ import { LibraryToolbar } from './LibraryToolbar';
 import type { LibraryFilter } from './LibraryToolbar';
 import { DeckShelfRow } from './DeckShelfRow';
 import { FolderCard } from './FolderCard';
-import { FolderBodySlice, FolderGroup, FolderSubitems } from './FolderGroup';
+import { FolderBodySlice, FolderGroup } from './FolderGroup';
 import { ArchivedRow } from './ArchivedRow';
-import { colors, iconSize, spacing } from '../../theme/tokens';
+import { colors, glass, iconSize, spacing } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import type { FolderAggregate, LibraryIndex, DeckSummary } from '../../data/library';
-import { childFoldersOf, foldSearch, matchesSearch } from '../../data/library';
+import { foldSearch, matchesSearch } from '../../data/library';
 import { schedulerLabel } from '../../data/schedulers';
 import { sortPinned } from '../../data/folders';
 import type { Deck, DeckFolder } from '../../data/types';
@@ -41,9 +41,8 @@ type Row =
   | { key: string; kind: 'header' }
   | { key: string; kind: 'toolbar' }
   | { key: string; kind: 'band'; label: string; count: number; hint?: string }
-  | { key: string; kind: 'folderGroup'; id: string; continued: boolean }
+  | { key: string; kind: 'folderGroup'; id: string }
   | { key: string; kind: 'folderDeck'; deckId: string; first: boolean; last: boolean }
-  | { key: string; kind: 'folderTail'; id: string; first: boolean }
   | { key: string; kind: 'folderCards'; ids: string[] }
   | { key: string; kind: 'searchFolder'; id: string }
   | { key: string; kind: 'deckCards'; ids: string[]; paths: boolean }
@@ -74,6 +73,9 @@ export type LibraryBoardProps = {
 };
 
 const GRID_GAP = 12;
+/** The shelf partition's inner inset; included in the card-grid measurement. */
+const SHELF_PANEL_INSET = 12;
+const SHELF_PANEL_RADIUS = v3.radii.pane;
 const plural = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
 
@@ -126,7 +128,10 @@ export function LibraryBoard({
   const { width } = useWindowDimensions();
   const desktop = width >= 1024;
   const columns = width >= 1200 ? 3 : desktop ? 2 : 1;
-  const usableWidth = Math.max(0, Math.min(width, contentMaxWidth) - spacing.screen * 2);
+  const usableWidth = Math.max(
+    0,
+    Math.min(width, contentMaxWidth) - spacing.screen * 2 - SHELF_PANEL_INSET * 2
+  );
   const cellWidth = columns > 1 ? Math.max(0, (usableWidth - GRID_GAP * (columns - 1)) / columns) : usableWidth;
 
   const [query, setQuery] = useState('');
@@ -139,9 +144,12 @@ export function LibraryBoard({
   const folderById = useMemo(() => new Map(folders.map((folder) => [folder.id, folder])), [folders]);
 
   const visibleFolders = useMemo<FolderRow[]>(() => {
-    const children = sortPinned(childFoldersOf(library, openFolder?.id ?? null));
+    // Every folder is listed flat on Your decks, so a folder is never drawn
+    // inside another one. An open folder only lists its own decks; every other
+    // folder is a peer on the shelf, not a row inside it.
+    if (openFolder) return [];
     const rows: FolderRow[] = [];
-    for (const folder of children) {
+    for (const folder of sortPinned(folders)) {
       const aggregate = library.aggregates.get(folder.id);
       if (!aggregate) continue;
       rows.push({
@@ -154,7 +162,7 @@ export function LibraryBoard({
       });
     }
     return rows;
-  }, [library, openFolder]);
+  }, [library, folders, openFolder]);
 
   const visibleDecks = useMemo<DeckSummary[]>(() => {
     const scoped = openFolder
@@ -187,7 +195,7 @@ export function LibraryBoard({
     return { folderHits, deckHits };
   }, [searchActive, folders, library, foldedQuery, filter]);
 
-  const trail = openFolder ? library.pathById.get(openFolder.id) ?? [] : [];
+  const trail = openFolder ? [openFolder] : [];
 
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
@@ -250,20 +258,17 @@ export function LibraryBoard({
       out.push({
         key: 'folders-band',
         kind: 'band',
-        label: openFolder ? 'Folders here' : 'Folders',
+        label: 'Folders',
         count: visibleFolders.length,
       });
       if (columns === 1) {
         for (const folder of visibleFolders) {
           const decks = pinnedFirstEntries(library.byFolderId.get(folder.id) ?? []);
-          const subfolderCount = childFoldersOf(library, folder.id).length;
           const expanded = !collapsedFolders.has(folder.id);
-          const hasBody = expanded && (decks.length > 0 || subfolderCount > 0);
           out.push({
             key: `fg-${folder.id}`,
             kind: 'folderGroup',
             id: folder.id,
-            continued: hasBody,
           });
           if (!expanded) continue;
           // The decks are their own list rows, so the FlatList mounts a window
@@ -274,17 +279,9 @@ export function LibraryBoard({
               kind: 'folderDeck',
               deckId: entry.deck.id,
               first: index === 0,
-              last: index === decks.length - 1 && subfolderCount === 0,
+              last: index === decks.length - 1,
             });
           });
-          if (subfolderCount > 0 || decks.length === 0) {
-            out.push({
-              key: `ft-${folder.id}`,
-              kind: 'folderTail',
-              id: folder.id,
-              first: decks.length === 0,
-            });
-          }
         }
       } else {
         chunk(
@@ -336,7 +333,7 @@ export function LibraryBoard({
       [
         {
           key: 'folders',
-          label: openFolder ? 'Folders here' : 'Folders',
+          label: 'Folders',
           items: visibleFolders.map((folder) => ({
             id: folder.id,
             name: folder.name,
@@ -376,9 +373,8 @@ export function LibraryBoard({
     [visibleFolders, visibleDecks, openFolder, onReorderFolder, onReorderDeck]
   );
 
-  // The masthead and the FOLDERS band name the same set: the folders listed at
-  // this level. Counting every folder in the library here made a nested folder
-  // show up in the meta line but not in the band ("4 folders" over "(3)").
+  // The masthead and the FOLDERS band name the same set: every folder on the
+  // flat shelf. One count for both keeps the meta line and the band in step.
   const scopeFolderCount = visibleFolders.length;
   const aggregate = openFolder ? library.aggregates.get(openFolder.id) : undefined;
   const shelfDeckCount = openFolder ? aggregate?.decks ?? 0 : library.totals.decks;
@@ -418,11 +414,10 @@ export function LibraryBoard({
   const deckContext = (entry: DeckSummary) => {
     const folderId = entry.deck.folderId;
     if (!folderId) return undefined;
-    const path = library.pathById.get(folderId);
-    return path?.map((folder) => folder.name).join(' / ');
+    return library.foldersById.get(folderId)?.name;
   };
 
-  const renderDeck = (id: string, showPath: boolean) => {
+  const renderDeck = (id: string, showPath: boolean, flat = false) => {
     const entry = library.byDeckId.get(id);
     if (!entry) return null;
     return (
@@ -445,6 +440,7 @@ export function LibraryBoard({
             : undefined
         }
         pinned={entry.deck.pinnedAt != null}
+        flat={flat}
         context={showPath ? deckContext(entry) : undefined}
         optionsMenu={deckOptions(entry.deck)}
         onPress={() => onOpenDeck(entry.deck.id)}
@@ -464,8 +460,6 @@ export function LibraryBoard({
             pinnedAt: folderById.get(id)!.pinnedAt,
             ...(library.aggregates.get(id) ?? {
               decks: 0,
-              directDecks: 0,
-              nestedFolders: 0,
               cards: 0,
               studied: 0,
               due: 0,
@@ -482,7 +476,6 @@ export function LibraryBoard({
         deckCount={folder.decks}
         due={folder.due}
         progress={folder.progress}
-        nestedFolders={folder.nestedFolders}
         pinned={folder.pinnedAt != null}
         onPress={() => openFolderAndReset(folder.id)}
       />
@@ -542,12 +535,17 @@ export function LibraryBoard({
     </Surface>
   );
 
-  const renderItem = ({ item }: ListRenderItemInfo<Row>) => {
+  const renderItemContent = (item: Row) => {
     switch (item.kind) {
       case 'hero':
         return <View style={{ marginTop: 12, marginBottom: v3.spacing.section }}>{hero}</View>;
       case 'breadcrumbs':
-        return <ShelfBreadcrumbs trail={trail} onNavigate={openFolderAndReset} />;
+        return (
+          <ShelfBreadcrumbs
+            folder={trail[0] ?? null}
+            onBack={() => openFolderAndReset(null)}
+          />
+        );
       case 'header':
         return (
           <ShelfHeader
@@ -585,20 +583,20 @@ export function LibraryBoard({
       case 'folderGroup': {
         const folder = visibleFolders.find((entry) => entry.id === item.id);
         if (!folder) return null;
+        const joined = !collapsedFolders.has(folder.id) && folder.decks > 0;
         return (
-          <View style={{ marginBottom: item.continued ? 0 : 10 }}>
+          <View style={{ marginBottom: joined ? 0 : 10 }}>
             <FolderGroup
               name={folder.name}
               icon={folder.icon}
               color={folder.color}
               deckCount={folder.decks}
-              directDecks={folder.directDecks}
               due={folder.due}
               pinned={folder.pinnedAt != null}
-              nestedFolders={folder.nestedFolders}
               expanded={!collapsedFolders.has(folder.id)}
+              expandable={folder.decks > 0}
+              joined={joined}
               onToggle={() => onToggleFolder(folder.id)}
-              continued={item.continued}
             />
           </View>
         );
@@ -606,43 +604,9 @@ export function LibraryBoard({
       case 'folderDeck':
         return (
           <FolderBodySlice first={item.first} last={item.last}>
-            {renderDeck(item.deckId, false)}
+            {renderDeck(item.deckId, false, true)}
           </FolderBodySlice>
         );
-      case 'folderTail': {
-        const subfolders = sortPinned(childFoldersOf(library, item.id)).flatMap((child) => {
-          const childAggregate = library.aggregates.get(child.id);
-          if (!childAggregate) return [];
-          return [
-            {
-              id: child.id,
-              name: child.name,
-              icon: child.icon,
-              color: child.color,
-              decks: childAggregate.decks,
-              due: childAggregate.due,
-            },
-          ];
-        });
-        return (
-          <View style={{ marginBottom: 10 }}>
-            <FolderBodySlice first={item.first} last>
-              {subfolders.length > 0 ? (
-                <View style={{ gap: 6 }}>
-                  <FolderSubitems
-                    subfolders={subfolders}
-                    onOpenSubfolder={openFolderAndReset}
-                  />
-                </View>
-              ) : (
-                <AppText variant="caption" tone="muted">
-                  No decks directly inside yet.
-                </AppText>
-              )}
-            </FolderBodySlice>
-          </View>
-        );
-      }
       case 'folderCards':
         return (
           <View style={{ flexDirection: 'row', gap: GRID_GAP, marginBottom: 10 }}>
@@ -673,7 +637,7 @@ export function LibraryBoard({
         return (
           <AppText variant="body" tone="muted" style={{ marginTop: 4 }}>
             {openFolder
-              ? 'This folder is empty. Move a deck in from the deck’s options, or add a folder.'
+              ? 'This folder is empty. Move a deck in from the deck’s options.'
               : 'No decks yet.'}
           </AppText>
         );
@@ -718,6 +682,41 @@ export function LibraryBoard({
       default:
         return null;
     }
+  };
+
+  const renderItem = ({ item, index }: ListRenderItemInfo<Row>) => {
+    const content = renderItemContent(item);
+    if (!content || item.kind === 'hero') return content;
+
+    // The shelf is the one long virtualized surface on Home, so its partition
+    // is drawn row by row: the first row carries the top corners and the last
+    // row closes them. Its inset is part of the cell measurement above, so the
+    // cards sit inside the panel rather than spilling to its edge.
+    const first = index === (hero ? 1 : 0);
+    const last = index === rows.length - 1;
+
+    return (
+      <View
+        style={[
+          {
+            paddingHorizontal: SHELF_PANEL_INSET,
+            backgroundColor: glass.shelf,
+          },
+          first && {
+            paddingTop: 14,
+            borderTopLeftRadius: SHELF_PANEL_RADIUS,
+            borderTopRightRadius: SHELF_PANEL_RADIUS,
+          },
+          last && {
+            paddingBottom: 16,
+            borderBottomLeftRadius: SHELF_PANEL_RADIUS,
+            borderBottomRightRadius: SHELF_PANEL_RADIUS,
+          },
+        ]}
+      >
+        {content}
+      </View>
+    );
   };
 
   return (

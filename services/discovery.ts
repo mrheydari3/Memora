@@ -43,7 +43,6 @@ export async function importDeck(
     description: featured.description,
     icon: featured.icon,
     color: featured.color,
-    parentId: null,
     algorithmPreset: 'fsrs' as const,
     newCardsPerDay: 20,
     maxCardsPerDay: 80,

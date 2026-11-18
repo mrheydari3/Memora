@@ -255,7 +255,7 @@ test.describe('Phase 5 — behaviour', () => {
     await settle(page);
     await expect(page.getByTestId('folder-group').filter({ hasText: 'Flow Folder Edited' })).toBeVisible();
 
-    // Delete from the same editor; its decks move up one level.
+    // Delete from the same editor; its decks become unfiled.
     await page.getByRole('button', { name: 'New folder' }).click();
     const list = page.getByRole('dialog').filter({ hasText: 'New folder' });
     await list.getByRole('button', { name: 'Options for folder Flow Folder Edited' }).click();
@@ -295,59 +295,39 @@ test.describe('Phase 5 — behaviour', () => {
     expect(sheet).toBeTruthy();
   });
 
-  test('folder: nest and re-parent the tree, then reload it', async ({ page }) => {
+  test('folder: the editor offers no nesting destination and saves one flat list', async ({
+    page,
+  }) => {
     await go(page, '/home');
     const sheet = await openFolderSheet(page);
-    await addFolderToSheet(sheet, 'Nest Parent');
-    await addFolderToSheet(sheet, 'Nest Child');
+    await addFolderToSheet(sheet, 'Flat Parent');
+    await addFolderToSheet(sheet, 'Flat Child');
 
-    await sheet.getByRole('button', { name: 'Options for folder Nest Child' }).click();
+    await sheet.getByRole('button', { name: 'Options for folder Flat Child' }).click();
     const editor = page.getByRole('dialog').filter({ hasText: 'Save folder' });
     await expect(editor).toBeVisible();
-    await editor.getByRole('button', { name: /Location/ }).click();
-    const location = page.getByRole('dialog').filter({ hasText: 'Choose the folder' });
-    await expect(location).toBeVisible();
-    await location.getByRole('button', { name: /Nest Parent/ }).click();
-    await expect(editor.getByText('Nest Parent').first()).toBeVisible();
+    // There is no Location row, no Move folder dialog and no nest copy: a
+    // folder has nowhere to go but the one flat list.
+    await expect(editor.getByRole('button', { name: /location/i })).toHaveCount(0);
+    await expect(editor.getByRole('button', { name: /move folder/i })).toHaveCount(0);
+    await expect(editor).not.toContainText(/nest|subfolder|top level/i);
+
+    await editor.getByLabel('Name').fill('Flat Child Edited');
     await editor.getByRole('button', { name: 'Save folder' }).click();
     await closeSheet(page);
 
-    type Folder = { id: string; name: string; parentId: string | null };
-    const folders = await readStorage<Folder[]>(page, STORAGE_KEYS.folders, []);
-    const parent = folders.find((folder) => folder.name === 'Nest Parent');
-    const child = folders.find((folder) => folder.name === 'Nest Child');
-    expect(parent).toBeTruthy();
-    expect(child?.parentId).toBe(parent?.id);
+    type Folder = { name: string; parentId?: string | null };
+    const saved = await readStorage<Folder[]>(page, STORAGE_KEYS.folders, []);
+    expect(saved.map((folder) => folder.name)).toEqual(['Flat Parent', 'Flat Child Edited']);
+    expect(saved.every((folder) => folder.parentId === undefined)).toBe(true);
 
     await page.reload();
     await settle(page);
-    const parentGroup = page.getByTestId('folder-group').filter({ hasText: 'Nest Parent' });
-    await expect(parentGroup).toBeVisible();
-    // The child folder is listed inside its parent as a sub-item; opening it
-    // drills into its level, where the shelf header names it.
-    const childItem = page.getByTestId('folder-subitem').filter({ hasText: 'Nest Child' });
-    await expect(childItem).toBeVisible();
-    await childItem.click();
-    await expect(page.getByTestId('shelf-panel')).toContainText('Nest Child');
-
-    // Re-parent the child back to the root; the parent must not disappear.
-    await page.getByRole('button', { name: 'New folder' }).click();
-    const manager = page.getByRole('dialog').filter({ hasText: 'New folder' });
-    await manager.getByRole('button', { name: 'Options for folder Nest Child' }).click();
-    const reparent = page.getByRole('dialog').filter({ hasText: 'Save folder' });
-    await reparent.getByRole('button', { name: /Location/ }).click();
-    const root = page.getByRole('dialog').filter({ hasText: 'Choose the folder' });
-    await root.getByRole('button', { name: /Top level/ }).click();
-    await reparent.getByRole('button', { name: 'Save folder' }).click();
-    await closeSheet(page);
-    await page.reload();
-    await settle(page);
-
-    const reparented = (await readStorage<Folder[]>(page, STORAGE_KEYS.folders, [])).find(
-      (folder) => folder.name === 'Nest Child'
-    );
-    expect(reparented?.parentId).toBeNull();
-    await expect(page.getByTestId('folder-group').filter({ hasText: 'Nest Child' })).toBeVisible();
+    await expect(page.getByTestId('folder-group').filter({ hasText: 'Flat Parent' })).toBeVisible();
+    await expect(
+      page.getByTestId('folder-group').filter({ hasText: 'Flat Child Edited' })
+    ).toBeVisible();
+    await expect(page.getByTestId('folder-subitem')).toHaveCount(0);
   });
 
   test('deck: pin, duplicate, archive and reload', async ({ page }) => {
@@ -407,18 +387,11 @@ test.describe('Phase 5 — behaviour', () => {
     expect(payload.cards.length).toBeGreaterThan(0);
   });
 
-  test('folder: deleting a parent re-parents its child folders', async ({ page }) => {
+  test('folder: deleting one folder leaves the rest of the flat list intact', async ({ page }) => {
     await go(page, '/home');
     const sheet = await openFolderSheet(page);
     await addFolderToSheet(sheet, 'Tree Parent');
     await addFolderToSheet(sheet, 'Tree Child');
-
-    await sheet.getByRole('button', { name: 'Options for folder Tree Child' }).click();
-    const editor = page.getByRole('dialog').filter({ hasText: 'Save folder' });
-    await editor.getByRole('button', { name: /Location/ }).click();
-    const location = page.getByRole('dialog').filter({ hasText: 'Choose the folder' });
-    await location.getByRole('button', { name: /Tree Parent/ }).click();
-    await editor.getByRole('button', { name: 'Save folder' }).click();
     await closeSheet(page);
 
     await page.reload();
@@ -434,11 +407,11 @@ test.describe('Phase 5 — behaviour', () => {
     type Folder = { name: string; parentId?: string | null };
     const folders = await readStorage<Folder[]>(page, STORAGE_KEYS.folders, []);
     expect(folders.find((folder) => folder.name === 'Tree Parent')).toBeUndefined();
-    expect(folders.find((folder) => folder.name === 'Tree Child')?.parentId ?? null).toBeNull();
+    expect(folders.find((folder) => folder.name === 'Tree Child')?.parentId).toBeUndefined();
     await expect(page.getByTestId('folder-group').filter({ hasText: 'Tree Child' })).toBeVisible();
   });
 
-  test('folder: move up and down rewrites sibling order', async ({ page }) => {
+  test('folder: move up and down rewrites the flat order', async ({ page }) => {
     await go(page, '/home');
     const sheet = await openFolderSheet(page);
     await addFolderToSheet(sheet, 'Order A');
@@ -450,12 +423,12 @@ test.describe('Phase 5 — behaviour', () => {
     await editor.getByRole('button', { name: 'Move down', exact: true }).click();
     await closeSheet(page);
 
-    type Folder = { name: string; parentId?: string | null };
-    const rootOrder = async () =>
-      (await readStorage<Folder[]>(page, STORAGE_KEYS.folders, []))
-        .filter((folder) => !folder.parentId)
-        .map((folder) => folder.name);
-    expect(await rootOrder()).toEqual(['Order A', 'Order C', 'Order B']);
+    type Folder = { name: string };
+    const folderOrder = async () =>
+      (await readStorage<Folder[]>(page, STORAGE_KEYS.folders, [])).map(
+        (folder) => folder.name
+      );
+    expect(await folderOrder()).toEqual(['Order A', 'Order C', 'Order B']);
 
     await page.reload();
     await settle(page);
@@ -466,7 +439,7 @@ test.describe('Phase 5 — behaviour', () => {
     await closeSheet(page);
     await page.reload();
     await settle(page);
-    expect(await rootOrder()).toEqual(['Order A', 'Order B', 'Order C']);
+    expect(await folderOrder()).toEqual(['Order A', 'Order B', 'Order C']);
   });
 
   test('deck: move up and down rewrites sibling order', async ({ page }) => {

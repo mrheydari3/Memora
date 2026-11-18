@@ -12,7 +12,6 @@
  * priority order, so the same deck can never appear twice in the sheet.
  */
 
-import { folderDescendantIds } from './folders';
 import { MIN_DECK_SAMPLE } from './intelligence/core/constants';
 import { startOfDay } from './intelligence/core/dates';
 import type { Deck, DeckFolder, Flashcard, ReviewLogEntry } from './types';
@@ -35,7 +34,7 @@ export type ExploreInput = {
   statsByDeck: readonly ExploreDeckStats[];
   reviewLog: readonly ReviewLogEntry[];
   folders: readonly DeckFolder[];
-  /** null/undefined explores the whole active library; a folder explores its subtree. */
+  /** null/undefined explores the whole active library; a folder explores only its own decks. */
   scopeFolderId?: string | null;
   /** Usually the deck the Today hero already offers. */
   excludeDeckIds?: readonly string[];
@@ -124,9 +123,9 @@ function compareCandidates(a: Candidate, b: Candidate): number {
 export function buildExplorePicks(input: ExploreInput): ExplorePick[] {
   const statsById = new Map(input.statsByDeck.map((stats) => [stats.deckId, stats]));
   const excluded = new Set(input.excludeDeckIds ?? []);
-  const scope = input.scopeFolderId
-    ? new Set([input.scopeFolderId, ...folderDescendantIds(input.folders, input.scopeFolderId)])
-    : null;
+  // Folders are one flat level: a scope is exactly that folder, never any
+  // other folder.
+  const scope = input.scopeFolderId ? new Set([input.scopeFolderId]) : null;
 
   // One pass for the two facts the queue does not carry: when the deck was
   // last touched, and how it performed on reviews that had reached Review.

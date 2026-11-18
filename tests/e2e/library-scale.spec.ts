@@ -7,7 +7,7 @@ import { STORAGE_KEYS as K } from '../../data/storageKeys';
  *
  * The Node suites prove the index arithmetic on the stress fixture; this case
  * proves the screen only mounts a window of it. The browser fixture keeps the
- * deck/folder shape (300 decks, 60 folders, deep nesting, RTL and long names)
+ * deck/folder shape (300 decks, 60 folders, RTL and long names)
  * but stores fewer cards and reviews, because localStorage is a 5 MB budget and
  * the point here is row virtualization, not arithmetic.
  */
@@ -61,7 +61,8 @@ test('a 300-deck library mounts a window, searches, and does not overflow', asyn
   await page.getByRole('progressbar', { name: 'Loading Memora' }).waitFor({ state: 'detached' });
   await page.waitForTimeout(900);
 
-  // Root has 60 folders and no unfiled decks. The list must not mount them all.
+  // The flat shelf lists all 60 folders and no unfiled decks. The list must
+  // not mount them all.
   const foldersMounted = await page.getByTestId('folder-group').count();
   expect(foldersMounted).toBeGreaterThan(0);
   expect(foldersMounted).toBeLessThan(SCALE.folders);

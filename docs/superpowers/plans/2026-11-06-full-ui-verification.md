@@ -1,5 +1,11 @@
 # Full UI Verification Plan — Memora (web)
 
+> **Historical record (superseded 2026-11-18).** This plan describes the
+> pre-flat folder model and is kept as audit history. The current model is one
+> flat folder list: no folder nests in another, folder counts cover only decks
+> filed directly in that folder, and there is no Location/parent picker. See
+> `README.md` and `docs/design-language.md` for the current spec.
+
 > **For agentic workers:** execute this plan phase by phase. Use checkbox (`- [ ]`) syntax for tracking. A phase is not done until its acceptance line is measured and recorded.
 
 **Date:** 2026-11-06

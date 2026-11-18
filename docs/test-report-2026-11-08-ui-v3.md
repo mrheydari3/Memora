@@ -1,5 +1,11 @@
 # Memora UI v3 — full measured verification
 
+> **Historical record (superseded 2026-11-18).** This report describes the
+> folder UI before the flat-folder redesign and is kept as audit history. The
+> current model is one flat folder list: no folder nests in another, folder
+> counts cover only decks filed directly in that folder, and there is no
+> Location/parent picker. See `README.md` and `docs/design-language.md`.
+
 **Date:** 2026-11-08
 **Tree:** `b7637f6` (main, after Task 12) plus the uncommitted Task 14 fixes listed below.
 **Environment:** Linux x64, Node 26, Chromium 156.0.8078.4 (Playwright 1.64.1), exported production build (`npm run build:web`) served by `node scripts/serve-dist.mjs --port=3002 --root=dist`. Every browser number below is against that origin; the Expo dev server was not used.

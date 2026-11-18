@@ -33,7 +33,7 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript({ content: fixtureInitScript(HOME_FIXTURE) });
 });
 
-test('search finds a deck across folders and prints its path', async ({ page }) => {
+test('search finds a deck across folders and prints its folder', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openHome(page);
 
@@ -44,7 +44,7 @@ test('search finds a deck across folders and prints its path', async ({ page }) 
   await expect(page.getByTestId('library-results-count')).toContainText('1 deck');
   const row = page.getByTestId('deck-row').filter({ hasText: 'Schritt Plus Neu' });
   await expect(row).toBeVisible();
-  await expect(row).toContainText('Languages / German');
+  await expect(row).toContainText('German');
   // The matching folder's own card is filtered out; only the deck's path names it.
   await expect(page.getByTestId('folder-card')).toHaveCount(0);
 

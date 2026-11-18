@@ -1,5 +1,11 @@
 # گزارش تست Memora — ۶ نوامبر ۲۰۲۶
 
+> **Historical record (superseded 2026-11-18).** This report describes the
+> pre-flat folder model and is kept as audit history. The current model is one
+> flat folder list: no folder nests in another, folder counts cover only decks
+> filed directly in that folder, and there is no Location/parent picker. See
+> `README.md` and `docs/design-language.md` for the current spec.
+
 نسخه: ۲.۳.۰ · کامیت `55d6059` · سرور: `expo start --web --port 3003` (حالت watch)
 مرورگر: Chromium (ابر) ۳۹۰×۸۴۴ و ۳۲۰×۸۴۴، طرح تیره
 

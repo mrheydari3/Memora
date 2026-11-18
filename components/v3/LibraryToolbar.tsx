@@ -39,7 +39,7 @@ export function LibraryToolbar({
           <SearchBar
             value={query}
             onChangeText={onQueryChange}
-            placeholder="Search decks and folders"
+            placeholder="Search library"
             accessibilityLabel="Search your library"
           />
         </View>

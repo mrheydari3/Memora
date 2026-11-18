@@ -33,7 +33,6 @@ export const sampleDecks: Deck[] = [
     icon: 'language',
     color: '#FFD54F',
     rating: 4.8,
-    parentId: null,
     algorithmPreset: 'fsrs',
     newCardsPerDay: 20,
     maxCardsPerDay: 80,

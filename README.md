@@ -112,7 +112,7 @@ Most flashcard apps are good at collecting cards. Memora is designed around the 
 
 ### The shipped library
 
-A fresh install starts with **1,817 German → Persian cards** from *Schritt Plus Neu A2/B1*, including examples and RTL-aware answer text. The `/dev` screen can seed a deterministic six-deck fixture with 47 cards and 33 reviews for testing edge shapes: nested folders, archived decks, long names, an empty deck, RTL content, and overdue cards.
+A fresh install starts with **1,817 German → Persian cards** from *Schritt Plus Neu A2/B1*, including examples and RTL-aware answer text. The `/dev` screen can seed a deterministic six-deck fixture with 47 cards and 33 reviews for testing edge shapes: a flat folder list, archived decks, long names, an empty deck, RTL content, and overdue cards.
 
 ## Study engine
 

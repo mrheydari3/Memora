@@ -1,10 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  buildFolderAggregates,
-  buildFolderPaths,
   buildLibraryIndex,
-  childFoldersOf,
   foldSearch,
   indexReviews,
   matchesSearch,
@@ -13,7 +10,6 @@ import {
 import { buildStudyQueue } from './session';
 import { buildDevLibrary } from './devFixture';
 import { buildScaleLibrary, MEDIUM_SCALE, STRESS_SCALE } from './libraryFixture';
-import { folderSubtreeCounts } from './folders';
 import type { Deck, DeckFolder, Flashcard, ReviewLogEntry } from './types';
 
 const NOW = new Date('2026-11-10T12:00:00Z').getTime();
@@ -148,7 +144,7 @@ test('studied share is one rule across presets, fast repetition included', () =>
   assert.equal(fsrs.entries[0].progress, entry.progress);
 });
 
-test('folder aggregates equal the per-folder subtree walk', () => {
+test('folder aggregates equal the decks filed directly in each folder', () => {
   const library = buildDevLibrary(NOW);
   const index = buildLibraryIndex(
     library.decks,
@@ -157,49 +153,41 @@ test('folder aggregates equal the per-folder subtree walk', () => {
     library.reviewLog,
     { now: NOW }
   );
-  const dueByDeck = Object.fromEntries(index.entries.map((entry) => [entry.deck.id, entry.total]));
-  const subtrees = folderSubtreeCounts(library.folders, library.decks, dueByDeck);
-
   for (const folder of library.folders) {
     const aggregate = index.aggregates.get(folder.id);
-    const subtree = subtrees.get(folder.id);
+    const direct = index.byFolderId.get(folder.id) ?? [];
     assert.ok(aggregate, `aggregate for ${folder.name}`);
-    assert.ok(subtree, `subtree for ${folder.name}`);
-    assert.equal(aggregate.decks, subtree.decks, `${folder.name}: decks`);
-    assert.equal(aggregate.due, subtree.due, `${folder.name}: due`);
-    assert.equal(aggregate.nestedFolders, subtree.nestedFolders, `${folder.name}: nested`);
-    assert.equal(aggregate.directDecks, index.byFolderId.get(folder.id)?.length ?? 0);
+    assert.equal(aggregate.decks, direct.length, `${folder.name}: decks`);
+    assert.equal(
+      aggregate.due,
+      direct.reduce((sum, entry) => sum + entry.total, 0),
+      `${folder.name}: due`
+    );
+    assert.equal(
+      aggregate.cards,
+      direct.reduce((sum, entry) => sum + entry.cardCount, 0),
+      `${folder.name}: cards`
+    );
   }
 });
 
-test('paths and children resolve once and survive a parent cycle', () => {
+test('folders are one flat level on every index', () => {
   const library = buildDevLibrary(NOW);
-  const paths = buildFolderPaths(library.folders);
-  assert.deepEqual(
-    paths.get('fold-de')?.map((folder) => folder.name),
-    ['Languages', 'German']
+  const index = buildLibraryIndex(
+    library.decks,
+    library.folders,
+    library.cardsByDeck,
+    library.reviewLog,
+    { now: NOW }
   );
 
-  const cyclic = [
-    { id: 'a', name: 'A', createdAt: NOW, parentId: 'b' },
-    { id: 'b', name: 'B', createdAt: NOW, parentId: 'a' },
-  ];
-  const index = buildLibraryIndex([], cyclic, {}, [], { now: NOW });
-  assert.equal(index.aggregates.size, 2);
-  assert.deepEqual(index.totals, {
-    decks: 0,
-    folders: 2,
-    due: 0,
-    dueDecks: 0,
-    cards: 0,
-    studied: 0,
-    progress: 0,
-    caughtUpDecks: 0,
-    caughtUpFolders: 0,
-    archived: 0,
-  });
-  assert.ok(buildFolderPaths(cyclic).get('a')!.length >= 1);
-  assert.equal(childFoldersOf(index, null).length, 0);
+  assert.equal(index.foldersById.size, library.folders.length);
+  assert.equal(index.aggregates.size, library.folders.length);
+  // No parent map, no child list, no path: the flat model has no place for a
+  // folder to point at another folder.
+  assert.equal('pathById' in index, false);
+  assert.equal('childrenByParent' in index, false);
+  assert.ok(library.folders.every((folder) => !('parentId' in folder)));
 });
 
 test('orphan decks stay unfiled and never pad a folder', () => {
@@ -259,8 +247,9 @@ test('stress library indexes in one pass and keeps every total', () => {
   }
   assert.equal(placed.size, active.length);
 
-  // The root folders' subtree totals add up to the library totals.
-  const roots = childFoldersOf(index, null);
+  // Every folder is a top-level peer, so all folder totals plus unfiled decks
+  // add up to the library totals.
+  const roots = library.folders;
   const rootDecks = roots.reduce((sum, folder) => sum + (index.aggregates.get(folder.id)?.decks ?? 0), 0);
   const rootDue = roots.reduce((sum, folder) => sum + (index.aggregates.get(folder.id)?.due ?? 0), 0);
   assert.equal(rootDecks + index.unfiled.length, active.length);
@@ -285,38 +274,6 @@ test('stress library indexes in one pass and keeps every total', () => {
   }
 });
 
-test('bottom-up aggregation visits each folder once', () => {
-  const library = buildScaleLibrary(STRESS_SCALE, NOW);
-  const index = buildLibraryIndex(
-    library.decks,
-    library.folders,
-    library.cardsByDeck,
-    library.reviewLog,
-    { now: NOW }
-  );
-  const children = new Map<string, string[]>();
-  for (const folder of library.folders) children.set(folder.id, []);
-  for (const folder of library.folders) {
-    if (folder.parentId) children.get(folder.parentId)?.push(folder.id);
-  }
-
-  // The aggregate for a folder must equal direct totals plus its children's,
-  // which is only true if the fold is bottom-up and cycle-safe.
-  for (const folder of library.folders) {
-    const aggregate = index.aggregates.get(folder.id)!;
-    const direct = index.byFolderId.get(folder.id) ?? [];
-    let decks = direct.length;
-    let due = direct.reduce((sum, entry) => sum + entry.total, 0);
-    for (const childId of children.get(folder.id) ?? []) {
-      const child = index.aggregates.get(childId)!;
-      decks += child.decks;
-      due += child.due;
-    }
-    assert.equal(aggregate.decks, decks, `${folder.id}: decks`);
-    assert.equal(aggregate.due, due, `${folder.id}: due`);
-  }
-});
-
 test('empty library and deleted folders are handled without special cases', () => {
   const index = buildLibraryIndex([], [], {}, [], { now: NOW });
   assert.deepEqual(index.entries, []);
@@ -331,6 +288,12 @@ test('empty library and deleted folders are handled without special cases', () =
   assert.equal(folderless.byFolderId.size, 0);
   assert.equal(folderless.unfiled.length, folderless.entries.length);
 
-  const aggregates = buildFolderAggregates(library.folders, new Map(), new Map());
-  assert.equal(aggregates.get('fold-empty')?.decks, 0);
+  const withFolders = buildLibraryIndex(
+    library.decks,
+    library.folders,
+    library.cardsByDeck,
+    library.reviewLog,
+    { now: NOW }
+  );
+  assert.equal(withFolders.aggregates.get('fold-empty')?.decks, 0);
 });

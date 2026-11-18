@@ -151,7 +151,6 @@ export default function AddDeckScreen() {
         description: description.trim() || undefined,
         icon,
         color,
-        parentId: null,
         folderId: targetFolder?.id ?? null,
         algorithmPreset: 'fsrs',
         newCardsPerDay: 20,

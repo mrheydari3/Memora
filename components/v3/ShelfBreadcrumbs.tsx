@@ -1,37 +1,35 @@
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
 import { colors, fills, iconSize, radii } from '../../theme/tokens';
 
 type ShelfBreadcrumbsProps = {
-  /** Every folder from the top level down to the open folder, inclusive. */
-  trail: { id: string; name: string }[];
-  /** `null` returns to the top level. */
-  onNavigate: (folderId: string | null) => void;
+  /** The folder the shelf is inside; null at the top level. */
+  folder: { id: string; name: string } | null;
+  /** Returns to the flat folder list. */
+  onBack: () => void;
 };
 
 const CRUMB_HIT = 44;
 
 /**
- * ShelfBreadcrumbs — the library's path back through the folder tree.
+ * ShelfBreadcrumbs — the shelf's address while a folder is open.
  *
- * The old back link could only reach the parent, which made a nested folder a
- * one-way trip on a phone. This keeps every ancestor in the path, including
- * "All decks", and scrolls horizontally instead of squeezing a long name. The
- * trail sits in a quiet capsule so it reads as the shelf's address rather than
- * as a row of unrelated links.
+ * Folders are one flat level, so the path can only ever be "All decks" plus
+ * the folder itself: there is no parent to walk back through. The trail sits
+ * in a quiet capsule so it reads as the shelf's address, not as a row of links.
  */
-export function ShelfBreadcrumbs({ trail, onNavigate }: ShelfBreadcrumbsProps) {
-  if (trail.length === 0) return null;
+export function ShelfBreadcrumbs({ folder, onBack }: ShelfBreadcrumbsProps) {
+  if (!folder) return null;
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
+    <View
       accessibilityLabel="Library path"
-      style={{ marginBottom: 14, flexGrow: 0 }}
-      contentContainerStyle={{
+      style={{
+        marginBottom: 14,
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
         alignItems: 'center',
         minHeight: CRUMB_HIT,
         paddingHorizontal: 6,
@@ -41,7 +39,7 @@ export function ShelfBreadcrumbs({ trail, onNavigate }: ShelfBreadcrumbsProps) {
     >
       <HintPressable
         hint="Go to all decks"
-        onPress={() => onNavigate(null)}
+        onPress={onBack}
         accessibilityRole="button"
         accessibilityLabel="All decks"
         style={{
@@ -59,48 +57,21 @@ export function ShelfBreadcrumbs({ trail, onNavigate }: ShelfBreadcrumbsProps) {
         </AppText>
       </HintPressable>
 
-      {trail.map((folder, index) => {
-        const current = index === trail.length - 1;
-        return (
-          <View key={folder.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <MaterialIcons name="chevron-right" size={iconSize.sm} color={colors.outline} />
-            {current ? (
-              <View
-                accessible
-                accessibilityLabel={`Current folder ${folder.name}`}
-                style={{
-                  minHeight: CRUMB_HIT,
-                  justifyContent: 'center',
-                  paddingHorizontal: 6,
-                  maxWidth: 220,
-                }}
-              >
-                <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
-                  {folder.name}
-                </AppText>
-              </View>
-            ) : (
-              <HintPressable
-                hint={`Go to ${folder.name}`}
-                onPress={() => onNavigate(folder.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`Go to ${folder.name}`}
-                style={{
-                  minHeight: CRUMB_HIT,
-                  justifyContent: 'center',
-                  paddingHorizontal: 6,
-                  maxWidth: 220,
-                  borderRadius: radii.control,
-                }}
-              >
-                <AppText variant="bodySm" weight="semibold" tone="accent" numberOfLines={1}>
-                  {folder.name}
-                </AppText>
-              </HintPressable>
-            )}
-          </View>
-        );
-      })}
-    </ScrollView>
+      <MaterialIcons name="chevron-right" size={iconSize.sm} color={colors.outline} />
+      <View
+        accessible
+        accessibilityLabel={`Current folder ${folder.name}`}
+        style={{
+          minHeight: CRUMB_HIT,
+          justifyContent: 'center',
+          paddingHorizontal: 6,
+          maxWidth: 220,
+        }}
+      >
+        <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
+          {folder.name}
+        </AppText>
+      </View>
+    </View>
   );
 }

@@ -4,8 +4,8 @@ import { buildFixture, fixtureInitScript } from '../ui/fixtures';
 
 /**
  * Edit layout is a real drag surface, not only a visual state. The dev fixture
- * gives us two unpinned root decks and three root folders (one pinned), which
- * covers both sibling groups and the pinned boundary the store enforces.
+ * gives us two unpinned root decks and four folders (one pinned),
+ * which covers both sibling groups and the pinned boundary the store enforces.
  */
 const FIXED_NOW = new Date('2026-11-07T12:00:00Z');
 const FIXTURE = buildFixture('F3', FIXED_NOW.getTime());
@@ -81,7 +81,7 @@ test('edit layout drags decks and folders and persists the order', async ({ page
   const decks = page.getByTestId('reorder-group-decks').getByTestId('reorder-row');
   const folders = page.getByTestId('reorder-group-folders').getByTestId('reorder-row');
   await expect(decks).toHaveCount(2);
-  await expect(folders).toHaveCount(3);
+  await expect(folders).toHaveCount(4);
 
   const firstDeckBefore = await rowName(decks.first());
   await dragDown(page, decks.first());

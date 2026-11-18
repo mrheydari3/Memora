@@ -15,7 +15,7 @@
  * surfaces need. Neither can drift from the other without a failing test.
  */
 
-import type { Deck, Flashcard } from '../../data/types';
+import type { Deck, DeckFolder, Flashcard } from '../../data/types';
 import { buildDevLibrary, type DevLibrary } from '../../data/devFixture';
 import { sampleCards, sampleDecks } from '../../data/seed';
 import { STORAGE_KEYS as K } from '../../data/storageKeys';
@@ -136,12 +136,18 @@ function edgeLibrary(now: number): DevLibrary {
   return {
     ...library,
     folders: [
-      ...library.folders,
+      // F2 deliberately writes the pre-flat tree shape so the load migration
+      // is exercised: German still points at Languages here, and the app must
+      // drop that link without moving either folder's decks.
+      ...library.folders.map((folder) =>
+        folder.id === 'fold-de'
+          ? ({ ...folder, parentId: 'fold-lang' } as unknown as DeckFolder)
+          : folder
+      ),
       {
         id: 'fold-long',
         name: LONG_FOLDER_NAME,
         createdAt: now - 6 * DAY,
-        parentId: null,
       },
     ],
   };

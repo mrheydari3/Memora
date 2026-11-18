@@ -14,7 +14,7 @@ import { FSRS_DEFAULTS } from './fsrs-params';
  * Developer fixture — a deterministic test library.
  *
  * The shipped seed is one deck of 1,817 cards, which cannot exercise the shapes
- * the app actually has to survive: nested folders, a deck with no cards, an
+ * the app actually has to survive: a long folder name, a deck with no cards, an
  * overflow-prone name, RTL cards, overdue reviews and a review history long
  * enough for a streak. This module is the single source of that library, so the
  * `/dev` screen and any future test harness write exactly the same data.
@@ -102,7 +102,6 @@ function makeDeck(id: string, name: string, now: number, overrides: Partial<Deck
     icon: 'language',
     color: '#FFD54F',
     rating: 4.5,
-    parentId: null,
     algorithmPreset: 'fsrs',
     newCardsPerDay: 20,
     maxCardsPerDay: 80,
@@ -163,7 +162,6 @@ export function buildDevLibrary(now: number = Date.now()): DevLibrary {
       createdAt: now - 9 * DAY,
       icon: 'translate',
       color: '#FFD54F',
-      parentId: null,
     },
     {
       id: 'fold-de',
@@ -171,7 +169,6 @@ export function buildDevLibrary(now: number = Date.now()): DevLibrary {
       createdAt: now - 9 * DAY,
       icon: 'language',
       color: '#FFD54F',
-      parentId: 'fold-lang',
     },
     {
       id: 'fold-travel',
@@ -179,14 +176,12 @@ export function buildDevLibrary(now: number = Date.now()): DevLibrary {
       createdAt: now - 8 * DAY,
       icon: 'flight',
       color: '#4FC3F7',
-      parentId: null,
       pinnedAt: now,
     },
     {
       id: 'fold-empty',
       name: 'Nothing here yet',
       createdAt: now - 7 * DAY,
-      parentId: null,
     },
   ];
 

@@ -7,7 +7,6 @@ import { useReviewStore } from '../../store/useReviewStore';
 import { buildLibraryIndex } from '../../data/library';
 import { computeStreak } from '../../data/streak';
 import { estimateSessionMinutes } from '../../data/session';
-import { folderDescendantIds, folderPath } from '../../data/folders';
 import { FOLDER_DEFAULT_ICON } from '../../data/appearance';
 import type { Deck } from '../../data/types';
 import { Menu } from '../../components/menu/Menu';
@@ -49,8 +48,8 @@ import { v3 } from '../../theme/v3';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
-/** The three bodies the Folders sheet can show. */
-type FolderSheetMode = 'list' | 'edit' | 'location';
+/** The two bodies the Folders sheet can show. */
+type FolderSheetMode = 'list' | 'edit';
 
 /**
  * Home — "Today first", with a folder-first library.
@@ -58,9 +57,8 @@ type FolderSheetMode = 'list' | 'edit' | 'location';
  * The page answers "what do I study now?" before "what do I own?": the day
  * label ("Today") is the h1 and the due number is the canvas's one display-sized
  * element, one primary action opens the session, and the day's new/learning/
- * review split sits underneath. The library is browsed level by level: the top
- * level holds root folders and unfiled decks, and every folder opens into its
- * own subfolders and decks.
+ * review split sits underneath. The library is one flat shelf: every folder is
+ * a peer, and a folder opens only onto the decks filed in it.
  *
  * The body is one virtualized list (`LibraryBoard`): the hero, breadcrumbs,
  * masthead, search, folder groups and deck rows are all rows of the same
@@ -106,7 +104,7 @@ export default function HomeScreen() {
   const ready = loaded && reviewLoaded;
 
   // Folders are a browsing layer: creating one is local, deleting one only
-  // moves its decks and subfolders up, so neither can touch a card or a review.
+  // unfiles its decks, so neither can touch a card or a review.
   const [folderSheet, setFolderSheet] = useState(false);
   const [folderSheetMode, setFolderSheetMode] = useState<FolderSheetMode>('list');
   const [folderDraft, setFolderDraft] = useState('');
@@ -118,7 +116,6 @@ export default function HomeScreen() {
   const [editName, setEditName] = useState('');
   const [editIcon, setEditIcon] = useState<string>(FOLDER_DEFAULT_ICON);
   const [editColor, setEditColor] = useState<string>(COLOR_CHOICES[0]);
-  const [editParentId, setEditParentId] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() => new Set());
   const [editingLayout, setEditingLayout] = useState(false);
@@ -177,8 +174,8 @@ export default function HomeScreen() {
     deckQueues[0];
   const resuming = Boolean(lastStudiedEntry && continueEntry?.deck.id === lastStudiedEntry.deck.id);
 
-  // A folder deleted from the sheet falls back to its parent instead of hiding
-  // the level it was on.
+  // A folder deleted from the sheet falls back to the flat list instead of
+  // hiding the level it was on.
   const openFolder = useMemo(
     () => (openFolderId ? folders.find((folder) => folder.id === openFolderId) ?? null : null),
     [openFolderId, folders]
@@ -187,15 +184,6 @@ export default function HomeScreen() {
   const editingFolder = editingFolderId
     ? folders.find((folder) => folder.id === editingFolderId) ?? null
     : null;
-
-  // A folder may move anywhere except into itself or one of its own children.
-  const eligibleParents = useMemo(() => {
-    if (!editingFolder) return [];
-    const descendants = folderDescendantIds(folders, editingFolder.id);
-    return folders.filter(
-      (folder) => folder.id !== editingFolder.id && !descendants.has(folder.id)
-    );
-  }, [folders, editingFolder]);
 
   const closeFolders = () => {
     setFolderSheet(false);
@@ -220,7 +208,6 @@ export default function HomeScreen() {
     setEditName(folder.name);
     setEditIcon(folder.icon ?? FOLDER_DEFAULT_ICON);
     setEditColor(folder.color ?? COLOR_CHOICES[0]);
-    setEditParentId(folder.parentId ?? null);
     setEditError(null);
     setFolderSheetMode('edit');
   };
@@ -231,15 +218,12 @@ export default function HomeScreen() {
       name: editName,
       icon: editIcon,
       color: editColor,
-      parentId: editParentId,
     });
     if (!result.ok) {
       setEditError(
         result.error === 'duplicate'
           ? 'A folder with that name already exists.'
-          : result.error === 'cycle'
-            ? 'A folder cannot move inside itself.'
-            : 'Give the folder a name.'
+          : 'Give the folder a name.'
       );
       return;
     }
@@ -352,18 +336,13 @@ export default function HomeScreen() {
         />
         <View className="mt-2">
           {folders.map((folder) => {
-            const trail = folderPath(folders, folder.id)
-              .map((entry) => entry.name)
-              .join(' / ');
             const count = library.aggregates.get(folder.id)?.decks ?? 0;
-            const meta = `${trail === folder.name ? '' : `${trail} · `}${count} ${
-              count === 1 ? 'deck' : 'decks'
-            }`;
+            const meta = `${count} ${count === 1 ? 'deck' : 'decks'}`;
             return (
               <View
                 key={folder.id}
                 style={{
-                  minHeight: v3.heights.subfolderRow,
+                  minHeight: v3.heights.folderSheetRow,
                   flexDirection: 'row',
                   alignItems: 'center',
                   gap: 10,
@@ -588,18 +567,12 @@ export default function HomeScreen() {
         desktopLayout={desktop}
         focusKey={`${folderSheetMode}-${editingFolderId ?? 'list'}`}
         title={
-          folderSheetMode === 'edit'
-            ? 'Edit folder'
-            : folderSheetMode === 'location'
-              ? 'Move folder'
-              : 'Folders'
+          folderSheetMode === 'edit' ? 'Edit folder' : 'Folders'
         }
         subtitle={
           folderSheetMode === 'edit'
-            ? 'Rename it, pick its icon and colour, or move it in the tree.'
-            : folderSheetMode === 'location'
-              ? 'Choose the folder that should hold this one.'
-              : 'Group decks for browsing. Nothing is moved or copied.'
+            ? 'Rename it, or pick its icon and colour.'
+            : 'Group decks for browsing. Nothing is moved or copied.'
         }
       >
         <SheetScrollView
@@ -629,9 +602,7 @@ export default function HomeScreen() {
                   inputRef={folderDraftRef}
                 />
                 <AppText variant="caption" tone="muted" className="mt-1.5">
-                  {openFolder
-                    ? `Creates inside ${openFolder.name}.`
-                    : 'Creates on the top level.'}
+                  Creates on the top level, next to your other folders.
                 </AppText>
                 {folderError && (
                   <AppText variant="bodySm" tone="danger" className="mt-2">
@@ -657,7 +628,6 @@ export default function HomeScreen() {
                       const result = await addFolder(folderDraft, {
                         icon: folderIcon,
                         color: folderColor,
-                        parentId: openFolder?.id ?? null,
                       });
                       if (!result.ok) {
                         setFolderError(
@@ -720,22 +690,6 @@ export default function HomeScreen() {
               <View style={desktop ? { flex: 1, minWidth: 0 } : undefined}>
                 <View className="mt-5">
                   <ListRow
-                    title="Location"
-                    subtitle="Where this folder sits in the library"
-                    value={
-                      editParentId
-                        ? folderPath(folders, editParentId)
-                            .map((entry) => entry.name)
-                            .join(' / ')
-                        : 'Top level'
-                    }
-                    icon="drive-file-move"
-                    tile="sm"
-                    density="compact"
-                    gutter={0}
-                    onPress={() => setFolderSheetMode('location')}
-                  />
-                  <ListRow
                     title={editingFolder.pinnedAt ? 'Unpin folder' : 'Pin folder'}
                     subtitle={
                       editingFolder.pinnedAt
@@ -770,7 +724,7 @@ export default function HomeScreen() {
                   />
                   <ListRow
                     title="Delete folder"
-                    subtitle="Its folders and decks move up one level"
+                    subtitle="Its decks become unfiled; nothing is deleted"
                     icon="delete-outline"
                     tile="sm"
                     density="compact"
@@ -779,7 +733,7 @@ export default function HomeScreen() {
                     destructive
                     onPress={() => {
                       if (openFolderId === editingFolder.id) {
-                        setOpenFolderId(editingFolder.parentId ?? null);
+                        setOpenFolderId(null);
                       }
                       void deleteFolder(editingFolder.id);
                       closeFolders();
@@ -800,55 +754,6 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {folderSheetMode === 'location' && editingFolder && (
-            <View
-              style={
-                desktop ? { width: '100%', maxWidth: 560, alignSelf: 'center' } : undefined
-              }
-            >
-              <ListRow
-                title="Top level"
-                subtitle="Shows next to Your decks"
-                icon="home"
-                tile="sm"
-                density="compact"
-                gutter={0}
-                showChevron={false}
-                highlighted={editParentId === null}
-                onPress={() => {
-                  setEditParentId(null);
-                  setFolderSheetMode('edit');
-                }}
-              />
-              {eligibleParents.map((parent) => (
-                <ListRow
-                  key={parent.id}
-                  title={folderPath(folders, parent.id)
-                    .map((entry) => entry.name)
-                    .join(' / ')}
-                  subtitle="Nest this folder inside it"
-                  icon={(parent.icon ?? FOLDER_DEFAULT_ICON) as IconName}
-                  iconTone={parent.color ? 'deck' : 'neutral'}
-                  deckColor={parent.color}
-                  tile="sm"
-                  density="compact"
-                  gutter={0}
-                  showChevron={false}
-                  highlighted={editParentId === parent.id}
-                  onPress={() => {
-                    setEditParentId(parent.id);
-                    setFolderSheetMode('edit');
-                  }}
-                />
-              ))}
-              <GhostButton
-                className="mt-3"
-                label="Back to folders"
-                variant="text"
-                onPress={() => setFolderSheetMode('edit')}
-              />
-            </View>
-          )}
         </SheetScrollView>
       </BottomSheetModal>
     </Screen>

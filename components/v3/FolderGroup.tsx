@@ -1,28 +1,13 @@
 import { useState } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { colors, fills, iconSize, radii } from '../../theme/tokens';
+import { colors, fills, glass, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
-import { FolderGlass } from './FolderGlass';
 import { FolderGlyph } from './FolderGlyph';
 import { ShelfStatusPill } from './ShelfStatusPill';
-
-export type FolderSubItem = {
-  id: string;
-  name: string;
-  icon?: string;
-  color?: string;
-  /** Decks anywhere in the subfolder's subtree. */
-  decks: number;
-  due: number;
-};
-
-export type FolderSubitemsProps = {
-  subfolders: FolderSubItem[];
-  onOpenSubfolder?: (id: string) => void;
-};
+import { Surface } from './Surface';
 
 type FolderGroupProps = {
   name: string;
@@ -30,49 +15,39 @@ type FolderGroupProps = {
   icon?: string;
   /** The folder's own colour, washed into the header glyph. */
   color?: string;
-  /** Decks anywhere in this folder's subtree. */
+  /** Decks filed directly in this folder. */
   deckCount: number;
-  /** Decks filed directly in this folder, not in a child folder. */
-  directDecks?: number;
-  /** Cards those decks want today, rolled through the subtree. */
+  /** Cards those decks want today. */
   due: number;
   pinned?: boolean;
-  /** How many folders sit one level below, for the header split. */
-  nestedFolders?: number;
-  /** Those folders, listed under the group as sub-items. */
-  subfolders?: FolderSubItem[];
-  onOpenSubfolder?: (id: string) => void;
   expanded: boolean;
   onToggle: () => void;
-  /** Square the bottom edge when the decks continue as their own list rows. */
-  continued?: boolean;
-  children?: React.ReactNode;
+  /** False when the card has no decks to reveal, so it draws no chevron. */
+  expandable?: boolean;
+  /** True while the deck body is attached directly beneath the header. */
+  joined?: boolean;
 };
 
 /**
- * FolderGroup — the phone's folder panel.
+ * FolderGroup — the phone's folder card.
  *
- * A folder is a place, so it keeps its illustrated jacket, but the design now
- * draws it as one pane: a header banner that names the subtree (glyph, name,
- * pin, counts, due pill) with the expand chevron at the trailing edge, then a
- * recessed well holding the decks and child folders that live inside it. The
- * header and the well are both fills — no rail, no guide line, no frame — so
- * the level reads as one object with two depths.
+ * A folder is a place, so it keeps its illustrated glyph and its own jacket
+ * fill. When closed, the card has four 22px corners. When open, the header and
+ * its deck rows form one continuous folder: the header drops its bottom corners
+ * and the body carries the same jacket down to one rounded bottom edge. The
+ * deck rows stay separate FlatList rows so a long folder remains virtualized.
  */
 export function FolderGroup({
   name,
   icon,
   color,
   deckCount,
-  directDecks = deckCount,
   due,
   pinned = false,
-  subfolders = [],
-  onOpenSubfolder,
   expanded,
   onToggle,
-  continued = false,
-  children,
+  expandable = true,
+  joined = false,
 }: FolderGroupProps) {
   // React Native Web maps DOM ARIA props, not `accessibilityState`, onto a
   // Pressable's rendered element; the accordion's open state must reach
@@ -83,172 +58,129 @@ export function FolderGroup({
 
   const empty = deckCount === 0;
   const deckLabel = deckCount === 1 ? 'deck' : 'decks';
-  const nestedDecks = Math.max(0, deckCount - directDecks);
-  // A parent with no direct decks is not empty: name what it actually holds.
-  // Child folders are listed below, so their count never needs a spot here.
-  const counts =
-    nestedDecks > 0
-      ? `${directDecks} direct · ${nestedDecks} nested`
-      : `${deckCount} ${deckLabel}`;
   // The due pill is the folder's one status mark; the meta line states what
   // the folder holds, so the number is never printed twice in one header.
-  const metaLabel = empty ? 'Empty folder' : counts;
-  const hasContents = Boolean(children) || subfolders.length > 0;
+  const metaLabel = empty ? 'Empty folder' : `${deckCount} ${deckLabel}`;
+  const header = (
+    <>
+      <FolderGlyph icon={icon} color={color} size={40} />
 
-  return (
-    <FolderGlass
-      radius={radii.pane}
-      padding={0}
-      hovered={hovered}
-      squareBottom={continued}
-      style={{ width: '100%' }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingRight: 8 }}>
-        <HintPressable
-          hint={expanded ? 'Collapse folder' : 'Expand folder'}
-          onHoverIn={() => setHovered(true)}
-          onHoverOut={() => setHovered(false)}
-          testID="folder-group"
-          onPress={onToggle}
-          accessibilityRole="button"
-          accessibilityState={{ expanded }}
-          {...webExpanded}
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <AppText
+            variant="bodyLg"
+            weight="semibold"
+            numberOfLines={2}
+            style={{ letterSpacing: -0.1, flexShrink: 1 }}
+          >
+            {name}
+          </AppText>
+          {pinned && (
+            <MaterialIcons name="push-pin" size={iconSize.xs} color={colors.outline} />
+          )}
+        </View>
+
+        <View
           style={{
-            // A folder header is a place, not a row: it stands a little taller
-            // than a deck card and carries the folder art.
-            minHeight: v3.heights.folderGroup,
-            flex: 1,
-            minWidth: 0,
+            marginTop: 2,
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 12,
-            paddingLeft: 14,
-            paddingRight: 4,
-            paddingVertical: 10,
+            flexWrap: 'wrap',
+            columnGap: 8,
+            rowGap: 4,
           }}
         >
-          <FolderGlyph icon={icon} color={color} size={40} />
-
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <AppText
-                variant="bodyLg"
-                weight="semibold"
-                numberOfLines={2}
-                style={{ letterSpacing: -0.1, flexShrink: 1 }}
-              >
-                {name}
-              </AppText>
-              {pinned && (
-                <MaterialIcons name="push-pin" size={iconSize.xs} color={colors.outline} />
-              )}
-            </View>
-
-            <View
-              style={{
-                marginTop: 2,
-                flexDirection: 'row',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                columnGap: 8,
-                rowGap: 4,
-              }}
-            >
-              <AppText
-                variant="caption"
-                tone="tertiary"
-                numberOfLines={2}
-                style={{ flexShrink: 1, minWidth: 0 }}
-              >
-                {metaLabel}
-              </AppText>
-              <View style={{ marginLeft: 'auto' }}>
-                <ShelfStatusPill due={due} empty={empty} />
-              </View>
-            </View>
-          </View>
-
-          <View style={{ transform: [{ rotate: expanded ? '0deg' : '-90deg' }] }}>
-            <MaterialIcons name="expand-more" size={iconSize.lg} color={colors.outline} />
-          </View>
-        </HintPressable>
-
-      </View>
-
-      {expanded && hasContents ? (
-        <View style={{ paddingHorizontal: 8, paddingBottom: 8 }}>
-          <View
-            style={{
-              gap: 6,
-              padding: 6,
-              borderRadius: v3.radii.control,
-              backgroundColor: fills.inset,
-            }}
+          <AppText
+            variant="caption"
+            tone="tertiary"
+            numberOfLines={2}
+            style={{ flexShrink: 1, minWidth: 0 }}
           >
-            {children}
-
-            <FolderSubitems subfolders={subfolders} onOpenSubfolder={onOpenSubfolder} />
+            {metaLabel}
+          </AppText>
+          <View style={{ marginLeft: 'auto' }}>
+            <ShelfStatusPill due={due} empty={empty} />
           </View>
         </View>
-      ) : null}
-    </FolderGlass>
-  );
-}
+      </View>
 
-/**
- * The child-folder rows of a folder. Shared by the inline body above and by the
- * list-owned tail, so both draw the same row.
- */
-export function FolderSubitems({ subfolders, onOpenSubfolder }: FolderSubitemsProps) {
-  return (
-    <>
-      {subfolders.map((subfolder) => (
-        <HintPressable
-          key={subfolder.id}
-          hint="Open folder"
-          testID="folder-subitem"
-          onPress={() => onOpenSubfolder?.(subfolder.id)}
-          accessibilityRole="button"
-          accessibilityLabel={`Open folder ${subfolder.name}, ${subfolder.decks} ${
-            subfolder.decks === 1 ? 'deck' : 'decks'
-          }, ${subfolder.due} due`}
-          style={{
-            minHeight: v3.heights.subfolderRow,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 10,
-            paddingHorizontal: 6,
-            paddingVertical: 6,
-            borderRadius: radii.control,
-          }}
-        >
-          <FolderGlyph icon={subfolder.icon} color={subfolder.color} size={32} />
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
-              {subfolder.name}
-            </AppText>
-            <AppText
-              variant="caption"
-              tone="tertiary"
-              numberOfLines={1}
-              style={{ marginTop: 1 }}
-            >
-              {subfolder.decks} {subfolder.decks === 1 ? 'deck' : 'decks'} ·{' '}
-              {subfolder.due} due
-            </AppText>
-          </View>
-          <MaterialIcons name="chevron-right" size={iconSize.sm} color={colors.outline} />
-        </HintPressable>
-      ))}
+      {expandable ? (
+        <View style={{ transform: [{ rotate: expanded ? '0deg' : '-90deg' }] }}>
+          <MaterialIcons name="expand-more" size={iconSize.lg} color={colors.outline} />
+        </View>
+      ) : null}
     </>
   );
+  const headerStyle = {
+    // A folder header is a place, not a row: it stands a little taller than a
+    // deck card and carries the folder art.
+    minHeight: v3.heights.folderGroup,
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 12,
+    paddingLeft: 14,
+    paddingRight: expandable ? 12 : 14,
+    paddingVertical: 10,
+    borderTopLeftRadius: v3.radii.card,
+    borderTopRightRadius: v3.radii.card,
+    borderBottomLeftRadius: joined ? 0 : v3.radii.card,
+    borderBottomRightRadius: joined ? 0 : v3.radii.card,
+  };
+
+  return (
+    <Surface
+      tone="pane"
+      radius="card"
+      padding="none"
+      style={{
+        width: '100%',
+        overflow: 'hidden',
+        position: 'relative',
+        backgroundColor: glass.folder,
+        ...(joined
+          ? { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }
+          : null),
+      }}
+    >
+      {hovered ? (
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, { backgroundColor: fills.subtle }]}
+        />
+      ) : null}
+
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        {expandable ? (
+          <HintPressable
+            hint={expanded ? 'Collapse folder' : 'Expand folder'}
+            onHoverIn={() => setHovered(true)}
+            onHoverOut={() => setHovered(false)}
+            testID="folder-group"
+            onPress={onToggle}
+            accessibilityRole="button"
+            accessibilityState={{ expanded }}
+            {...webExpanded}
+            style={headerStyle}
+          >
+            {header}
+          </HintPressable>
+        ) : (
+          <View testID="folder-group" style={headerStyle}>
+            {header}
+          </View>
+        )}
+      </View>
+    </Surface>
+  );
 }
 
 /**
- * One slice of a folder's recessed body. A folder's decks are their own list
- * rows, so a long folder mounts a window instead of every deck; consecutive
- * slices share the inset fill and only the first and last carry the rounded
- * caps, which keeps the body reading as one well.
+ * One slice of an open folder's body. A folder's decks are their own list rows,
+ * so a long folder mounts a window instead of every deck. Consecutive slices
+ * share the folder's jacket; only the last slice rounds the bottom edge, which
+ * keeps the header and its decks reading as one surface.
  */
 export function FolderBodySlice({
   first = false,
@@ -260,21 +192,18 @@ export function FolderBodySlice({
   children: React.ReactNode;
 }) {
   return (
-    <View style={{ paddingHorizontal: 8 }}>
-      <View
-        style={{
-          backgroundColor: fills.inset,
-          paddingHorizontal: 6,
-          paddingTop: first ? 6 : 3,
-          paddingBottom: last ? 6 : 3,
-          borderTopLeftRadius: first ? v3.radii.control : 0,
-          borderTopRightRadius: first ? v3.radii.control : 0,
-          borderBottomLeftRadius: last ? v3.radii.control : 0,
-          borderBottomRightRadius: last ? v3.radii.control : 0,
-        }}
-      >
-        {children}
-      </View>
+    <View
+      style={{
+        backgroundColor: glass.folder,
+        paddingHorizontal: 10,
+        paddingTop: first ? 8 : 3,
+        paddingBottom: last ? 10 : 3,
+        borderBottomLeftRadius: last ? v3.radii.card : 0,
+        borderBottomRightRadius: last ? v3.radii.card : 0,
+        marginBottom: last ? 10 : 0,
+      }}
+    >
+      {children}
     </View>
   );
 }

@@ -6,7 +6,6 @@ import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
 import { buildStudyQueue } from '../../data/session';
-import { folderPath } from '../../data/folders';
 import { exportJson } from '../../services/export';
 import { alpha, colors, heights, iconSize, radii, stateColors } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
@@ -392,9 +391,7 @@ export default function DeckDetailsScreen() {
     },
     ...folders.map((folder) => ({
       key: folder.id,
-      label: folderPath(folders, folder.id)
-        .map((entry) => entry.name)
-        .join(' / '),
+      label: folder.name,
       icon: 'folder' as const,
       selected: deck.folderId === folder.id,
       onPress: () => void setDeckFolder(deck.id, folder.id),

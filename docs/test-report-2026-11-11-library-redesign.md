@@ -1,5 +1,12 @@
 # Your Decks — audit, redesign, virtualization and scale report
 
+> **Historical record (superseded 2026-11-18).** This report documents the
+> pre-flat library index and folder tree; its bottom-up aggregates, paths and
+> deep-nesting fixture references are history, not current behaviour. The
+> current model is one flat folder list: every folder is a top-level peer,
+> counts cover only decks filed directly in that folder, and there is no
+> Location/parent picker. See `README.md` and `docs/design-language.md`.
+
 Date: 2026-11-11 · Scope: Home → Your Decks, its data path and its tests.
 
 ## 1. What changed

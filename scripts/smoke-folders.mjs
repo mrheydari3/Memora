@@ -1,15 +1,18 @@
 /**
- * Folder-tree smoke test — the feature end to end, in a real browser.
+ * Flat-folder smoke test — the current folder feature end to end.
  *
  *   node scripts/smoke-folders.mjs
  *
- * Creates two top-level folders, paints one with an icon and colour, renames
- * the other, pins it to the top, nests two folders inside the first one and
- * reorders them, files the seeded deck into the folder and pins it, then deletes
- * the parent folder and checks that its children and deck moved up one level
- * instead of disappearing. Runs axe at every surface and checks 320px overflow.
+ * Creates folders, paints one with an icon and colour, reorders the single
+ * order-wide list, renames and pins a folder, files the seeded deck into a
+ * folder, then proves the legacy nested-data migration: a stored `parentId` is
+ * dropped on load while every deck keeps its `folderId`. Finally it deletes a
+ * folder and checks that its decks become unfiled instead of disappearing.
  *
- * Every run uses a fresh browser context, so it never inherits or leaves state.
+ * There is no folder-inside-folder, Location picker or parent breadcrumb to
+ * test because the app no longer has one. Runs axe at each surface and checks
+ * 390px and 320px overflow. A fresh browser context means no state is inherited
+ * or left behind.
  */
 import { chromium } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
@@ -18,16 +21,17 @@ const BASE = process.env.BASE_URL ?? 'http://localhost:8081';
 const DECK = 'Schritt Plus Neu A2/B1';
 const FOLDER = 'Prüfung';
 const SECOND = 'Grammatik B1';
-const NESTED_A = 'Wortschatz';
-const NESTED_B = 'Lesen';
+const RENAMED = 'Grammatik';
 
 const browser = await chromium.launch();
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: 'dark' });
 const page = await context.newPage();
 
 const consoleErrors = [];
-page.on('console', (m) => m.type() === 'error' && consoleErrors.push(m.text().slice(0, 160)));
-page.on('pageerror', (e) => consoleErrors.push(String(e).slice(0, 160)));
+page.on('console', (message) => {
+  if (message.type() === 'error') consoleErrors.push(message.text().slice(0, 160));
+});
+page.on('pageerror', (error) => consoleErrors.push(String(error).slice(0, 160)));
 
 const checks = [];
 const check = (name, ok, detail = '') => {
@@ -35,241 +39,213 @@ const check = (name, ok, detail = '') => {
   console.log(`${ok ? '✓' : '✗'} ${name}${detail ? ` — ${detail}` : ''}`);
 };
 
+const wait = (ms) => page.waitForTimeout(ms);
+
 const axe = async (label) => {
-  const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag22aa']).analyze();
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag22aa'])
+    .analyze();
   check(`axe clean: ${label}`, violations.length === 0, violations.map((v) => v.id).join(','));
 };
 
-const dialog = () => page.getByRole('dialog');
-const folderRow = (name) => page.getByTestId('folder-row').filter({ hasText: name });
+const sheet = () => page.getByRole('dialog').filter({ hasText: 'New folder' });
+const editor = () => page.getByRole('dialog').filter({ hasText: 'Save folder' });
+const folderCard = (name) => page.getByTestId('folder-group').filter({ hasText: name });
+
 const stored = () =>
   page.evaluate(() => ({
     folders: JSON.parse(localStorage.getItem('memory:folders') || '[]'),
     decks: JSON.parse(localStorage.getItem('memory:decks') || '[]'),
   }));
 
-const wait = (ms) => page.waitForTimeout(ms);
+const settle = async () => {
+  await page.waitForSelector('[role="main"]');
+  await wait(1200);
+};
 
 async function openFolders() {
   await page.getByRole('button', { name: 'New folder', exact: true }).click();
-  await wait(450);
+  await wait(400);
 }
 
 async function closeSheet() {
-  await dialog().getByLabel('Close sheet').click();
-  await wait(500);
+  await page.getByLabel('Close sheet').click();
+  await wait(450);
 }
 
 async function createFolder(name, { icon, color } = {}) {
   await openFolders();
-  await dialog().getByLabel('New folder').fill(name);
-  if (icon) await dialog().getByRole('radio', { name: `Icon ${icon}` }).click();
-  if (color) await dialog().getByRole('radio', { name: `Colour ${color}` }).click();
-  await dialog().getByRole('button', { name: 'Create folder' }).click();
+  await sheet().getByLabel('New folder').fill(name);
+  if (icon) await sheet().getByRole('radio', { name: `Icon ${icon}` }).click();
+  if (color) await sheet().getByRole('radio', { name: `Colour ${color}` }).click();
+  await sheet().getByRole('button', { name: 'Create folder' }).click();
   await wait(450);
 }
 
-async function openFolderOptions(name) {
-  await openFolders().catch(() => {});
-  await dialog().getByLabel(`Options for folder ${name}`).click();
-  await wait(450);
+async function openOptions(name) {
+  await openFolders();
+  await sheet().getByRole('button', { name: `Options for folder ${name}` }).click();
+  await wait(400);
+}
+
+async function backToFolderList() {
+  await editor().getByRole('button', { name: 'Back to folders' }).click();
+  await wait(350);
 }
 
 try {
   await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('[role="main"]');
-  await wait(1500);
-  await axe('home, empty library');
+  await settle();
+  await axe('seeded home');
 
-  // 1. A top-level folder with its own icon and colour.
-  await createFolder(FOLDER, { icon: 'translate', color: '#5FD39A' });
-  check('folder appears in the sheet', await dialog().getByText(FOLDER, { exact: true }).first().isVisible());
-  await axe('folders sheet with one folder');
+  // 1. One flat folder with its own icon and colour.
+  await createFolder(FOLDER, { icon: 'translate', color: 'Green' });
+  check('folder appears in the flat sheet', await sheet().getByText(FOLDER, { exact: true }).first().isVisible());
   const created = await stored();
-  const folderRecord = created.folders.find((f) => f.name === FOLDER);
+  const folderRecord = created.folders.find((folder) => folder.name === FOLDER);
   check('folder stores its icon', folderRecord?.icon === 'translate', String(folderRecord?.icon));
   check('folder stores its colour', folderRecord?.color === '#5FD39A', String(folderRecord?.color));
-  check('new top-level folder has no parent', !folderRecord?.parentId);
+  check('new folder has no parent link', !!folderRecord && !('parentId' in folderRecord));
   await closeSheet();
 
-  // The shelf's own options button must raise the editor; opening it from the
-  // folders sheet's list can hide a missing setFolderSheet(true).
-  await page.getByLabel(`Options for folder ${FOLDER}`).click();
-  await wait(450);
-  check(
-    'shelf options open the folder editor',
-    await dialog().getByRole('button', { name: 'Save folder' }).isVisible()
-  );
-  await dialog().getByRole('button', { name: 'Back to folders', exact: true }).click();
-  await wait(350);
-  await closeSheet();
+  check('folder card is on Your decks', (await folderCard(FOLDER).count()) === 1);
+  const folderBox = await folderCard(FOLDER).boundingBox();
+  check('folder card is at least 44px tall', !!folderBox && folderBox.height >= 44, folderBox ? `${Math.round(folderBox.height)}px` : 'missing');
+  await axe('home with a flat folder');
 
-  check('folder row sits inside Your decks', (await folderRow(FOLDER).count()) === 1);
-  const folderBox = await folderRow(FOLDER).boundingBox();
-  const deckBox = await page.getByTestId('deck-row').first().boundingBox();
-  check('folder row is 44px tall', !!folderBox && folderBox.height >= 44, folderBox ? `${Math.round(folderBox.height)}px` : 'missing');
-  check('folder row is above the deck', !!folderBox && !!deckBox && folderBox.y < deckBox.y);
-  await axe('home with a folder');
-
-  // 2. A second folder, then rename it from its own editor.
+  // 2. A second folder, then its editor: no Location or nesting destination.
   await createFolder(SECOND);
   await closeSheet();
-  check('two folders share the shelf', (await page.getByTestId('folder-row').count()) === 2);
+  check('two folders share the one flat list', (await page.getByTestId('folder-group').count()) === 2);
 
-  await openFolderOptions(SECOND);
-  await axe('folder editor');
-  await dialog().getByLabel('Name').fill('Grammatik');
-  await dialog().getByRole('button', { name: 'Save folder', exact: true }).click();
-  await wait(500);
-  check('saving returns to the folder list', await dialog().getByLabel('New folder').isVisible());
+  await openOptions(SECOND);
+  check(
+    'folder editor has no Location row',
+    (await editor().getByRole('button', { name: /location/i }).count()) === 0
+  );
+  check(
+    'folder editor has no nesting copy',
+    (await editor().getByText(/nest|subfolder|top level/i).count()) === 0
+  );
+  await backToFolderList();
+  await closeSheet();
+
+  // 3. Move a folder in the order-wide list; there is no sibling group.
+  await openOptions(SECOND);
+  await editor().getByRole('button', { name: 'Move up', exact: true }).click();
+  await wait(450);
+  await closeSheet();
+  const moved = await stored();
+  check(
+    'move up rewrites the flat order',
+    moved.folders.map((folder) => folder.name).join('|') === `${SECOND}|${FOLDER}`,
+    moved.folders.map((folder) => folder.name).join(',')
+  );
+  const secondBox = await folderCard(SECOND).boundingBox();
+  const firstBox = await folderCard(FOLDER).boundingBox();
+  check('moved folder is drawn above the other folder', !!secondBox && !!firstBox && secondBox.y < firstBox.y);
+
+  // 4. Rename and pin from the same editor.
+  await openOptions(SECOND);
+  await editor().getByLabel('Name').fill(RENAMED);
+  await editor().getByRole('button', { name: 'Save folder', exact: true }).click();
+  await wait(450);
   await closeSheet();
   const renamed = await stored();
-  check('folder rename is persisted', !!renamed.folders.find((f) => f.name === 'Grammatik'), renamed.folders.map((f) => f.name).join(','));
-  check('renamed folder row is on the shelf', (await folderRow('Grammatik').count()) === 1);
+  check('folder rename is persisted', !!renamed.folders.find((folder) => folder.name === RENAMED));
+  check('renamed folder card is on the shelf', (await folderCard(RENAMED).count()) === 1);
 
-  // 3. Pin it: the pinned folder moves above the unpinned one.
-  await openFolderOptions('Grammatik');
-  await dialog().getByRole('button', { name: /^Pin folder/ }).click();
+  await openOptions(RENAMED);
+  await editor().getByRole('button', { name: /^Pin folder/ }).click();
   await wait(400);
+  await closeSheet();
   const pinned = await stored();
-  check('folder pin is persisted', !!pinned.folders.find((f) => f.name === 'Grammatik')?.pinnedAt);
-  await dialog().getByRole('button', { name: 'Back to folders', exact: true }).click();
-  await wait(350);
-  await closeSheet();
-  const pinnedBox = await folderRow('Grammatik').boundingBox();
-  const otherBox = await folderRow(FOLDER).boundingBox();
+  check('folder pin is persisted', !!pinned.folders.find((folder) => folder.name === RENAMED)?.pinnedAt);
+  const pinnedBox = await folderCard(RENAMED).boundingBox();
+  const otherBox = await folderCard(FOLDER).boundingBox();
   check('pinned folder sits above the other folder', !!pinnedBox && !!otherBox && pinnedBox.y < otherBox.y);
-  await axe('home with a pinned folder');
+  await axe('home with a pinned flat folder');
 
-  // 4. Enter a folder and create two nested folders inside it.
-  await folderRow(FOLDER).click();
-  await wait(500);
-  check('folder opens as its own view', await page.getByRole('heading', { name: FOLDER }).isVisible());
-  check('folder view offers a way back', await page.getByRole('button', { name: 'Back to All decks', exact: true }).isVisible());
-
-  await createFolder(NESTED_A);
-  await closeSheet();
-  await createFolder(NESTED_B);
-  await closeSheet();
-  const nested = await stored();
-  const parent = nested.folders.find((f) => f.name === FOLDER);
-  const childA = nested.folders.find((f) => f.name === NESTED_A);
-  const childB = nested.folders.find((f) => f.name === NESTED_B);
-  check('nested folder stores its parent', childA?.parentId === parent?.id && childB?.parentId === parent?.id);
-  check('parent folder keeps its own level', (await page.getByTestId('folder-row').count()) === 2);
-  check('nested folders are not listed at the top level', (await page.getByRole('heading', { name: 'Your decks' }).count()) === 0);
-
-  const beforeMoveA = await folderRow(NESTED_A).boundingBox();
-  const beforeMoveB = await folderRow(NESTED_B).boundingBox();
-  check('nested folders keep creation order', !!beforeMoveA && !!beforeMoveB && beforeMoveA.y < beforeMoveB.y);
-
-  // 5. Move the second nested folder up.
-  await openFolderOptions(NESTED_B);
-  await dialog().getByRole('button', { name: 'Move up', exact: true }).click();
-  await wait(450);
-  await dialog().getByRole('button', { name: 'Back to folders', exact: true }).click();
-  await wait(350);
-  await closeSheet();
-  const movedA = await folderRow(NESTED_A).boundingBox();
-  const movedB = await folderRow(NESTED_B).boundingBox();
-  check('move up reorders the siblings', !!movedA && !!movedB && movedB.y < movedA.y);
-  const afterMove = await stored();
-  check(
-    'move up is persisted',
-    afterMove.folders.findIndex((f) => f.name === NESTED_B) <
-      afterMove.folders.findIndex((f) => f.name === NESTED_A)
-  );
-  await axe('folder with nested folders');
-
-  // 6. File the seeded deck into the parent folder, then pin it there.
+  // 5. File the seeded deck into the first folder.
   await page.goto(BASE + '/deck/deck-german-a2b1', { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('[role="main"]');
-  await wait(1200);
+  await settle();
   await page.getByRole('button', { name: 'More options', exact: true }).click();
   await wait(400);
   await page.getByText('Move to folder', { exact: true }).click();
   await wait(400);
   await page.getByText(FOLDER, { exact: true }).last().click();
-  await wait(600);
-
-  await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('[role="main"]');
-  await wait(1300);
-  check('a filed deck is not repeated at the top level', (await page.getByTestId('deck-row').count()) === 0);
-  await folderRow(FOLDER).click();
-  await wait(500);
-  check('the deck appears inside its folder', (await page.getByTestId('deck-row').count()) === 1);
-  check('the deck row names the folder', await page.getByText('Schritt Plus Neu A2/B1').first().isVisible());
-
-  // 6b. Moving a deck is visible: the shelf keeps the stored order. Only one
-  // deck ships in the seed, so clone it into the same folder for a sibling.
-  await page.evaluate(() => {
-    const decks = JSON.parse(localStorage.getItem('memory:decks') || '[]');
-    const source = decks.find((deck) => deck.id === 'deck-german-a2b1');
-    if (source && !decks.some((deck) => deck.id === 'deck-smoke-second')) {
-      decks.push({ ...source, id: 'deck-smoke-second', name: 'Zweites Deck', createdAt: Date.now() });
-      localStorage.setItem('memory:decks', JSON.stringify(decks));
-    }
-  });
-  await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('[role="main"]');
-  await wait(1300);
-  await folderRow(FOLDER).click();
-  await wait(500);
-
-  await page.getByLabel('Options for deck Zweites Deck').click();
-  await wait(400);
-  await dialog().getByRole('button', { name: 'Move up', exact: true }).click();
-  await wait(400);
-  await closeSheet();
-  const deckOrder = await page
-    .getByTestId('deck-row')
-    .evaluateAll((nodes) => nodes.map((node) => node.textContent || ''));
-  check(
-    'deck move up changes the shelf order',
-    !!deckOrder[0]?.includes('Zweites Deck') && !!deckOrder[1]?.includes(DECK),
-    deckOrder.map((text) => text.slice(0, 18)).join(' | ')
-  );
-  const movedDecks = await stored();
-  const secondIndex = movedDecks.decks.findIndex((deck) => deck.id === 'deck-smoke-second');
-  const firstIndex = movedDecks.decks.findIndex((deck) => deck.id === 'deck-german-a2b1');
-  check('deck move up is persisted', secondIndex >= 0 && secondIndex < firstIndex);
-
-  await page.getByLabel(`Options for deck ${DECK}`).click();
-  await wait(400);
-  await dialog().getByRole('button', { name: /^Pin deck/ }).click();
-  await wait(400);
-  const deckPinned = await stored();
-  check('deck pin is persisted', !!deckPinned.decks.find((d) => d.id === 'deck-german-a2b1')?.pinnedAt);
-  await closeSheet();
-  const pinnedOrder = await page
-    .getByTestId('deck-row')
-    .evaluateAll((nodes) => nodes.map((node) => node.textContent || ''));
-  check(
-    'pinned deck carries its pin marker',
-    pinnedOrder.length === 2 && !!pinnedOrder[0]?.includes(DECK) && !!pinnedOrder[1]?.includes('Zweites Deck')
-  );
-
-  // 7. Delete the parent folder: children and deck move up one level.
-  await page.getByRole('button', { name: 'Back to All decks', exact: true }).click();
-  await wait(500);
-  await openFolderOptions(FOLDER);
-  await dialog().getByRole('button', { name: /Delete folder/ }).click();
   await wait(700);
 
-  check('deleted folder is gone', (await folderRow(FOLDER).count()) === 0);
-  check('its subfolders moved to the top level', (await folderRow(NESTED_A).count()) === 1 && (await folderRow(NESTED_B).count()) === 1);
-  check('its decks survive at the top level', (await page.getByTestId('deck-row').count()) === 2);
+  const filedState = await stored();
+  const folderId = filedState.folders.find((folder) => folder.name === FOLDER)?.id;
+  const filedDeck = filedState.decks.find((deck) => deck.id === 'deck-german-a2b1');
+  check('deck is filed in the chosen folder', !!folderId && filedDeck?.folderId === folderId);
+
+  await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
+  await settle();
+
+  // 6. Migration: write the old tree shape, reload, and prove load flattens it
+  // without moving the deck out of its folder.
+  const parent = filedState.folders.find((folder) => folder.name === RENAMED);
+  const child = filedState.folders.find((folder) => folder.name === FOLDER);
+  await page.evaluate(
+    ({ childId, parentId }) => {
+      const folders = JSON.parse(localStorage.getItem('memory:folders') || '[]');
+      const next = folders.map((folder) =>
+        folder.id === childId ? { ...folder, parentId } : folder
+      );
+      localStorage.setItem('memory:folders', JSON.stringify(next));
+    },
+    { childId: child.id, parentId: parent.id }
+  );
+  await page.reload();
+  await settle();
+  await page.waitForFunction(() => {
+    const folders = JSON.parse(localStorage.getItem('memory:folders') || '[]');
+    return folders.length > 0 && folders.every((folder) => !('parentId' in folder));
+  });
+
+  const migrated = await stored();
+  check(
+    'legacy parent links are removed from storage',
+    migrated.folders.every((folder) => !('parentId' in folder))
+  );
+  check(
+    'migration keeps every folder',
+    [FOLDER, RENAMED].every((name) => migrated.folders.some((folder) => folder.name === name))
+  );
+  check(
+    'migration keeps the deck in its folder',
+    migrated.decks.find((deck) => deck.id === 'deck-german-a2b1')?.folderId === folderId
+  );
+  check('no folder is drawn as a child row', (await page.getByTestId('folder-subitem').count()) === 0);
+  check(
+    'the former parent no longer rolls up its child deck',
+    (await folderCard(RENAMED).innerText()).includes('Empty folder')
+  );
+  check('the child folder keeps its one deck', (await folderCard(FOLDER).innerText()).includes('1 deck'));
+  await axe('home after legacy-nested migration');
+
+  // 7. Delete the folder: the deck becomes unfiled, nothing is deleted.
+  await openOptions(FOLDER);
+  await editor().getByRole('button', { name: /^Delete folder/ }).click();
+  await wait(800);
   const afterDelete = await stored();
-  check('moved deck lost its old folder id', !afterDelete.decks.find((d) => d.id === 'deck-german-a2b1')?.folderId);
-  await axe('home after deleting a parent folder');
+  check('deleted folder is gone', !afterDelete.folders.some((folder) => folder.name === FOLDER));
+  check(
+    'deleted folder returns its deck to unfiled',
+    !afterDelete.decks.find((deck) => deck.id === 'deck-german-a2b1')?.folderId
+  );
+  check(
+    'the deck is still on the shelf',
+    (await page.getByTestId('deck-row').filter({ hasText: DECK }).count()) === 1
+  );
+  await axe('home after deleting a flat folder');
 
   const overflow = await page.evaluate(
     () => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - window.innerWidth
   );
   check('no horizontal overflow at 390px', overflow <= 1, `${overflow}px`);
-
-  check('no console errors', consoleErrors.length === 0, consoleErrors.join(' | '));
 
   await page.setViewportSize({ width: 320, height: 780 });
   await wait(400);
@@ -277,10 +253,12 @@ try {
     () => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - window.innerWidth
   );
   check('no horizontal overflow at 320px', overflow320 <= 1, `${overflow320}px`);
+
+  check('no console errors', consoleErrors.length === 0, consoleErrors.join(' | '));
 } finally {
   await browser.close();
 }
 
-const failed = checks.filter((c) => !c.ok);
+const failed = checks.filter((entry) => !entry.ok);
 console.log(`\n${checks.length - failed.length}/${checks.length} checks passed`);
 process.exit(failed.length ? 1 : 0);

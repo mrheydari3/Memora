@@ -125,8 +125,8 @@ export const v3 = {
     folderGroup: 76,
     /** A desktop folder tile: taller than a card, without a second band of air. */
     folderCard: 128,
-    /** One folder listed inside its parent group. */
-    subfolderRow: 56,
+    /** One folder listed in the flat folder sheet. */
+    folderSheetRow: 56,
     /** One study rating key. */
     ratingKey: 80,
     /** One quiz answer pad. */

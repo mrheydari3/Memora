@@ -1,5 +1,11 @@
 # UI v3 "Nocturne Focus" Completion — Implementation Plan
 
+> **Historical record (superseded 2026-11-18).** This completed plan includes
+> the pre-flat folder-tree and subtree-count design; those folder sections are
+> history. The current model is one flat folder list: no folder nests in
+> another, counts cover only decks filed directly in that folder, and there is
+> no Location/parent picker. See `README.md` and `docs/design-language.md`.
+
 > **Final status (2026-11-08 audit): completed and verified.** Section 1 below is
 > the planning-time snapshot; it is kept as history and is no longer true. The
 > shipped tree has zero imports of `theme/v2`, `components/v2`, `GlassCard`,

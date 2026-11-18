@@ -1,5 +1,11 @@
 # CHANGELOG
 
+> **Historical record.** Entries below describe the app at their release date.
+> The current folder model is one flat list: no folder nests in another, folder
+> counts cover only decks filed directly in that folder, and there is no
+> Location/parent picker. Older entries that mention folder nesting, subtree
+> counts or child folders are history, not current behaviour.
+
 ## Unreleased
 
 - **Import data** — Settings now opens a working local importer for CSV, TSV and JSON card lists, a single deck export, or a full Memora backup. Card imports create a new deck; backup replacement is armed and confirmed before it touches the library. The full export now includes folders and game records so a backup is round-trippable.

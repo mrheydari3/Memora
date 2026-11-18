@@ -24,7 +24,6 @@
 import type { Deck, DeckFolder, Flashcard, ReviewLogEntry } from './types';
 import type { StudyQueue } from './session';
 import { buildStudyQueue, reviewStateOf } from './session';
-import { folderParentId } from './folders';
 
 export type DeckSummary = {
   deck: Deck;
@@ -41,19 +40,15 @@ export type DeckSummary = {
 };
 
 export type FolderAggregate = {
-  /** Active decks anywhere in this folder's subtree. */
+  /** Active decks filed directly in this folder. */
   decks: number;
-  /** Active decks filed directly here. */
-  directDecks: number;
-  /** Folder children, for the header split. */
-  nestedFolders: number;
-  /** Cards across the subtree. */
+  /** Cards across those decks. */
   cards: number;
-  /** Subtree cards that already carry a review. */
+  /** Cards that already carry a review. */
   studied: number;
-  /** Cards the subtree's decks want today. */
+  /** Cards those decks want today. */
   due: number;
-  /** Studied share across the subtree, 0–1. */
+  /** Studied share across those decks, 0–1. */
   progress: number;
 };
 
@@ -80,22 +75,8 @@ export type LibraryIndex = {
   unfiled: DeckSummary[];
   archived: { deck: Deck; cards: number }[];
   foldersById: Map<string, DeckFolder>;
-  /** Children by parent id; the top level is the empty-string key. */
-  childrenByParent: Map<string, DeckFolder[]>;
-  /** Every folder from the top level down to it, inclusive. */
-  pathById: Map<string, DeckFolder[]>;
   aggregates: Map<string, FolderAggregate>;
   totals: LibraryTotals;
-};
-
-const EMPTY_AGGREGATE: FolderAggregate = {
-  decks: 0,
-  directDecks: 0,
-  nestedFolders: 0,
-  cards: 0,
-  studied: 0,
-  due: 0,
-  progress: 0,
 };
 
 const roundShare = (studied: number, cards: number) => (cards > 0 ? studied / cards : 0);
@@ -228,90 +209,23 @@ function countStudied(cards: readonly Flashcard[]): number {
   return studied;
 }
 
-/**
- * Every folder's path, resolved once.
- *
- * A corrupt parent cycle must not hang: each chain stops when it meets an id it
- * has already visited, so the path is still returned (truncated) rather than
- * looping forever.
- */
-export function buildFolderPaths(folders: readonly DeckFolder[]): Map<string, DeckFolder[]> {
-  const byId = new Map(folders.map((folder) => [folder.id, folder]));
-  const paths = new Map<string, DeckFolder[]>();
-
-  for (const folder of folders) {
-    const chain: DeckFolder[] = [];
-    const seen = new Set<string>();
-    let current: DeckFolder | undefined = byId.get(folder.id);
-    while (current && !seen.has(current.id)) {
-      seen.add(current.id);
-      chain.push(current);
-      const parentId = folderParentId(current);
-      current = parentId ? byId.get(parentId) : undefined;
-    }
-    paths.set(folder.id, chain.reverse());
+/** One folder's own totals: the decks filed directly in it, nothing recursive. */
+function aggregateFolder(entries: readonly DeckSummary[]): FolderAggregate {
+  let cards = 0;
+  let studied = 0;
+  let due = 0;
+  for (const entry of entries) {
+    cards += entry.cardCount;
+    studied += entry.studiedCount;
+    due += entry.total;
   }
-
-  return paths;
-}
-
-/**
- * Bottom-up subtree totals.
- *
- * Children are visited once, and each folder folds its children's totals into
- * its own. A cycle is broken by refusing to re-enter a folder that is already
- * on the current stack, which keeps the walk linear and finite.
- */
-export function buildFolderAggregates(
-  folders: readonly DeckFolder[],
-  directByFolder: ReadonlyMap<string, readonly DeckSummary[]>,
-  childrenByParent: ReadonlyMap<string, DeckFolder[]>
-): Map<string, FolderAggregate> {
-  const aggregates = new Map<string, FolderAggregate>();
-  const state = new Map<string, 1 | 2>();
-
-  const resolve = (id: string): FolderAggregate => {
-    const known = aggregates.get(id);
-    if (known) return known;
-    if (state.get(id) === 1) return EMPTY_AGGREGATE;
-    state.set(id, 1);
-
-    const direct = directByFolder.get(id) ?? [];
-    let decks = direct.length;
-    let cards = 0;
-    let studied = 0;
-    let due = 0;
-    for (const entry of direct) {
-      cards += entry.cardCount;
-      studied += entry.studiedCount;
-      due += entry.total;
-    }
-
-    const children = childrenByParent.get(id) ?? [];
-    for (const child of children) {
-      const nested = resolve(child.id);
-      decks += nested.decks;
-      cards += nested.cards;
-      studied += nested.studied;
-      due += nested.due;
-    }
-
-    const aggregate: FolderAggregate = {
-      decks,
-      directDecks: direct.length,
-      nestedFolders: children.length,
-      cards,
-      studied,
-      due,
-      progress: roundShare(studied, cards),
-    };
-    aggregates.set(id, aggregate);
-    state.set(id, 2);
-    return aggregate;
+  return {
+    decks: entries.length,
+    cards,
+    studied,
+    due,
+    progress: roundShare(studied, cards),
   };
-
-  for (const folder of folders) resolve(folder.id);
-  return aggregates;
 }
 
 export type BuildLibraryOptions = {
@@ -335,15 +249,6 @@ export function buildLibraryIndex(
   const now = options.now ?? Date.now();
   const reviews = indexReviews(reviewLog, now);
   const foldersById = new Map(folders.map((folder) => [folder.id, folder]));
-  const pathById = buildFolderPaths(folders);
-
-  const childrenByParent = new Map<string, DeckFolder[]>();
-  for (const folder of folders) {
-    const key = folderParentId(folder) ?? '';
-    const siblings = childrenByParent.get(key);
-    if (siblings) siblings.push(folder);
-    else childrenByParent.set(key, [folder]);
-  }
 
   const entries: DeckSummary[] = [];
   const byDeckId = new Map<string, DeckSummary>();
@@ -381,7 +286,11 @@ export function buildLibraryIndex(
     return !folderId || !foldersById.has(folderId);
   });
 
-  const aggregates = buildFolderAggregates(folders, byFolderId, childrenByParent);
+  // Folders are one flat level, so a folder's totals are only its own decks.
+  const aggregates = new Map<string, FolderAggregate>();
+  for (const folder of folders) {
+    aggregates.set(folder.id, aggregateFolder(byFolderId.get(folder.id) ?? []));
+  }
 
   let due = 0;
   let cards = 0;
@@ -410,8 +319,6 @@ export function buildLibraryIndex(
     unfiled,
     archived,
     foldersById,
-    childrenByParent,
-    pathById,
     aggregates,
     totals: {
       decks: entries.length,
@@ -426,14 +333,6 @@ export function buildLibraryIndex(
       archived: archived.length,
     },
   };
-}
-
-/** Children of a folder, or the top level when `parentId` is null. */
-export function childFoldersOf(
-  index: Pick<LibraryIndex, 'childrenByParent'>,
-  parentId: string | null
-): DeckFolder[] {
-  return index.childrenByParent.get(parentId ?? '') ?? [];
 }
 
 /**

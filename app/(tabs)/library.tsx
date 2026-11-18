@@ -8,7 +8,6 @@ import { useGameStore } from '../../store/useGameStore';
 import { pushOnce } from '../../services/navigation';
 import { buildStudyQueue } from '../../data/session';
 import { isDeckPlayable, type QuizMode } from '../../data/quiz';
-import { folderPath } from '../../data/folders';
 import { AppText, EmptyState, RevealItem, Screen } from '../../components';
 import {
   ActionButton,
@@ -388,8 +387,7 @@ export default function GameScreen() {
 
   const folderLabel = (deck: Deck): string | undefined => {
     if (!deck.folderId) return undefined;
-    const trail = folderPath(folders, deck.folderId);
-    return trail.length ? trail.map((folder) => folder.name).join(' / ') : undefined;
+    return folders.find((folder) => folder.id === deck.folderId)?.name;
   };
 
   const playableDecks = useMemo(

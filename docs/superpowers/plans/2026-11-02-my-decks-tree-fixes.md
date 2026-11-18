@@ -1,5 +1,11 @@
 # My Decks Tree Review and Fix Plan
 
+> **Historical record (superseded 2026-11-18).** This plan documents an older
+> folder-tree/trunk design that no longer exists. The current model is one flat
+> folder list: no folder nests in another, counts cover only decks filed
+> directly in that folder, and there is no Location/parent picker. See
+> `README.md` and `docs/design-language.md` for the current spec.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Restore the folder button’s accessible name and make the library trunk continuous with a clean terminal at the final leaf.

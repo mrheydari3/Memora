@@ -80,8 +80,6 @@ export type DeckFolder = {
   icon?: string;
   /** Folder tint, from the same palette as a deck's colour. */
   color?: string;
-  /** Parent folder; absent/null on the top level. */
-  parentId?: string | null;
   /** Epoch ms when pinned; null/absent means normal order. */
   pinnedAt?: number | null;
 };
@@ -93,7 +91,6 @@ export type Deck = {
   icon: string; // material icon name
   color: string; // accent tint for the icon tile
   rating?: number; // community rating (0-5)
-  parentId?: string | null;
   algorithmPreset: AlgorithmPreset;
   newCardsPerDay: number; // default 20
   maxCardsPerDay: number; // default 80

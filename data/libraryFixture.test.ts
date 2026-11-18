@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildScaleLibrary, MEDIUM_SCALE, STRESS_SCALE } from './libraryFixture';
-import { buildFolderPaths } from './library';
 
 const NOW = new Date('2026-11-10T12:00:00Z').getTime();
 
@@ -38,11 +37,9 @@ test('fixtures carry the hard shapes, not only counts', () => {
   );
 });
 
-test('folder nesting runs deeper than five levels', () => {
+test('folders are one flat level, with no parent links', () => {
   const library = buildScaleLibrary(STRESS_SCALE, NOW);
-  const paths = buildFolderPaths(library.folders);
-  const deepest = Math.max(...[...paths.values()].map((path) => path.length));
-  assert.ok(deepest >= 5, `deepest folder path is ${deepest}`);
+  assert.ok(library.folders.every((folder) => !('parentId' in folder)));
 });
 
 test('ids are unique, so rows and keys cannot collide', () => {

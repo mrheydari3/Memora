@@ -88,10 +88,12 @@ export function censusUrl(surface: Surface): string {
 function actionsFor(surface: Surface): CensusAction[] {
   switch (surface.id) {
     case 'HM-06':
-      // German is nested inside Languages; open the top-level folder first.
-      return [click('Languages', false)];
+      // Folders are flat on the shelf; open the folder that owns decks.
+      return [click('German', false)];
     case 'HM-07':
-      return [click('Nothing here yet', false)];
+      // The empty folder is a static card on the phone shelf: it has no decks
+      // to reveal, so the surface is visited but not triggered.
+      return [];
     case 'HM-08':
       return [click('New folder')];
     case 'HM-09':
@@ -107,7 +109,7 @@ function actionsFor(surface: Surface): CensusAction[] {
       return [
         click('New folder'),
         click('Options for folder Languages'),
-        click('Location', false),
+        click('Move down', false),
       ];
     case 'HM-12':
       return [click('Options for deck Empty deck')];

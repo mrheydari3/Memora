@@ -2,16 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   FOLDER_NAME_MAX,
-  canNestFolder,
-  childFolders,
   createFolder,
-  detachChildFolders,
   detachDecksFromFolder,
   findFolderByName,
   folderDeckCount,
-  folderDescendantIds,
-  folderPath,
-  folderSubtreeCounts,
+  flattenLegacyFolders,
   groupDecksByFolder,
   moveSibling,
   moveSiblingTo,
@@ -120,39 +115,27 @@ test('deleting a folder unfiles its decks and keeps everything else', () => {
   ]);
 });
 
-test('a folder can be nested, and the tree reports its paths', () => {
-  const root = folder('f1', 'French');
-  const child = { ...folder('f2', 'Grammar'), parentId: 'f1' } as DeckFolder;
-  const grandchild = { ...folder('f3', 'Verbs'), parentId: 'f2' } as DeckFolder;
-  const folders = [root, child, grandchild];
-
-  assert.deepEqual(childFolders(folders, 'f1').map((f) => f.id), ['f2']);
-  assert.deepEqual(childFolders(folders, null).map((f) => f.id), ['f1']);
-  assert.deepEqual(folderPath(folders, 'f3').map((f) => f.name), [
-    'French',
-    'Grammar',
-    'Verbs',
-  ]);
-  assert.deepEqual([...folderDescendantIds(folders, 'f1')].sort(), ['f2', 'f3']);
-});
-
-test('a folder cannot be nested inside itself or its descendants', () => {
-  const folders = [
-    folder('f1', 'French'),
-    { ...folder('f2', 'Grammar'), parentId: 'f1' } as DeckFolder,
+test('legacy nested folders flatten to one level without losing any folder', () => {
+  const legacy = [
+    { ...folder('f1', 'Languages'), parentId: null },
+    { ...folder('f2', 'German'), parentId: 'f1' },
+    { ...folder('f3', 'Verbs'), parentId: 'f2' },
   ];
-  assert.equal(canNestFolder(folders, 'f1', 'f2'), false);
-  assert.equal(canNestFolder(folders, 'f1', 'f1'), false);
-  assert.equal(canNestFolder(folders, 'f1', 'missing'), false);
-  assert.equal(canNestFolder(folders, 'f2', null), true);
-  assert.equal(canNestFolder(folders, 'f1', null), true);
-});
+  const { folders, changed } = flattenLegacyFolders(legacy);
 
-test('a new folder can be created inside another folder', () => {
-  const result = createFolder([], 'Grammar', { id: 'f2', now: 9, parentId: 'f1' });
-  assert.equal(result.ok, true);
-  if (!result.ok) return;
-  assert.equal(result.folder.parentId, 'f1');
+  assert.equal(changed, true);
+  assert.deepEqual(
+    folders.map((entry) => [entry.id, entry.name]),
+    [
+      ['f1', 'Languages'],
+      ['f2', 'German'],
+      ['f3', 'Verbs'],
+    ]
+  );
+  // The parent link is gone from the stored shape, not just ignored on read.
+  assert.ok(folders.every((entry) => !('parentId' in entry)));
+  // Flattening again is a no-op, so load does not rewrite unchanged data.
+  assert.equal(flattenLegacyFolders(folders).changed, false);
 });
 
 test('pinned items sort first and moving swaps neighbours', () => {
@@ -229,27 +212,6 @@ test('one-step and drag deck moves both skip archived siblings', () => {
   assert.equal(siblingDecksIn(null)(deck('retired', { archivedAt: 2 })), false);
 });
 
-test('deleting a folder re-parents its children instead of hiding them', () => {
-  const folders = [
-    folder('f1', 'French'),
-    { ...folder('f2', 'Grammar'), parentId: 'f1' } as DeckFolder,
-    { ...folder('f3', 'Verbs'), parentId: 'f2' } as DeckFolder,
-  ];
-  const without = detachChildFolders(removeFolder(folders, 'f2'), 'f2', 'f1');
-  assert.deepEqual(
-    without.map((f) => [f.id, f.parentId ?? null]),
-    [
-      ['f1', null],
-      ['f3', 'f1'],
-    ]
-  );
-
-  const decks = [deck('a', { folderId: 'f2' }), deck('b', { folderId: 'f1' })];
-  const moved = detachDecksFromFolder(decks, 'f2', 'f1');
-  assert.equal(moved[0].folderId, 'f1');
-  assert.equal(moved[1].folderId, 'f1');
-});
-
 test('counts ignore archived decks', () => {
   const decks = [
     deck('a', { folderId: 'f1' }),
@@ -257,53 +219,6 @@ test('counts ignore archived decks', () => {
   ];
   assert.equal(folderDeckCount(decks, 'f1'), 1);
   assert.equal(folderDeckCount(decks, 'nope'), 0);
-});
-
-test('subtree counts roll decks and due up through child folders', () => {
-  const folders = [
-    folder('f1', 'Languages'),
-    { ...folder('f2', 'German'), parentId: 'f1' } as DeckFolder,
-    { ...folder('f3', 'Verbs'), parentId: 'f2' } as DeckFolder,
-  ];
-  const decks = [
-    deck('a', { folderId: 'f2' }),
-    deck('b', { folderId: 'f3' }),
-    deck('archived', { folderId: 'f3', archivedAt: 5 }),
-  ];
-
-  const counts = folderSubtreeCounts(folders, decks, { a: 2, b: 3, archived: 99 });
-  assert.deepEqual(counts.get('f1'), { decks: 2, due: 5, nestedFolders: 1 });
-  assert.deepEqual(counts.get('f2'), { decks: 2, due: 5, nestedFolders: 1 });
-  assert.deepEqual(counts.get('f3'), { decks: 1, due: 3, nestedFolders: 0 });
-});
-
-test('a folder with no direct decks still reports its nested decks', () => {
-  const folders = [
-    folder('f1', 'Languages'),
-    { ...folder('f2', 'German'), parentId: 'f1' } as DeckFolder,
-  ];
-  const decks = [
-    deck('a', { folderId: 'f2' }),
-    deck('b', { folderId: 'f2' }),
-  ];
-
-  const counts = folderSubtreeCounts(folders, decks, { a: 4, b: 6 });
-  assert.deepEqual(counts.get('f1'), { decks: 2, due: 10, nestedFolders: 1 });
-});
-
-test('subtree counting stops at a parent cycle', () => {
-  const folders = [
-    { ...folder('f1', 'One'), parentId: 'f2' } as DeckFolder,
-    { ...folder('f2', 'Two'), parentId: 'f1' } as DeckFolder,
-  ];
-  const decks = [
-    deck('a', { folderId: 'f1' }),
-    deck('b', { folderId: 'f2' }),
-  ];
-
-  const counts = folderSubtreeCounts(folders, decks, { a: 1, b: 2 });
-  assert.deepEqual(counts.get('f1'), { decks: 2, due: 3, nestedFolders: 1 });
-  assert.deepEqual(counts.get('f2'), { decks: 2, due: 3, nestedFolders: 1 });
 });
 
 test('grouping keeps folder order and puts unfiled decks last', () => {
