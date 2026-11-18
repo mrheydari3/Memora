@@ -73,22 +73,14 @@ body {
   outline-color: theme('colors.primary');
 }
 
-/* A browser outline is square and ignores the folder's radius. Draw the
-   jacket focus as an inset shadow on the rounded surface instead; the deck
-   shell receives the ring when its inner trigger is focused, so the options
-   rail is part of the row's focus shape. */
+/* A browser outline is square and ignores the card's radius. Draw focus as an
+   inset shadow on the rounded surface instead; the deck shell receives the ring
+   when its inner trigger is focused, so the options rail is part of the row's
+   focus shape. */
 [data-testid='folder-group']:focus-visible,
 [data-testid='folder-card']:focus-visible {
   outline: none;
   box-shadow: inset 0 0 0 2px theme('colors.primary');
-}
-
-[data-testid='deck-row-shell'] {
-  border-radius: 22px;
-}
-
-[data-testid='deck-row-shell-flat'] {
-  border-radius: 14px;
 }
 
 /* Keep the square outline as the fallback; only suppress it where the row

@@ -374,7 +374,13 @@ export function DeckShelfRow({
   return (
     <Animated.View
       testID={flat ? 'deck-row-shell-flat' : 'deck-row-shell'}
-      style={[press.style, { width: '100%' }]}
+      style={[
+        press.style,
+        {
+          width: '100%',
+          borderRadius: flat ? v3.radii.control : v3.radii.card,
+        },
+      ]}
     >
       {flat ? (
         <View

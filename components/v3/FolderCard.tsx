@@ -3,7 +3,7 @@ import { Animated, StyleSheet, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { colors, fills, glass, iconSize } from '../../theme/tokens';
+import { colors, fills, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { usePressFeedback } from '../../motion';
 import { FolderGlyph } from './FolderGlyph';
@@ -29,9 +29,9 @@ type FolderCardProps = {
 /**
  * FolderCard — the desktop library board's folder tile.
  *
- * The folder is a place, so it keeps its illustrated glyph and wears the
- * folder jacket at the same 22px card radius as a deck card: name and its deck
- * count at the top, the shared due pill at the trailing edge, and the quiet
+ * The folder is a place, so it keeps its illustrated glyph on the standard pane
+ * at the same 22px card radius as a deck card: name and its deck count at the
+ * top, the shared due pill at the trailing edge, and the quiet
  * "Open folder" footer.
  * It deliberately draws no studied rail: progress belongs to the decks that can
  * be studied, not to the label that groups them.
@@ -73,7 +73,6 @@ export function FolderCard({
           minHeight: v3.heights.folderCard,
           overflow: 'hidden',
           position: 'relative',
-          backgroundColor: glass.folder,
         }}
       >
         {hovered ? (

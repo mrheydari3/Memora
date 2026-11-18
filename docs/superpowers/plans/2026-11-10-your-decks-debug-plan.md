@@ -52,7 +52,7 @@ sweep. They are caught by the probe in §3.
 | Folder model | one flat order-wide list; no `parentId`, no child folders, no roll-up | store, `data/folders.ts`, `LibraryBoard` |
 | Section bands | uppercase label + `(count)` + quiet hint; no tick, no count pill, no hairline | `ShelfBand` |
 | Shelf has no *Explore your decks* row | the shelf starts with the breadcrumb and then the first band (row removed 2026-11-10) | `home.tsx` |
-| Folder pane | one continuous jacket: header (glyph 40, name, pin, `N deck(s) · M due`, due pill, chevron) and its deck rows share one surface; counts only decks filed directly in it | `FolderGroup` |
+| Folder pane | one 22px silhouette: a pane header (glyph 40, name, pin, `N deck(s) · M due`, due pill, chevron) above an inset deck body; counts only decks filed directly in it | `FolderGroup` |
 | Folder height | 76 collapsed header, no rail, no guide line | measured 390 |
 | Deck card | identity line (glyph 36, name, pin, due pill, options rail) + one rail line | `DeckShelfRow` |
 | Deck height | 96 min; 98–101 at 1280; 118 only when the name wraps | measured |

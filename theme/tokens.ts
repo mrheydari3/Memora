@@ -79,13 +79,9 @@ type Palette = {
     sheet: string;
     stackNear: string;
     stackFar: string;
-    shelf: string;
-    folder: string;
     blur: number;
     blurStrong: number;
     blurScene: number;
-    blurShelf: number;
-    blurFolder: number;
     blurHeader: number;
     blurLens: number;
     lensWash: string;

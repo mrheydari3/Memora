@@ -17,7 +17,7 @@ import { DeckShelfRow } from './DeckShelfRow';
 import { FolderCard } from './FolderCard';
 import { FolderBodySlice, FolderGroup } from './FolderGroup';
 import { ArchivedRow } from './ArchivedRow';
-import { colors, glass, iconSize, spacing } from '../../theme/tokens';
+import { colors, iconSize, spacing } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import type { FolderAggregate, LibraryIndex, DeckSummary } from '../../data/library';
 import { foldSearch, matchesSearch } from '../../data/library';
@@ -73,9 +73,6 @@ export type LibraryBoardProps = {
 };
 
 const GRID_GAP = 12;
-/** The shelf partition's inner inset; included in the card-grid measurement. */
-const SHELF_PANEL_INSET = 12;
-const SHELF_PANEL_RADIUS = v3.radii.pane;
 const plural = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
 
@@ -130,7 +127,7 @@ export function LibraryBoard({
   const columns = width >= 1200 ? 3 : desktop ? 2 : 1;
   const usableWidth = Math.max(
     0,
-    Math.min(width, contentMaxWidth) - spacing.screen * 2 - SHELF_PANEL_INSET * 2
+    Math.min(width, contentMaxWidth) - spacing.screen * 2
   );
   const cellWidth = columns > 1 ? Math.max(0, (usableWidth - GRID_GAP * (columns - 1)) / columns) : usableWidth;
 
@@ -684,40 +681,7 @@ export function LibraryBoard({
     }
   };
 
-  const renderItem = ({ item, index }: ListRenderItemInfo<Row>) => {
-    const content = renderItemContent(item);
-    if (!content || item.kind === 'hero') return content;
-
-    // The shelf is the one long virtualized surface on Home, so its partition
-    // is drawn row by row: the first row carries the top corners and the last
-    // row closes them. Its inset is part of the cell measurement above, so the
-    // cards sit inside the panel rather than spilling to its edge.
-    const first = index === (hero ? 1 : 0);
-    const last = index === rows.length - 1;
-
-    return (
-      <View
-        style={[
-          {
-            paddingHorizontal: SHELF_PANEL_INSET,
-            backgroundColor: glass.shelf,
-          },
-          first && {
-            paddingTop: 14,
-            borderTopLeftRadius: SHELF_PANEL_RADIUS,
-            borderTopRightRadius: SHELF_PANEL_RADIUS,
-          },
-          last && {
-            paddingBottom: 16,
-            borderBottomLeftRadius: SHELF_PANEL_RADIUS,
-            borderBottomRightRadius: SHELF_PANEL_RADIUS,
-          },
-        ]}
-      >
-        {content}
-      </View>
-    );
-  };
+  const renderItem = ({ item }: ListRenderItemInfo<Row>) => renderItemContent(item);
 
   return (
     <FlatList

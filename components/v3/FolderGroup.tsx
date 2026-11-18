@@ -3,7 +3,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { colors, fills, glass, iconSize } from '../../theme/tokens';
+import { colors, fills, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { FolderGlyph } from './FolderGlyph';
 import { ShelfStatusPill } from './ShelfStatusPill';
@@ -31,11 +31,11 @@ type FolderGroupProps = {
 /**
  * FolderGroup — the phone's folder card.
  *
- * A folder is a place, so it keeps its illustrated glyph and its own jacket
- * fill. When closed, the card has four 22px corners. When open, the header and
- * its deck rows form one continuous folder: the header drops its bottom corners
- * and the body carries the same jacket down to one rounded bottom edge. The
- * deck rows stay separate FlatList rows so a long folder remains virtualized.
+ * A folder is a place, so it keeps its illustrated glyph and the standard pane
+ * fill. When closed, the card has four 22px corners. When open, the pane header
+ * drops its bottom corners and the inset deck body closes the silhouette with
+ * one 22px bottom edge. The deck rows stay separate FlatList rows so a long
+ * folder remains virtualized.
  */
 export function FolderGroup({
   name,
@@ -138,7 +138,6 @@ export function FolderGroup({
         width: '100%',
         overflow: 'hidden',
         position: 'relative',
-        backgroundColor: glass.folder,
         ...(joined
           ? { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }
           : null),
@@ -177,10 +176,10 @@ export function FolderGroup({
 }
 
 /**
- * One slice of an open folder's body. A folder's decks are their own list rows,
- * so a long folder mounts a window instead of every deck. Consecutive slices
- * share the folder's jacket; only the last slice rounds the bottom edge, which
- * keeps the header and its decks reading as one surface.
+ * One slice of an open folder's inset body. A folder's decks are their own list
+ * rows, so a long folder mounts a window instead of every deck. Every slice
+ * carries the same inset fill with square top corners; only the last slice
+ * rounds the bottom edge, which closes the pane header's silhouette.
  */
 export function FolderBodySlice({
   first = false,
@@ -192,18 +191,22 @@ export function FolderBodySlice({
   children: React.ReactNode;
 }) {
   return (
-    <View
+    <Surface
+      tone="inset"
+      radius="card"
+      padding="none"
       style={{
-        backgroundColor: glass.folder,
         paddingHorizontal: 10,
         paddingTop: first ? 8 : 3,
         paddingBottom: last ? 10 : 3,
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
         borderBottomLeftRadius: last ? v3.radii.card : 0,
         borderBottomRightRadius: last ? v3.radii.card : 0,
         marginBottom: last ? 10 : 0,
       }}
     >
       {children}
-    </View>
+    </Surface>
   );
 }
