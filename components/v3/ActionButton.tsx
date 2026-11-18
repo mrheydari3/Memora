@@ -51,7 +51,7 @@ export function ActionButton({
   haptic = true,
   testID,
 }: ActionButtonProps) {
-  const press = usePressFeedback({ scale: 0.975 });
+  const press = usePressFeedback({ scale: 0.985 });
   const palette = disabled ? { fill: fills.control, ink: colors.outline } : TONE[tone];
 
   return (

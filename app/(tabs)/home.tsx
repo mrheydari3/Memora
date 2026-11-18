@@ -77,6 +77,7 @@ export default function HomeScreen() {
   // rail, then a two-up shelf. Below 1024 the page keeps the single phone
   // column, so every existing mobile behaviour and measurement is untouched.
   const desktop = width >= 1024;
+  const compactHeader = width < 360;
   const contentMaxWidth = desktop ? v3.layout.homeDesktopMaxWidth : v3.layout.contentMaxWidth;
   const folderSheetBodyMaxHeight = desktop
     ? Math.max(320, Math.min(620, height - 240))
@@ -247,31 +248,29 @@ export default function HomeScreen() {
       brand
       maxWidth={contentMaxWidth}
       meta={
-        width >= 360 ? (
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 5,
-              minHeight: 30,
-              justifyContent: 'center',
-              paddingHorizontal: 10,
-              borderRadius: 999,
-              backgroundColor: colors.surfaceInset,
-            }}
-            accessible
-            accessibilityLabel={`${streak}-day streak`}
-          >
-            <MaterialIcons
-              name="local-fire-department"
-              size={16}
-              color={streak > 0 ? colors.warning : colors.outline}
-            />
-            <AppText variant="caption" weight="semibold" tone={streak > 0 ? 'warning' : 'muted'}>
-              {streak}d
-            </AppText>
-          </View>
-        ) : undefined
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: compactHeader ? 3 : 5,
+            minHeight: 30,
+            justifyContent: 'center',
+            paddingHorizontal: compactHeader ? 3 : 10,
+            borderRadius: 999,
+            backgroundColor: colors.surfaceInset,
+          }}
+          accessible
+          accessibilityLabel={`${streak}-day streak`}
+        >
+          <MaterialIcons
+            name="local-fire-department"
+            size={compactHeader ? 13 : 16}
+            color={streak > 0 ? colors.warning : colors.outline}
+          />
+          <AppText variant="caption" weight="semibold" tone={streak > 0 ? 'warning' : 'muted'}>
+            {streak}d
+          </AppText>
+        </View>
       }
       actions={
         <>

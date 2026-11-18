@@ -117,16 +117,12 @@ const plural = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
 
 /**
- * The shelf header's meta line: decks in scope, folders in scope, and the due
- * figure those decks roll up. The card count left this line when the shelf
- * became a library index (`home.tsx` `shelfMeta`).
+ * The root shelf header's meta line: decks and folders in scope. The global due
+ * figure belongs to the hero; repeating it in the shelf masthead competed with
+ * that number. Scoped folder levels still add their own due count.
  */
-const shelfMeta = (decks: number, folders: number, due: number) =>
-  [
-    plural(decks, 'deck', 'decks'),
-    plural(folders, 'folder', 'folders'),
-    due > 0 ? `${due} due` : 'all caught up',
-  ].join(' · ');
+const shelfMeta = (decks: number, folders: number) =>
+  [plural(decks, 'deck', 'decks'), plural(folders, 'folder', 'folders')].join(' · ');
 
 /** The deck the hero points at, mirroring Home's own choice rule. */
 function continueDeck(store: Store) {
@@ -227,7 +223,7 @@ test.describe('Phase 7 — data truth', () => {
     expect(active.length).toBe(5);
     expect(rootDue).toBe(40);
     await expect(
-      page.getByText(shelfMeta(active.length, allFolders.length, rootDue), { exact: true })
+      page.getByText(shelfMeta(active.length, allFolders.length), { exact: true })
     ).toBeVisible();
     // The band counts the same flat set.
     await expect(
@@ -604,11 +600,7 @@ test.describe('Phase 7 — data truth', () => {
     const heroText = await panel.innerText();
     const store = await readStore(page);
     const active = activeDecks(store);
-    const caption = shelfMeta(
-      active.length,
-      store.folders.length,
-      activeQueues(store).reduce((sum, entry) => sum + entry.queue.total, 0)
-    );
+    const caption = shelfMeta(active.length, store.folders.length);
 
     await page.reload();
     await settle(page);

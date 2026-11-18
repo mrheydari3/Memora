@@ -434,10 +434,13 @@ export function LibraryBoard({
   const aggregate = openFolder ? library.aggregates.get(openFolder.id) : undefined;
   const shelfDeckCount = openFolder ? aggregate?.decks ?? 0 : library.totals.decks;
   const shelfDue = openFolder ? aggregate?.due ?? 0 : library.totals.due;
+  // The hero already states the library-wide due figure. At the root, repeating
+  // it here only competes with that number; inside a folder the scoped due count
+  // is new information and stays.
   const meta = [
     plural(shelfDeckCount, 'deck', 'decks'),
     plural(scopeFolderCount, 'folder', 'folders'),
-    shelfDue > 0 ? `${shelfDue} due` : 'all caught up',
+    ...(openFolder ? [shelfDue > 0 ? `${shelfDue} due` : 'all caught up'] : []),
   ].join(' · ');
   const caughtUpFolders = visibleFolders.filter(
     (folder) => folder.decks > 0 && folder.due === 0

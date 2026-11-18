@@ -9,7 +9,7 @@ import { NewFolderButton } from './NewFolderButton';
 type ShelfHeaderProps = {
   /** The section's name; defaults to "Your decks". */
   title?: string;
-  /** The quiet line under the title, e.g. "6 decks · 4 folders · 18 due". */
+  /** The quiet line under the title, e.g. "6 decks · 4 folders". */
   meta: string;
   /** Right-aligned status, e.g. "1 caught up". */
   statusLabel?: string;

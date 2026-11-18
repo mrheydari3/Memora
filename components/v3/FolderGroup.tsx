@@ -209,16 +209,23 @@ export function FolderBodySlice({
   const presence = useRef(new Animated.Value(1)).current;
   const collapse = useRef(new Animated.Value(1)).current;
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
+  const [heightConstrained, setHeightConstrained] = useState(false);
+  const wasClosing = useRef(false);
 
   useEffect(() => {
     if (prefersReducedMotion()) {
       presence.setValue(closing ? 0 : 1);
       collapse.setValue(closing ? 0 : 1);
+      setHeightConstrained(false);
+      wasClosing.current = false;
       return;
     }
+
     if (closing) {
-      collapse.setValue(1);
-      // Match the entrance: a quick-but-readable collapse, not a snap.
+      wasClosing.current = true;
+      setHeightConstrained(true);
+      // An interrupted reopen may be part-way back up; continue from that
+      // height instead of resetting to full and producing a snap.
       void timingTo(collapse, 0, { duration: motion.base, nativeDriver: false });
       void timingTo(presence, 0, { duration: motion.base });
       return () => {
@@ -226,8 +233,30 @@ export function FolderBodySlice({
         presence.stopAnimation();
       };
     }
-    collapse.setValue(1);
+
     if (entering) {
+      if (wasClosing.current) {
+        // A second tap during the close keeps the measured height attached
+        // until the row has grown back, so it cannot jump to natural height.
+        wasClosing.current = false;
+        setHeightConstrained(true);
+        let active = true;
+        void timingTo(collapse, 1, {
+          duration: motion.base,
+          nativeDriver: false,
+        }).then(() => {
+          if (active) setHeightConstrained(false);
+        });
+        void timingTo(presence, 1, { duration: motion.base });
+        return () => {
+          active = false;
+          collapse.stopAnimation();
+          presence.stopAnimation();
+        };
+      }
+
+      setHeightConstrained(false);
+      collapse.setValue(1);
       presence.setValue(0);
       void timingTo(presence, 1, {
         duration: motion.base,
@@ -235,7 +264,11 @@ export function FolderBodySlice({
       });
       return () => presence.stopAnimation();
     }
+
+    wasClosing.current = false;
+    setHeightConstrained(false);
     presence.setValue(1);
+    collapse.setValue(1);
     return () => presence.stopAnimation();
   }, [closing, collapse, entering, index, presence]);
 
@@ -260,7 +293,7 @@ export function FolderBodySlice({
             }),
           },
         ],
-        ...(closing && measuredHeight != null
+        ...((closing || heightConstrained) && measuredHeight != null
           ? {
               height: collapse.interpolate({
                 inputRange: [0, 1],

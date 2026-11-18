@@ -72,6 +72,54 @@ test.describe('Home experience', () => {
     ).toBeVisible({ timeout: 20_000 });
   });
 
+  test('rapidly reopening a folder during its close restores the body', async ({ page }) => {
+    await boot(page);
+
+    const folder = page.getByTestId('folder-group').filter({ hasText: 'Travel' });
+    const deck = page.getByTestId('deck-row').filter({ hasText: 'Due today (review)' });
+    await expect(deck).toBeVisible();
+
+    await folder.click();
+    await expect(folder).toHaveAttribute('aria-expanded', 'false');
+    // Reopen while the rows are still fading and the close timer is pending.
+    await page.waitForTimeout(120);
+    await folder.click();
+    await expect(folder).toHaveAttribute('aria-expanded', 'true');
+
+    await page.waitForTimeout(450);
+    await expect(deck).toBeVisible();
+    await expect(deck).toHaveCount(1);
+  });
+
+  test('the hero names the next deck queue separately from the global due total', async ({ page }) => {
+    await boot(page);
+
+    const panel = page.getByTestId('today-panel');
+    await expect(panel.getByText('Next deck', { exact: true })).toBeVisible();
+    await expect(panel.getByText(/\d+ in queue$/)).toBeVisible();
+  });
+
+  test.describe('320px phone', () => {
+    test.use({ viewport: { width: 320, height: 700 } });
+
+    test('keeps the streak and header actions visible without overflow', async ({ page }) => {
+      await boot(page);
+
+      await expect(page.getByLabel(/\d+-day streak/)).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Discover' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Add deck' })).toBeVisible();
+      const brand = page.getByRole('heading', { name: 'Memora' });
+      expect(await brand.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
+        true
+      );
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+        )
+      ).toBeLessThanOrEqual(1);
+    });
+  });
+
   test('collapsing a folder fades its body and then removes it', async ({ page }) => {
     await boot(page);
 

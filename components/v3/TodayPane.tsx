@@ -47,9 +47,10 @@ const makeSegments = (newCount: number, learningCount: number, reviewCount: numb
  *   rim; eyebrow 12/600 uppercase accent; status chip on the control fill with
  *   a 6px learning dot; figure 40/44 (56 on wide) and its unit at 20/600
  *   outline;
- *   context 13 outline; "Next up" row 13 + 12 tabular; rail 6px, 320 cap, 2px
- *   gaps between segments; legend dots 8px; CTA 52px pill in the accent fill
- *   with a 20px arrow.
+ *   context 13 outline; next-deck label/count 12, deck name 13, rail 6px,
+ *   320 cap, 2px gaps between segments; legend dots 8px; CTA 52px pill in the
+ *   accent fill with a 20px arrow. The rail is scoped under "Next deck" so it
+ *   cannot be mistaken for the library-wide figure above it.
  *
  * From 1200px the hero splits: the day's figure owns the left, and the deck
  * it will open plus the action own a fixed right column. That keeps the card
@@ -75,9 +76,10 @@ export function TodayPane({
   const { width } = useWindowDimensions();
   const wide = width >= 900;
   const split = width >= 1200;
+  const compact = width < 360;
   const now = nowProp ?? Date.now();
   const date = new Date(now).toLocaleDateString('en-GB', {
-    weekday: 'short',
+    ...(compact ? {} : { weekday: 'short' as const }),
     day: 'numeric',
     month: 'short',
   });
@@ -93,13 +95,13 @@ export function TodayPane({
   // due-count refresh or an unrelated store render does not replay it.
   const dueReveal = useReveal(launched ? 'today-due' : 'today-due-pending', {
     delay: 40,
-    duration: motion.slow,
+    duration: motion.base,
     distance: 10,
     enabled: launched,
   });
   const nextReveal = useReveal(launched ? 'today-next' : 'today-next-pending', {
     delay: 120,
-    duration: motion.slow,
+    duration: motion.base,
     distance: 8,
     enabled: launched,
   });
@@ -177,24 +179,36 @@ export function TodayPane({
   const nextBlock = total > 0 ? (
     <Animated.View style={nextReveal.style}>
       <View style={{ gap: 8 }}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 10,
-          }}
-        >
-          <AppText variant="bodySm" weight="medium" numberOfLines={1} style={{ flexShrink: 1 }}>
-            Next up · {nextDeck}
-          </AppText>
-          <AppText
-            variant="caption"
-            tone="tertiary"
-            numberOfLines={1}
-            style={[NUMERIC, { flexShrink: 0 }]}
+        <View style={{ gap: 3 }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'baseline',
+              justifyContent: 'space-between',
+              gap: 10,
+            }}
           >
-            {total} total
+            <AppText
+              variant="label"
+              weight="semibold"
+              tone="tertiary"
+              className="uppercase"
+              numberOfLines={1}
+              style={{ letterSpacing: 0.8 }}
+            >
+              Next deck
+            </AppText>
+            <AppText
+              variant="caption"
+              tone="tertiary"
+              numberOfLines={1}
+              style={[NUMERIC, { flexShrink: 0 }]}
+            >
+              {total} in queue
+            </AppText>
+          </View>
+          <AppText variant="bodySm" weight="semibold" numberOfLines={2}>
+            {nextDeck}
           </AppText>
         </View>
 
@@ -314,8 +328,13 @@ export function TodayPane({
             <View
               style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: stateColors.Learning }}
             />
-            <AppText variant="caption" tone="muted">
-              Scheduler active
+            <AppText
+              variant="caption"
+              tone="muted"
+              numberOfLines={1}
+              accessibilityLabel="Scheduler active"
+            >
+              {compact ? 'Scheduler' : 'Scheduler active'}
             </AppText>
           </View>
         </View>

@@ -83,6 +83,19 @@ test.describe('visual', () => {
     });
   }
 
+  for (const { width, height } of [
+    { width: 320, height: 700 },
+    { width: 375, height: 812 },
+    { width: 430, height: 932 },
+  ]) {
+    test(`home at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto('/');
+      await waitForRoute(page, 'home');
+      await expect(page).toHaveScreenshot(`home-${width}.png`, { fullPage: false });
+    });
+  }
+
   test('wide layout at 1280px', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await seedHome(page);

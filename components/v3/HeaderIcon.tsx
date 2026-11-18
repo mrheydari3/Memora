@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Animated, Pressable } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { colors, fills, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { HapticsEngine } from '../../services/haptics';
+import { usePressFeedback } from '../../motion';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -39,6 +40,7 @@ export function HeaderIcon({
   raised = false,
 }: HeaderIconProps) {
   const [hovered, setHovered] = useState(false);
+  const press = usePressFeedback({ scale: 0.98 });
   const iconColor = disabled
     ? colors.outlineVariant
     : emphasized
@@ -58,6 +60,8 @@ export function HeaderIcon({
             }
       }
       disabled={disabled}
+      onPressIn={disabled ? undefined : press.onPressIn}
+      onPressOut={disabled ? undefined : press.onPressOut}
       onHoverIn={() => !disabled && setHovered(true)}
       onHoverOut={() => setHovered(false)}
       accessibilityRole="button"
@@ -72,28 +76,31 @@ export function HeaderIcon({
         justifyContent: 'center',
       }}
     >
-      <View
-        style={{
-          width: v3.appBar.actionTile,
-          height: v3.appBar.actionTile,
-          borderRadius: v3.appBar.actionRadius,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: emphasized
-            ? hovered && !disabled
-              ? colors.accentActive
-              : colors.accentSoft
-            : hovered && !disabled
-              ? raised
-                ? colors.surfaceControl
-                : fills.control
-              : raised
-                ? fills.control
-                : fills.tile,
-        }}
+      <Animated.View
+        style={[
+          press.style,
+          {
+            width: v3.appBar.actionTile,
+            height: v3.appBar.actionTile,
+            borderRadius: v3.appBar.actionRadius,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: emphasized
+              ? hovered && !disabled
+                ? colors.accentActive
+                : colors.accentSoft
+              : hovered && !disabled
+                ? raised
+                  ? colors.surfaceControl
+                  : fills.control
+                : raised
+                  ? fills.control
+                  : fills.tile,
+          },
+        ]}
       >
         <MaterialIcons name={icon} size={iconSize.lg} color={iconColor} />
-      </View>
+      </Animated.View>
     </Pressable>
   );
 }
