@@ -1,9 +1,8 @@
-import { useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { colors, fills, iconSize } from '../../theme/tokens';
+import { colors, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { FolderGlyph } from './FolderGlyph';
 import { ShelfStatusPill } from './ShelfStatusPill';
@@ -31,11 +30,11 @@ type FolderGroupProps = {
 /**
  * FolderGroup — the phone's folder card.
  *
- * A folder is a place, so it keeps its illustrated glyph and the standard pane
- * fill. When closed, the card has four 22px corners. When open, the pane header
- * drops its bottom corners and the inset deck body closes the silhouette with
- * one 22px bottom edge. The deck rows stay separate FlatList rows so a long
- * folder remains virtualized.
+ * A folder is a place, so it keeps its illustrated glyph on Today's raised
+ * card face. When closed, the card has four 22px corners. When open, the header
+ * drops its bottom corners and the matching deck body closes the silhouette
+ * with one 22px bottom edge. The deck rows stay separate FlatList rows so a
+ * long folder remains virtualized.
  */
 export function FolderGroup({
   name,
@@ -54,8 +53,6 @@ export function FolderGroup({
   // assistive tech on web as `aria-expanded`.
   const webExpanded: object =
     Platform.OS === 'web' ? { 'aria-expanded': expanded } : {};
-  const [hovered, setHovered] = useState(false);
-
   const empty = deckCount === 0;
   const deckLabel = deckCount === 1 ? 'deck' : 'decks';
   // The due pill is the folder's one status mark; the meta line states what
@@ -138,24 +135,16 @@ export function FolderGroup({
         width: '100%',
         overflow: 'hidden',
         position: 'relative',
+        backgroundColor: colors.surfaceCardFace,
         ...(joined
           ? { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }
           : null),
       }}
     >
-      {hovered ? (
-        <View
-          pointerEvents="none"
-          style={[StyleSheet.absoluteFill, { backgroundColor: fills.subtle }]}
-        />
-      ) : null}
-
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         {expandable ? (
           <HintPressable
             hint={expanded ? 'Collapse folder' : 'Expand folder'}
-            onHoverIn={() => setHovered(true)}
-            onHoverOut={() => setHovered(false)}
             testID="folder-group"
             onPress={onToggle}
             accessibilityRole="button"
@@ -176,10 +165,10 @@ export function FolderGroup({
 }
 
 /**
- * One slice of an open folder's inset body. A folder's decks are their own list
+ * One slice of an open folder's deck body. A folder's decks are their own list
  * rows, so a long folder mounts a window instead of every deck. Every slice
- * carries the same inset fill with square top corners; only the last slice
- * rounds the bottom edge, which closes the pane header's silhouette.
+ * carries the folder's raised card face with square top corners; only the last
+ * slice rounds the bottom edge, which closes the header's silhouette.
  */
 export function FolderBodySlice({
   first = false,
@@ -196,6 +185,7 @@ export function FolderBodySlice({
       radius="card"
       padding="none"
       style={{
+        backgroundColor: colors.surfaceCardFace,
         paddingHorizontal: 10,
         paddingTop: first ? 8 : 3,
         paddingBottom: last ? 10 : 3,

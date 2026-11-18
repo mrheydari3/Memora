@@ -10,7 +10,7 @@
  *   - the due figure is 40px on a phone and 56px from 900px up
  *   - the hero pane carries a live scheduler status and the next deck's rail
  *   - deck rows are 22px panes with a 38px glyph tile and one 30px status circle
- *   - folder headers are 22px panes with an inset deck body
+ *   - folder headers and deck bodies use Today's raised card face
  *
  * v1/v2 screens do not import this module, so they are untouched.
  */
