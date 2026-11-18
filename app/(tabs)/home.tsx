@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, useWindowDimensions, View } from 'react-native';
+import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
 import { useDeckStore } from '../../store/useDeckStore';
@@ -137,10 +137,14 @@ export default function HomeScreen() {
   // it, closing between two repeatable operations.
   const [deckMenu, setDeckMenu] = useState<{ deckId: string; anchor: AnchorRect } | null>(null);
   const [planSheet, setPlanSheet] = useState(false);
+  const [createMenu, setCreateMenu] = useState(false);
   // The selected plan deck is local UI state. It never changes a queue, a card
   // or the review log; the hero simply opens the deck the learner chose.
   const [plannedDeckId, setPlannedDeckId] = useState<string | null>(null);
   const folderDraftRef = useRef<FieldInputRef>(null);
+  const createMenuAnchorRef = useRef<React.ComponentRef<typeof View>>(null);
+  const createMenuTriggerRef = useRef<React.ComponentRef<typeof Pressable>>(null);
+  const pendingCreateRef = useRef<'deck' | 'folder' | null>(null);
 
   // One index per data change: review buckets, queue summaries, folder
   // aggregates, paths and children. The board and the sheet read the same maps,
@@ -236,6 +240,26 @@ export default function HomeScreen() {
     setFolderSheetMode('edit');
   };
 
+  const focusCreateTrigger = () => {
+    (
+      createMenuTriggerRef.current as unknown as { focus?: () => void } | null
+    )?.focus?.();
+  };
+
+  const openNewFolder = () => {
+    setFolderSheetMode('list');
+    setFolderSheet(true);
+  };
+
+  const runPendingCreate = () => {
+    const action = pendingCreateRef.current;
+    if (!action) return;
+    pendingCreateRef.current = null;
+    focusCreateTrigger();
+    if (action === 'deck') pushOnce(router, '/add-deck');
+    else openNewFolder();
+  };
+
   const saveFolderEditor = async () => {
     if (!editingFolder) return;
     const result = await updateFolder(editingFolder.id, {
@@ -253,6 +277,29 @@ export default function HomeScreen() {
     }
     setFolderSheetMode('list');
   };
+
+  const createActions: MenuAction[] = [
+    {
+      key: 'new-deck',
+      label: 'New deck',
+      description: 'Build a deck from scratch.',
+      icon: 'library-books',
+      onPress: () => {
+        pendingCreateRef.current = 'deck';
+        setCreateMenu(false);
+      },
+    },
+    {
+      key: 'new-folder',
+      label: 'New folder',
+      description: 'Group decks on your shelf.',
+      icon: 'create-new-folder',
+      onPress: () => {
+        pendingCreateRef.current = 'folder';
+        setCreateMenu(false);
+      },
+    },
+  ];
 
   const header = (
     <PageHeader
@@ -291,12 +338,17 @@ export default function HomeScreen() {
             raised
             onPress={() => pushOnce(router, '/discover')}
           />
-          <HeaderIcon
-            icon="add"
-            label="Add deck"
-            emphasized
-            onPress={() => pushOnce(router, '/add-deck')}
-          />
+          <View ref={createMenuAnchorRef} collapsable={false}>
+            <HeaderIcon
+              icon="add"
+              label="Create new"
+              controlRef={createMenuTriggerRef}
+              emphasized
+              ariaExpanded={createMenu}
+              ariaHasPopup="menu"
+              onPress={() => setCreateMenu(true)}
+            />
+          </View>
         </>
       }
     />
@@ -549,10 +601,6 @@ export default function HomeScreen() {
           closingFolders={closingFolders}
           onToggleFolder={toggleFolder}
           editingLayout={editingLayout}
-          onNewFolder={() => {
-            setFolderSheetMode('list');
-            setFolderSheet(true);
-          }}
           onToggleLayout={() => setEditingLayout((next) => !next)}
           onReorderFolder={(id, to) => void moveFolderTo(id, to)}
           onReorderDeck={(id, to) => void moveDeckTo(id, to)}
@@ -591,6 +639,17 @@ export default function HomeScreen() {
         />
         </>
       )}
+
+      <Menu
+        open={createMenu}
+        onClose={() => setCreateMenu(false)}
+        onAfterClose={runPendingCreate}
+        anchorRef={createMenuAnchorRef}
+        label="Create new"
+        title="Create new"
+        subtitle="Start a deck or group decks in a folder."
+        actions={createActions}
+      />
 
       <BottomSheetModal
         visible={folderSheet}

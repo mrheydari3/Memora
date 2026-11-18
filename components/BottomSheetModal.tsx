@@ -135,6 +135,8 @@ export function SheetPanel({
 type BottomSheetModalProps = {
   visible: boolean;
   onClose: () => void;
+  /** Runs once the exit animation has unmounted the sheet. */
+  onDismiss?: () => void;
   title?: string;
   /** Optional line under the title (counts, context). */
   subtitle?: string;
@@ -167,6 +169,7 @@ type WebElement = {
   focus: () => void;
   contains: (node: WebElement | null) => boolean;
   querySelectorAll: (selector: string) => ArrayLike<WebElement>;
+  closest?: (selector: string) => WebElement | null;
 };
 
 type WebKeyEvent = {
@@ -177,6 +180,7 @@ type WebKeyEvent = {
 
 type WebDocument = {
   activeElement: WebElement | null;
+  querySelectorAll: (selector: string) => ArrayLike<WebElement>;
   addEventListener: (
     type: 'keydown',
     listener: (event: WebKeyEvent) => void,
@@ -206,6 +210,7 @@ const FOCUSABLE =
 export function BottomSheetModal({
   visible,
   onClose,
+  onDismiss,
   title,
   subtitle,
   focusKey,
@@ -245,6 +250,8 @@ export function BottomSheetModal({
 
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
   const onEscapeRef = useRef(onEscape);
   onEscapeRef.current = onEscape;
   const panelRef = useRef<React.ComponentRef<typeof View>>(null);
@@ -314,7 +321,17 @@ export function BottomSheetModal({
     wasMountedRef.current = false;
     const target = returnFocusRef.current;
     returnFocusRef.current = null;
-    target?.focus?.();
+    const doc = (globalThis as { document?: WebDocument }).document;
+    const dialogSelector = '[role="dialog"], [aria-modal="true"]';
+    const targetDialog = target?.closest?.(dialogSelector) ?? null;
+    const anotherDialog = Array.from(doc?.querySelectorAll(dialogSelector) ?? []).some(
+      (dialog) => dialog !== targetDialog
+    );
+    // A sheet action can open a new sheet or route as this one closes. Leave
+    // focus in the new surface; returning it to the old trigger would put the
+    // keyboard behind the dialog now on screen.
+    if (!anotherDialog) target?.focus?.();
+    onDismissRef.current?.();
   }, [mounted]);
 
   /**

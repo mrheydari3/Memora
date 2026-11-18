@@ -72,6 +72,38 @@ test.describe('Home experience', () => {
     ).toBeVisible({ timeout: 20_000 });
   });
 
+  test('the header plus offers both deck and folder creation', async ({ page }) => {
+    await boot(page);
+
+    const create = page.getByRole('button', { name: 'Create new' });
+    await expect(create).toHaveAttribute('aria-haspopup', 'menu');
+    await create.click();
+    await expect(page.getByRole('button', { name: /^New deck/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^New folder/ })).toBeVisible();
+
+    await page.getByRole('button', { name: /^New folder/ }).click();
+    await expect(page.getByRole('dialog', { name: 'Folders' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toBeHidden();
+
+    await create.click();
+    await page.getByRole('button', { name: /^New deck/ }).click();
+    await expect(page).toHaveURL(/\/add-deck$/);
+  });
+
+  test('the create menu works on a wide canvas', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await boot(page);
+
+    await page.getByRole('button', { name: 'Create new' }).click();
+    const menu = page.getByRole('menu', { name: 'Create new' });
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole('menuitem', { name: /^New deck/ })).toBeVisible();
+
+    await menu.getByRole('menuitem', { name: /^New deck/ }).click();
+    await expect(page).toHaveURL(/\/add-deck$/);
+  });
+
   test('rapidly reopening a folder during its close restores the body', async ({ page }) => {
     await boot(page);
 
@@ -173,7 +205,7 @@ test.describe('Home experience', () => {
 
       await expect(page.getByLabel(/\d+-day streak/)).toBeVisible();
       await expect(page.getByRole('button', { name: 'Discover' })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Add deck' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Create new' })).toBeVisible();
       const brand = page.getByRole('heading', { name: 'Memora' });
       expect(await brand.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
         true

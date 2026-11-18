@@ -46,8 +46,14 @@ const readStorage = async <T>(page: Page, key: string, fallback: T): Promise<T> 
 const reviewCount = (page: Page) =>
   readStorage<unknown[]>(page, STORAGE_KEYS.reviewLog, []).then((entries) => entries.length);
 
+const openCreateMenu = async (page: Page) => {
+  await page.getByRole('button', { name: 'Create new' }).click();
+  await expect(page.getByRole('button', { name: /^New deck/ })).toBeVisible();
+};
+
 const openFolderSheet = async (page: Page) => {
-  await page.getByRole('button', { name: 'New folder' }).click();
+  await openCreateMenu(page);
+  await page.getByRole('button', { name: /^New folder/ }).click();
   const sheet = page.getByRole('dialog').filter({ hasText: 'New folder' });
   await expect(sheet).toBeVisible();
   return sheet;
@@ -256,8 +262,7 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(page.getByTestId('folder-group').filter({ hasText: 'Flow Folder Edited' })).toBeVisible();
 
     // Delete from the same editor; its decks become unfiled.
-    await page.getByRole('button', { name: 'New folder' }).click();
-    const list = page.getByRole('dialog').filter({ hasText: 'New folder' });
+    const list = await openFolderSheet(page);
     await list.getByRole('button', { name: 'Options for folder Flow Folder Edited' }).click();
     const deleteEditor = page.getByRole('dialog').filter({ hasText: 'Delete folder' });
     await deleteEditor.getByRole('button', { name: 'Delete folder' }).click();
@@ -281,8 +286,7 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(folderRow).toBeVisible();
     await expect(page.getByTestId('deck-row').filter({ hasText: DECK })).toBeVisible();
 
-    await page.getByRole('button', { name: 'New folder' }).click();
-    const list = page.getByRole('dialog').filter({ hasText: 'New folder' });
+    const list = await openFolderSheet(page);
     await list.getByRole('button', { name: 'Options for folder Move Folder' }).click();
     const editor = page.getByRole('dialog').filter({ hasText: 'Delete folder' });
     await editor.getByRole('button', { name: 'Delete folder' }).click();
@@ -396,8 +400,7 @@ test.describe('Phase 5 — behaviour', () => {
 
     await page.reload();
     await settle(page);
-    await page.getByRole('button', { name: 'New folder' }).click();
-    const list = page.getByRole('dialog').filter({ hasText: 'New folder' });
+    const list = await openFolderSheet(page);
     await list.getByRole('button', { name: 'Options for folder Tree Parent' }).click();
     const deleteEditor = page.getByRole('dialog').filter({ hasText: 'Delete folder' });
     await deleteEditor.getByRole('button', { name: /^Delete folder/ }).click();
@@ -1080,13 +1083,13 @@ test.describe('Phase 5 — behaviour', () => {
   test('navigation: tab headers expose only their own actions', async ({ page }) => {
     await go(page, '/home');
     await expect(page.getByRole('button', { name: 'Discover' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Add deck' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create new' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open profile' })).toHaveCount(0);
 
     await go(page, '/library');
     await expect(page.getByRole('button', { name: 'Open profile' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Settings', exact: true })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Add deck', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Create new', exact: true })).toHaveCount(0);
   });
 
   test('navigation: tabs and direct-link fallback land on the right route', async ({ page }) => {
@@ -1245,8 +1248,9 @@ test.describe('Phase 5 — behaviour', () => {
 
   test('sheets: scrim click closes the folder sheet and returns focus', async ({ page }) => {
     await go(page, '/home');
-    const trigger = page.getByRole('button', { name: 'New folder' });
-    await trigger.click();
+    const trigger = page.getByRole('button', { name: 'Create new' });
+    await openCreateMenu(page);
+    await page.getByRole('button', { name: /^New folder/ }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.mouse.click(8, 140);
     await expect(page.getByRole('dialog')).toBeHidden();
@@ -1255,8 +1259,9 @@ test.describe('Phase 5 — behaviour', () => {
 
   test('sheets: Escape closes the folder sheet and returns focus', async ({ page }) => {
     await go(page, '/home');
-    const trigger = page.getByRole('button', { name: 'New folder' });
-    await trigger.click();
+    const trigger = page.getByRole('button', { name: 'Create new' });
+    await openCreateMenu(page);
+    await page.getByRole('button', { name: /^New folder/ }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toBeHidden();
@@ -1345,8 +1350,9 @@ test.describe('Phase 5 — behaviour', () => {
     page,
   }) => {
     await go(page, '/home');
-    const opener = page.getByRole('button', { name: 'New folder' });
-    await opener.click();
+    const opener = page.getByRole('button', { name: 'Create new' });
+    await openCreateMenu(page);
+    await page.getByRole('button', { name: /^New folder/ }).click();
     const sheet = page.getByRole('dialog');
     await expect(sheet).toBeVisible();
     await addFolderToSheet(sheet, 'Sheet Edit Folder');

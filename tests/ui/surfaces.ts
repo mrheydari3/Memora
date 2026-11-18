@@ -238,7 +238,7 @@ export const SURFACES: readonly Surface[] = [
 
   // ---- Other routes ----------------------------------------------------------
   s('AD-01', 'New deck sheet: form, validation, direct load', '/add-deck', ['F0'], ALL_GATES, {
-    trigger: 'Add deck from Home, or direct /add-deck',
+    trigger: 'Create new → New deck from Home, or direct /add-deck',
     overlay: true,
   }),
   s('MI-01', 'Import data: cards and full backup', '/mass-import', ['F0']),

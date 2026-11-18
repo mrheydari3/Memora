@@ -4,7 +4,6 @@ import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
 import { alpha, colors, iconSize, radii } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
-import { NewFolderButton } from './NewFolderButton';
 
 type ShelfHeaderProps = {
   /** The section's name; defaults to "Your decks". */
@@ -13,7 +12,6 @@ type ShelfHeaderProps = {
   meta: string;
   /** Right-aligned status, e.g. "1 caught up". */
   statusLabel?: string;
-  onNewFolder: () => void;
   onToggleLayout: () => void;
   editingLayout: boolean;
 };
@@ -32,7 +30,6 @@ export function ShelfHeader({
   title = 'Your decks',
   meta,
   statusLabel,
-  onNewFolder,
   onToggleLayout,
   editingLayout,
 }: ShelfHeaderProps) {
@@ -96,8 +93,6 @@ export function ShelfHeader({
             </HintPressable>
           ) : (
             <>
-              <NewFolderButton onPress={onNewFolder} />
-
               <HintPressable
                 hint="Edit layout"
                 onPress={onToggleLayout}
@@ -116,9 +111,9 @@ export function ShelfHeader({
                 }}
               >
                 <MaterialIcons name="drag-indicator" size={iconSize.sm} color={colors.outline} />
-                {/* The glyph alone read as an overflow menu beside the plus
-                    tile, so the control always names itself; the short word
-                    keeps the eyebrow's rule intact on a phone. */}
+                {/* The glyph alone read as an overflow menu, so the control
+                    always names itself; the short word keeps the eyebrow's
+                    rule intact on a phone. */}
                 <AppText variant="caption" weight="semibold" tone="muted">
                   {compact ? 'Layout' : 'Edit layout'}
                 </AppText>

@@ -67,8 +67,9 @@ test('closing the Folders sheet discards an abandoned draft', async ({ page }) =
   await page.setViewportSize({ width: 390, height: 844 });
   await openHome(page);
 
-  const opener = page.getByRole('button', { name: 'New folder' });
+  const opener = page.getByRole('button', { name: 'Create new' });
   await opener.click();
+  await page.getByRole('button', { name: /^New folder/ }).click();
   const sheet = page.getByRole('dialog');
   await expect(sheet).toBeVisible();
   await sheet.getByLabel('New folder').fill('Abandoned draft');
@@ -78,6 +79,7 @@ test('closing the Folders sheet discards an abandoned draft', async ({ page }) =
   await expect(sheet).toBeHidden();
 
   await opener.click();
+  await page.getByRole('button', { name: /^New folder/ }).click();
   const reopened = page.getByRole('dialog');
   // A cancelled draft must not come back on the next open.
   await expect(reopened.getByLabel('New folder')).toHaveValue('');

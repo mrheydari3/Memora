@@ -92,7 +92,7 @@ export default function AddDeckScreen() {
   const closeSheet = () => goBackOr(router, '/(tabs)/home');
 
   // The sheet owns focus while it is open. Store the trigger so closing the
-  // route returns the caret to "Add deck" instead of dropping it on <body>.
+  // route returns the caret to Home's create control instead of <body>.
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const doc = webDocument();

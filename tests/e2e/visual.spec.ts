@@ -67,6 +67,16 @@ async function waitForRoute(page: Page, label: string) {
   await page.waitForTimeout(900);
 }
 
+async function openCreateMenu(page: Page) {
+  await page.getByRole('button', { name: 'Create new' }).click();
+  await expect(page.getByRole('button', { name: /^New deck/ })).toBeVisible();
+}
+
+async function openNewDeck(page: Page) {
+  await openCreateMenu(page);
+  await page.getByRole('button', { name: /^New deck/ }).click();
+}
+
 const ROUTES = [
   { label: 'home', path: '/' },
   { label: 'library', path: '/library' },
@@ -144,7 +154,7 @@ test.describe('changed surfaces', () => {
       await page.waitForSelector('[role="main"]');
       await page.waitForTimeout(700);
 
-      await page.getByRole('button', { name: 'Add deck' }).click();
+      await openNewDeck(page);
       await expect(page.getByRole('heading', { name: 'New deck' })).toBeVisible();
       await page.waitForTimeout(1200);
 
@@ -196,17 +206,18 @@ test('the sheet scrim dims the canvas and keeps focus inside', async ({ page }) 
   await page.waitForSelector('[role="main"]');
   await page.waitForTimeout(700);
 
-  await page.getByRole('button', { name: 'Add deck' }).click();
+  await openNewDeck(page);
   await expect(page.getByRole('heading', { name: 'New deck' })).toBeVisible();
 
   // The page behind stays mounted under the scrim …
   await expect(page.getByText('Memora', { exact: true }).first()).toBeVisible();
 
   // … but it is not in the keyboard path: focus enters the sheet and wraps.
-  const close = page.getByRole('button', { name: 'Close sheet' });
+  const dialog = page.getByRole('dialog', { name: 'New deck' });
+  const close = dialog.getByRole('button', { name: 'Close sheet' });
   await expect(close).toBeFocused();
   await page.keyboard.press('Shift+Tab');
-  await expect(page.getByRole('button', { name: 'Cancel' })).toBeFocused();
+  await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(close).toBeFocused();
 
@@ -214,5 +225,5 @@ test('the sheet scrim dims the canvas and keeps focus inside', async ({ page }) 
   // Home control underneath it. Focus then returns to the trigger.
   await page.mouse.click(12, 12);
   await expect(page).not.toHaveURL(/add-deck/);
-  await expect(page.getByRole('button', { name: 'Add deck' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Create new' })).toBeFocused();
 });

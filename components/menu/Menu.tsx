@@ -23,6 +23,8 @@ import { HapticsEngine } from '../../services/haptics';
 export type MenuProps = {
   open: boolean;
   onClose: () => void;
+  /** Runs after the menu's exit animation, when a follow-up may take focus. */
+  onAfterClose?: () => void;
   /** The menu's accessible name, e.g. "Sort cards". */
   label: string;
   /** The sheet fallback's title; defaults to `label`. */
@@ -52,6 +54,7 @@ type WebElement = {
   getAttribute?: (name: string) => string | null;
   click?: () => void;
   getBoundingClientRect?: () => { left: number; top: number; width: number; height: number };
+  closest?: (selector: string) => WebElement | null;
 };
 
 type WebEvent = {
@@ -67,6 +70,7 @@ type WebEvent = {
 
 type WebDocument = {
   activeElement: WebElement | null;
+  querySelectorAll?: (selector: string) => ArrayLike<WebElement>;
   addEventListener: (type: string, listener: (event: WebEvent) => void, capture?: boolean) => void;
   removeEventListener: (type: string, listener: (event: WebEvent) => void, capture?: boolean) => void;
 };
@@ -167,6 +171,7 @@ function positionPanel(
 function SheetMenu({
   open,
   onClose,
+  onAfterClose,
   label,
   title,
   subtitle,
@@ -209,6 +214,7 @@ function SheetMenu({
       <BottomSheetModal
         visible={open}
         onClose={closeAll}
+        onDismiss={onAfterClose}
         title={sheetTitle}
         subtitle={current ? undefined : subtitle}
         focusKey={sheetTitle}
@@ -286,6 +292,7 @@ function Panel({
 function AnchoredMenu({
   open,
   onClose,
+  onAfterClose,
   label,
   title,
   subtitle,
@@ -312,6 +319,10 @@ function AnchoredMenu({
   const pendingFocusRef = useRef<{ target: WebFocusable | null } | null>(null);
   const returnFocusRef = useRef<WebFocusable | null>(null);
   const wasOpenRef = useRef(false);
+  const hasOpenedRef = useRef(false);
+  const afterCloseRef = useRef(onAfterClose);
+  afterCloseRef.current = onAfterClose;
+  const closeNotifiedRef = useRef(false);
 
   // Measure the trigger every time the menu opens; a page scroll, a filter or
   // a re-render can all move it.
@@ -389,15 +400,35 @@ function AnchoredMenu({
   useEffect(() => {
     const doc = webDocument();
     if (open && !wasOpenRef.current) {
+      hasOpenedRef.current = true;
+      closeNotifiedRef.current = false;
       returnFocusRef.current = doc?.activeElement ?? null;
     }
     if (!open && wasOpenRef.current) {
       const target = returnFocusRef.current;
       returnFocusRef.current = null;
-      setTimeout(() => target?.focus(), 0);
+      setTimeout(() => {
+        const doc = webDocument();
+        const dialogSelector = '[role="dialog"], [aria-modal="true"]';
+        const targetDialog = target?.closest?.(dialogSelector) ?? null;
+        const anotherDialog = Array.from(
+          doc?.querySelectorAll?.(dialogSelector) ?? []
+        ).some((dialog) => dialog !== targetDialog);
+        // An action can open another surface before the menu finishes closing;
+        // returning focus to the trigger would pull it out of that new dialog.
+        if (anotherDialog) return;
+        target?.focus();
+      }, 0);
     }
     wasOpenRef.current = open;
   }, [open]);
+
+  useEffect(() => {
+    if (open) return;
+    if (!hasOpenedRef.current || presence.mounted || closeNotifiedRef.current) return;
+    closeNotifiedRef.current = true;
+    afterCloseRef.current?.();
+  }, [open, presence.mounted]);
 
   // A menu is anchored to a spot on the page: scrolling or resizing the page
   // would leave it pointing at nothing, so it dismisses instead of drifting.

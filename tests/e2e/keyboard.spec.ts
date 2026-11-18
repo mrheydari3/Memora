@@ -4,24 +4,28 @@ import { test, expect } from '@playwright/test';
  * Keyboard regression: Memora is a web app first, so a session must be usable
  * without a pointer. Space reveals the answer and 1–4 rate the card.
  */
-test('add-deck sheet traps focus and Escape returns to its opener', async ({ page }) => {
+test('create menu opens the add-deck sheet, which traps focus and returns to its opener', async ({
+  page,
+}) => {
   await page.goto('/home');
   await page.waitForSelector('[role="main"]', { timeout: 30_000 });
   await page.waitForTimeout(700);
 
-  await page.getByRole('button', { name: 'Add deck' }).click();
+  await page.getByRole('button', { name: 'Create new' }).click();
+  await page.getByRole('button', { name: /^New deck/ }).click();
   await expect(page.getByRole('heading', { name: 'New deck' })).toBeVisible();
 
-  const close = page.getByRole('button', { name: 'Close sheet' });
+  const dialog = page.getByRole('dialog', { name: 'New deck' });
+  const close = dialog.getByRole('button', { name: 'Close sheet' });
   await expect(close).toBeFocused();
   await page.keyboard.press('Shift+Tab');
-  await expect(page.getByRole('button', { name: 'Cancel' })).toBeFocused();
+  await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(close).toBeFocused();
 
   await page.keyboard.press('Escape');
   await expect(page).toHaveURL(/\/home$/);
-  await expect(page.getByRole('button', { name: 'Add deck' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Create new' })).toBeFocused();
 });
 
 test('four-tab bar follows the ARIA tab keyboard pattern', async ({ page }) => {

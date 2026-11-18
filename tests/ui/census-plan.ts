@@ -95,18 +95,24 @@ function actionsFor(surface: Surface): CensusAction[] {
       // to reveal, so the surface is visited but not triggered.
       return [];
     case 'HM-08':
-      return [click('New folder')];
+      return [click('Create new'), click('New folder')];
     case 'HM-09':
       return [
+        click('Create new'),
         click('New folder'),
         fill('New folder', 'Languages'),
         click('Create folder'),
         expect('A folder with that name already exists.'),
       ];
     case 'HM-10':
-      return [click('New folder'), click('Options for folder Languages')];
+      return [
+        click('Create new'),
+        click('New folder'),
+        click('Options for folder Languages'),
+      ];
     case 'HM-11':
       return [
+        click('Create new'),
         click('New folder'),
         click('Options for folder Languages'),
         click('Move down', false),
