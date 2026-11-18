@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, useWindowDimensions, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
@@ -126,11 +126,6 @@ export default function HomeScreen() {
   // shelf, and a menu owned by a row that changes position would unmount with
   // it, closing between two repeatable operations.
   const [deckMenu, setDeckMenu] = useState<{ deckId: string; anchor: AnchorRect } | null>(null);
-  // The board pads its own content by the measured bar height; Screen reports it.
-  const [headerHeight, setHeaderHeight] = useState(heights.pageHeader);
-  const handleHeaderHeight = useCallback((next: number) => {
-    setHeaderHeight((current) => (Math.abs(current - next) > 1 ? next : current));
-  }, []);
   const folderDraftRef = useRef<FieldInputRef>(null);
 
   // One index per data change: review buckets, queue summaries, folder
@@ -429,8 +424,10 @@ export default function HomeScreen() {
       </View>
     ) : null;
 
+  // Screen already offsets the body by the floating bar, so these scroll
+  // views open one gutter below it rather than a whole bar below it.
   const scrollContentStyle = {
-    paddingTop: headerHeight + spacing.screen,
+    paddingTop: spacing.screen,
     paddingBottom: spacing.tabClearance,
     paddingHorizontal: spacing.screen,
     width: '100%' as const,
@@ -444,7 +441,6 @@ export default function HomeScreen() {
       tabClearance
       contentMaxWidth={contentMaxWidth}
       header={header}
-      onHeaderHeight={handleHeaderHeight}
     >
       {!ready ? (
         <ScrollView contentContainerStyle={scrollContentStyle} showsVerticalScrollIndicator={false}>
@@ -572,7 +568,6 @@ export default function HomeScreen() {
               onOpen={(anchor) => setDeckMenu({ deckId: deck.id, anchor })}
             />
           )}
-          headerHeight={headerHeight}
           contentMaxWidth={contentMaxWidth}
         />
         <Menu

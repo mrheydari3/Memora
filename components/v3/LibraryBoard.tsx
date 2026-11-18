@@ -69,8 +69,6 @@ export type LibraryBoardProps = {
   onOpenDeck: (id: string) => void;
   /** The ActionMenu node for a deck; Home owns the menu actions. */
   deckOptions: (deck: Deck) => React.ReactNode;
-  /** Measured header height, so the first row clears the floating bar. */
-  headerHeight: number;
   contentMaxWidth: number;
   tabClearance?: boolean;
 };
@@ -122,7 +120,6 @@ export function LibraryBoard({
   onReorderDeck,
   onOpenDeck,
   deckOptions,
-  headerHeight,
   contentMaxWidth,
   tabClearance = true,
 }: LibraryBoardProps) {
@@ -732,7 +729,8 @@ export function LibraryBoard({
       renderItem={renderItem}
       style={{ flex: 1 }}
       contentContainerStyle={{
-        paddingTop: headerHeight + spacing.screen,
+        // Home's Screen already pads the body by the floating bar's height.
+        paddingTop: spacing.screen,
         paddingBottom: tabClearance ? spacing.tabClearance : spacing.screenBottom,
         paddingHorizontal: spacing.screen,
         width: '100%',
