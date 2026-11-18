@@ -81,6 +81,44 @@ test('archived study state has no WCAG 2.2 AA violations', async ({ page }) => {
   expect(summary).toEqual([]);
 });
 
+test('today plan sheet is an accessible radio dialog at 320px', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.goto('/');
+  await settle(page);
+
+  const trigger = page.getByTestId('today-plan-trigger');
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  await expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
+  await trigger.click();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+
+  const dialog = page.getByRole('dialog', { name: "Today's plan" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('radiogroup', { name: 'Due decks' })).toBeVisible();
+  const radios = dialog.getByRole('radio');
+  await expect(radios).toHaveCount(1);
+  await expect(radios.first()).toHaveAttribute('aria-checked', 'true');
+
+  const rowBox = await radios.first().boundingBox();
+  expect(rowBox).not.toBeNull();
+  expect(rowBox!.width).toBeGreaterThanOrEqual(44);
+  expect(rowBox!.height).toBeGreaterThanOrEqual(44);
+
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  const summary = violations.map((violation) => ({
+    id: violation.id,
+    impact: violation.impact,
+    nodes: violation.nodes.map((node) => node.target.join(' ')),
+  }));
+  expect(summary).toEqual([]);
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+});
+
 test('page shell is dark, English and landmarked', async ({ page }) => {
   await page.goto('/');
   await settle(page);

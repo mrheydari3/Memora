@@ -12,6 +12,7 @@ export type { RatingKey } from './RatingKeys';
 export { StudyCard } from './StudyCard';
 export { StudyTray } from './StudyTray';
 export { TodayPane } from './TodayPane';
+export { TodayPlanSheet } from './TodayPlanSheet';
 export { HeroAura } from './HeroAura';
 export { LibraryPane } from './LibraryPane';
 export { FolderCard } from './FolderCard';

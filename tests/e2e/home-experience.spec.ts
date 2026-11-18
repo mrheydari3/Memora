@@ -99,6 +99,72 @@ test.describe('Home experience', () => {
     await expect(panel.getByText(/\d+ in queue$/)).toBeVisible();
   });
 
+  test('the plan sheet defaults to the last-studied due deck and routes the CTA to the chosen deck', async ({
+    page,
+  }) => {
+    await boot(page);
+
+    const storageSnapshot = () =>
+      page.evaluate(
+        (keys) => ({
+          cards: localStorage.getItem(keys.cards),
+          log: localStorage.getItem(keys.log),
+        }),
+        { cards: K.allCards, log: K.reviewLog }
+      );
+    const lastStudiedDeckId = await page.evaluate((key) => {
+      const log = JSON.parse(localStorage.getItem(key) ?? '[]') as Array<{
+        deckId: string;
+        reviewedAt: number;
+      }>;
+      return log.sort((a, b) => b.reviewedAt - a.reviewedAt)[0]?.deckId ?? null;
+    }, K.reviewLog);
+    expect(lastStudiedDeckId).toBe('deck-german-a2b1');
+
+    const trigger = page.getByTestId('today-plan-trigger');
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByRole('button', { name: 'Continue' })).toBeVisible();
+    await trigger.click();
+
+    const dialog = page.getByRole('dialog', { name: "Today's plan" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('radiogroup', { name: 'Due decks' })).toBeVisible();
+    const radios = dialog.getByRole('radio');
+    await expect(radios).toHaveCount(4);
+
+    const defaultRow = dialog.getByRole('radio', { name: /Schritt Plus Neu A2\/B1/ });
+    await expect(defaultRow).toHaveAttribute('aria-checked', 'true');
+    for (const row of await radios.all()) {
+      await expect(row).toContainText(/\d+ new/);
+      await expect(row).toContainText(/\d+ learning/);
+      await expect(row).toContainText(/\d+ review/);
+    }
+
+    const chosenRow = dialog.getByRole('radio', { name: /Due today \(review\)/ });
+    await expect(chosenRow).toHaveAttribute('aria-checked', 'false');
+    const scheduledBefore = await storageSnapshot();
+    await chosenRow.click();
+
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByTestId('today-panel')).toContainText('Due today (review)');
+    await expect(page.getByRole('button', { name: 'Start session' })).toBeVisible();
+    expect(await storageSnapshot()).toEqual(scheduledBefore);
+
+    // Reopening shows the explicit choice, not the last-studied default.
+    await trigger.click();
+    await expect(dialog).toBeVisible();
+    await expect(chosenRow).toHaveAttribute('aria-checked', 'true');
+    await expect(defaultRow).toHaveAttribute('aria-checked', 'false');
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
+
+    await page.getByRole('button', { name: 'Start session' }).click();
+    await expect(page).toHaveURL(/\/study\/deck-due$/);
+    expect(await storageSnapshot()).toEqual(scheduledBefore);
+  });
+
   test.describe('320px phone', () => {
     test.use({ viewport: { width: 320, height: 700 } });
 
@@ -117,6 +183,29 @@ test.describe('Home experience', () => {
           () => document.documentElement.scrollWidth - document.documentElement.clientWidth
         )
       ).toBeLessThanOrEqual(1);
+    });
+
+    test('the plan sheet fits and lists every due deck', async ({ page }) => {
+      await boot(page);
+
+      await page.getByTestId('today-plan-trigger').click();
+      const dialog = page.getByRole('dialog', { name: "Today's plan" });
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByRole('radio')).toHaveCount(4);
+
+      const box = await dialog.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(320.5);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+        )
+      ).toBeLessThanOrEqual(1);
+
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden();
+      await expect(page.getByTestId('today-plan-trigger')).toBeFocused();
     });
   });
 

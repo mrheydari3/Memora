@@ -119,6 +119,25 @@ const SURFACES = [
 
 test.describe('changed surfaces', () => {
   for (const { width, height } of SURFACES) {
+    test(`today plan sheet at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await seedHome(page);
+      await page.goto('/');
+      await waitForRoute(page, 'home');
+
+      await page.getByTestId('today-plan-trigger').click();
+      const sheet = page.getByRole('dialog', { name: "Today's plan" });
+      await expect(sheet).toBeVisible();
+      await page.waitForTimeout(1200);
+
+      const box = await sheet.boundingBox();
+      expect(box).not.toBeNull();
+      await expect(page).toHaveScreenshot(`today-plan-${width}.png`, {
+        animations: 'allow',
+        clip: { x: box!.x, y: box!.y, width: box!.width, height: box!.height },
+      });
+    });
+
     test(`new deck sheet at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height });
       await page.goto('/');

@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, useWindowDimensions, View } from 'react-native';
 import { AppText } from '../AppText';
+import { HintPressable } from '../HintPressable';
+import { MaterialIcons } from '../Icon';
 import { ActionButton } from './ActionButton';
 import { Surface } from './Surface';
 import { colors, motion, radii, stateColors } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
-import { timingTo, useAnimatedNumber, useReveal } from '../../motion';
+import { timingTo, useAnimatedNumber, usePressFeedback, useReveal } from '../../motion';
 import { useLaunchReveal } from '../../motion/LaunchReveal';
 
 type Segment = { label: string; value: number; color: string };
@@ -27,6 +29,10 @@ type TodayPaneProps = {
   label: string;
   disabled?: boolean;
   onStart: () => void;
+  /** Opens the due-deck chooser. */
+  onOpenPlan: () => void;
+  /** Whether the plan sheet is open, announced on the trigger. */
+  planOpen: boolean;
   /** The local clock used for the date; Home owns it so midnight is real. */
   now?: number;
 };
@@ -54,7 +60,8 @@ const makeSegments = (newCount: number, learningCount: number, reviewCount: numb
  *
  * From 1200px the hero splits: the day's figure owns the left, and the deck
  * it will open plus the action own a fixed right column. That keeps the card
- * from reading as a stretched phone banner on a desktop canvas.
+ * from reading as a stretched phone banner on a desktop canvas. The next-deck
+ * summary is itself the control that opens Today's plan.
  *
  * Order follows the mockup: the rail belongs to the next deck, so it sits above
  * the action rather than under it. The scene pane and the pill are the shared
@@ -71,6 +78,8 @@ export function TodayPane({
   label,
   disabled = false,
   onStart,
+  onOpenPlan,
+  planOpen,
   now: nowProp,
 }: TodayPaneProps) {
   const { width } = useWindowDimensions();
@@ -88,6 +97,7 @@ export function TodayPane({
   const total = segments.reduce((sum, segment) => sum + segment.value, 0);
   const displayedDue = useAnimatedNumber(due);
   const launched = useLaunchReveal();
+  const planPress = usePressFeedback({ scale: 0.99 });
 
   // The hero enters as one composed block, but its parts settle in a short
   // sequence. It waits for the launch layer to leave, so the reveal is visible
@@ -179,38 +189,60 @@ export function TodayPane({
   const nextBlock = total > 0 ? (
     <Animated.View style={nextReveal.style}>
       <View style={{ gap: 8 }}>
-        <View style={{ gap: 3 }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'baseline',
-              justifyContent: 'space-between',
-              gap: 10,
-            }}
-          >
-            <AppText
-              variant="label"
-              weight="semibold"
-              tone="tertiary"
-              className="uppercase"
-              numberOfLines={1}
-              style={{ letterSpacing: 0.8 }}
-            >
-              Next deck
-            </AppText>
-            <AppText
-              variant="caption"
-              tone="tertiary"
-              numberOfLines={1}
-              style={[NUMERIC, { flexShrink: 0 }]}
-            >
-              {total} in queue
-            </AppText>
-          </View>
-          <AppText variant="bodySm" weight="semibold" numberOfLines={2}>
-            {nextDeck}
-          </AppText>
-        </View>
+        <HintPressable
+          testID="today-plan-trigger"
+          hint="Choose which due deck to study"
+          onPress={onOpenPlan}
+          onPressIn={planPress.onPressIn}
+          onPressOut={planPress.onPressOut}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: planOpen }}
+          aria-expanded={planOpen}
+          aria-haspopup="dialog"
+          style={{ minHeight: 44, justifyContent: 'center', borderRadius: radii.control }}
+        >
+          <Animated.View style={planPress.style}>
+            <View style={{ gap: 3 }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'baseline',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                }}
+              >
+                <View
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 }}
+                >
+                  <AppText
+                    variant="label"
+                    weight="semibold"
+                    tone="tertiary"
+                    className="uppercase"
+                    numberOfLines={1}
+                    style={{ letterSpacing: 0.8 }}
+                  >
+                    Next deck
+                  </AppText>
+                  <View accessible={false} importantForAccessibility="no-hide-descendants">
+                    <MaterialIcons name="expand-more" size={14} color={colors.outline} />
+                  </View>
+                </View>
+                <AppText
+                  variant="caption"
+                  tone="tertiary"
+                  numberOfLines={1}
+                  style={[NUMERIC, { flexShrink: 0 }]}
+                >
+                  {total} in queue
+                </AppText>
+              </View>
+              <AppText variant="bodySm" weight="semibold" numberOfLines={2}>
+                {nextDeck}
+              </AppText>
+            </View>
+          </Animated.View>
+        </HintPressable>
 
         <Animated.View
           accessibilityElementsHidden

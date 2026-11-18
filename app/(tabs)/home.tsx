@@ -41,6 +41,7 @@ import {
   SectionHeading,
   Surface,
   TodayPane,
+  TodayPlanSheet,
 } from '../../components/v3';
 import type { FieldInputRef } from '../../components/Field';
 import { colors, heights, radii, spacing } from '../../theme/tokens';
@@ -135,6 +136,10 @@ export default function HomeScreen() {
   // shelf, and a menu owned by a row that changes position would unmount with
   // it, closing between two repeatable operations.
   const [deckMenu, setDeckMenu] = useState<{ deckId: string; anchor: AnchorRect } | null>(null);
+  const [planSheet, setPlanSheet] = useState(false);
+  // The selected plan deck is local UI state. It never changes a queue, a card
+  // or the review log; the hero simply opens the deck the learner chose.
+  const [plannedDeckId, setPlannedDeckId] = useState<string | null>(null);
   const folderDraftRef = useRef<FieldInputRef>(null);
 
   // One index per data change: review buckets, queue summaries, folder
@@ -185,7 +190,13 @@ export default function HomeScreen() {
     deckQueues.find((entry) => entry.total > 0) ??
     lastStudiedEntry ??
     deckQueues[0];
-  const resuming = Boolean(lastStudiedEntry && continueEntry?.deck.id === lastStudiedEntry.deck.id);
+  const dueEntries = deckQueues.filter((entry) => entry.total > 0);
+  // Until the learner makes a choice, the existing last-studied preference is
+  // the plan. A stale choice falls back to that same preference rather than
+  // leaving the hero on a deck that no longer has work.
+  const plannedEntry =
+    dueEntries.find((entry) => entry.deck.id === plannedDeckId) ?? continueEntry;
+  const resuming = Boolean(lastStudiedEntry && plannedEntry?.deck.id === lastStudiedEntry.deck.id);
 
   // A folder deleted from the sheet falls back to the flat list instead of
   // hiding the level it was on.
@@ -464,7 +475,7 @@ export default function HomeScreen() {
           library={library}
           folders={folders}
           hero={
-            continueEntry ? (
+            plannedEntry ? (
               <View
                 style={
                   desktop
@@ -495,10 +506,10 @@ export default function HomeScreen() {
                       due={totalDue}
                       deckCount={dueDecks}
                       minutes={minutes}
-                      nextDeck={continueEntry.deck.name}
-                      newCount={continueEntry.newCount}
-                      learningCount={continueEntry.learningCount}
-                      reviewCount={continueEntry.reviewCount}
+                      nextDeck={plannedEntry.deck.name}
+                      newCount={plannedEntry.newCount}
+                      learningCount={plannedEntry.learningCount}
+                      reviewCount={plannedEntry.reviewCount}
                       label={
                         totalDue === 0
                           ? 'Nothing due today'
@@ -507,7 +518,9 @@ export default function HomeScreen() {
                             : 'Start session'
                       }
                       disabled={totalDue === 0}
-                      onStart={() => pushOnce(router, `/study/${continueEntry.deck.id}`)}
+                      onStart={() => pushOnce(router, `/study/${plannedEntry.deck.id}`)}
+                      onOpenPlan={() => setPlanSheet(true)}
+                      planOpen={planSheet}
                       now={now}
                     />
                   </View>
@@ -564,6 +577,17 @@ export default function HomeScreen() {
           title={deckMenuDeck?.name ?? 'Deck options'}
           subtitle="Pinned decks stay above the others in their folder."
           actions={deckMenuDeck ? deckActions(deckMenuDeck) : []}
+        />
+        <TodayPlanSheet
+          visible={planSheet}
+          onClose={() => setPlanSheet(false)}
+          entries={dueEntries}
+          selectedDeckId={plannedEntry?.deck.id ?? null}
+          onSelectDeck={(deckId) => {
+            setPlannedDeckId(deckId);
+            setPlanSheet(false);
+          }}
+          desktop={desktop}
         />
         </>
       )}
