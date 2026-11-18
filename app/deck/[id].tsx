@@ -374,8 +374,12 @@ export default function DeckDetailsScreen() {
       return;
     }
 
+    // Leave the deck route before the store starts removing this deck.
+    // Otherwise this page paints its "Deck not found" state for a beat, then
+    // lands on the previous screen: a visible flash in a destructive action.
+    // Reuse the existing route when possible instead of stacking a second Home.
+    goBackOr(router, '/(tabs)/home');
     await useDeckStore.getState().deleteDeck(deck.id);
-    router.replace('/(tabs)/home');
   };
 
   // Every menu action is declarative, so the same list can drive the anchored

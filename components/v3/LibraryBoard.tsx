@@ -1,5 +1,6 @@
-import { useDeferredValue, useMemo, useRef, useState } from 'react';
-import { FlatList, Platform, useWindowDimensions, View } from 'react-native';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, FlatList, Platform, useWindowDimensions, View } from 'react-native';
+import { useIsFocused } from 'expo-router';
 import type { ListRenderItemInfo } from 'react-native';
 import { AppText } from '../AppText';
 import { Button } from '../Button';
@@ -17,8 +18,9 @@ import { DeckShelfRow } from './DeckShelfRow';
 import { FolderCard } from './FolderCard';
 import { FolderBodySlice, FolderGroup } from './FolderGroup';
 import { ArchivedRow } from './ArchivedRow';
-import { colors, iconSize, spacing } from '../../theme/tokens';
+import { colors, iconSize, motion, spacing } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
+import { timingTo, useChangeReveal, usePresence } from '../../motion';
 import type { FolderAggregate, LibraryIndex, DeckSummary } from '../../data/library';
 import { foldSearch, matchesSearch } from '../../data/library';
 import { schedulerLabel } from '../../data/schedulers';
@@ -42,7 +44,16 @@ type Row =
   | { key: string; kind: 'toolbar' }
   | { key: string; kind: 'band'; label: string; count: number; hint?: string }
   | { key: string; kind: 'folderGroup'; id: string }
-  | { key: string; kind: 'folderDeck'; deckId: string; first: boolean; last: boolean }
+  | {
+      key: string;
+      kind: 'folderDeck';
+      deckId: string;
+      first: boolean;
+      last: boolean;
+      opening: boolean;
+      closing: boolean;
+      index: number;
+    }
   | { key: string; kind: 'folderCards'; ids: string[] }
   | { key: string; kind: 'searchFolder'; id: string }
   | { key: string; kind: 'deckCards'; ids: string[]; paths: boolean }
@@ -59,6 +70,10 @@ export type LibraryBoardProps = {
   openFolder: DeckFolder | null;
   onOpenFolder: (id: string | null) => void;
   collapsedFolders: ReadonlySet<string>;
+  /** Folders whose bodies are entering after a tap. */
+  openingFolders: ReadonlySet<string>;
+  /** Folders whose collapsed state is committed but whose rows are fading out. */
+  closingFolders: ReadonlySet<string>;
   onToggleFolder: (id: string) => void;
   editingLayout: boolean;
   onNewFolder: () => void;
@@ -111,6 +126,8 @@ export function LibraryBoard({
   openFolder,
   onOpenFolder,
   collapsedFolders,
+  openingFolders,
+  closingFolders,
   onToggleFolder,
   editingLayout,
   onNewFolder,
@@ -123,6 +140,7 @@ export function LibraryBoard({
   tabClearance = true,
 }: LibraryBoardProps) {
   const { width } = useWindowDimensions();
+  const isFocused = useIsFocused();
   const desktop = width >= 1024;
   const columns = width >= 1200 ? 3 : desktop ? 2 : 1;
   const usableWidth = Math.max(
@@ -134,9 +152,30 @@ export function LibraryBoard({
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<LibraryFilter>('all');
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const archiveBody = usePresence(archiveOpen, { duration: motion.base });
+  const archiveCollapse = useRef(new Animated.Value(0)).current;
+  const [archiveContentHeight, setArchiveContentHeight] = useState(0);
   const deferredQuery = useDeferredValue(query);
   const foldedQuery = foldSearch(deferredQuery);
   const searchActive = query.trim().length > 0 || filter === 'due';
+
+  // An archive body must earn its space. The fade alone left the following
+  // content jumping by the body's full height for a quarter second; measuring
+  // the body and collapsing that height makes open and close one continuous
+  // layout change instead of a paint followed by a snap.
+  useEffect(() => {
+    if (!archiveBody.mounted) {
+      archiveCollapse.setValue(0);
+      return;
+    }
+    if (archiveContentHeight <= 0) return;
+    const duration = archiveOpen ? motion.base : motion.fast;
+    void timingTo(archiveCollapse, archiveOpen ? archiveContentHeight : 0, {
+      duration,
+      nativeDriver: false,
+    });
+    return () => archiveCollapse.stopAnimation();
+  }, [archiveBody.mounted, archiveCollapse, archiveContentHeight, archiveOpen]);
 
   const folderById = useMemo(() => new Map(folders.map((folder) => [folder.id, folder])), [folders]);
 
@@ -261,13 +300,18 @@ export function LibraryBoard({
       if (columns === 1) {
         for (const folder of visibleFolders) {
           const decks = pinnedFirstEntries(library.byFolderId.get(folder.id) ?? []);
-          const expanded = !collapsedFolders.has(folder.id);
+          const collapsed = collapsedFolders.has(folder.id);
+          const closing = closingFolders.has(folder.id);
+          // A close is committed immediately for the header's aria state and
+          // chevron, but the rows remain one short beat so they can fade out
+          // instead of vanishing under the finger.
+          const bodyMounted = !collapsed || closing;
           out.push({
             key: `fg-${folder.id}`,
             kind: 'folderGroup',
             id: folder.id,
           });
-          if (!expanded) continue;
+          if (!bodyMounted) continue;
           // The decks are their own list rows, so the FlatList mounts a window
           // of a long folder instead of every deck inside one giant row.
           decks.forEach((entry, index) => {
@@ -277,6 +321,9 @@ export function LibraryBoard({
               deckId: entry.deck.id,
               first: index === 0,
               last: index === decks.length - 1,
+              opening: openingFolders.has(folder.id),
+              closing,
+              index,
             });
           });
         }
@@ -303,8 +350,15 @@ export function LibraryBoard({
       );
     }
 
-    if (visibleFolders.length === 0 && visibleDecks.length === 0) {
+    const archivedOnly = library.entries.length === 0 && library.archived.length > 0;
+    if (!archivedOnly && visibleFolders.length === 0 && visibleDecks.length === 0) {
       out.push({ key: 'empty-level', kind: 'emptyLevel' });
+    }
+    if (!openFolder && archivedOnly) {
+      // Keep the archived section reachable even when folders still exist.
+      // Without this notice a library whose decks are all archived looks like
+      // an empty shelf until the learner happens to scroll past every folder.
+      out.push({ key: 'archived-only', kind: 'emptyLevel' });
     }
 
     if (!openFolder && library.archived.length > 0) {
@@ -320,9 +374,13 @@ export function LibraryBoard({
     openFolder,
     editingLayout,
     collapsedFolders,
+    openingFolders,
+    closingFolders,
     visibleFolders,
     visibleDecks,
     library.archived.length,
+    library.entries.length,
+    library.entries.length === 0 && library.archived.length > 0,
   ]);
 
   const reorderGroups = useMemo<ShelfReorderGroup[]>(
@@ -386,8 +444,101 @@ export function LibraryBoard({
   ).length;
   const statusLabel = !openFolder && caughtUpFolders > 0 ? `${caughtUpFolders} caught up` : undefined;
 
+  // A structural key, not a data key: due counts changing every minute must not
+  // make the shelf twitch. It names the deck/folder identities, their folder,
+  // order and pins, so create, delete, move, archive/restore, pin and reorder
+  // each get one whole-shelf settle while a queue refresh gets none. Search and
+  // filter share the same transition, so the result set changes in one quiet beat.
+  const shelfSignature = useMemo(
+    () =>
+      [
+        openFolder?.id ?? 'root',
+        editingLayout ? 'edit' : 'browse',
+        library.entries
+          .map(
+            (entry) =>
+              `${entry.deck.id}:${entry.deck.folderId ?? ''}:${entry.deck.pinnedAt != null ? 1 : 0}`
+          )
+          .join(','),
+        library.archived.map(({ deck }) => deck.id).join(','),
+        folders
+          .map((folder) => `${folder.id}:${folder.pinnedAt != null ? 1 : 0}`)
+          .join(','),
+      ].join('|'),
+    [editingLayout, folders, library, openFolder?.id]
+  );
+  // A deck can be created or deleted while Home is covered by another route.
+  // Hold the last shelf we revealed while focused, so a change made behind a
+  // route settles once when Home becomes visible, not invisibly underneath it
+  // and again on focus. This also leaves an unchanged tab switch alone.
+  const [revealedShelf, setRevealedShelf] = useState(shelfSignature);
+  useEffect(() => {
+    if (isFocused && revealedShelf !== shelfSignature) {
+      setRevealedShelf(shelfSignature);
+    }
+  }, [isFocused, revealedShelf, shelfSignature]);
+
+  const searchSignature = `${searchActive ? 1 : 0}:${foldedQuery}:${filter}`;
+  const listReveal = useChangeReveal(
+    `${revealedShelf}|${searchSignature}`,
+    {
+      duration: searchActive ? motion.fast : motion.base,
+      distance: searchActive ? 4 : 6,
+      opacityFloor: 0.985,
+    }
+  );
+
   const listRef = useRef<FlatList<Row>>(null);
   const scrollOffsetRef = useRef(0);
+  const rootScrollOffsetRef = useRef(0);
+  const previousFolderIdRef = useRef<string | null>(openFolder?.id ?? null);
+  const previousSearchActiveRef = useRef(searchActive);
+  const pendingScrollRef = useRef<number | null>(null);
+
+  // A folder is a different level, not a scroll position. Entering one from
+  // deep in the root list used to leave the new, shorter list at an offset it
+  // could not contain, which read as an empty screen. Remember the root offset,
+  // open folders at the top, and restore the root offset when the breadcrumb
+  // takes the learner back.
+  useEffect(() => {
+    const nextId = openFolder?.id ?? null;
+    const previousId = previousFolderIdRef.current;
+    if (nextId === previousId) return;
+
+    if (nextId && previousId == null) {
+      rootScrollOffsetRef.current = scrollOffsetRef.current;
+    }
+    previousFolderIdRef.current = nextId;
+    const target = nextId ? 0 : rootScrollOffsetRef.current;
+    // The list's row set changes after this effect. Keep the target pending so
+    // the content-size callback can apply it once the new rows have a height;
+    // the frame is the fast path for lists whose measured size does not change.
+    pendingScrollRef.current = target;
+    const frame = requestAnimationFrame(() => {
+      listRef.current?.scrollToOffset({ offset: target, animated: false });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [openFolder?.id]);
+
+  const applyPendingScroll = () => {
+    const target = pendingScrollRef.current;
+    if (target == null) return;
+    pendingScrollRef.current = null;
+    listRef.current?.scrollToOffset({ offset: target, animated: false });
+  };
+
+  // Search replaces the row set with a narrower one. Start results at their
+  // first row; clearing a query leaves the reader where they are, since the
+  // root offset may be intentionally restored by the folder effect above.
+  useEffect(() => {
+    if (previousSearchActiveRef.current === searchActive) return;
+    previousSearchActiveRef.current = searchActive;
+    if (!searchActive) return;
+    const frame = requestAnimationFrame(() => {
+      listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [searchActive]);
 
   const openFolderAndReset = (id: string | null) => {
     if (searchActive) {
@@ -511,23 +662,65 @@ export function LibraryBoard({
           {plural(library.archived.length, 'deck', 'decks')}
         </AppText>
         <View style={{ flex: 1 }} />
-        <View style={{ transform: [{ rotate: archiveOpen ? '180deg' : '0deg' }] }}>
+        <Animated.View
+          style={{
+            transform: [
+              {
+                rotate: archiveBody.value.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0deg', '180deg'],
+                }),
+              },
+            ],
+          }}
+        >
           <MaterialIcons name="expand-more" size={iconSize.lg} color={colors.outline} />
-        </View>
+        </Animated.View>
       </HintPressable>
 
-      {archiveOpen ? (
-        <View style={{ padding: 8, gap: 8 }}>
-          {library.archived.map(({ deck, cards }) => (
-            <ArchivedRow
-              key={deck.id}
-              name={deck.name}
-              cardCount={cards}
-              onPress={() => onOpenDeck(deck.id)}
-              optionsMenu={deckOptions(deck)}
-            />
-          ))}
-        </View>
+      {archiveBody.mounted ? (
+        <Animated.View
+          testID="archive-body"
+          pointerEvents={archiveOpen ? 'auto' : 'none'}
+          accessibilityElementsHidden={!archiveOpen || undefined}
+          importantForAccessibility={!archiveOpen ? 'no-hide-descendants' : undefined}
+          {...(Platform.OS === 'web' ? { 'aria-hidden': !archiveOpen || undefined } : {})}
+          style={{ height: archiveCollapse, overflow: 'hidden' }}
+        >
+          <Animated.View
+            onLayout={(event) => {
+              if (!archiveOpen) return;
+              const next = Math.round(event.nativeEvent.layout.height);
+              if (next <= 0) return;
+              setArchiveContentHeight((current) =>
+                Math.abs(current - next) > 1 ? next : current
+              );
+            }}
+            style={{
+              padding: 8,
+              gap: 8,
+              opacity: archiveBody.value,
+              transform: [
+                {
+                  translateY: archiveBody.value.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [6, 0],
+                  }),
+                },
+              ],
+            }}
+          >
+            {library.archived.map(({ deck, cards }) => (
+              <ArchivedRow
+                key={deck.id}
+                name={deck.name}
+                cardCount={cards}
+                onPress={() => onOpenDeck(deck.id)}
+                optionsMenu={deckOptions(deck)}
+              />
+            ))}
+          </Animated.View>
+        </Animated.View>
       ) : null}
     </Surface>
   );
@@ -580,7 +773,9 @@ export function LibraryBoard({
       case 'folderGroup': {
         const folder = visibleFolders.find((entry) => entry.id === item.id);
         if (!folder) return null;
-        const joined = !collapsedFolders.has(folder.id) && folder.decks > 0;
+        const expanded = !collapsedFolders.has(folder.id);
+        const joined =
+          (expanded || closingFolders.has(folder.id)) && folder.decks > 0;
         return (
           <View style={{ marginBottom: joined ? 0 : 10 }}>
             <FolderGroup
@@ -590,7 +785,7 @@ export function LibraryBoard({
               deckCount={folder.decks}
               due={folder.due}
               pinned={folder.pinnedAt != null}
-              expanded={!collapsedFolders.has(folder.id)}
+              expanded={expanded}
               expandable={folder.decks > 0}
               joined={joined}
               onToggle={() => onToggleFolder(folder.id)}
@@ -600,7 +795,13 @@ export function LibraryBoard({
       }
       case 'folderDeck':
         return (
-          <FolderBodySlice first={item.first} last={item.last}>
+          <FolderBodySlice
+            first={item.first}
+            last={item.last}
+            entering={item.opening}
+            closing={item.closing}
+            index={item.index}
+          >
             {renderDeck(item.deckId, false, true)}
           </FolderBodySlice>
         );
@@ -635,7 +836,9 @@ export function LibraryBoard({
           <AppText variant="body" tone="muted" style={{ marginTop: 4 }}>
             {openFolder
               ? 'This folder is empty. Move a deck in from the deck’s options.'
-              : 'No decks yet.'}
+              : library.entries.length === 0 && library.archived.length > 0
+                ? 'No active decks. Your archived decks are below.'
+                : 'No decks yet.'}
           </AppText>
         );
       case 'noResults':
@@ -684,33 +887,36 @@ export function LibraryBoard({
   const renderItem = ({ item }: ListRenderItemInfo<Row>) => renderItemContent(item);
 
   return (
-    <FlatList
-      testID="shelf-panel"
-      ref={listRef}
-      data={rows}
-      keyExtractor={(row) => row.key}
-      renderItem={renderItem}
-      style={{ flex: 1 }}
-      contentContainerStyle={{
-        // Home's Screen already pads the body by the floating bar's height.
-        paddingTop: spacing.screen,
-        paddingBottom: tabClearance ? spacing.tabClearance : spacing.screenBottom,
-        paddingHorizontal: spacing.screen,
-        width: '100%',
-        maxWidth: contentMaxWidth,
-        alignSelf: 'center',
-      }}
-      showsVerticalScrollIndicator={false}
-      initialNumToRender={16}
-      maxToRenderPerBatch={10}
-      windowSize={21}
-      updateCellsBatchingPeriod={50}
-      removeClippedSubviews={false}
-      keyboardShouldPersistTaps="handled"
-      onScroll={(event) => {
-        scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
-      }}
-      scrollEventThrottle={16}
-    />
+    <Animated.View style={[{ flex: 1 }, listReveal.style]}>
+      <FlatList
+        testID="shelf-panel"
+        ref={listRef}
+        data={rows}
+        keyExtractor={(row) => row.key}
+        renderItem={renderItem}
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          // Home's Screen already pads the body by the floating bar's height.
+          paddingTop: spacing.screen,
+          paddingBottom: tabClearance ? spacing.tabClearance : spacing.screenBottom,
+          paddingHorizontal: spacing.screen,
+          width: '100%',
+          maxWidth: contentMaxWidth,
+          alignSelf: 'center',
+        }}
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={16}
+        maxToRenderPerBatch={10}
+        windowSize={21}
+        updateCellsBatchingPeriod={50}
+        removeClippedSubviews={false}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={applyPendingScroll}
+        onScroll={(event) => {
+          scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
+      />
+    </Animated.View>
   );
 }

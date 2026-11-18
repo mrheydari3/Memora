@@ -16,6 +16,7 @@ import { noteActivePath } from '../services/navigation';
 import { colors, motion } from '../theme/tokens';
 import { AppSplash } from '../components/AppSplash';
 import { AppText, PrimaryButton } from '../components';
+import { LaunchRevealContext } from '../motion/LaunchReveal';
 
 const styles = StyleSheet.create({
   // `overflow: hidden` clips the tab capsule's negative insets: at 320px they
@@ -118,7 +119,7 @@ export default function RootLayout() {
   };
 
   return (
-    <>
+    <LaunchRevealContext.Provider value={splashDone}>
       <StatusBar style="light" />
       {/*
         One main landmark for the whole app. It wraps the navigator rather than
@@ -182,6 +183,6 @@ export default function RootLayout() {
           onDone={handleSplashDone}
         />
       )}
-    </>
+    </LaunchRevealContext.Provider>
   );
 }

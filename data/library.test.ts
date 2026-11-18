@@ -297,3 +297,30 @@ test('empty library and deleted folders are handled without special cases', () =
   );
   assert.equal(withFolders.aggregates.get('fold-empty')?.decks, 0);
 });
+
+test('the supplied local day resets daily caps without touching the log', () => {
+  const library = buildDevLibrary(NOW);
+  const deck = library.decks.find((entry) => entry.id === 'deck-german-a2b1');
+  assert.ok(deck);
+  const cards = library.cardsByDeck[deck.id] ?? [];
+  const firstNew = cards.find((card) => card.fsrs.state === 'New');
+  const review = library.reviewLog[0];
+  assert.ok(firstNew);
+  assert.ok(review);
+
+  const cappedDeck = { ...deck, newCardsPerDay: 1 };
+  const log: ReviewLogEntry[] = [
+    { ...review, deckId: deck.id, cardId: firstNew.id, reviewedAt: NOW, cardWasNew: true },
+  ];
+  const today = buildLibraryIndex([cappedDeck], [], { [deck.id]: cards }, log, { now: NOW });
+  const tomorrow = buildLibraryIndex([cappedDeck], [], { [deck.id]: cards }, log, {
+    now: NOW + 86_400_000,
+  });
+
+  // The same review consumes today's single new-card slot and the next local
+  // day restores it. Home passes this same `now`, so a midnight refresh is not
+  // a cosmetic date change.
+  assert.equal(today.byDeckId.get(deck.id)?.newCount, 0);
+  assert.equal(tomorrow.byDeckId.get(deck.id)?.newCount, 1);
+  assert.equal(log.length, 1);
+});

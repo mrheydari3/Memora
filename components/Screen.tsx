@@ -10,6 +10,7 @@ import type {
 import { useIsFocused } from 'expo-router';
 import { heights, motion, spacing } from '../theme/tokens';
 import { useReveal } from '../motion';
+import { useLaunchReveal } from '../motion/LaunchReveal';
 
 type ScreenProps = {
   children: React.ReactNode;
@@ -38,6 +39,11 @@ type ScreenProps = {
    * Turn it off for a screen that owns its own entrance (a live session).
    */
   animate?: boolean;
+  /**
+   * Reveal the fixed app bar once the launch layer has left. Home opts in; other
+   * routes keep the bar welded in place while their body handles the entrance.
+   */
+  animateHeader?: boolean;
   /**
    * A route-owned dialog covers this screen. On web the shell becomes inert so
    * neither the keyboard nor assistive technology can reach the covered content.
@@ -78,6 +84,7 @@ export function Screen({
   contentClassName = '',
   contentMaxWidth,
   animate = true,
+  animateHeader = false,
   backgroundInert = false,
   scrollRef,
   onScroll,
@@ -101,6 +108,12 @@ export function Screen({
   }, [focused]);
 
   const reveal = useReveal(pass, { distance: 8, duration: motion.base });
+  const launched = useLaunchReveal();
+  const headerReveal = useReveal(launched ? 'screen-header-ready' : 'screen-header-pending', {
+    distance: 4,
+    duration: motion.base,
+    enabled: animateHeader && launched,
+  });
   const screenRef = useRef<React.ComponentRef<typeof SafeAreaView>>(null);
 
   // The attribute, not just aria-hidden, is what removes the shell from the web
@@ -133,16 +146,19 @@ export function Screen({
           on native and at y=0 on web. */}
       <View style={{ flex: 1 }}>
         {header ? (
-          <View
+          <Animated.View
             pointerEvents="box-none"
             onLayout={(event) => {
               const next = Math.round(event.nativeEvent.layout.height);
               setHeaderHeight((current) => (Math.abs(current - next) > 1 ? next : current));
             }}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20 }}
+            style={[
+              { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20 },
+              animateHeader ? headerReveal.style : null,
+            ]}
           >
             {header}
-          </View>
+          </Animated.View>
         ) : null}
         <Animated.View
           testID="screen-body"

@@ -45,6 +45,8 @@ import {
 import type { FieldInputRef } from '../../components/Field';
 import { colors, heights, radii, spacing } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
+import { useToday } from '../../hooks/useToday';
+import { useFolderTransitions } from '../../hooks/useFolderTransitions';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -80,6 +82,10 @@ export default function HomeScreen() {
     ? Math.max(320, Math.min(620, height - 240))
     : heights.sheetTall;
 
+  // Derive the day from a clock that refreshes on midnight, foreground and
+  // focus. A render-only Date.now() froze due counts until an unrelated store
+  // update re-rendered Home.
+  const now = useToday();
   const decks = useDeckStore((s) => s.decks);
   const cardsByDeck = useDeckStore((s) => s.cardsByDeck);
   const loaded = useDeckStore((s) => s.loaded);
@@ -117,7 +123,12 @@ export default function HomeScreen() {
   const [editIcon, setEditIcon] = useState<string>(FOLDER_DEFAULT_ICON);
   const [editColor, setEditColor] = useState<string>(COLOR_CHOICES[0]);
   const [editError, setEditError] = useState<string | null>(null);
-  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() => new Set());
+  const {
+    collapsed: collapsedFolders,
+    opening: openingFolders,
+    closing: closingFolders,
+    toggle: toggleFolder,
+  } = useFolderTransitions();
   const [editingLayout, setEditingLayout] = useState(false);
   // The deck menu lives at screen level, not in the row: Pin/Move reorder the
   // shelf, and a menu owned by a row that changes position would unmount with
@@ -129,8 +140,8 @@ export default function HomeScreen() {
   // aggregates, paths and children. The board and the sheet read the same maps,
   // so a count cannot disagree with the row it describes.
   const library = useMemo(
-    () => buildLibraryIndex(decks, folders, cardsByDeck, reviewLog),
-    [decks, folders, cardsByDeck, reviewLog]
+    () => buildLibraryIndex(decks, folders, cardsByDeck, reviewLog, { now }),
+    [decks, folders, cardsByDeck, reviewLog, now]
   );
   const deckQueues = library.entries;
   const activeDeckIds = useMemo(
@@ -141,9 +152,10 @@ export default function HomeScreen() {
   const streak = useMemo(
     () =>
       computeStreak(
-        reviewLog.filter((entry) => activeDeckIds.has(entry.deckId)).map((e) => e.reviewedAt)
+        reviewLog.filter((entry) => activeDeckIds.has(entry.deckId)).map((e) => e.reviewedAt),
+        now
       ),
-    [reviewLog, activeDeckIds]
+    [reviewLog, activeDeckIds, now]
   );
 
   const totalDue = library.totals.due;
@@ -280,14 +292,6 @@ export default function HomeScreen() {
     />
   );
 
-  const toggleFolder = (id: string) =>
-    setCollapsedFolders((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-
   const deckMenuDeck = deckMenu
     ? decks.find((deck) => deck.id === deckMenu.deckId) ?? null
     : null;
@@ -418,6 +422,7 @@ export default function HomeScreen() {
     <Screen
       scroll={false}
       tabClearance
+      animateHeader
       contentMaxWidth={contentMaxWidth}
       header={header}
     >
@@ -430,7 +435,7 @@ export default function HomeScreen() {
             <DeckShelfSkeleton count={2} />
           </View>
         </ScrollView>
-      ) : deckQueues.length === 0 ? (
+      ) : deckQueues.length === 0 && archivedDecks.length === 0 && folders.length === 0 ? (
         <ScrollView contentContainerStyle={scrollContentStyle} showsVerticalScrollIndicator={false}>
           <View
             style={desktop ? { width: '100%', maxWidth: 620, alignSelf: 'center' } : undefined}
@@ -504,6 +509,7 @@ export default function HomeScreen() {
                       }
                       disabled={totalDue === 0}
                       onStart={() => pushOnce(router, `/study/${continueEntry.deck.id}`)}
+                      now={now}
                     />
                   </View>
                 </View>
@@ -527,6 +533,8 @@ export default function HomeScreen() {
           openFolder={openFolder}
           onOpenFolder={setOpenFolderId}
           collapsedFolders={collapsedFolders}
+          openingFolders={openingFolders}
+          closingFolders={closingFolders}
           onToggleFolder={toggleFolder}
           editingLayout={editingLayout}
           onNewFolder={() => {

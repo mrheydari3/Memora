@@ -198,6 +198,18 @@ type RevealOptions = {
   distance?: number;
   /** Starting scale, when the block should settle rather than slide. */
   scale?: number;
+  /**
+   * Hold the block at its end state until true. Used by the launch hand-off so
+   * the hero does not finish its entrance behind the splash.
+   */
+  enabled?: boolean;
+  /**
+   * Skip the mount run and animate only when `key` changes. Lists use this so
+   * scrolling a row back into the virtualized window does not replay its entry.
+   */
+  animateMount?: boolean;
+  /** Starting opacity; defaults to the screen-body floor. */
+  opacityFloor?: number;
 };
 
 /**
@@ -216,24 +228,44 @@ export const REVEAL_OPACITY_FLOOR = 0.92;
  * ready to spread on an Animated.View.
  */
 export function useReveal(key: unknown, options: RevealOptions = {}) {
-  const { delay = 0, duration = motion.base, distance = 8, scale } = options;
+  const {
+    delay = 0,
+    duration = motion.base,
+    distance = 8,
+    scale,
+    enabled = true,
+    animateMount = true,
+    opacityFloor = REVEAL_OPACITY_FLOOR,
+  } = options;
   const value = useRef(new Animated.Value(1)).current;
   const reduced = useReducedMotion();
+  const mounted = useRef(false);
 
   useEffect(() => {
-    if (prefersReducedMotion()) {
+    const firstRun = !mounted.current;
+    mounted.current = true;
+    if (!enabled || prefersReducedMotion() || (firstRun && !animateMount)) {
       value.setValue(1);
       return;
     }
     value.setValue(0);
-    Animated.timing(value, {
+    // Keep the composite so a key change or unmount stops the previous run.
+    // Without this, a fast tab re-entry could leave two timings writing the
+    // same value, and a late callback could replay an entrance on a screen the
+    // learner has already left.
+    const animation = Animated.timing(value, {
       toValue: 1,
       duration,
       delay,
       easing: EASE.standard,
       useNativeDriver: USE_NATIVE_DRIVER,
-    }).start();
-  }, [key, delay, duration, value]);
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [key, delay, duration, enabled, animateMount, value]);
+
+  // `reduced` is returned for callers that need to skip a transform entirely;
+  // the value itself already snaps to its end state in the effect above.
 
   const style = useMemo(() => {
     const transform: ({ translateY: Animated.AnimatedInterpolation<number> } | { scale: Animated.AnimatedInterpolation<number> })[] =
@@ -251,13 +283,89 @@ export function useReveal(key: unknown, options: RevealOptions = {}) {
     return {
       opacity: value.interpolate({
         inputRange: [0, 1],
-        outputRange: [REVEAL_OPACITY_FLOOR, 1],
+        outputRange: [opacityFloor, 1],
       }),
       transform,
     } as Animated.WithAnimatedValue<ViewStyle>;
-  }, [value, distance, scale]);
+  }, [value, distance, scale, opacityFloor]);
 
   return { value, style, reduced };
+}
+
+/**
+ * A restrained settle for a content set that was just replaced: a short fade
+ * and a 3px rise, never a second mount of the list. The first render is the
+ * end state, so opening Home does not animate every row into place; subsequent
+ * key changes (search, filter, create, delete, pin, reorder) do.
+ */
+export function useChangeReveal(key: unknown, options: RevealOptions = {}) {
+  return useReveal(key, {
+    duration: motion.fast,
+    distance: 3,
+    opacityFloor: 0.97,
+    ...options,
+    animateMount: false,
+  });
+}
+
+type AnimatedNumberOptions = {
+  duration?: number;
+  /** Jump straight to the value; useful for deterministic tests. */
+  reduced?: boolean;
+};
+
+/**
+ * A number that eases to its next value, for a live figure such as Today's due
+ * count. The store's value remains authoritative: the visible value is always
+ * rounded to an integer, and the final tick is set to `value` exactly.
+ *
+ * The listener drives React text, so this is deliberately JS-driven and only
+ * meant for a small figure — never for a layout property or a long list.
+ */
+export function useAnimatedNumber(value: number, options: AnimatedNumberOptions = {}): number {
+  const { duration = motion.base, reduced } = options;
+  const animated = useRef(new Animated.Value(value)).current;
+  const [display, setDisplay] = useState(value);
+  const lastDisplay = useRef(value);
+
+  useEffect(() => {
+    const listener = animated.addListener(({ value: next }) => {
+      const rounded = Math.round(next);
+      if (rounded === lastDisplay.current) return;
+      lastDisplay.current = rounded;
+      setDisplay(rounded);
+    });
+    return () => animated.removeListener(listener);
+  }, [animated]);
+
+  useEffect(() => {
+    const finish = () => {
+      lastDisplay.current = value;
+      setDisplay(value);
+      animated.setValue(value);
+    };
+
+    if (reduced ?? prefersReducedMotion()) {
+      finish();
+      return;
+    }
+
+    const animation = Animated.timing(animated, {
+      toValue: value,
+      duration,
+      easing: EASE.standard,
+      // A listener reads every frame, so the native driver cannot own this one.
+      useNativeDriver: false,
+    });
+    animation.start(({ finished }) => {
+      if (!finished) return;
+      lastDisplay.current = value;
+      setDisplay(value);
+    });
+    return () => animation.stop();
+  }, [animated, duration, reduced, value]);
+
+  return display;
 }
 
 type PressOptions = {
@@ -370,33 +478,45 @@ export function usePresence(visible: boolean, options: PresenceOptions = {}) {
   const [mounted, setMounted] = useState(visible);
 
   useEffect(() => {
+    let active = true;
     if (prefersReducedMotion()) {
       value.setValue(visible ? 1 : 0);
       setMounted(visible);
-      return;
+      return () => {
+        active = false;
+      };
     }
 
     if (visible) {
       setMounted(true);
       value.setValue(0);
-      Animated.timing(value, {
+      const animation = Animated.timing(value, {
         toValue: 1,
         duration,
         delay,
         easing: EASE.standard,
         useNativeDriver: USE_NATIVE_DRIVER,
-      }).start();
-      return;
+      });
+      animation.start();
+      return () => {
+        active = false;
+        animation.stop();
+      };
     }
 
-    Animated.timing(value, {
+    const animation = Animated.timing(value, {
       toValue: 0,
       duration: Math.min(duration, motion.fast),
       easing: EASE.press,
       useNativeDriver: USE_NATIVE_DRIVER,
-    }).start(({ finished }) => {
-      if (finished) setMounted(false);
     });
+    animation.start(({ finished }) => {
+      if (active && finished) setMounted(false);
+    });
+    return () => {
+      active = false;
+      animation.stop();
+    };
   }, [visible, duration, delay, value]);
 
   return { mounted, value };
