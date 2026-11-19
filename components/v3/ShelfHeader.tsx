@@ -42,10 +42,13 @@ export function ShelfHeader({
   onToggleLayout,
   editingLayout,
 }: ShelfHeaderProps) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   // Phones lose the eyebrow row and its captions. Tablets and desktops keep the
   // full masthead; 640 is where the title and two labelled actions still fit.
   const compact = width < 640;
+  // The caption gives up its 2px only on the short viewport that has to clear
+  // the dock; a tall phone keeps the normal rhythm.
+  const short = compact && height < 760;
   const actionIcon = compact ? iconSize.lg : iconSize.sm;
 
   const actionStyle = {
@@ -133,7 +136,7 @@ export function ShelfHeader({
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 12,
-        marginTop: compact ? 0 : 6,
+        marginTop: compact ? (short ? 0 : 2) : 6,
         paddingBottom: compact ? 0 : 4,
       }}
     >

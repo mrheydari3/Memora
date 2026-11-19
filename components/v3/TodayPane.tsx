@@ -52,9 +52,8 @@ const makeSegments = (newCount: number, learningCount: number, reviewCount: numb
  *
  *   rounded-[24px] p-5 gap-5, the one raised scene pane, now frosted glass so
  *   the day reads as a live surface rather than an opaque slab; an inset top
- *   rim; eyebrow 12/600 uppercase accent; status chip on the control fill with
- *   a 6px learning dot; figure 40/44 (56 on wide) and its unit at 20/600
- *   outline;
+ *   rim; eyebrow 12/600 uppercase accent; figure 40/44 (56 on wide) and its
+ *   unit at 20/600 outline;
  *   context 13 outline; next-deck label/count 12, deck name 13, rail 6px,
  *   320 cap, 2px gaps between segments; legend dots 8px; CTA 52px pill in the
  *   accent fill with a 20px arrow. The rail is scoped under "Start with" so it
@@ -85,13 +84,14 @@ export function TodayPane({
   planOpen,
   now: nowProp,
 }: TodayPaneProps) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const wide = width >= 900;
   const split = width >= 1200;
   const compact = width < 360;
-  // Phones carry the densest page in the app: the hero gives back a little of
-  // its inner air so the shelf's first folder can clear the floating dock.
-  const tight = width < 640;
+  // Only a short viewport needs the compressed hero: at 320x700 the shelf's
+  // first folder has to clear the floating dock, while a tall phone can keep
+  // the pane's normal air.
+  const tight = width < 640 && height < 760;
   const now = nowProp ?? Date.now();
   const date = new Date(now).toLocaleDateString('en-GB', {
     ...(compact ? {} : { weekday: 'short' as const }),
@@ -303,6 +303,7 @@ export function TodayPane({
                   height: 8,
                   borderRadius: 4,
                   backgroundColor: segment.color,
+                  opacity: segment.value === 0 ? v3.state.zeroDotOpacity : 1,
                 }}
               />
               <AppText variant="caption" tone="tertiary" style={NUMERIC}>
@@ -352,14 +353,7 @@ export function TodayPane({
           flexGrow: 1,
         }}
       >
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 10,
-          }}
-        >
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <AppText
             variant="label"
             weight="semibold"
@@ -371,30 +365,6 @@ export function TodayPane({
           >
             Today · {date}
           </AppText>
-
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 6,
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-              borderRadius: radii.pill,
-              backgroundColor: colors.surfaceControl,
-            }}
-          >
-            <View
-              style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: stateColors.Learning }}
-            />
-            <AppText
-              variant="caption"
-              tone="muted"
-              numberOfLines={1}
-              accessibilityLabel="Scheduler active"
-            >
-              {compact ? 'Scheduler' : 'Scheduler active'}
-            </AppText>
-          </View>
         </View>
 
         {split ? (

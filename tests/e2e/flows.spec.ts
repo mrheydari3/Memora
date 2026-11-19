@@ -987,7 +987,6 @@ test.describe('Phase 5 — behaviour', () => {
     const deckRow = page.getByTestId('deck-row').filter({ hasText: DECK });
     await expect(deckRow).toContainText('· Fast');
     await expect(deckRow).not.toContainText('FSRS-6');
-    await expect(page.getByText('Scheduler active', { exact: true })).toBeVisible();
   });
 
   test('settings: adaptive order, shuffle, offline cache and install prompt work', async ({ page }) => {

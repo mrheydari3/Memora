@@ -95,6 +95,7 @@ function DeckPlanRow({ entry, selected, onSelect }: DeckPlanRowProps) {
                     height: 6,
                     borderRadius: 3,
                     backgroundColor: segment.color,
+                    opacity: entry[segment.field] === 0 ? v3.state.zeroDotOpacity : 1,
                   }}
                 />
                 <AppText variant="caption" tone="tertiary" style={NUMERIC}>

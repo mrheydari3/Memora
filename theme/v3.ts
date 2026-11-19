@@ -8,7 +8,7 @@
  * in one line.
  *
  *   - the due figure is 40px on a phone and 56px from 900px up
- *   - the hero pane carries a live scheduler status and the next deck's rail
+ *   - the hero pane carries the next deck's rail
  *   - deck rows are 22px panes with a 38px glyph tile and one 30px status circle
  *   - folder headers and deck bodies use Today's raised card face
  *
@@ -116,6 +116,11 @@ export const v3 = {
     forecast: 84,
     /** …and on a wide canvas. */
     forecastWide: 96,
+  },
+
+  state: {
+    /** A zero-count legend dot stays visible but stops claiming presence. */
+    zeroDotOpacity: 0.4,
   },
 
   heights: {

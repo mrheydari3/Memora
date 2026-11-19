@@ -139,12 +139,16 @@ export function LibraryBoard({
   contentMaxWidth,
   tabClearance = true,
 }: LibraryBoardProps) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const isFocused = useIsFocused();
   const desktop = width >= 1024;
   // Matches ShelfHeader's breakpoint: below 640 the masthead drops its eyebrow
   // and the shelf drops its first band.
   const phone = width < 640;
+  // The 320x700 fold needs the compressed spacing to clear the dock. A tall
+  // phone has room for the normal rhythm, so it must not inherit the
+  // short-viewport values.
+  const short = phone && height < 760;
   const columns = width >= 1200 ? 3 : desktop ? 2 : 1;
   const usableWidth = Math.max(
     0,
@@ -744,8 +748,8 @@ export function LibraryBoard({
         return (
           <View
             style={{
-              marginTop: phone ? 4 : 12,
-              marginBottom: phone ? 0 : v3.spacing.section,
+              marginTop: phone ? (short ? 4 : 8) : 12,
+              marginBottom: phone ? (short ? 0 : 12) : v3.spacing.section,
             }}
           >
             {hero}
@@ -773,7 +777,12 @@ export function LibraryBoard({
         // Without the phone's Folders band, the toolbar itself has to hold the
         // gap before the first folder; 2px read as a collision.
         return (
-          <View style={{ marginTop: phone ? 6 : 14, marginBottom: phone ? 8 : 2 }}>
+          <View
+            style={{
+              marginTop: phone ? (short ? 6 : 8) : 14,
+              marginBottom: phone ? (short ? 8 : 12) : 2,
+            }}
+          >
             <LibraryToolbar
               query={query}
               onQueryChange={setQuery}
@@ -921,7 +930,7 @@ export function LibraryBoard({
         style={{ flex: 1 }}
         contentContainerStyle={{
           // Home's Screen already pads the body by the floating bar's height.
-          paddingTop: phone ? 8 : spacing.screen,
+          paddingTop: phone ? (short ? 8 : 12) : spacing.screen,
           paddingBottom: tabClearance ? spacing.tabClearance : spacing.screenBottom,
           paddingHorizontal: spacing.screen,
           width: '100%',

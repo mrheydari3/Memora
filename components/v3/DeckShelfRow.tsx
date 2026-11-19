@@ -98,7 +98,7 @@ export function DeckShelfRow({
         { key: 'new', label: 'new', value: composition.newCount, color: stateColors.New },
         {
           key: 'learning',
-          label: 'learn',
+          label: 'learning',
           value: composition.learningCount,
           color: stateColors.Learning,
         },
@@ -191,6 +191,7 @@ export function DeckShelfRow({
                   height: 6,
                   borderRadius: 3,
                   backgroundColor: segment.color,
+                  opacity: segment.value === 0 ? v3.state.zeroDotOpacity : 1,
                 }}
               />
               <AppText variant="caption" tone="tertiary" style={NUMERIC}>

@@ -205,7 +205,9 @@ export function LibraryPane({
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 14, rowGap: 6 }}>
           <Meta
             icon="done-all"
-            color={colors.success}
+            // A zero deck count is not a success; keep the mark neutral until
+            // at least one deck is actually caught up.
+            color={caughtUpDecks > 0 ? colors.success : colors.outline}
             label={`${caughtUpDecks} ${caughtUpDecks === 1 ? 'deck' : 'decks'} caught up`}
           />
           <Meta icon="inventory-2" color={colors.outline} label={`${archived} archived`} />
