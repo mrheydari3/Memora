@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
+import { useSettingsStore } from '../../store/useSettingsStore';
 import { buildLibraryIndex } from '../../data/library';
 import { computeStreak } from '../../data/streak';
 import { estimateSessionMinutes } from '../../data/session';
@@ -103,6 +104,8 @@ export default function HomeScreen() {
   const moveDeckTo = useDeckStore((s) => s.moveDeckTo);
   const reviewLog = useReviewStore((s) => s.reviewLog);
   const reviewLoaded = useReviewStore((s) => s.loaded);
+  const librarySort = useSettingsStore((s) => s.settings.librarySort ?? 'manual');
+  const updateSettings = useSettingsStore((s) => s.update);
 
   useEffect(() => {
     if (!loaded) useDeckStore.getState().load();
@@ -545,6 +548,8 @@ export default function HomeScreen() {
           library={library}
           folders={folders}
           headerInset={headerInset}
+          sort={librarySort}
+          onSortChange={(next) => void updateSettings({ librarySort: next })}
           hero={
             plannedEntry ? (
               <View
@@ -609,6 +614,7 @@ export default function HomeScreen() {
           }
           openFolder={openFolder}
           onOpenFolder={setOpenFolderId}
+          onReviewFolder={(id) => pushOnce(router, `/study/folder/${id}`)}
           collapsedFolders={collapsedFolders}
           openingFolders={openingFolders}
           closingFolders={closingFolders}

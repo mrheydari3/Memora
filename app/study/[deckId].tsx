@@ -8,7 +8,7 @@ import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { getSchedulerForDeck, schedulerLabel } from '../../data/schedulers';
-import { buildStudyQueue } from '../../data/session';
+import { buildFolderStudyQueue, buildStudyQueue } from '../../data/session';
 import { computeStreak } from '../../data/streak';
 import { buildLearningEngine } from '../../data/intelligence';
 import type { LearningEngineResult } from '../../data/intelligence';
@@ -102,13 +102,23 @@ function formatNextDue(ms: number): string {
 }
 
 export default function StudyScreen() {
-  const { deckId } = useLocalSearchParams<{ deckId: string }>();
+  // A folder session reuses this screen: `/study/folder/:folderId` resolves to
+  // it with `folderId` instead of `deckId`. Every card still knows its own
+  // deck, so scheduling, daily caps and reviews stay deck-accurate.
+  const params = useLocalSearchParams<{ deckId?: string; folderId?: string }>();
+  const deckId = typeof params.deckId === 'string' ? params.deckId : undefined;
+  const folderId = typeof params.folderId === 'string' ? params.folderId : undefined;
+  const folderMode = folderId != null;
   const router = useRouter();
-  const deckFallback = `/deck/${deckId}` as Href;
+  const backTarget = (folderMode ? '/' : `/deck/${deckId}`) as Href;
   const { width } = useWindowDimensions();
 
   const decks = useDeckStore((s) => s.decks);
-  const deck = decks.find((d) => d.id === deckId);
+  const folders = useDeckStore((s) => s.folders);
+  const deck = deckId ? decks.find((d) => d.id === deckId) : undefined;
+  const folder = folderId
+    ? folders.find((entry) => entry.id === folderId) ?? null
+    : null;
   const cardsByDeck = useDeckStore((s) => s.cardsByDeck);
   const updateCard = useDeckStore((s) => s.updateCard);
   const updateDeck = useDeckStore((s) => s.updateDeck);
@@ -117,7 +127,17 @@ export default function StudyScreen() {
   const reviewLog = useReviewStore((s) => s.reviewLog);
   const settings = useSettingsStore((s) => s.settings);
 
-  const deckCards = deck ? (cardsByDeck[deck.id] ?? []) : [];
+  // The session's decks: one deck, or every active deck filed in the folder.
+  const sessionDecks = useMemo(() => {
+    if (folderId) {
+      return decks.filter((entry) => !entry.archivedAt && entry.folderId === folderId);
+    }
+    return deck ? [deck] : [];
+  }, [decks, folderId, deck]);
+  const scopeCards = useMemo(
+    () => sessionDecks.flatMap((entry) => cardsByDeck[entry.id] ?? []),
+    [sessionDecks, cardsByDeck]
+  );
 
   // Session queue
   const [queue, setQueue] = useState<Flashcard[]>([]);
@@ -210,17 +230,45 @@ export default function StudyScreen() {
     setCardShownAt(Date.now());
   }, [currentCard?.id, waiting]);
 
-  const scheduler = useMemo(() => (deck ? getSchedulerForDeck(deck) : null), [deck]);
-  const fsrsParams = useMemo(() => (deck ? resolveFsrsParams(deck) : null), [deck]);
+  // Scheduling follows the card, not the route: a folder session mixes decks
+  // that may use different presets and FSRS parameters.
+  const currentDeck = useMemo(
+    () => (currentCard ? decks.find((entry) => entry.id === currentCard.deckId) ?? null : null),
+    [decks, currentCard]
+  );
+  const scheduler = useMemo(
+    () => (currentDeck ? getSchedulerForDeck(currentDeck) : null),
+    [currentDeck]
+  );
+  const fsrsParams = useMemo(
+    () => (currentDeck ? resolveFsrsParams(currentDeck) : null),
+    [currentDeck]
+  );
+
+  const scopeTitle = folderMode ? folder?.name ?? 'Folder' : deck?.name ?? 'Study';
+  const scopeColor = folderMode
+    ? folder?.color ?? colors.primary
+    : deck?.color ?? colors.primary;
+  const scopeSchedulerLabel = useMemo(() => {
+    if (!folderMode) return deck ? schedulerLabel(deck.algorithmPreset) : '';
+    const labels = new Set(
+      sessionDecks.map((entry) => schedulerLabel(entry.algorithmPreset))
+    );
+    return labels.size === 1 ? [...labels][0] : labels.size > 1 ? 'Mixed schedulers' : '';
+  }, [folderMode, deck, sessionDecks]);
 
   // The completion pane only speaks about this visit: reviews from before this
   // mount, including a session restored by a reload, are deliberately excluded.
+  const sessionDeckIds = useMemo(
+    () => new Set(sessionDecks.map((entry) => entry.id)),
+    [sessionDecks]
+  );
   const sessionReviews = useMemo(
     () =>
       reviewLog.filter(
-        (entry) => entry.deckId === deck?.id && entry.reviewedAt >= sessionStartedAt
+        (entry) => sessionDeckIds.has(entry.deckId) && entry.reviewedAt >= sessionStartedAt
       ),
-    [reviewLog, deck, sessionStartedAt]
+    [reviewLog, sessionDeckIds, sessionStartedAt]
   );
 
   const activeDeckIds = useMemo(
@@ -241,6 +289,52 @@ export default function StudyScreen() {
   // existing capped queue already selected; FSRS still owns every due date.
   // The tray's restart runs this same builder and returns to the first card.
   const startSession = useCallback(() => {
+    const shuffled = (items: Flashcard[]) => {
+      // Fisher–Yates: `sort(() => Math.random() - 0.5)` is biased and leaves
+      // some cards far more likely to stay near their original position.
+      for (let i = items.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+      }
+      return items;
+    };
+
+    // A folder session is the union of each deck's own capped queue. Adaptive
+    // ordering is deck-scoped, so it is not applied across the folder; if any
+    // deck asks for shuffled cards, both joined lists are shuffled once.
+    if (folderMode) {
+      if (!folder) return;
+      const store = useDeckStore.getState();
+      const log = useReviewStore.getState().reviewLog;
+      const now = Date.now();
+      const scoped = store.decks.filter(
+        (entry) => !entry.archivedAt && entry.folderId === folder.id
+      );
+      const { newCards, dueCards } = buildFolderStudyQueue(
+        scoped,
+        store.cardsByDeck,
+        log,
+        now
+      );
+      const shuffle = scoped.some((entry) => entry.shuffleCards);
+      const next = [
+        ...(shuffle ? shuffled([...newCards]) : newCards),
+        ...(shuffle ? shuffled([...dueCards]) : dueCards),
+      ];
+
+      setLearning(null);
+      setQueue(next);
+      setSessionTotal(next.length);
+      setQueueBuilt(true);
+      setIndex(0);
+      setShowAnswer(false);
+      setLastUndo(null);
+      setStudyNowId(null);
+      setClock(Date.now());
+      setCardShownAt(Date.now());
+      return;
+    }
+
     if (!deck || deck.archivedAt) return;
     const cards = useDeckStore.getState().getCards(deck.id);
     const log = useReviewStore.getState().reviewLog;
@@ -264,16 +358,6 @@ export default function StudyScreen() {
       console.error('Failed to analyse the learning queue:', error);
     }
     setLearning(analysis);
-
-    const shuffled = (items: Flashcard[]) => {
-      // Fisher–Yates: `sort(() => Math.random() - 0.5)` is biased and leaves
-      // some cards far more likely to stay near their original position.
-      for (let i = items.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [items[i], items[j]] = [items[j], items[i]];
-      }
-      return items;
-    };
 
     const adaptive =
       analysis !== null &&
@@ -299,7 +383,7 @@ export default function StudyScreen() {
     setStudyNowId(null);
     setClock(Date.now());
     setCardShownAt(Date.now());
-  }, [deck]);
+  }, [deck, folder, folderMode]);
 
   useEffect(() => {
     startSession();
@@ -415,7 +499,7 @@ export default function StudyScreen() {
   }, []);
 
   const handleRate = async (rating: Rating) => {
-    if (!currentCard || !deck || !scheduler || advancing) return;
+    if (!currentCard || !currentDeck || !scheduler || advancing) return;
 
     // Let the card leave first (the schedule updates behind it), so the next
     // card arrives instead of the old one snapping to a new layout.
@@ -433,7 +517,7 @@ export default function StudyScreen() {
       await updateCard(currentCard.id, { fsrs: updatedCard.fsrs });
       await logReview({
         cardId: currentCard.id,
-        deckId: deck.id,
+        deckId: currentDeck.id,
         rating,
         reviewedAt: now,
         elapsedMs: Math.max(0, now - cardShownAt),
@@ -454,11 +538,13 @@ export default function StudyScreen() {
       //  - Fast Repetition repeats Again/Hard, while Good/Easy finish the pass,
       //    so the session can actually reach "All done".
       const refreshed =
-        useDeckStore.getState().getCards(deck.id).find((card) => card.id === currentCard.id) ??
-        currentCard;
+        useDeckStore
+          .getState()
+          .getCards(currentDeck.id)
+          .find((card) => card.id === currentCard.id) ?? currentCard;
       const inLearning =
         refreshed.fsrs.state === 'Learning' || refreshed.fsrs.state === 'Relearning';
-      const requeue = deck.algorithmPreset === 'fast' ? rating <= 2 : inLearning;
+      const requeue = currentDeck.algorithmPreset === 'fast' ? rating <= 2 : inLearning;
 
       setLastUndo(log ? { preCard: currentCard, log, queue, index } : null);
 
@@ -582,12 +668,27 @@ export default function StudyScreen() {
     }
   };
 
-  if (!deck) {
+  if (folderMode && !folder) {
     return (
       <Screen
-        header={
-          <PageHeader title="Study" back onBack={() => goBackOr(router, deckFallback)} />
-        }
+        header={<PageHeader title="Study" back onBack={() => goBackOr(router, backTarget)} />}
+      >
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <EmptyState
+            icon="folder"
+            title="Folder not found"
+            titleVariant="bodyLg"
+            description="Go back to your library and choose a folder."
+          />
+        </View>
+      </Screen>
+    );
+  }
+
+  if (!folderMode && !deck) {
+    return (
+      <Screen
+        header={<PageHeader title="Study" back onBack={() => goBackOr(router, backTarget)} />}
       >
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
           <EmptyState
@@ -601,14 +702,14 @@ export default function StudyScreen() {
     );
   }
 
-  if (deck.archivedAt) {
+  if (!folderMode && deck && deck.archivedAt) {
     return (
       <Screen
         header={
           <PageHeader
             title={deck.name}
             back
-            onBack={() => goBackOr(router, deckFallback)}
+            onBack={() => goBackOr(router, backTarget)}
           />
         }
       >
@@ -650,12 +751,12 @@ export default function StudyScreen() {
 
   const header = (
     <PageHeader
-      title={deck.name}
+      title={scopeTitle}
       leading={
         <HeaderIcon
           icon="close"
           label="Close session"
-          onPress={() => goBackOr(router, deckFallback)}
+          onPress={() => goBackOr(router, backTarget)}
         />
       }
       meta={
@@ -683,7 +784,7 @@ export default function StudyScreen() {
     />
   );
 
-  const emptyDeck = deckCards.length === 0;
+  const emptyDeck = scopeCards.length === 0;
 
   const completionHeader = (
     <PageHeader
@@ -693,7 +794,7 @@ export default function StudyScreen() {
         <HeaderIcon
           icon="close"
           label="Close session"
-          onPress={() => goBackOr(router, deckFallback)}
+          onPress={() => goBackOr(router, backTarget)}
         />
       }
       meta={
@@ -712,7 +813,11 @@ export default function StudyScreen() {
             paddingVertical: 6,
           }}
         >
-          <MaterialIcons name="folder" size={iconSize.xs} color={colors.primary} />
+          <MaterialIcons
+            name={folderMode ? 'folder' : 'layers'}
+            size={iconSize.xs}
+            color={colors.primary}
+          />
           <AppText
             variant="caption"
             weight="medium"
@@ -720,7 +825,7 @@ export default function StudyScreen() {
             numberOfLines={1}
             style={{ flexShrink: 1 }}
           >
-            {deck.name}
+            {scopeTitle}
           </AppText>
         </View>
       }
@@ -758,7 +863,7 @@ export default function StudyScreen() {
     const reviewed = sessionReviews.length;
     const recalled = counts[2] + counts[3];
     const now = Date.now();
-    const upcoming = deckCards
+    const upcoming = scopeCards
       .map((card) => new Date(card.fsrs.due).getTime())
       .filter((due) => due > now);
     const nextDue =
@@ -781,9 +886,11 @@ export default function StudyScreen() {
         contentMaxWidth={v3.layout.composerMaxWidth}
       >
         <SessionSummary
-          deckName={deck.name}
-          deckColor={deck.color}
-          schedulerLabel={schedulerLabel(deck.algorithmPreset)}
+          deckName={scopeTitle}
+          deckColor={scopeColor}
+          schedulerLabel={scopeSchedulerLabel}
+          scope={folderMode ? 'folder' : 'deck'}
+          backLabel={folderMode ? 'Back to folder' : 'Back to deck'}
           emptyDeck={emptyDeck}
           reviewed={reviewed}
           recallPct={reviewed > 0 ? Math.round((recalled / reviewed) * 100) : 0}
@@ -793,9 +900,13 @@ export default function StudyScreen() {
           ratings={counts}
           ratingDurations={ratingDurations}
           nextReview={nextReview}
-          onAddCards={() => pushOnce(router, `/deck/${deck.id}/add-card`)}
+          onAddCards={
+            !folderMode && deck
+              ? () => pushOnce(router, `/deck/${deck.id}/add-card`)
+              : undefined
+          }
           onUndo={lastUndo ? undoLastReview : null}
-          onBack={() => goBackOr(router, deckFallback)}
+          onBack={() => goBackOr(router, backTarget)}
         />
       </Screen>
     );
@@ -1003,7 +1114,9 @@ export default function StudyScreen() {
       anchorRef={optionsAnchorRef}
       label="Session options"
       title="Options"
-      subtitle={deck.name}
+      subtitle={
+        folderMode && currentDeck ? `${scopeTitle} · ${currentDeck.name}` : scopeTitle
+      }
       width={300}
     >
       <Surface tone="inset" radius="control" padding="sm">
@@ -1035,10 +1148,10 @@ export default function StudyScreen() {
         }}
       />
       <MenuItem
-        label="Back to deck"
+        label={folderMode ? 'Back to folder' : 'Back to deck'}
         onPress={() => {
           setOptionsOpen(false);
-          goBackOr(router, deckFallback);
+          goBackOr(router, backTarget);
         }}
       />
     </Menu>

@@ -61,6 +61,7 @@ export function FolderGroup({
     return () => expansion.stopAnimation();
   }, [expanded, expansion]);
   const empty = deckCount === 0;
+  const reviewable = !empty && due > 0;
   const deckLabel = deckCount === 1 ? 'deck' : 'decks';
   // The due pill is the folder's one status mark; the meta line states what
   // the folder holds, so the number is never printed twice in one header.
@@ -103,7 +104,7 @@ export function FolderGroup({
             {metaLabel}
           </AppText>
           <View style={{ marginLeft: 'auto' }}>
-            <ShelfStatusPill due={due} empty={empty} />
+            <ShelfStatusPill due={due} empty={empty} reviewable={reviewable} />
           </View>
         </View>
       </View>
@@ -162,7 +163,15 @@ export function FolderGroup({
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         {expandable ? (
           <HintPressable
-            hint={expanded ? 'Collapse folder' : 'Expand folder'}
+            hint={
+              expanded
+                ? reviewable
+                  ? 'Collapse folder, due cards waiting'
+                  : 'Collapse folder'
+                : reviewable
+                  ? 'Expand folder to review due cards'
+                  : 'Expand folder'
+            }
             testID="folder-group"
             onPress={onToggle}
             accessibilityRole="button"

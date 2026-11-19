@@ -6,6 +6,8 @@ import { alpha, colors, fills, iconSize, radii } from '../../theme/tokens';
 type ShelfStatusPillProps = {
   /** Cards waiting in this deck, or in the decks filed in this folder. */
   due: number;
+  /** A folder tile marks its count as a session that can be started. */
+  reviewable?: boolean;
   /** Nothing inside at all: a folder with no decks, a deck with no cards. */
   empty?: boolean;
   /**
@@ -37,6 +39,7 @@ const NUMERIC = { fontVariant: ['tabular-nums'] as const };
  */
 export function ShelfStatusPill({
   due,
+  reviewable = false,
   empty = false,
   emptyLabel = 'empty',
   split = false,
@@ -64,6 +67,9 @@ export function ShelfStatusPill({
 
   return (
     <View style={[styles.pill, { backgroundColor: alpha(colors.primary, 0.12) }]}>
+      {reviewable && (
+        <MaterialIcons name="play-arrow" size={iconSize.xs} color={colors.primary} />
+      )}
       {split ? (
         <>
           <AppText variant="caption" weight="semibold" tone="accent" style={NUMERIC}>

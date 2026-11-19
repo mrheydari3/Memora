@@ -7,6 +7,7 @@ import { Button } from '../Button';
 import { MaterialIcons } from '../Icon';
 import { HintPressable } from '../HintPressable';
 import { Surface } from './Surface';
+import { ActionButton } from './ActionButton';
 import { ShelfBand } from './ShelfBand';
 import { ShelfBreadcrumbs } from './ShelfBreadcrumbs';
 import { ShelfHeader } from './ShelfHeader';
@@ -23,9 +24,9 @@ import { v3 } from '../../theme/v3';
 import { timingTo, useChangeReveal, usePresence } from '../../motion';
 import type { FolderAggregate, LibraryIndex, DeckSummary } from '../../data/library';
 import { foldSearch, matchesSearch } from '../../data/library';
+import { sortShelf, type ShelfSortKeys } from '../../data/librarySort';
 import { schedulerLabel } from '../../data/schedulers';
-import { sortPinned } from '../../data/folders';
-import type { Deck, DeckFolder } from '../../data/types';
+import type { Deck, DeckFolder, LibrarySort } from '../../data/types';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -42,6 +43,7 @@ type Row =
   | { key: string; kind: 'breadcrumbs' }
   | { key: string; kind: 'header' }
   | { key: string; kind: 'toolbar' }
+  | { key: string; kind: 'folderReview' }
   | { key: string; kind: 'band'; label: string; count: number; hint?: string }
   | { key: string; kind: 'folderGroup'; id: string }
   | {
@@ -53,6 +55,10 @@ type Row =
       opening: boolean;
       closing: boolean;
       index: number;
+      /** Set on the folder's first deck: the session entry for the whole folder. */
+      reviewDue?: number;
+      folderId?: string;
+      folderName?: string;
     }
   | { key: string; kind: 'folderCards'; ids: string[] }
   | { key: string; kind: 'searchFolder'; id: string }
@@ -69,6 +75,8 @@ export type LibraryBoardProps = {
   hero?: React.ReactNode;
   openFolder: DeckFolder | null;
   onOpenFolder: (id: string | null) => void;
+  /** Opens the combined session for every due deck in the folder. */
+  onReviewFolder: (id: string) => void;
   collapsedFolders: ReadonlySet<string>;
   /** Folders whose bodies are entering after a tap. */
   openingFolders: ReadonlySet<string>;
@@ -86,6 +94,9 @@ export type LibraryBoardProps = {
   tabClearance?: boolean;
   /** Top padding for a list that scrolls under Home's floating app bar. */
   headerInset?: number;
+  /** Persisted shelf order; pins always stay above their group. */
+  sort: LibrarySort;
+  onSortChange: (sort: LibrarySort) => void;
 };
 
 const GRID_GAP = 12;
@@ -98,12 +109,20 @@ const pinnedFirst = <T extends { pinnedAt?: number | null }>(items: readonly T[]
   return [...pinned, ...items.filter((item) => item.pinnedAt == null)];
 };
 
+const folderSortKeys = (folder: FolderRow): ShelfSortKeys => ({
+  name: folder.name,
+  pinned: folder.pinnedAt != null,
+  due: folder.due,
+  lastStudiedAt: folder.lastStudiedAt,
+});
+
 /** Deck summaries carry their pin on `deck`, not on the summary itself. */
-const pinnedFirstEntries = (items: readonly DeckSummary[]): DeckSummary[] => {
-  const pinned = items.filter((entry) => entry.deck.pinnedAt != null);
-  if (pinned.length === 0) return [...items];
-  return [...pinned, ...items.filter((entry) => entry.deck.pinnedAt == null)];
-};
+const deckSortKeys = (entry: DeckSummary): ShelfSortKeys => ({
+  name: entry.deck.name,
+  pinned: entry.deck.pinnedAt != null,
+  due: entry.total,
+  lastStudiedAt: entry.lastStudiedAt,
+});
 
 /**
  * LibraryBoard — the virtualized shelf.
@@ -126,6 +145,7 @@ export function LibraryBoard({
   hero,
   openFolder,
   onOpenFolder,
+  onReviewFolder,
   collapsedFolders,
   openingFolders,
   closingFolders,
@@ -139,6 +159,8 @@ export function LibraryBoard({
   contentMaxWidth,
   tabClearance = true,
   headerInset = 0,
+  sort,
+  onSortChange,
 }: LibraryBoardProps) {
   const { width, height } = useWindowDimensions();
   const isFocused = useIsFocused();
@@ -187,13 +209,13 @@ export function LibraryBoard({
 
   const folderById = useMemo(() => new Map(folders.map((folder) => [folder.id, folder])), [folders]);
 
-  const visibleFolders = useMemo<FolderRow[]>(() => {
+  const folderRows = useMemo<FolderRow[]>(() => {
     // Every folder is listed flat on Your decks, so a folder is never drawn
     // inside another one. An open folder only lists its own decks; every other
     // folder is a peer on the shelf, not a row inside it.
     if (openFolder) return [];
     const rows: FolderRow[] = [];
-    for (const folder of sortPinned(folders)) {
+    for (const folder of folders) {
       const aggregate = library.aggregates.get(folder.id);
       if (!aggregate) continue;
       rows.push({
@@ -208,12 +230,31 @@ export function LibraryBoard({
     return rows;
   }, [library, folders, openFolder]);
 
-  const visibleDecks = useMemo<DeckSummary[]>(() => {
-    const scoped = openFolder
-      ? library.byFolderId.get(openFolder.id) ?? []
-      : library.unfiled;
-    return pinnedFirstEntries(scoped);
-  }, [library, openFolder]);
+  const visibleFolders = useMemo(
+    () => sortShelf(folderRows, sort, folderSortKeys),
+    [folderRows, sort]
+  );
+  // Layout editing writes the stored order, so its list must show that order.
+  const manualFolders = useMemo(
+    () => sortShelf(folderRows, 'manual', folderSortKeys),
+    [folderRows]
+  );
+
+  const scopedDecks = useMemo(
+    () =>
+      openFolder
+        ? library.byFolderId.get(openFolder.id) ?? []
+        : library.unfiled,
+    [library, openFolder]
+  );
+  const visibleDecks = useMemo(
+    () => sortShelf(scopedDecks, sort, deckSortKeys),
+    [scopedDecks, sort]
+  );
+  const manualDecks = useMemo(
+    () => sortShelf(scopedDecks, 'manual', deckSortKeys),
+    [scopedDecks]
+  );
 
   const search = useMemo(() => {
     if (!searchActive) return { folderHits: [] as FolderRow[], deckHits: [] as DeckSummary[] };
@@ -236,8 +277,11 @@ export function LibraryBoard({
       (entry) =>
         matchesSearch(entry.deck.name, foldedQuery) && (filter === 'all' || entry.total > 0)
     );
-    return { folderHits, deckHits };
-  }, [searchActive, folders, library, foldedQuery, filter]);
+    return {
+      folderHits: sortShelf(folderHits, sort, folderSortKeys),
+      deckHits: sortShelf(deckHits, sort, deckSortKeys),
+    };
+  }, [searchActive, folders, library, foldedQuery, filter, sort]);
 
   const trail = openFolder ? [openFolder] : [];
 
@@ -317,6 +361,10 @@ export function LibraryBoard({
     if (openFolder) out.push({ key: 'breadcrumbs', kind: 'breadcrumbs' });
     out.push({ key: 'header', kind: 'header' });
     out.push({ key: 'toolbar', kind: 'toolbar' });
+    // The open folder's primary action: one session across its due decks.
+    if (openFolder && shelfDue > 0) {
+      out.push({ key: 'folder-review', kind: 'folderReview' });
+    }
 
     if (visibleFolders.length > 0) {
       // A phone's masthead already says "Your decks" and carries the counts; a
@@ -332,7 +380,11 @@ export function LibraryBoard({
       }
       if (columns === 1) {
         for (const folder of visibleFolders) {
-          const decks = pinnedFirstEntries(library.byFolderId.get(folder.id) ?? []);
+          const decks = sortShelf(
+            library.byFolderId.get(folder.id) ?? [],
+            sort,
+            deckSortKeys
+          );
           const collapsed = collapsedFolders.has(folder.id);
           const closing = closingFolders.has(folder.id);
           // A close is committed immediately for the header's aria state and
@@ -357,6 +409,9 @@ export function LibraryBoard({
               opening: openingFolders.has(folder.id),
               closing,
               index,
+              reviewDue: index === 0 && folder.due > 0 ? folder.due : undefined,
+              folderId: folder.id,
+              folderName: folder.name,
             });
           });
         }
@@ -412,6 +467,9 @@ export function LibraryBoard({
     visibleFolders,
     visibleDecks,
     phone,
+    sort,
+    shelfDue,
+    onReviewFolder,
     library.archived.length,
     library.entries.length,
     library.entries.length === 0 && library.archived.length > 0,
@@ -423,7 +481,7 @@ export function LibraryBoard({
         {
           key: 'folders',
           label: 'Folders',
-          items: visibleFolders.map((folder) => ({
+          items: manualFolders.map((folder) => ({
             id: folder.id,
             name: folder.name,
             icon: folder.icon,
@@ -433,14 +491,14 @@ export function LibraryBoard({
             pinned: folder.pinnedAt != null,
           })),
           onReorder: (from: number, to: number) => {
-            const folder = visibleFolders[from];
+            const folder = manualFolders[from];
             if (folder) onReorderFolder(folder.id, to);
           },
         },
         {
           key: 'decks',
           label: openFolder ? 'Decks here' : 'Unfiled decks',
-          items: visibleDecks.map((entry) => ({
+          items: manualDecks.map((entry) => ({
             id: entry.deck.id,
             name: entry.deck.name,
             icon: entry.deck.icon,
@@ -454,12 +512,12 @@ export function LibraryBoard({
             pinned: entry.deck.pinnedAt != null,
           })),
           onReorder: (from: number, to: number) => {
-            const entry = visibleDecks[from];
+            const entry = manualDecks[from];
             if (entry) onReorderDeck(entry.deck.id, to);
           },
         },
       ].filter((group) => group.items.length > 0),
-    [visibleFolders, visibleDecks, openFolder, onReorderFolder, onReorderDeck]
+    [manualFolders, manualDecks, openFolder, onReorderFolder, onReorderDeck]
   );
 
   // A structural key, not a data key: due counts changing every minute must not
@@ -567,8 +625,9 @@ export function LibraryBoard({
   };
 
   // Entering layout editing leaves search and filter behind: reordering a
-  // filtered list would move rows the user cannot see, and the search line is
-  // hidden while editing, so the two states must not overlap.
+  // filtered list would move rows in an order the editor does not write. The
+  // editor itself always runs on the stored order (see the manual groups), so
+  // the shelf's saved sort choice can stay as it is and resume on exit.
   const handleToggleLayout = () => {
     if (!editingLayout && searchActive) {
       setQuery('');
@@ -788,12 +847,26 @@ export function LibraryBoard({
               onQueryChange={setQuery}
               filter={filter}
               onFilterChange={setFilter}
+              sort={sort}
+              onSortChange={onSortChange}
               active={searchActive}
               resultLabel={`${plural(search.deckHits.length, 'deck', 'decks')} · ${plural(
                 search.folderHits.length,
                 'folder',
                 'folders'
               )}`}
+            />
+          </View>
+        );
+      case 'folderReview':
+        if (!openFolder) return null;
+        return (
+          <View style={{ marginTop: phone ? 10 : 14, marginBottom: phone ? 4 : 6 }}>
+            <ActionButton
+              label="Review folder"
+              icon="play-arrow"
+              testID="review-folder"
+              onPress={() => onReviewFolder(openFolder.id)}
             />
           </View>
         );
@@ -835,6 +908,33 @@ export function LibraryBoard({
             closing={item.closing}
             index={item.index}
           >
+            {item.reviewDue && item.folderId && item.folderName ? (
+              <HintPressable
+                hint={`Review every due card in ${item.folderName}`}
+                testID="review-folder-inline"
+                onPress={() => onReviewFolder(item.folderId!)}
+                accessibilityRole="button"
+                accessibilityLabel={`Review folder ${item.folderName}, ${item.reviewDue} due`}
+                style={{
+                  minHeight: 44,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                  paddingHorizontal: 4,
+                  marginBottom: 2,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.hairlineRule,
+                }}
+              >
+                <MaterialIcons name="play-circle" size={iconSize.md} color={colors.primary} />
+                <AppText variant="bodySm" weight="semibold" tone="accent">
+                  Review folder
+                </AppText>
+                <AppText variant="caption" tone="tertiary" style={{ marginLeft: 'auto' }}>
+                  {item.reviewDue} due
+                </AppText>
+              </HintPressable>
+            ) : null}
             {renderDeck(item.deckId, false, true)}
           </FolderBodySlice>
         );

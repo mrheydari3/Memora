@@ -99,6 +99,40 @@ export function estimateSessionMinutes(due: number): number {
   return Math.max(1, Math.round(due / 4));
 }
 
+/**
+ * One session across every deck filed in a folder.
+ *
+ * Each deck still builds its own queue, so its daily new/review caps, learning
+ * steps and Fast Repetition rules are exactly the ones a deck session uses.
+ * The folder only concatenates the results: every new card first, then every
+ * due card. Cards stay grouped by the input deck order, which keeps the shelf's
+ * order visible when the session starts. Archived decks are skipped even if a
+ * caller passes them.
+ */
+export function buildFolderStudyQueue(
+  decks: readonly Deck[],
+  cardsByDeck: Readonly<Record<string, readonly Flashcard[]>>,
+  reviewLog: readonly ReviewLogEntry[],
+  now: number = Date.now()
+): StudyQueue {
+  const newCards: Flashcard[] = [];
+  const dueCards: Flashcard[] = [];
+
+  const log = [...reviewLog];
+  for (const deck of decks) {
+    if (deck.archivedAt) continue;
+    const queue = buildStudyQueue(deck, [...(cardsByDeck[deck.id] ?? [])], log, now);
+    newCards.push(...queue.newCards);
+    dueCards.push(...queue.dueCards);
+  }
+
+  return {
+    newCards,
+    dueCards,
+    total: newCards.length + dueCards.length,
+  };
+}
+
 /** Cards that count as "waiting today" for a deck, ignoring the daily caps. */
 export function dueNow(cards: Flashcard[], now: number = Date.now()): Flashcard[] {
   return cards.filter(

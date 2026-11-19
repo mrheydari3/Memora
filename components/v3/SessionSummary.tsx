@@ -12,6 +12,10 @@ type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 export type SessionSummaryProps = {
   deckName: string;
   deckColor: string;
+  /** The container the session covered; copy follows it. */
+  scope?: 'deck' | 'folder';
+  /** The label of the dismissal action, e.g. "Back to folder". */
+  backLabel?: string;
   /** The deck's persisted scheduler, resolved by the study screen. */
   schedulerLabel: string;
   emptyDeck: boolean;
@@ -29,7 +33,8 @@ export type SessionSummaryProps = {
   /** Elapsed milliseconds per rating, in the same order. */
   ratingDurations: readonly [number, number, number, number];
   nextReview: string | null;
-  onAddCards: () => void;
+  /** Omitted for a folder session: there is no single deck to add cards to. */
+  onAddCards?: () => void;
   onUndo: (() => void) | null;
   onBack: () => void;
 };
@@ -99,6 +104,8 @@ type Metric = {
 export function SessionSummary({
   deckName,
   deckColor,
+  scope = 'deck',
+  backLabel = 'Back to deck',
   schedulerLabel,
   emptyDeck,
   reviewed,
@@ -288,8 +295,10 @@ export function SessionSummary({
           style={{ maxWidth: 300 }}
         >
           {emptyDeck
-            ? 'This deck has no cards. Add one from the deck screen to start studying.'
-            : 'You have completed every due card in this deck.'}
+            ? scope === 'folder'
+              ? 'This folder has no cards. Move a deck with cards into it to start studying.'
+              : 'This deck has no cards. Add one from the deck screen to start studying.'
+            : `You have completed every due card in this ${scope}.`}
         </AppText>
 
         {!emptyDeck && nextReview ? (
@@ -595,14 +604,14 @@ export function SessionSummary({
       <View style={{ marginTop: v3.spacing.section, gap: 10 }}>
         {emptyDeck ? (
           <>
-            <ActionButton label="Add cards" onPress={onAddCards} />
+            {onAddCards ? <ActionButton label="Add cards" onPress={onAddCards} /> : null}
             <View style={{ alignItems: 'center' }}>
-              <GhostButton label="Back to deck" onPress={onBack} />
+              <GhostButton label={backLabel} onPress={onBack} />
             </View>
           </>
         ) : (
           <>
-            <ActionButton label="Back to deck" icon="arrow-forward" onPress={onBack} />
+            <ActionButton label={backLabel} icon="arrow-forward" onPress={onBack} />
             {onUndo ? (
               <Pressable
                 onPress={onUndo}
@@ -626,23 +635,25 @@ export function SessionSummary({
                 </AppText>
               </Pressable>
             ) : null}
-            <Pressable
-              onPress={onAddCards}
-              accessibilityRole="button"
-              accessibilityLabel="Add cards"
-              style={{
-                minHeight: 44,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-              }}
-            >
-              <MaterialIcons name="add-circle" size={18} color={colors.primary} />
-              <AppText variant="bodySm" weight="semibold" tone="accent">
-                Add cards
-              </AppText>
-            </Pressable>
+            {onAddCards ? (
+              <Pressable
+                onPress={onAddCards}
+                accessibilityRole="button"
+                accessibilityLabel="Add cards"
+                style={{
+                  minHeight: 44,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+              >
+                <MaterialIcons name="add-circle" size={18} color={colors.primary} />
+                <AppText variant="bodySm" weight="semibold" tone="accent">
+                  Add cards
+                </AppText>
+              </Pressable>
+            ) : null}
           </>
         )}
       </View>

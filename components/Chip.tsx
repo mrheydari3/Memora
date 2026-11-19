@@ -1,12 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Pressable, View } from 'react-native';
 import { AppText } from './AppText';
-import { colors, fills, heights } from '../theme/tokens';
+import { MaterialIcons } from './Icon';
+import { colors, fills, heights, iconSize } from '../theme/tokens';
 import { springTo, usePressFeedback } from '../motion';
 import { HapticsEngine } from '../services/haptics';
 
 type ChipProps = {
   label: string;
+  /** A glyph before the label; with no label the pill holds just the icon. */
+  icon?: React.ComponentProps<typeof MaterialIcons>['name'];
   /** A colour swatch before the label, e.g. the card-colour filter. */
   dot?: string;
   /**
@@ -38,6 +41,7 @@ type ChipProps = {
  */
 export function Chip({
   label,
+  icon,
   dot,
   accessibilityLabel,
   active,
@@ -114,14 +118,24 @@ export function Chip({
             }}
           />
         )}
-        <AppText
-          variant="bodySm"
-          weight={variant === 'select' ? 'medium' : 'semibold'}
-          tone={filled ? 'onAccent' : active ? 'accent' : 'muted'}
-          numberOfLines={1}
-        >
-          {label}
-        </AppText>
+        {icon && (
+          <MaterialIcons
+            name={icon}
+            size={iconSize.sm}
+            color={filled ? colors.onPrimary : active ? colors.primary : colors.onSurfaceVariant}
+          />
+        )}
+        {label ? (
+          <AppText
+            variant="bodySm"
+            weight={variant === 'select' ? 'medium' : 'semibold'}
+            tone={filled ? 'onAccent' : active ? 'accent' : 'muted'}
+            numberOfLines={1}
+            style={icon ? { marginLeft: 6 } : undefined}
+          >
+            {label}
+          </AppText>
+        ) : null}
       </Pressable>
     </Animated.View>
   );

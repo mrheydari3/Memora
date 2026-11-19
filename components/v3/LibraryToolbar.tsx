@@ -1,7 +1,15 @@
+import { useRef, useState } from 'react';
 import { View } from 'react-native';
 import { AppText } from '../AppText';
 import { Chip } from '../Chip';
 import { SearchBar } from '../SearchBar';
+import { Menu } from '../menu/Menu';
+import type { MenuAction } from '../menu/types';
+import type { LibrarySort } from '../../data/types';
+import {
+  LIBRARY_SORT_OPTIONS,
+  librarySortLabel,
+} from '../../data/librarySort';
 
 export type LibraryFilter = 'all' | 'due';
 
@@ -10,6 +18,8 @@ type LibraryToolbarProps = {
   onQueryChange: (text: string) => void;
   filter: LibraryFilter;
   onFilterChange: (filter: LibraryFilter) => void;
+  sort: LibrarySort;
+  onSortChange: (sort: LibrarySort) => void;
   /** True while a query or a non-default filter is narrowing the shelf. */
   active: boolean;
   /** e.g. "3 decks · 1 folder", printed only while `active`. */
@@ -17,25 +27,43 @@ type LibraryToolbarProps = {
 };
 
 /**
- * LibraryToolbar — one compact search line under the masthead.
+ * LibraryToolbar — one compact search line and the shelf's instruments.
  *
  * Search is an instrument, not a section: it stays inside the library's own
- * rhythm — a 44px field and two filter pills on one line, wrapping only when
- * the canvas cannot hold them. The result count appears only when something is
- * actually being filtered, so the resting library keeps its quiet.
+ * rhythm — a 44px field, two filter pills and the sort trigger. They share a
+ * row when the canvas can hold them and wrap as one group when it cannot, so
+ * the resting library keeps its quiet. The result count appears only when
+ * something is actually being filtered. Sort is a menu, not a fourth filter:
+ * its value belongs to the chosen order, so the compact icon trigger carries
+ * the current order in its accessible name and the menu owns the list.
  */
 export function LibraryToolbar({
   query,
   onQueryChange,
   filter,
   onFilterChange,
+  sort,
+  onSortChange,
   active,
   resultLabel,
 }: LibraryToolbarProps) {
+  const sortAnchorRef = useRef<React.ComponentRef<typeof View>>(null);
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortOptions: MenuAction[] = LIBRARY_SORT_OPTIONS.map((option) => ({
+    key: option.value,
+    label: option.label,
+    description: option.description,
+    selected: option.value === sort,
+    onPress: () => onSortChange(option.value),
+  }));
+  const shortLabel =
+    LIBRARY_SORT_OPTIONS.find((option) => option.value === sort)?.shortLabel ??
+    librarySortLabel(sort);
+
   return (
     <View style={{ gap: 8 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-        <View style={{ flexGrow: 1, flexBasis: 140, minWidth: 0 }}>
+        <View style={{ flexGrow: 1, flexBasis: 96, minWidth: 0 }}>
           <SearchBar
             value={query}
             onChangeText={onQueryChange}
@@ -56,6 +84,16 @@ export function LibraryToolbar({
             active={filter === 'due'}
             onPress={() => onFilterChange('due')}
           />
+          <View ref={sortAnchorRef}>
+            <Chip
+              menu
+              icon="sort"
+              label=""
+              accessibilityLabel={`Sort: ${shortLabel}`}
+              active={false}
+              onPress={() => setSortOpen(true)}
+            />
+          </View>
         </View>
       </View>
 
@@ -64,6 +102,17 @@ export function LibraryToolbar({
           {resultLabel ?? 'No matches'}
         </AppText>
       ) : null}
+
+      <Menu
+        open={sortOpen}
+        onClose={() => setSortOpen(false)}
+        anchorRef={sortAnchorRef}
+        label="Sort shelf"
+        title="Sort shelf"
+        subtitle="Pinned folders and decks stay first."
+        actions={sortOptions}
+        width={280}
+      />
     </View>
   );
 }

@@ -48,6 +48,7 @@ export function FolderCard({
   const press = usePressFeedback({ scale: 0.985 });
   const tint = color ?? colors.primary;
   const empty = deckCount === 0;
+  const reviewable = !empty && due > 0;
   const deckLabel = deckCount === 1 ? 'deck' : 'decks';
   const percent = Math.round(Math.max(0, Math.min(1, progress)) * 100);
   const progressLabel = deckCount > 0 ? `${percent}% studied` : null;
@@ -75,15 +76,17 @@ export function FolderCard({
         }}
       >
         <HintPressable
-          hint="Open folder"
+          hint={reviewable ? 'Open folder to review due cards' : 'Open folder'}
           testID="folder-card"
           onPress={onPress}
           onPressIn={press.onPressIn}
           onPressOut={press.onPressOut}
           accessibilityRole="button"
-          accessibilityLabel={`Open folder ${name}, ${deckCount} ${deckLabel}, ${
-            empty ? 'empty' : `${due} due`
-          }${progressLabel ? `, ${progressLabel}` : ''}`}
+          accessibilityLabel={`${reviewable ? 'Review folder' : 'Open folder'} ${name}, ${
+            deckCount
+          } ${deckLabel}, ${empty ? 'empty' : `${due} due`}${
+            progressLabel ? `, ${progressLabel}` : ''
+          }`}
           style={{
             flex: 1,
             minWidth: 0,
@@ -120,13 +123,17 @@ export function FolderCard({
               </AppText>
             </View>
 
-            <ShelfStatusPill due={due} empty={empty} />
+            <ShelfStatusPill due={due} empty={empty} reviewable={reviewable} />
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-            <MaterialIcons name="folder-open" size={iconSize.sm} color={colors.primary} />
+            <MaterialIcons
+              name={reviewable ? 'play-circle' : 'folder-open'}
+              size={iconSize.sm}
+              color={colors.primary}
+            />
             <AppText variant="caption" tone="accent" weight="semibold">
-              Open folder
+              {reviewable ? 'Review folder' : 'Open folder'}
             </AppText>
             <MaterialIcons name="chevron-right" size={iconSize.sm} color={colors.outline} />
           </View>

@@ -14,6 +14,7 @@ const defaultSettings: Settings = {
   pwaInstalled: false,
   soundEnabled: true,
   hapticsEnabled: true,
+  librarySort: 'manual',
 };
 
 type SettingsStore = {

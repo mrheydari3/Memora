@@ -159,6 +159,9 @@ export type ReviewLogEntry = {
 
 // ---- Settings ---------------------------------------------------------------
 
+/** How the Home shelf orders its folders and decks, after pins. */
+export type LibrarySort = 'manual' | 'due' | 'name' | 'recent';
+
 export type Settings = {
   ttsEnabled: boolean;
   ttsReadWholeCard: boolean;
@@ -174,6 +177,8 @@ export type Settings = {
    * the same reason; a missing value means enabled.
    */
   hapticsEnabled?: boolean;
+  /** Home shelf order. Optional so settings saved before sorting keep working. */
+  librarySort?: LibrarySort;
 };
 
 // ---- Quiz Game --------------------------------------------------------------

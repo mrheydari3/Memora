@@ -37,6 +37,8 @@ export type DeckSummary = {
   newCount: number;
   learningCount: number;
   reviewCount: number;
+  /** Epoch ms of the latest review, or null when the deck has no history. */
+  lastStudiedAt: number | null;
 };
 
 export type FolderAggregate = {
@@ -50,6 +52,8 @@ export type FolderAggregate = {
   due: number;
   /** Studied share across those decks, 0–1. */
   progress: number;
+  /** Latest review across the decks filed directly here, or null. */
+  lastStudiedAt: number | null;
 };
 
 export type LibraryTotals = {
@@ -214,10 +218,17 @@ function aggregateFolder(entries: readonly DeckSummary[]): FolderAggregate {
   let cards = 0;
   let studied = 0;
   let due = 0;
+  let lastStudiedAt: number | null = null;
   for (const entry of entries) {
     cards += entry.cardCount;
     studied += entry.studiedCount;
     due += entry.total;
+    if (
+      entry.lastStudiedAt !== null &&
+      (lastStudiedAt === null || entry.lastStudiedAt > lastStudiedAt)
+    ) {
+      lastStudiedAt = entry.lastStudiedAt;
+    }
   }
   return {
     decks: entries.length,
@@ -225,6 +236,7 @@ function aggregateFolder(entries: readonly DeckSummary[]): FolderAggregate {
     studied,
     due,
     progress: roundShare(studied, cards),
+    lastStudiedAt,
   };
 }
 
@@ -270,7 +282,16 @@ export function buildLibraryIndex(
       },
       now
     );
-    const entry: DeckSummary = { deck, ...summary };
+    const history = reviews.byDeck.get(deck.id);
+    let lastStudiedAt: number | null = null;
+    if (history) {
+      for (const review of history) {
+        if (lastStudiedAt === null || review.reviewedAt > lastStudiedAt) {
+          lastStudiedAt = review.reviewedAt;
+        }
+      }
+    }
+    const entry: DeckSummary = { deck, ...summary, lastStudiedAt };
     entries.push(entry);
     byDeckId.set(deck.id, entry);
     const folderId = deck.folderId;

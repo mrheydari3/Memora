@@ -5,7 +5,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildStudyQueue, estimateSessionMinutes } from './session';
+import { buildFolderStudyQueue, buildStudyQueue, estimateSessionMinutes } from './session';
 import type { Deck, Flashcard, FSRSState, ReviewLogEntry } from './types';
 
 const NOW = new Date('2026-03-10T12:00:00Z').getTime();
@@ -238,6 +238,78 @@ test('cards that are not due yet stay out of the session', () => {
     ['new']
   );
   assert.equal(queue.total, 2);
+});
+
+test('a folder queue combines each deck’s own capped queue', () => {
+  const a = makeDeck({ id: 'a', newCardsPerDay: 2, maxCardsPerDay: 2 });
+  const b = makeDeck({ id: 'b', newCardsPerDay: 1, maxCardsPerDay: 5 });
+  const archived = makeDeck({ id: 'archived', archivedAt: NOW });
+  const cards = {
+    a: [
+      { ...makeCard('a-new-late', 'New', NOW, 300), deckId: 'a' },
+      { ...makeCard('a-new-first', 'New', NOW, 100), deckId: 'a' },
+      { ...makeCard('a-new-over-cap', 'New', NOW, 50), deckId: 'a' },
+      { ...makeCard('a-due-late', 'Review', NOW - DAY), deckId: 'a' },
+      { ...makeCard('a-due-first', 'Review', NOW - 2 * DAY), deckId: 'a' },
+      { ...makeCard('a-future', 'Review', NOW + DAY), deckId: 'a' },
+    ],
+    b: [
+      { ...makeCard('b-new', 'New', NOW, 10), deckId: 'b' },
+      { ...makeCard('b-new-over-cap', 'New', NOW, 20), deckId: 'b' },
+      { ...makeCard('b-learning', 'Learning', NOW - 3_600_000), deckId: 'b' },
+      { ...makeCard('b-due', 'Review', NOW - 4 * DAY), deckId: 'b' },
+    ],
+    archived: [{ ...makeCard('archived-new', 'New', NOW), deckId: 'archived' }],
+  };
+
+  const folder = buildFolderStudyQueue([a, b, archived], cards, [], NOW);
+
+  assert.deepEqual(
+    folder.newCards.map((card) => card.id),
+    ['a-new-over-cap', 'a-new-first', 'b-new'],
+    'each deck keeps its new-card cap and creation order'
+  );
+  assert.deepEqual(
+    folder.dueCards.map((card) => card.id),
+    ['a-due-first', 'a-due-late', 'b-learning', 'b-due'],
+    'due cards keep their deck order, learning before review'
+  );
+  assert.equal(folder.total, 7);
+  assert.equal(
+    folder.newCards.concat(folder.dueCards).some((card) => card.deckId === 'archived'),
+    false,
+    'an archived deck never joins a folder session'
+  );
+
+  // Building the folder queue must not consume or reorder a deck's own queue.
+  const deckA = buildStudyQueue(a, cards.a, [], NOW);
+  assert.deepEqual(deckA.newCards.map((card) => card.id), ['a-new-over-cap', 'a-new-first']);
+  assert.deepEqual(deckA.dueCards.map((card) => card.id), ['a-due-first', 'a-due-late']);
+  assert.equal(deckA.total, 4);
+});
+
+test('a folder queue respects each deck’s separate daily cap', () => {
+  const a = makeDeck({ id: 'a', maxCardsPerDay: 1 });
+  const b = makeDeck({ id: 'b', maxCardsPerDay: 1 });
+  const cards = {
+    a: [{ ...makeCard('a-due', 'Review', NOW - DAY), deckId: 'a' }],
+    b: [{ ...makeCard('b-due', 'Review', NOW - 2 * DAY), deckId: 'b' }],
+  };
+  // Deck A's review budget is spent; deck B's is untouched.
+  const reviewLog = [log('a-done', 'Review', false, 'a')];
+
+  const folder = buildFolderStudyQueue([a, b], cards, reviewLog, NOW);
+  assert.deepEqual(
+    folder.dueCards.map((card) => card.id),
+    ['b-due'],
+    'one deck exhausting its cap must not hide another deck’s due card'
+  );
+});
+
+test('a folder with no decks or no cards has an empty queue', () => {
+  const a = makeDeck({ id: 'a' });
+  assert.equal(buildFolderStudyQueue([], {}, [], NOW).total, 0);
+  assert.equal(buildFolderStudyQueue([a], {}, [], NOW).total, 0);
 });
 
 test('a caught-up library gets no session estimate', () => {
