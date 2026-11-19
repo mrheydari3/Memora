@@ -15,6 +15,7 @@ import { ensureWebFonts } from '../services/webFonts';
 import { noteActivePath } from '../services/navigation';
 import { colors, motion } from '../theme/tokens';
 import { AppSplash } from '../components/AppSplash';
+import { UndoBar } from '../components/UndoBar';
 import { AppText, PrimaryButton } from '../components';
 import { LaunchRevealContext } from '../motion/LaunchReveal';
 
@@ -161,6 +162,7 @@ export default function RootLayout() {
           </Stack>
           </View>
         )}
+        {shellReady && <UndoBar />}
         {loadFailed && (
           <View style={styles.loadError}>
             <AppText variant="title" headingLevel={1} align="center">

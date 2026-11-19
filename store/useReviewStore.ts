@@ -16,6 +16,8 @@ type ReviewStore = {
   removeLastReview: () => Promise<ReviewLogEntry | null>;
   /** Drop a deck's history, used when its progress is reset or it is deleted. */
   clearDeckLog: (deckId: string) => Promise<void>;
+  /** Put a deleted deck's history back when the deletion is undone. */
+  restoreDeckLog: (entries: ReviewLogEntry[]) => Promise<void>;
   /** Drop one card's history, used when the card is deleted. */
   clearCardLog: (cardId: string) => Promise<void>;
   getLogsForCard: (cardId: string) => ReviewLogEntry[];
@@ -55,6 +57,15 @@ export const useReviewStore = create<ReviewStore>((set, get) => ({
 
   clearDeckLog: async (deckId) => {
     const reviewLog = get().reviewLog.filter((e) => e.deckId !== deckId);
+    await repo.saveReviewLog(reviewLog);
+    set({ reviewLog });
+  },
+
+  restoreDeckLog: async (entries) => {
+    if (entries.length === 0) return;
+    // Keep the log one chronological run: `removeLastReview` reads the tail,
+    // so restored entries must not land after newer reviews from other decks.
+    const reviewLog = [...get().reviewLog, ...entries].sort((a, b) => a.reviewedAt - b.reviewedAt);
     await repo.saveReviewLog(reviewLog);
     set({ reviewLog });
   },

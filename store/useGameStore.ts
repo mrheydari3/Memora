@@ -17,6 +17,8 @@ type GameStore = {
    */
   submitRound: (deckId: string, score: number, bestCombo: number) => Promise<boolean>;
   clearDeckRecord: (deckId: string) => Promise<void>;
+  /** Put a deleted deck's record back when the deletion is undone. */
+  restoreDeckRecord: (record: GameRecord) => Promise<void>;
 };
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -64,6 +66,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
   clearDeckRecord: async (deckId) => {
     const records = { ...get().records };
     delete records[deckId];
+    set({ records });
+    try {
+      await repo.saveGameRecords(records);
+    } catch {
+      // Same reasoning as submitRound.
+    }
+  },
+
+  restoreDeckRecord: async (record) => {
+    const records = { ...get().records, [record.deckId]: record };
     set({ records });
     try {
       await repo.saveGameRecords(records);

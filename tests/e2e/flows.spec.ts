@@ -205,6 +205,42 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(page.getByTestId('deck-row').filter({ hasText: 'Flow Created Deck' })).toHaveCount(0);
   });
 
+  test('deck: delete can be undone with its cards intact', async ({ page }) => {
+    await go(page, `/deck/${DECK_ID}`);
+    const cardsBefore = await readStorage<Record<string, unknown[]>>(
+      page,
+      STORAGE_KEYS.allCards,
+      {}
+    );
+    const cards = cardsBefore[DECK_ID]?.length ?? 0;
+    expect(cards).toBeGreaterThan(0);
+
+    await openDeckOptions(page);
+    await page.getByRole('button', { name: 'Delete Deck' }).click();
+    const confirm = page.getByRole('dialog', { name: 'Delete deck?' });
+    await confirm.getByRole('button', { name: 'Delete deck' }).click();
+
+    await expect(page).toHaveURL(/\/home$/);
+    const bar = page.getByTestId('undo-bar');
+    await expect(bar).toContainText(`Deck “${DECK}” deleted`);
+    await bar.getByRole('button', { name: 'Undo delete deck' }).click();
+    await expect(bar).toHaveCount(0);
+
+    await expect(page.getByTestId('deck-row').filter({ hasText: DECK })).toBeVisible();
+    const cardsAfter = await readStorage<Record<string, unknown[]>>(
+      page,
+      STORAGE_KEYS.allCards,
+      {}
+    );
+    expect(cardsAfter[DECK_ID]).toHaveLength(cards);
+
+    await page.reload();
+    await settle(page);
+    await expect(page.getByTestId('deck-row').filter({ hasText: DECK })).toBeVisible();
+    await go(page, `/deck/${DECK_ID}`);
+    await expect(page.getByRole('heading', { name: DECK })).toBeVisible();
+  });
+
   test('deck: rename survives reload', async ({ page }) => {
     await go(page, `/deck/${DECK_ID}`);
     await openDeckOptions(page);
@@ -295,6 +331,56 @@ test.describe('Phase 5 — behaviour', () => {
     await settle(page);
     await expect(page.getByTestId('deck-row').filter({ hasText: DECK })).toBeVisible();
     expect(sheet).toBeTruthy();
+  });
+
+  test('folder: delete can be undone with its decks filed again', async ({ page }) => {
+    await go(page, '/home');
+    await createFolder(page, 'Undo Folder');
+    await closeSheet(page);
+
+    // File the known deck into it, then delete the folder from its editor.
+    await go(page, `/deck/${DECK_ID}`);
+    await openDeckOptions(page);
+    await page.getByRole('button', { name: 'Move to folder' }).click();
+    const move = page.getByRole('dialog', { name: 'Move to folder' });
+    await move.getByRole('button', { name: 'Undo Folder' }).click();
+
+    await go(page, '/home');
+    const folder = page.getByTestId('folder-group').filter({ hasText: 'Undo Folder' });
+    await expect(folder).toBeVisible();
+    await expect(folder).toContainText('1 deck');
+
+    const list = await openFolderSheet(page);
+    await list.getByRole('button', { name: 'Options for folder Undo Folder' }).click();
+    const editor = page.getByRole('dialog').filter({ hasText: 'Delete folder' });
+    await editor.getByRole('button', { name: 'Delete folder' }).click();
+    await expect(folder).toHaveCount(0);
+
+    const bar = page.getByTestId('undo-bar');
+    await expect(bar).toContainText('Folder “Undo Folder” deleted');
+    await bar.getByRole('button', { name: 'Undo delete folder' }).click();
+    await expect(bar).toHaveCount(0);
+
+    await expect(folder).toBeVisible();
+    await expect(folder).toContainText('1 deck');
+    const folders = await readStorage<Array<{ id: string; name: string }>>(
+      page,
+      STORAGE_KEYS.folders,
+      []
+    );
+    const restored = folders.find((entry) => entry.name === 'Undo Folder');
+    expect(restored).toBeTruthy();
+    const decks = await readStorage<Array<{ id: string; folderId?: string | null }>>(
+      page,
+      STORAGE_KEYS.decks,
+      []
+    );
+    expect(decks.find((deck) => deck.id === DECK_ID)?.folderId).toBe(restored?.id);
+
+    await page.reload();
+    await settle(page);
+    await expect(folder).toBeVisible();
+    await expect(folder).toContainText('1 deck');
   });
 
   test('folder: the editor offers no nesting destination and saves one flat list', async ({

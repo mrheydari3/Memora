@@ -521,6 +521,38 @@ test.describe('Phase 7 — data truth', () => {
     expect(after.games['deck-german-a2b1']).toBeUndefined();
   });
 
+  test('undoing a deck delete restores its cards, reviews and game record', async ({ page }) => {
+    await boot(page, 'F3');
+    const before = await readStore(page);
+    expect(before.cards['deck-german-a2b1']).toHaveLength(30);
+    const reviews = before.log.filter((entry) => entry.deckId === 'deck-german-a2b1');
+    expect(reviews.length).toBeGreaterThan(0);
+    expect(before.games['deck-german-a2b1']).toBeTruthy();
+
+    await page.goto('/deck/deck-german-a2b1');
+    await settle(page);
+    await page.getByRole('button', { name: 'More options', exact: true }).click();
+    await page.getByRole('button', { name: 'Delete Deck', exact: true }).click();
+    const confirm = page.getByRole('dialog', { name: 'Delete deck?' });
+    await confirm.getByRole('button', { name: 'Delete deck' }).click();
+    await expect(page).toHaveURL(/\/home$/);
+
+    const bar = page.getByTestId('undo-bar');
+    await expect(bar).toContainText('Deck “Schritt Plus Neu A2/B1” deleted');
+    await bar.getByRole('button', { name: 'Undo delete deck' }).click();
+    await expect(bar).toHaveCount(0);
+
+    await expect
+      .poll(async () => (await readStore(page)).decks.some((deck) => deck.id === 'deck-german-a2b1'))
+      .toBe(true);
+    const after = await readStore(page);
+    expect(after.cards['deck-german-a2b1']).toHaveLength(30);
+    expect(after.log.filter((entry) => entry.deckId === 'deck-german-a2b1')).toHaveLength(
+      reviews.length
+    );
+    expect(after.games['deck-german-a2b1']).toEqual(before.games['deck-german-a2b1']);
+  });
+
   test('deleting a card removes only that card history', async ({ page }) => {
     await boot(page, 'F3');
     const store = await readStore(page);

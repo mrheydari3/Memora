@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Deck, DeckFolder, Flashcard } from '../data/types';
+import type { Deck, DeckFolder, Flashcard, GameRecord, ReviewLogEntry } from '../data/types';
 import * as repo from '../data/repository';
 import {
   createFolder,
@@ -17,6 +17,57 @@ import { resolveFsrsParams } from '../data/fsrs-params';
 import { useReviewStore } from './useReviewStore';
 import { useGameStore } from './useGameStore';
 
+/** How long a deletion stays reversible before its cleanup commits. */
+export const DELETE_UNDO_MS = 6000;
+
+/** The deletion the snackbar is offering to restore. */
+export type PendingDelete = {
+  kind: 'folder' | 'deck';
+  name: string;
+  expiresAt: number;
+};
+
+/**
+ * What a restore needs that the saved library no longer holds. A folder keeps
+ * its place and the decks it owned; a deck also keeps its cards, which are only
+ * dropped from storage on a normal delete so an undo can put them back.
+ */
+type DeleteSnapshot =
+  | { kind: 'folder'; folder: DeckFolder; index: number; deckIds: string[] }
+  | {
+      kind: 'deck';
+      deck: Deck;
+      index: number;
+      cards: Flashcard[];
+      log: ReviewLogEntry[];
+      game?: GameRecord;
+    };
+
+let deleteSnapshot: DeleteSnapshot | null = null;
+let deleteTimer: ReturnType<typeof setTimeout> | null = null;
+
+function clearDeleteTimer() {
+  if (deleteTimer) clearTimeout(deleteTimer);
+  deleteTimer = null;
+}
+
+/** Close the undo window. The delete itself already landed. */
+function commitPendingDelete() {
+  deleteSnapshot = null;
+  clearDeleteTimer();
+  useDeckStore.setState({ pendingDelete: null });
+}
+
+/** Hold a deletion open for `DELETE_UNDO_MS`; a second delete commits the first. */
+function stageDelete(snapshot: DeleteSnapshot, notice: Omit<PendingDelete, 'expiresAt'>) {
+  void commitPendingDelete();
+  deleteSnapshot = snapshot;
+  deleteTimer = setTimeout(() => {
+    void commitPendingDelete();
+  }, DELETE_UNDO_MS);
+  useDeckStore.setState({ pendingDelete: { ...notice, expiresAt: Date.now() + DELETE_UNDO_MS } });
+}
+
 type DeckStore = {
   // State
   decks: Deck[];
@@ -25,6 +76,8 @@ type DeckStore = {
   loaded: boolean;
   /** Set when the first read fails. The app gates on this instead of showing an empty library. */
   loadError: string | null;
+  /** The deletion that can still be undone, shown by the snackbar. */
+  pendingDelete: PendingDelete | null;
 
   // Actions
   load: () => Promise<void>;
@@ -44,6 +97,8 @@ type DeckStore = {
   moveFolderTo: (id: string, toIndex: number) => Promise<void>;
   renameFolder: (id: string, name: string) => Promise<{ ok: boolean; error?: FolderError }>;
   deleteFolder: (id: string) => Promise<void>;
+  /** Restore the folder or deck held by the snackbar, if the window is open. */
+  undoDelete: () => Promise<void>;
   setDeckFolder: (deckId: string, folderId: string | null) => Promise<void>;
   toggleDeckPinned: (id: string) => Promise<void>;
   /** Moves a deck one step among the decks in its folder. */
@@ -72,6 +127,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
   cardsByDeck: {},
   loaded: false,
   loadError: null,
+  pendingDelete: null,
 
   load: async () => {
     set({ loadError: null });
@@ -230,12 +286,18 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
 
   deleteFolder: async (id) => {
     // Nothing is deleted with a folder: its decks become unfiled, and no other
-    // folder can have pointed at it.
+    // folder can have pointed at it. The snapshot remembers both, so an undo
+    // can put the folder back with its decks filed again.
+    const folder = get().folders.find((entry) => entry.id === id);
+    if (!folder) return;
+    const index = get().folders.findIndex((entry) => entry.id === id);
+    const deckIds = get().decks.filter((deck) => deck.folderId === id).map((deck) => deck.id);
     const folders = removeFolder(get().folders, id);
     const decks = detachDecksFromFolder(get().decks, id);
     await repo.saveFolders(folders);
     if (decks !== get().decks) await repo.saveDecks(decks);
     set({ folders, decks });
+    stageDelete({ kind: 'folder', folder, index, deckIds }, { kind: 'folder', name: folder.name });
   },
 
   toggleDeckPinned: async (id) => {
@@ -302,12 +364,21 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
   },
 
   deleteDeck: async (id) => {
+    const deck = get().decks.find((entry) => entry.id === id);
+    if (!deck) return;
+    const index = get().decks.findIndex((entry) => entry.id === id);
+    // The deck leaves the library and its history leaves the log at once, so
+    // statistics never count a deleted deck. The snapshot is the undo's copy.
+    const cards = get().cardsByDeck[id] ?? [];
+    const log = useReviewStore.getState().getLogsForDeck(id);
+    const game = useGameStore.getState().getRecord(id);
     const decks = get().decks.filter((d) => d.id !== id);
     const cardsByDeck = { ...get().cardsByDeck };
     delete cardsByDeck[id];
     await repo.saveDecks(decks);
     await repo.saveAllCards(cardsByDeck);
     set({ decks, cardsByDeck });
+
     // A deleted deck must not keep shaping statistics, the streak, the game
     // records or the legacy per-deck key. Cleanup is best-effort: the library
     // change has already landed, and a stale log is preferable to a failed
@@ -318,6 +389,53 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       await useGameStore.getState().clearDeckRecord(id);
     } catch (e) {
       console.error('Failed to clean up deleted deck:', e);
+    }
+    stageDelete(
+      { kind: 'deck', deck, index, cards, log, game },
+      { kind: 'deck', name: deck.name }
+    );
+  },
+
+  undoDelete: async () => {
+    const snapshot = deleteSnapshot;
+    if (!snapshot) return;
+    deleteSnapshot = null;
+    clearDeleteTimer();
+    set({ pendingDelete: null });
+
+    if (snapshot.kind === 'folder') {
+      const folders = [...get().folders];
+      if (!folders.some((folder) => folder.id === snapshot.folder.id)) {
+        folders.splice(Math.min(snapshot.index, folders.length), 0, snapshot.folder);
+      }
+      const deckIds = new Set(snapshot.deckIds);
+      // A deck moved somewhere else during the window keeps its newer home.
+      const decks = get().decks.map((deck) =>
+        deckIds.has(deck.id) && deck.folderId == null
+          ? { ...deck, folderId: snapshot.folder.id }
+          : deck
+      );
+      await repo.saveFolders(folders);
+      await repo.saveDecks(decks);
+      set({ folders, decks });
+      return;
+    }
+
+    const decks = [...get().decks];
+    if (!decks.some((deck) => deck.id === snapshot.deck.id)) {
+      decks.splice(Math.min(snapshot.index, decks.length), 0, snapshot.deck);
+    }
+    const cardsByDeck = { ...get().cardsByDeck, [snapshot.deck.id]: snapshot.cards };
+    await repo.saveDecks(decks);
+    await repo.saveAllCards(cardsByDeck);
+    set({ decks, cardsByDeck });
+
+    // The history was removed with the deck; put it back with the deck.
+    try {
+      await useReviewStore.getState().restoreDeckLog(snapshot.log);
+      if (snapshot.game) await useGameStore.getState().restoreDeckRecord(snapshot.game);
+    } catch (e) {
+      console.error('Failed to restore deleted deck history:', e);
     }
   },
 
