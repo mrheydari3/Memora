@@ -45,6 +45,12 @@ type ScreenProps = {
    */
   animateHeader?: boolean;
   /**
+   * Start the body at the top of the screen, under the floating bar, so the
+   * body's own scroll view passes beneath the glass. The body then carries the
+   * bar's height as its own top padding.
+   */
+  headerOverlap?: boolean;
+  /**
    * A route-owned dialog covers this screen. On web the shell becomes inert so
    * neither the keyboard nor assistive technology can reach the covered content.
    */
@@ -85,6 +91,7 @@ export function Screen({
   contentMaxWidth,
   animate = true,
   animateHeader = false,
+  headerOverlap = false,
   backgroundInert = false,
   scrollRef,
   onScroll,
@@ -113,6 +120,10 @@ export function Screen({
     distance: 4,
     duration: motion.base,
     enabled: animateHeader && launched,
+    // Slide only. Any opacity below 1 on this wrapper creates a backdrop root,
+    // and the bar's backdrop blur then has nothing to sample — a permanent
+    // flat strip whenever the reveal is paused (a hidden tab, a stalled frame).
+    opacityFloor: 1,
   });
   const screenRef = useRef<React.ComponentRef<typeof SafeAreaView>>(null);
 
@@ -165,7 +176,7 @@ export function Screen({
           style={{
             flex: 1,
             ...(animate ? reveal.style : null),
-            ...(header && !scroll ? { paddingTop: headerHeight } : null),
+            ...(header && !scroll && !headerOverlap ? { paddingTop: headerHeight } : null),
           }}
         >
           {scroll ? (

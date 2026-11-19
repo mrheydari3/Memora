@@ -85,6 +85,8 @@ export type LibraryBoardProps = {
   deckOptions: (deck: Deck) => React.ReactNode;
   contentMaxWidth: number;
   tabClearance?: boolean;
+  /** Top padding for a list that scrolls under Home's floating app bar. */
+  headerInset?: number;
 };
 
 const GRID_GAP = 12;
@@ -138,6 +140,7 @@ export function LibraryBoard({
   deckOptions,
   contentMaxWidth,
   tabClearance = true,
+  headerInset = 0,
 }: LibraryBoardProps) {
   const { width, height } = useWindowDimensions();
   const isFocused = useIsFocused();
@@ -929,8 +932,8 @@ export function LibraryBoard({
         renderItem={renderItem}
         style={{ flex: 1 }}
         contentContainerStyle={{
-          // Home's Screen already pads the body by the floating bar's height.
-          paddingTop: phone ? (short ? 8 : 12) : spacing.screen,
+          // Home's list scrolls under its floating bar, so it opens below the bar.
+          paddingTop: headerInset + (phone ? (short ? 8 : 12) : spacing.screen),
           paddingBottom: tabClearance ? spacing.tabClearance : spacing.screenBottom,
           paddingHorizontal: spacing.screen,
           width: '100%',

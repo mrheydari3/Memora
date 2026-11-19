@@ -473,10 +473,11 @@ export default function HomeScreen() {
       </View>
     ) : null;
 
-  // Screen already offsets the body by the floating bar, so these scroll
-  // views open one gutter below it rather than a whole bar below it.
+  // The shelf scrolls under the floating bar so the glass frosts it on the way
+  // up, so the body carries the bar's height in its own top inset.
+  const headerInset = heights.pageHeader;
   const scrollContentStyle = {
-    paddingTop: spacing.screen,
+    paddingTop: headerInset + spacing.screen,
     paddingBottom: spacing.tabClearance,
     paddingHorizontal: spacing.screen,
     width: '100%' as const,
@@ -491,6 +492,7 @@ export default function HomeScreen() {
       animateHeader
       contentMaxWidth={contentMaxWidth}
       header={header}
+      headerOverlap
     >
       {!ready ? (
         <ScrollView contentContainerStyle={scrollContentStyle} showsVerticalScrollIndicator={false}>
@@ -530,6 +532,7 @@ export default function HomeScreen() {
           <LibraryBoard
           library={library}
           folders={folders}
+          headerInset={headerInset}
           hero={
             plannedEntry ? (
               <View
