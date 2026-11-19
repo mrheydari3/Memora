@@ -203,7 +203,9 @@ test.describe('Phase 7 — data truth', () => {
     expect(pending).toBe(0);
 
     const panel = page.getByTestId('today-panel');
-    await expect(panel).toContainText('Nothing waiting — you are all caught up');
+    await expect(panel).toContainText("You're all caught up.");
+    // The caught-up hero is a state, not a dead control: no action row at all.
+    await expect(panel.getByRole('button')).toHaveCount(0);
     // No fabricated session length when there is nothing to study.
     await expect(panel).not.toContainText('estimated');
     await expect(panel).not.toContainText('minute');

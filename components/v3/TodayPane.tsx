@@ -27,9 +27,8 @@ type TodayPaneProps = {
   reviewCount: number;
   /** How many other decks still have cards due today. */
   otherDueDecks: number;
-  /** Study this deck, Continue this deck, or Nothing due today. */
+  /** Study this deck or Continue this deck; the caught-up state has no action. */
   label: string;
-  disabled?: boolean;
   onStart: () => void;
   /** Opens the due-deck chooser. */
   onOpenPlan: () => void;
@@ -78,7 +77,6 @@ export function TodayPane({
   reviewCount,
   otherDueDecks,
   label,
-  disabled = false,
   onStart,
   onOpenPlan,
   planOpen,
@@ -101,6 +99,8 @@ export function TodayPane({
 
   const segments = makeSegments(newCount, learningCount, reviewCount);
   const total = segments.reduce((sum, segment) => sum + segment.value, 0);
+  // The hero's plan, rail and action exist only when the selected deck has work.
+  const hasWork = total > 0;
   const displayedDue = useAnimatedNumber(due);
   const launched = useLaunchReveal();
   const planPress = usePressFeedback({ scale: 0.99 });
@@ -176,7 +176,7 @@ export function TodayPane({
   const context =
     due > 0
       ? `${deckCount} ${deckCount === 1 ? 'deck' : 'decks'}${estimate ? ` · ${estimate}` : ''}`
-      : 'Nothing waiting — you are all caught up';
+      : "You're all caught up.";
 
   const dueBlock = (
     <Animated.View style={dueReveal.style}>
@@ -198,7 +198,7 @@ export function TodayPane({
     </Animated.View>
   );
 
-  const nextBlock = total > 0 ? (
+  const nextBlock = hasWork ? (
     <Animated.View style={nextReveal.style}>
       <View style={{ gap: 8 }}>
         <HintPressable
@@ -316,15 +316,10 @@ export function TodayPane({
     </Animated.View>
   ) : null;
 
-  const action = (
+  const action = hasWork ? (
     <Animated.View style={actionReveal.style}>
-      <ActionButton
-        label={label}
-        onPress={onStart}
-        disabled={disabled}
-        icon="arrow-forward"
-      />
-      {otherDueLabel && !disabled ? (
+      <ActionButton label={label} onPress={onStart} icon="arrow-forward" />
+      {otherDueLabel ? (
         <AppText
           variant="caption"
           tone="tertiary"
@@ -335,7 +330,7 @@ export function TodayPane({
         </AppText>
       ) : null}
     </Animated.View>
-  );
+  ) : null;
 
   return (
     <Surface
@@ -351,6 +346,9 @@ export function TodayPane({
           padding: tight ? 16 : v3.spacing.panel,
           gap: tight ? 18 : v3.spacing.panel,
           flexGrow: 1,
+          // The caught-up hero has no action row, so center its short content
+          // in the pane instead of leaving the card top-heavy.
+          justifyContent: hasWork ? 'flex-start' : 'center',
         }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -367,7 +365,7 @@ export function TodayPane({
           </AppText>
         </View>
 
-        {split ? (
+        {split && hasWork ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 28, flex: 1 }}>
             <View style={{ flex: 1, minWidth: 0 }}>{dueBlock}</View>
             <View style={{ width: 300, gap: 16 }}>

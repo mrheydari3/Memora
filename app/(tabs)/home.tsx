@@ -205,12 +205,7 @@ export default function HomeScreen() {
   // all belong to one deck. Home makes that explicit instead of implying the
   // CTA clears every due deck. The other due decks remain one tap away in the
   // plan chooser.
-  const startLabel =
-    totalDue === 0
-      ? 'Nothing due today'
-      : resuming
-        ? 'Continue this deck'
-        : 'Study this deck';
+  const startLabel = resuming ? 'Continue this deck' : 'Study this deck';
 
   // A folder deleted from the sheet falls back to the flat list instead of
   // hiding the level it was on.
@@ -573,7 +568,6 @@ export default function HomeScreen() {
                       reviewCount={plannedEntry.reviewCount}
                       otherDueDecks={Math.max(0, dueEntries.length - 1)}
                       label={startLabel}
-                      disabled={totalDue === 0}
                       onStart={() => pushOnce(router, `/study/${plannedEntry.deck.id}`)}
                       onOpenPlan={() => setPlanSheet(true)}
                       planOpen={planSheet}
