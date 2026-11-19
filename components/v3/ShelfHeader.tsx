@@ -2,7 +2,7 @@ import { useWindowDimensions, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { alpha, colors, iconSize, radii } from '../../theme/tokens';
+import { colors, iconSize, radii } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
 type ShelfHeaderProps = {
@@ -26,6 +26,13 @@ type ShelfHeaderProps = {
  * carries the shelf's actions, the section title at page scale, and the honest
  * caption with the caught-up mark. The rule below it is the only line the shelf
  * draws, so the cards beneath it are the page's content, not a boxed-in list.
+ *
+ * On a phone the eyebrow is gone and the redundant FOLDERS band is dropped. The
+ * title and its two actions share one 44px row, the actions are bare muted
+ * glyphs rather than filled pills, and the caption stays directly under the
+ * title so the counts and the caught-up mark never leave the masthead. That
+ * hands the vertical space to the folder or deck the page exists to show; the
+ * title is the loudest thing in the row, which is the point.
  */
 export function ShelfHeader({
   title = 'Your decks',
@@ -36,10 +43,135 @@ export function ShelfHeader({
   editingLayout,
 }: ShelfHeaderProps) {
   const { width } = useWindowDimensions();
-  // The layout action keeps its label while the eyebrow has room for it; below
-  // that it stays a 44px tile with its accessible name.
-  const compact = width < 480;
-  const actionFill = alpha(colors.surfaceControl, 0.6);
+  // Phones lose the eyebrow row and its captions. Tablets and desktops keep the
+  // full masthead; 640 is where the title and two labelled actions still fit.
+  const compact = width < 640;
+  const actionIcon = compact ? iconSize.lg : iconSize.sm;
+
+  const actionStyle = {
+    minHeight: 44,
+    minWidth: 44,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 6,
+    paddingHorizontal: compact ? 0 : 8,
+    borderRadius: radii.control,
+  };
+
+  const actions = editingLayout ? (
+    <HintPressable
+      hint="Done editing layout"
+      onPress={onToggleLayout}
+      accessibilityRole="button"
+      accessibilityLabel="Done editing layout"
+      style={actionStyle}
+    >
+      <MaterialIcons name="check" size={actionIcon} color={colors.primary} />
+      {compact ? null : (
+        <AppText variant="caption" weight="semibold" tone="accent">
+          Done
+        </AppText>
+      )}
+    </HintPressable>
+  ) : (
+    <>
+      <HintPressable
+        hint="Manage folders"
+        onPress={onManageFolders}
+        accessibilityRole="button"
+        accessibilityLabel="Manage folders"
+        style={actionStyle}
+      >
+        <MaterialIcons name="folder-open" size={actionIcon} color={colors.outline} />
+        {compact ? null : (
+          <AppText variant="caption" weight="medium" tone="tertiary">
+            Folders
+          </AppText>
+        )}
+      </HintPressable>
+
+      <HintPressable
+        hint="Edit layout"
+        onPress={onToggleLayout}
+        accessibilityRole="button"
+        accessibilityLabel="Edit layout"
+        accessibilityState={{ expanded: editingLayout }}
+        style={actionStyle}
+      >
+        <MaterialIcons name="drag-indicator" size={actionIcon} color={colors.outline} />
+        {/* The glyph alone read as an overflow menu on a wide canvas, so the
+            desktop control names itself. On a phone the row is too tight for
+            two labels; the accessible name still carries the meaning. */}
+        {compact ? null : (
+          <AppText variant="caption" weight="medium" tone="tertiary">
+            Edit layout
+          </AppText>
+        )}
+      </HintPressable>
+    </>
+  );
+
+  const titleNode = (
+    <AppText
+      headingLevel={2}
+      weight="semibold"
+      numberOfLines={compact ? 1 : 2}
+      style={[
+        v3.type.shelfTitle,
+        compact ? { flex: 1, minWidth: 0 } : { marginTop: 6 },
+      ]}
+    >
+      {title}
+    </AppText>
+  );
+
+  const caption = (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        marginTop: compact ? 2 : 6,
+        paddingBottom: compact ? 0 : 4,
+      }}
+    >
+      <AppText
+        variant="caption"
+        tone="tertiary"
+        numberOfLines={2}
+        style={{ flexShrink: 1, minWidth: 0 }}
+      >
+        {meta}
+      </AppText>
+      {statusLabel && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success }} />
+          <AppText variant="caption" tone="success" weight="medium">
+            {statusLabel}
+          </AppText>
+        </View>
+      )}
+    </View>
+  );
+
+  if (compact) {
+    // The caption stays under the title even though the phone drops its first
+    // band: the counts and the caught-up mark belong to the shelf, not to a
+    // section label that only repeats them.
+    return (
+      <View>
+        <View style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {titleNode}
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 0 }}>
+            {actions}
+          </View>
+        </View>
+        {caption}
+      </View>
+    );
+  }
 
   return (
     <View>
@@ -71,118 +203,12 @@ export function ShelfHeader({
         />
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-          {editingLayout ? (
-            <HintPressable
-              hint="Done editing layout"
-              onPress={onToggleLayout}
-              accessibilityRole="button"
-              accessibilityLabel="Done editing layout"
-              style={{
-                minHeight: 44,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                paddingHorizontal: 10,
-                borderRadius: radii.control,
-                backgroundColor: alpha(colors.primary, 0.14),
-              }}
-            >
-              <MaterialIcons name="check" size={iconSize.sm} color={colors.primary} />
-              <AppText variant="caption" weight="semibold" tone="accent">
-                Done
-              </AppText>
-            </HintPressable>
-          ) : (
-            <>
-              <HintPressable
-                hint="Manage folders"
-                onPress={onManageFolders}
-                accessibilityRole="button"
-                accessibilityLabel="Manage folders"
-                style={{
-                  minHeight: 44,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  paddingHorizontal: 8,
-                  borderRadius: radii.control,
-                  backgroundColor: actionFill,
-                }}
-              >
-                <MaterialIcons name="folder-open" size={iconSize.sm} color={colors.outline} />
-                <AppText variant="caption" weight="semibold" tone="muted">
-                  Folders
-                </AppText>
-              </HintPressable>
-
-              <HintPressable
-                hint="Edit layout"
-                onPress={onToggleLayout}
-                accessibilityRole="button"
-                accessibilityLabel="Edit layout"
-                accessibilityState={{ expanded: editingLayout }}
-                style={{
-                  minHeight: 44,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  paddingHorizontal: 8,
-                  borderRadius: radii.control,
-                  backgroundColor: actionFill,
-                }}
-              >
-                <MaterialIcons name="drag-indicator" size={iconSize.sm} color={colors.outline} />
-                {/* The glyph alone read as an overflow menu, so the control
-                    always names itself; the short word keeps the eyebrow's
-                    rule intact on a phone. */}
-                <AppText variant="caption" weight="semibold" tone="muted">
-                  {compact ? 'Layout' : 'Edit layout'}
-                </AppText>
-              </HintPressable>
-            </>
-          )}
+          {actions}
         </View>
       </View>
 
-      <AppText
-        headingLevel={2}
-        weight="semibold"
-        numberOfLines={2}
-        style={[v3.type.shelfTitle, { marginTop: 6 }]}
-      >
-        {title}
-      </AppText>
-
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          marginTop: 6,
-          paddingBottom: 4,
-        }}
-      >
-        <AppText
-          variant="caption"
-          tone="tertiary"
-          numberOfLines={2}
-          style={{ flexShrink: 1, minWidth: 0 }}
-        >
-          {meta}
-        </AppText>
-        {statusLabel && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success }} />
-            <AppText variant="caption" tone="success" weight="medium">
-              {statusLabel}
-            </AppText>
-          </View>
-        )}
-      </View>
+      {titleNode}
+      {caption}
     </View>
   );
 }

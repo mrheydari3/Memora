@@ -34,8 +34,8 @@ export function LibraryToolbar({
 }: LibraryToolbarProps) {
   return (
     <View style={{ gap: 8 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <View style={{ flexGrow: 1, flexBasis: 190, minWidth: 0 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <View style={{ flexGrow: 1, flexBasis: 140, minWidth: 0 }}>
           <SearchBar
             value={query}
             onChangeText={onQueryChange}

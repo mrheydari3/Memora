@@ -100,19 +100,23 @@ test('the Library opens folder management separately from folder creation', asyn
   await expect(sheet.getByLabel('New folder')).not.toBeFocused();
 });
 
-test('the phone keeps folders above loose decks', async ({ page }) => {
+test('the phone drops the Folders band and keeps folders above loose decks', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openHome(page);
 
+  // The masthead names the shelf and carries its counts, so the redundant band
+  // is gone on a phone; the folders themselves lead the list.
+  await expect(page.getByText('5 decks · 4 folders', { exact: true })).toBeVisible();
   const shelf = page.getByTestId('shelf-panel');
-  const folders = shelf.getByTestId('shelf-band').filter({ hasText: 'Folders' });
+  await expect(shelf.getByTestId('shelf-band').filter({ hasText: 'Folders' })).toHaveCount(0);
   const looseDecks = shelf.getByTestId('shelf-band').filter({ hasText: 'Unfiled decks' });
-  await expect(folders).toBeVisible();
   await expect(looseDecks).toBeVisible();
 
-  const foldersBox = await folders.boundingBox();
+  const firstFolder = page.getByTestId('folder-group').first();
+  await expect(firstFolder).toBeVisible();
+  const folderBox = await firstFolder.boundingBox();
   const looseDecksBox = await looseDecks.boundingBox();
-  expect(foldersBox).not.toBeNull();
+  expect(folderBox).not.toBeNull();
   expect(looseDecksBox).not.toBeNull();
-  expect(foldersBox!.y).toBeLessThan(looseDecksBox!.y);
+  expect(folderBox!.y).toBeLessThan(looseDecksBox!.y);
 });

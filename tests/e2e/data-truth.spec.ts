@@ -225,10 +225,11 @@ test.describe('Phase 7 — data truth', () => {
     await expect(
       page.getByText(shelfMeta(active.length, allFolders.length), { exact: true })
     ).toBeVisible();
-    // The band counts the same flat set.
+    // Phones drop the redundant Folders band; the caption above already carries
+    // the folder count, and the folder groups lead the shelf.
     await expect(
       page.getByTestId('shelf-band').filter({ hasText: 'Folders' })
-    ).toContainText(`(${allFolders.length})`);
+    ).toHaveCount(0);
 
     // Languages is now an empty peer, not a parent: it rolls up nothing and
     // German is never drawn as a row inside it.

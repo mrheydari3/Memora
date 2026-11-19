@@ -60,7 +60,12 @@ export function ShelfBand({ label, count, hint, children }: ShelfBandProps) {
         </View>
 
         {hint ? (
-          <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+          <AppText
+            variant="caption"
+            tone="tertiary"
+            numberOfLines={1}
+            style={{ flexShrink: 1, textAlign: 'right' }}
+          >
             {hint}
           </AppText>
         ) : null}

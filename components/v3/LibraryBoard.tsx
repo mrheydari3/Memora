@@ -142,6 +142,9 @@ export function LibraryBoard({
   const { width } = useWindowDimensions();
   const isFocused = useIsFocused();
   const desktop = width >= 1024;
+  // Matches ShelfHeader's breakpoint: below 640 the masthead drops its eyebrow
+  // and the shelf drops its first band.
+  const phone = width < 640;
   const columns = width >= 1200 ? 3 : desktop ? 2 : 1;
   const usableWidth = Math.max(
     0,
@@ -233,6 +236,26 @@ export function LibraryBoard({
 
   const trail = openFolder ? [openFolder] : [];
 
+  // The masthead and the desktop FOLDERS band describe the same set: every
+  // folder on the flat shelf. One count for both keeps the caption and the band
+  // in step; phones keep the caption and drop the band.
+  const scopeFolderCount = visibleFolders.length;
+  const aggregate = openFolder ? library.aggregates.get(openFolder.id) : undefined;
+  const shelfDeckCount = openFolder ? aggregate?.decks ?? 0 : library.totals.decks;
+  const shelfDue = openFolder ? aggregate?.due ?? 0 : library.totals.due;
+  // The hero already states the library-wide due figure. At the root, repeating
+  // it here only competes with that number; inside a folder the scoped due count
+  // is new information and stays.
+  const meta = [
+    plural(shelfDeckCount, 'deck', 'decks'),
+    plural(scopeFolderCount, 'folder', 'folders'),
+    ...(openFolder ? [shelfDue > 0 ? `${shelfDue} due` : 'all caught up'] : []),
+  ].join(' · ');
+  const caughtUpFolders = visibleFolders.filter(
+    (folder) => folder.decks > 0 && folder.due === 0
+  ).length;
+  const statusLabel = !openFolder && caughtUpFolders > 0 ? `${caughtUpFolders} caught up` : undefined;
+
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
     const chunk = <T,>(items: T[], size: number): T[][] => {
@@ -291,12 +314,17 @@ export function LibraryBoard({
     out.push({ key: 'toolbar', kind: 'toolbar' });
 
     if (visibleFolders.length > 0) {
-      out.push({
-        key: 'folders-band',
-        kind: 'band',
-        label: 'Folders',
-        count: visibleFolders.length,
-      });
+      // A phone's masthead already says "Your decks" and carries the counts; a
+      // second "Folders" label only pushes the first folder down. The desktop
+      // board keeps the band so folders and loose decks read as two regions.
+      if (!phone) {
+        out.push({
+          key: 'folders-band',
+          kind: 'band',
+          label: 'Folders',
+          count: visibleFolders.length,
+        });
+      }
       if (columns === 1) {
         for (const folder of visibleFolders) {
           const decks = pinnedFirstEntries(library.byFolderId.get(folder.id) ?? []);
@@ -378,6 +406,7 @@ export function LibraryBoard({
     closingFolders,
     visibleFolders,
     visibleDecks,
+    phone,
     library.archived.length,
     library.entries.length,
     library.entries.length === 0 && library.archived.length > 0,
@@ -427,25 +456,6 @@ export function LibraryBoard({
       ].filter((group) => group.items.length > 0),
     [visibleFolders, visibleDecks, openFolder, onReorderFolder, onReorderDeck]
   );
-
-  // The masthead and the FOLDERS band name the same set: every folder on the
-  // flat shelf. One count for both keeps the meta line and the band in step.
-  const scopeFolderCount = visibleFolders.length;
-  const aggregate = openFolder ? library.aggregates.get(openFolder.id) : undefined;
-  const shelfDeckCount = openFolder ? aggregate?.decks ?? 0 : library.totals.decks;
-  const shelfDue = openFolder ? aggregate?.due ?? 0 : library.totals.due;
-  // The hero already states the library-wide due figure. At the root, repeating
-  // it here only competes with that number; inside a folder the scoped due count
-  // is new information and stays.
-  const meta = [
-    plural(shelfDeckCount, 'deck', 'decks'),
-    plural(scopeFolderCount, 'folder', 'folders'),
-    ...(openFolder ? [shelfDue > 0 ? `${shelfDue} due` : 'all caught up'] : []),
-  ].join(' · ');
-  const caughtUpFolders = visibleFolders.filter(
-    (folder) => folder.decks > 0 && folder.due === 0
-  ).length;
-  const statusLabel = !openFolder && caughtUpFolders > 0 ? `${caughtUpFolders} caught up` : undefined;
 
   // A structural key, not a data key: due counts changing every minute must not
   // make the shelf twitch. It names the deck/folder identities, their folder,
@@ -731,7 +741,16 @@ export function LibraryBoard({
   const renderItemContent = (item: Row) => {
     switch (item.kind) {
       case 'hero':
-        return <View style={{ marginTop: 12, marginBottom: v3.spacing.section }}>{hero}</View>;
+        return (
+          <View
+            style={{
+              marginTop: phone ? 8 : 12,
+              marginBottom: phone ? 12 : v3.spacing.section,
+            }}
+          >
+            {hero}
+          </View>
+        );
       case 'breadcrumbs':
         return (
           <ShelfBreadcrumbs
@@ -751,8 +770,10 @@ export function LibraryBoard({
           />
         );
       case 'toolbar':
+        // Without the phone's Folders band, the toolbar itself has to hold the
+        // gap before the first folder; 2px read as a collision.
         return (
-          <View style={{ marginTop: 14, marginBottom: 2 }}>
+          <View style={{ marginTop: phone ? 8 : 14, marginBottom: phone ? 12 : 2 }}>
             <LibraryToolbar
               query={query}
               onQueryChange={setQuery}
@@ -769,7 +790,7 @@ export function LibraryBoard({
         );
       case 'band':
         return (
-          <View style={{ marginTop: 18, marginBottom: 10 }}>
+          <View style={{ marginTop: phone ? 10 : 18, marginBottom: phone ? 6 : 10 }}>
             <ShelfBand label={item.label} count={item.count} hint={item.hint} />
           </View>
         );
@@ -900,7 +921,7 @@ export function LibraryBoard({
         style={{ flex: 1 }}
         contentContainerStyle={{
           // Home's Screen already pads the body by the floating bar's height.
-          paddingTop: spacing.screen,
+          paddingTop: phone ? 12 : spacing.screen,
           paddingBottom: tabClearance ? spacing.tabClearance : spacing.screenBottom,
           paddingHorizontal: spacing.screen,
           width: '100%',
