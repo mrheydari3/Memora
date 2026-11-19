@@ -257,7 +257,9 @@ const shadows = {
  * and every legend read from this map — a state never changes hue per screen.
  */
 const stateColors = {
-  New: 'rgba(146, 176, 214, 0.38)',
+  // Opaque so the New rail segment reads against surfaceControl (#222831):
+  // the old 38% wash composited to about 2.2:1 and looked like empty track.
+  New: '#92B0D6',
   Learning: colors.warning,
   Relearning: colors.warning,
   Review: colors.success,
