@@ -724,6 +724,7 @@ export default function HomeScreen() {
                     color={folderColor}
                     onIconChange={setFolderIcon}
                     onColorChange={setFolderColor}
+                    collapsible
                   />
                 </View>
 
@@ -791,6 +792,7 @@ export default function HomeScreen() {
                     color={editColor}
                     onIconChange={setEditIcon}
                     onColorChange={setEditColor}
+                    collapsible
                   />
                 </View>
               </View>

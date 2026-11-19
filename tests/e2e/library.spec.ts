@@ -88,6 +88,37 @@ test('closing the Folders sheet discards an abandoned draft', async ({ page }) =
   await expect(reopened.getByRole('button', { name: 'Create folder' })).toBeDisabled();
 });
 
+test('the folder form keeps its icon catalogue collapsed until it is opened', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHome(page);
+
+  await page.getByRole('button', { name: 'Create new' }).click();
+  await page.getByRole('button', { name: /^New folder/ }).click();
+  const sheet = page.getByRole('dialog');
+  const create = sheet.getByRole('button', { name: 'Create folder' });
+
+  // Collapsed by default: the 65-icon catalogue is not in the sheet, the
+  // summary names the current glyph, and Create is fully on screen.
+  await expect(sheet.getByRole('radio', { name: /^Icon / })).toHaveCount(0);
+  await expect(
+    sheet.getByRole('button', { name: 'Change icon, currently Folder' })
+  ).toBeVisible();
+  await expect(create).toBeInViewport({ ratio: 1 });
+
+  await sheet.getByRole('button', { name: /^Change icon/ }).click();
+  await expect(sheet.getByRole('radio', { name: /^Icon / }).first()).toBeVisible();
+  await sheet.getByRole('radio', { name: 'Icon Book' }).click();
+  await sheet.getByRole('button', { name: 'Done choosing icon' }).click();
+
+  // The choice survives the collapse: the summary row still names it, and the
+  // form is back to its compact height with Create reachable.
+  await expect(
+    sheet.getByRole('button', { name: 'Change icon, currently Book' })
+  ).toBeVisible();
+  await expect(sheet.getByRole('radio', { name: /^Icon / })).toHaveCount(0);
+  await expect(create).toBeInViewport({ ratio: 1 });
+});
+
 test('the Create menu opens folder management without starting a new-folder draft', async ({
   page,
 }) => {

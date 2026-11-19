@@ -235,7 +235,10 @@ test.describe('Phase 5 — behaviour', () => {
 
     await editor.getByLabel('Name').fill('Flow Folder Edited');
     await editor.getByRole('radio', { name: 'Colour Amber' }).click();
+    // The folder form collapses the 65-icon catalogue; open it to choose one.
+    await editor.getByRole('button', { name: /^Change icon/ }).click();
     await editor.getByRole('radio', { name: 'Icon Book' }).click();
+    await editor.getByRole('button', { name: 'Done choosing icon' }).click();
     await editor.getByRole('button', { name: 'Pin folder' }).click();
     await editor.getByRole('button', { name: 'Save folder' }).click();
     await closeSheet(page);

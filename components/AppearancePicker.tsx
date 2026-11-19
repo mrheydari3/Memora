@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 import { MaterialIcons } from './Icon';
 import { AppText } from './AppText';
 import { SearchBar } from './SearchBar';
-import { alpha, colors, fills, heights, iconSize } from '../theme/tokens';
+import { alpha, colors, fills, heights, iconSize, radii } from '../theme/tokens';
 import { ICON_GROUPS, iconLabel, iconSearchText } from '../data/appearance';
 
 /**
@@ -28,6 +28,12 @@ type AppearancePickerProps = {
   color: string;
   onIconChange: (icon: string) => void;
   onColorChange: (color: string) => void;
+  /**
+   * Fold the icon catalogue behind one summary row until it is opened. The
+   * folder sheet uses this so a 65-icon grid never pushes its Create button
+   * off the sheet; the deck composer keeps the catalogue visible.
+   */
+  collapsible?: boolean;
 };
 
 /**
@@ -46,8 +52,10 @@ export function AppearancePicker({
   color,
   onIconChange,
   onColorChange,
+  collapsible = false,
 }: AppearancePickerProps) {
   const [query, setQuery] = useState('');
+  const [expanded, setExpanded] = useState(false);
   const term = query.trim().toLowerCase().replace(/-/g, ' ');
 
   const groups = useMemo(
@@ -59,15 +67,115 @@ export function AppearancePicker({
     [term]
   );
 
+  const colourBlock = (
+    <>
+      <AppText variant="label" tone="muted" className="mb-2 mt-5 uppercase">
+        Colour
+      </AppText>
+      <View className="flex-row flex-wrap" style={{ gap: 12 }}>
+        {CARD_COLOR_CHOICES.map(({ value, label }) => {
+          const active = color === value;
+          return (
+            <Pressable
+              key={value}
+              className="items-center justify-center rounded-full"
+              style={{
+                width: heights.tileLg,
+                height: heights.tileLg,
+                backgroundColor: alpha(value, active ? 0.28 : 0.12),
+              }}
+              onPress={() => onColorChange(value)}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: active }}
+              aria-checked={active}
+              accessibilityLabel={`Colour ${label}`}
+            >
+              <View className="h-6 w-6 rounded-full" style={{ backgroundColor: value }} />
+            </Pressable>
+          );
+        })}
+      </View>
+    </>
+  );
+
+  // The folder form opens on one row; the catalogue only earns its height when
+  // the learner asks for it. The deck composer never collapses it.
+  if (collapsible && !expanded) {
+    return (
+      <View>
+        <Pressable
+          onPress={() => setExpanded(true)}
+          role="button"
+          accessibilityLabel={`Change icon, currently ${iconLabel(icon)}`}
+          style={{
+            minHeight: heights.hit,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            paddingHorizontal: 10,
+            borderRadius: radii.control,
+            backgroundColor: fills.tile,
+          }}
+        >
+          <View
+            style={{
+              width: heights.iconSm,
+              height: heights.iconSm,
+              borderRadius: radii.micro,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: alpha(color, 0.2),
+            }}
+          >
+            <MaterialIcons
+              name={icon as React.ComponentProps<typeof MaterialIcons>['name']}
+              size={iconSize.md}
+              color={color}
+            />
+          </View>
+          <AppText variant="bodySm" weight="semibold" style={{ flex: 1 }} numberOfLines={1}>
+            {iconLabel(icon)}
+          </AppText>
+          <AppText variant="caption" tone="tertiary">
+            Change
+          </AppText>
+          <MaterialIcons name="expand-more" size={iconSize.sm} color={colors.outline} />
+        </Pressable>
+        {colourBlock}
+      </View>
+    );
+  }
+
   return (
     <View>
       <View className="mb-2 flex-row items-center justify-between" style={{ gap: 12 }}>
         <AppText variant="label" tone="muted" className="uppercase">
           Icon
         </AppText>
-        <AppText variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-          {iconLabel(icon)}
-        </AppText>
+        {collapsible ? (
+          <Pressable
+            onPress={() => setExpanded(false)}
+            role="button"
+            accessibilityLabel="Done choosing icon"
+            style={{
+              minHeight: heights.hit,
+              // The word alone is ~40px wide; 44×44 keeps the target legal
+              // without changing the header row's 44px height or 8px gap.
+              minWidth: heights.hit,
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingHorizontal: 4,
+            }}
+          >
+            <AppText variant="caption" weight="semibold" tone="accent">
+              Done
+            </AppText>
+          </Pressable>
+        ) : (
+          <AppText variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+            {iconLabel(icon)}
+          </AppText>
+        )}
       </View>
 
       <SearchBar
@@ -126,32 +234,7 @@ export function AppearancePicker({
         </AppText>
       )}
 
-      <AppText variant="label" tone="muted" className="mb-2 mt-5 uppercase">
-        Colour
-      </AppText>
-      <View className="flex-row flex-wrap" style={{ gap: 12 }}>
-        {CARD_COLOR_CHOICES.map(({ value, label }) => {
-          const active = color === value;
-          return (
-            <Pressable
-              key={value}
-              className="items-center justify-center rounded-full"
-              style={{
-                width: heights.tileLg,
-                height: heights.tileLg,
-                backgroundColor: alpha(value, active ? 0.28 : 0.12),
-              }}
-              onPress={() => onColorChange(value)}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: active }}
-              aria-checked={active}
-              accessibilityLabel={`Colour ${label}`}
-            >
-              <View className="h-6 w-6 rounded-full" style={{ backgroundColor: value }} />
-            </Pressable>
-          );
-        })}
-      </View>
+      {colourBlock}
     </View>
   );
 }
