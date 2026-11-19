@@ -95,7 +95,7 @@ function actionsFor(surface: Surface): CensusAction[] {
       // to reveal, so the surface is visited but not triggered.
       return [];
     case 'HM-08':
-      return [click('Manage folders')];
+      return [click('Create new'), click('Manage folders')];
     case 'HM-09':
       return [
         click('Create new'),
@@ -106,11 +106,13 @@ function actionsFor(surface: Surface): CensusAction[] {
       ];
     case 'HM-10':
       return [
+        click('Create new'),
         click('Manage folders'),
         click('Options for folder Languages'),
       ];
     case 'HM-11':
       return [
+        click('Create new'),
         click('Manage folders'),
         click('Options for folder Languages'),
         click('Move down', false),

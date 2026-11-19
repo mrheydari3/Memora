@@ -88,16 +88,22 @@ test('closing the Folders sheet discards an abandoned draft', async ({ page }) =
   await expect(reopened.getByRole('button', { name: 'Create folder' })).toBeDisabled();
 });
 
-test('the Library opens folder management separately from folder creation', async ({ page }) => {
+test('the Create menu opens folder management without starting a new-folder draft', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openHome(page);
 
-  await page.getByRole('button', { name: 'Manage folders' }).click();
+  await page.getByRole('button', { name: 'Create new' }).click();
+  await page.getByRole('button', { name: /^Manage folders/ }).click();
   const sheet = page.getByRole('dialog', { name: 'Folders' });
   await expect(sheet).toBeVisible();
   await expect(sheet.getByRole('button', { name: 'Close sheet' })).toBeFocused();
   await expect(sheet.getByRole('button', { name: 'Options for folder Travel' })).toBeVisible();
+  // The manager is a browse, not the create flow: the name field stays empty
+  // and unfocused, so the sheet opens on the controls instead of the keyboard.
   await expect(sheet.getByLabel('New folder')).not.toBeFocused();
+  await expect(sheet.getByLabel('New folder')).toHaveValue('');
 });
 
 test('the phone drops the Folders band and keeps folders above loose decks', async ({ page }) => {

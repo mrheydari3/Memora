@@ -144,7 +144,7 @@ export default function HomeScreen() {
   const [plannedDeckId, setPlannedDeckId] = useState<string | null>(null);
   const folderDraftRef = useRef<FieldInputRef>(null);
   const createMenuAnchorRef = useRef<React.ComponentRef<typeof View>>(null);
-  const pendingCreateRef = useRef<'deck' | 'folder' | null>(null);
+  const pendingCreateRef = useRef<'deck' | 'folder' | 'manage-folders' | null>(null);
 
   // One index per data change: review buckets, queue summaries, folder
   // aggregates, paths and children. The board and the sheet read the same maps,
@@ -253,6 +253,8 @@ export default function HomeScreen() {
     setFolderSheet(true);
   };
 
+  // Folder management is a browse of the whole list, not a new-folder draft:
+  // it opens on the list with focus on the sheet's controls.
   const openFolderManager = () => {
     setFolderSheetMode('list');
     setFocusNewFolder(false);
@@ -264,7 +266,8 @@ export default function HomeScreen() {
     if (!action) return;
     pendingCreateRef.current = null;
     if (action === 'deck') pushOnce(router, '/add-deck');
-    else openNewFolder();
+    else if (action === 'folder') openNewFolder();
+    else openFolderManager();
   };
 
   const saveFolderEditor = async () => {
@@ -302,6 +305,15 @@ export default function HomeScreen() {
       icon: 'create-new-folder',
       onPress: () => {
         pendingCreateRef.current = 'folder';
+      },
+    },
+    {
+      key: 'manage-folders',
+      label: 'Manage folders',
+      description: 'Rename, reorder or delete folders.',
+      icon: 'folder-open',
+      onPress: () => {
+        pendingCreateRef.current = 'manage-folders';
       },
     },
   ];
@@ -602,7 +614,6 @@ export default function HomeScreen() {
           closingFolders={closingFolders}
           onToggleFolder={toggleFolder}
           editingLayout={editingLayout}
-          onManageFolders={openFolderManager}
           onToggleLayout={() => setEditingLayout((next) => !next)}
           onReorderFolder={(id, to) => void moveFolderTo(id, to)}
           onReorderDeck={(id, to) => void moveDeckTo(id, to)}
@@ -649,7 +660,7 @@ export default function HomeScreen() {
         anchorRef={createMenuAnchorRef}
         label="Create new"
         title="Create new"
-        subtitle="Start a deck or group decks in a folder."
+        subtitle="Start a deck or manage your folders."
         actions={createActions}
       />
 

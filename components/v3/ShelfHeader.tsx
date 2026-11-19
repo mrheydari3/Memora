@@ -12,7 +12,6 @@ type ShelfHeaderProps = {
   meta: string;
   /** Right-aligned status, e.g. "1 caught up". */
   statusLabel?: string;
-  onManageFolders: () => void;
   onToggleLayout: () => void;
   editingLayout: boolean;
 };
@@ -28,8 +27,8 @@ type ShelfHeaderProps = {
  * draws, so the cards beneath it are the page's content, not a boxed-in list.
  *
  * On a phone the eyebrow is gone and the redundant FOLDERS band is dropped. The
- * title and its two actions share one 44px row, the actions are bare muted
- * glyphs rather than filled pills, and the caption stays directly under the
+ * title and its layout action share one 44px row, the action is a bare muted
+ * glyph rather than a filled pill, and the caption stays directly under the
  * title so the counts and the caught-up mark never leave the masthead. That
  * hands the vertical space to the folder or deck the page exists to show; the
  * title is the loudest thing in the row, which is the point.
@@ -38,13 +37,12 @@ export function ShelfHeader({
   title = 'Your decks',
   meta,
   statusLabel,
-  onManageFolders,
   onToggleLayout,
   editingLayout,
 }: ShelfHeaderProps) {
   const { width, height } = useWindowDimensions();
   // Phones lose the eyebrow row and its captions. Tablets and desktops keep the
-  // full masthead; 640 is where the title and two labelled actions still fit.
+  // full masthead; 640 is where the title and its labelled action still fit.
   const compact = width < 640;
   // The caption gives up its 2px only on the short viewport that has to clear
   // the dock; a tall phone keeps the normal rhythm.
@@ -78,41 +76,24 @@ export function ShelfHeader({
       )}
     </HintPressable>
   ) : (
-    <>
-      <HintPressable
-        hint="Manage folders"
-        onPress={onManageFolders}
-        accessibilityRole="button"
-        accessibilityLabel="Manage folders"
-        style={actionStyle}
-      >
-        <MaterialIcons name="folder-open" size={actionIcon} color={colors.outline} />
-        {compact ? null : (
-          <AppText variant="caption" weight="medium" tone="tertiary">
-            Folders
-          </AppText>
-        )}
-      </HintPressable>
-
-      <HintPressable
-        hint="Edit layout"
-        onPress={onToggleLayout}
-        accessibilityRole="button"
-        accessibilityLabel="Edit layout"
-        accessibilityState={{ expanded: editingLayout }}
-        style={actionStyle}
-      >
-        <MaterialIcons name="drag-indicator" size={actionIcon} color={colors.outline} />
-        {/* The glyph alone read as an overflow menu on a wide canvas, so the
-            desktop control names itself. On a phone the row is too tight for
-            two labels; the accessible name still carries the meaning. */}
-        {compact ? null : (
-          <AppText variant="caption" weight="medium" tone="tertiary">
-            Edit layout
-          </AppText>
-        )}
-      </HintPressable>
-    </>
+    <HintPressable
+      hint="Edit layout"
+      onPress={onToggleLayout}
+      accessibilityRole="button"
+      accessibilityLabel="Edit layout"
+      accessibilityState={{ expanded: editingLayout }}
+      style={actionStyle}
+    >
+      <MaterialIcons name="drag-indicator" size={actionIcon} color={colors.outline} />
+      {/* The glyph alone read as an overflow menu on a wide canvas, so the
+          desktop control names itself. On a phone the accessible name carries
+          the meaning. */}
+      {compact ? null : (
+        <AppText variant="caption" weight="medium" tone="tertiary">
+          Edit layout
+        </AppText>
+      )}
+    </HintPressable>
   );
 
   const titleNode = (
