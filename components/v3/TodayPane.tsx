@@ -89,6 +89,9 @@ export function TodayPane({
   const wide = width >= 900;
   const split = width >= 1200;
   const compact = width < 360;
+  // Phones carry the densest page in the app: the hero gives back a little of
+  // its inner air so the shelf's first folder can clear the floating dock.
+  const tight = width < 640;
   const now = nowProp ?? Date.now();
   const date = new Date(now).toLocaleDateString('en-GB', {
     ...(compact ? {} : { weekday: 'short' as const }),
@@ -343,7 +346,11 @@ export function TodayPane({
     >
       <View
         testID="today-panel-body"
-        style={{ padding: v3.spacing.panel, gap: v3.spacing.panel, flexGrow: 1 }}
+        style={{
+          padding: tight ? 16 : v3.spacing.panel,
+          gap: tight ? 18 : v3.spacing.panel,
+          flexGrow: 1,
+        }}
       >
         <View
           style={{

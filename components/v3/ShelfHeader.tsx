@@ -133,7 +133,7 @@ export function ShelfHeader({
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 12,
-        marginTop: compact ? 2 : 6,
+        marginTop: compact ? 0 : 6,
         paddingBottom: compact ? 0 : 4,
       }}
     >

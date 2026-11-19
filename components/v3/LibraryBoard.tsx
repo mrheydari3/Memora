@@ -744,8 +744,8 @@ export function LibraryBoard({
         return (
           <View
             style={{
-              marginTop: phone ? 8 : 12,
-              marginBottom: phone ? 12 : v3.spacing.section,
+              marginTop: phone ? 4 : 12,
+              marginBottom: phone ? 0 : v3.spacing.section,
             }}
           >
             {hero}
@@ -773,7 +773,7 @@ export function LibraryBoard({
         // Without the phone's Folders band, the toolbar itself has to hold the
         // gap before the first folder; 2px read as a collision.
         return (
-          <View style={{ marginTop: phone ? 8 : 14, marginBottom: phone ? 12 : 2 }}>
+          <View style={{ marginTop: phone ? 6 : 14, marginBottom: phone ? 8 : 2 }}>
             <LibraryToolbar
               query={query}
               onQueryChange={setQuery}
@@ -921,7 +921,7 @@ export function LibraryBoard({
         style={{ flex: 1 }}
         contentContainerStyle={{
           // Home's Screen already pads the body by the floating bar's height.
-          paddingTop: phone ? 12 : spacing.screen,
+          paddingTop: phone ? 8 : spacing.screen,
           paddingBottom: tabClearance ? spacing.tabClearance : spacing.screenBottom,
           paddingHorizontal: spacing.screen,
           width: '100%',
