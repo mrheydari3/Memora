@@ -38,7 +38,7 @@ import {
 import { v3 } from '../../theme/v3';
 import { pushOnce } from '../../services/navigation';
 
-const CONTENT_MAX = 760;
+const CONTENT_MAX = v3.layout.contentMaxWidth;
 const RANGE_DAYS = 30;
 
 type IconName = ComponentProps<typeof MaterialIcons>['name'];
@@ -547,7 +547,10 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { tablet } = useResponsive();
   const wide = tablet;
-  const achievementBasis = tablet ? '23%' : '30.5%';
+  // Four across on tablet, two on mobile: three phone columns cut the evidence
+  // line to an ellipsis before it can name what the badge tracks. The 48% basis
+  // and 10px gap fill a 390px row without leaving a third column's slack.
+  const achievementBasis = tablet ? '23%' : '48%';
 
   const decks = useDeckStore((s) => s.decks);
   const deckLoaded = useDeckStore((s) => s.loaded);

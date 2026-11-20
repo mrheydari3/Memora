@@ -22,15 +22,14 @@ import { buildFixture, fixtureInitScript } from '../ui/fixtures';
 const FIXED_NOW = new Date('2026-11-07T12:00:00Z');
 
 /**
- * The tablet/desktop Home baseline uses the six-deck fixture, so it shows the
- * board's real shapes: folders, an empty deck, an archived deck, RTL and overdue
- * cards. The mobile baseline keeps the shipped deck; both Home cases render the
- * folder-first shelf.
+ * The six-deck fixture gives the Home board and Profile achievements their real
+ * shapes: folders, an empty deck, an archived deck, RTL, overdue cards and
+ * earned/locked badges. The 390px route baselines keep the shipped seed.
  */
-const HOME_FIXTURE = buildFixture('F3', FIXED_NOW.getTime());
+const LIBRARY_FIXTURE = buildFixture('F3', FIXED_NOW.getTime());
 
-async function seedHome(page: Page) {
-  await page.addInitScript({ content: fixtureInitScript(HOME_FIXTURE) });
+async function seedFixture(page: Page) {
+  await page.addInitScript({ content: fixtureInitScript(LIBRARY_FIXTURE) });
 }
 
 test.use({ timezoneId: 'UTC' });
@@ -39,7 +38,7 @@ test.beforeEach(async ({ page }) => {
   await page.clock.setSystemTime(FIXED_NOW);
   // A manual /dev session can leave the six-deck fixture in this origin's
   // storage. Every case starts from the shipped seed unless it opts in; the
-  // tablet Home fixture is installed after this reset by `seedHome`.
+  // six-deck fixture is installed after this reset by `seedFixture`.
   await page.addInitScript(() => {
     for (let i = localStorage.length - 1; i >= 0; i -= 1) {
       const key = localStorage.key(i);
@@ -97,9 +96,45 @@ test.describe('visual', () => {
     });
   }
 
+  test('profile achievements stay two-up at 390px', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seedFixture(page);
+    await page.goto('/profile');
+    await waitForRoute(page, 'profile');
+
+    const heading = page.getByText('Achievements', { exact: true });
+    await expect(heading).toBeVisible();
+    await heading.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(250);
+
+    const cards = page.locator('[data-testid^="achievement-"]');
+    await expect(cards).toHaveCount(5);
+    const boxes = await cards.evaluateAll((elements) =>
+      elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width) };
+      })
+    );
+
+    // Two cards share the first row; the third starts the next row in column one.
+    expect(boxes[1].y).toBe(boxes[0].y);
+    expect(boxes[3].y).toBe(boxes[2].y);
+    expect(boxes[1].x).toBeGreaterThan(boxes[0].x);
+    expect(boxes[3].x).toBeGreaterThan(boxes[2].x);
+    expect(boxes[2].y).toBeGreaterThan(boxes[0].y);
+    expect(boxes[2].x).toBe(boxes[0].x);
+    // A third column would be around 110px wide; these are wide enough for the copy.
+    expect(boxes[0].width).toBeGreaterThan(150);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+      )
+    ).toBeLessThanOrEqual(1);
+  });
+
   test('tablet boundary at 768px starts the rail and two-column board', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
-    await seedHome(page);
+    await seedFixture(page);
     await page.goto('/');
     await waitForRoute(page, 'home');
 
@@ -130,7 +165,7 @@ test.describe('visual', () => {
 
   test('tablet layout at 1280px', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    await seedHome(page);
+    await seedFixture(page);
     await page.goto('/');
     await waitForRoute(page, 'home');
     // Prove the six-deck board, not the shipped single deck, is on screen.
@@ -150,7 +185,7 @@ test.describe('changed surfaces', () => {
   for (const { width, height } of SURFACES) {
     test(`today plan sheet at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height });
-      await seedHome(page);
+      await seedFixture(page);
       await page.goto('/');
       await waitForRoute(page, 'home');
 
