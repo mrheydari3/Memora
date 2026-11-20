@@ -160,6 +160,8 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
 
   /** The row that holds the tabs; every tab box is measured against it. */
   const rowRef = useRef<unknown>(null);
+  /** Native row offset, so a screen-space touch can be mapped to a slot. */
+  const rowPageX = useRef<number | null>(null);
 
   /**
    * Re-reads every tab box from the DOM. A direction flip or a wider label moves
@@ -193,6 +195,14 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
       return same ? previous : boxes;
     });
   }, []);
+
+  const measureRowPageX = () => {
+    if (Platform.OS === 'web') return;
+    const row = rowRef.current as { measureInWindow?: (callback: (x: number) => void) => void } | null;
+    row?.measureInWindow?.((x) => {
+      rowPageX.current = x;
+    });
+  };
 
   useEffect(() => {
     measureSlots();
@@ -292,6 +302,34 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
     [lensW, lensX]
   );
 
+  /** The tab whose slot contains the touch, falling back to the nearest slot. */
+  const tabIndexAtPageX = useCallback((pageX: number) => {
+    const boxes = slotsRef.current;
+    if (boxes.length === 0) return stateIndexRef.current;
+
+    let localX = pageX;
+    if (Platform.OS === 'web') {
+      const row = rowRef.current as HTMLElement | null;
+      if (row && typeof row.getBoundingClientRect === 'function') {
+        localX = pageX - row.getBoundingClientRect().left;
+      }
+    } else {
+      if (rowPageX.current === null) return stateIndexRef.current;
+      localX = pageX - rowPageX.current;
+    }
+
+    let nearest = 0;
+    let nearestDistance = Infinity;
+    boxes.forEach((slot, index) => {
+      const distance = Math.abs(localX - (slot.x + slot.width / 2));
+      if (distance < nearestDistance) {
+        nearest = index;
+        nearestDistance = distance;
+      }
+    });
+    return nearest;
+  }, []);
+
   const endDrag = useCallback(
     (commit: boolean) => {
       if (!dragging.current) return;
@@ -304,8 +342,8 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
       const max = Math.max(0, countRef.current - 1);
       const nearest = clamp(Math.round(dragProgress.current), 0, max);
 
-      // A canceled gesture belongs to the tab it started from. A release only
-      // changes tabs when the drag actually crossed into another slot.
+      // Cancellation returns to the selected tab. A release commits the tab
+      // the drag settled on, which may be the touched tab itself.
       if (commit && nearest !== current) {
         HapticsEngine.dragEnd();
         const route = routesRef.current[nearest];
@@ -331,11 +369,15 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
           slotsRef.current.length > 0 &&
           Math.abs(gesture.dx) > 8 &&
           Math.abs(gesture.dx) > Math.abs(gesture.dy),
-        onPanResponderGrant: () => {
+        onPanResponderGrant: (_event, gesture) => {
           HapticsEngine.dragStart();
           dragging.current = true;
-          dragStart.current = stateIndexRef.current;
-          dragProgress.current = stateIndexRef.current;
+          // A drag can begin on any tab, not only the selected one. Anchor its
+          // progress to the tab under the finger so the lens and destination
+          // cannot jump in from the current selection.
+          const origin = tabIndexAtPageX(gesture.x0);
+          dragStart.current = origin;
+          dragProgress.current = origin;
         },
         onPanResponderMove: (_event, gesture) => {
           const boxes = slotsRef.current;
@@ -359,7 +401,7 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
         onPanResponderTerminate: () => endDrag(false),
         onPanResponderTerminationRequest: () => false,
       }),
-    [endDrag, placeLens]
+    [endDrag, placeLens, tabIndexAtPageX]
   );
 
   // Arrow keys on web move between tabs, matching the ARIA tab pattern. In a
@@ -490,6 +532,7 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
           ref={(node) => {
             rowRef.current = node;
           }}
+          onLayout={measureRowPageX}
           style={styles.row}
         >
           {/* The active state: the selection surface, parked on the selected
