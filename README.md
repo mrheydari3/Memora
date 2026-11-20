@@ -5,45 +5,45 @@
 <h1 align="center">Memora</h1>
 
 <p align="center">
-  <strong>Remember more. Study with intention.</strong><br />
-  A local-first flashcard workspace for the web, built around FSRS-6 and data you can actually trust.
+  <strong>Remember more. Study with intention.</strong>
+  <br />A local-first flashcard app for focused study, reliable scheduling, and meaningful progress.
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md">Changelog</a>
-  &nbsp;·&nbsp;
-  <a href="docs/design-language.md">Design language</a>
-  &nbsp;·&nbsp;
-  <a href="docs/test-report-2026-11-08-ui-v3.md">Verification report</a>
+  <img src="https://img.shields.io/badge/Release-v3.0.0-273449?style=flat-square" alt="Release 3.0.0" />
+  <img src="https://img.shields.io/badge/Expo-58-000020?style=flat-square&logo=expo&logoColor=white" alt="Expo SDK 58" />
+  <img src="https://img.shields.io/badge/React_Native_Web-0.88-20232A?style=flat-square&logo=react&logoColor=61DAFB" alt="React Native Web 0.88" />
+  <img src="https://img.shields.io/badge/TypeScript-6.0-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript 6" />
+  <img src="https://img.shields.io/badge/Scheduler-FSRS--6-375E4D?style=flat-square" alt="FSRS-6" />
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Web-first-0B1220?style=flat-square&logo=googlechrome&logoColor=78ABFF" alt="Web-first" />
-  <img src="https://img.shields.io/badge/Expo_SDK-58-000020?style=flat-square&logo=expo&logoColor=white" alt="Expo SDK 58" />
-  <img src="https://img.shields.io/badge/React_Native-0.88-20232A?style=flat-square&logo=react&logoColor=61DAFB" alt="React Native 0.88" />
-  <img src="https://img.shields.io/badge/TypeScript-6.0-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Scheduler-FSRS--6-0B1220?style=flat-square" alt="FSRS-6" />
-  <img src="https://img.shields.io/badge/License-MIT-2EA44F?style=flat-square" alt="MIT License" />
+  <a href="https://site-4cf1794985694a0fbdbfb3b24dec3e09.freebuff.page"><strong>Open web app</strong></a>
+  &nbsp;·&nbsp; <a href="#product-tour">Screenshots</a>
+  &nbsp;·&nbsp; <a href="#run-locally">Quick start</a>
+  &nbsp;·&nbsp; <a href="#architecture">Architecture</a>
+  &nbsp;·&nbsp; <a href="CONTRIBUTING.md">Contribute</a>
 </p>
 
-<p align="center">
-  <a href="https://site-4cf1794985694a0fbdbfb3b24dec3e09.freebuff.page"><strong>Open the live app →</strong></a>
-  <br />
-  <sub>Static web build · no account · data stays in this browser</sub>
-</p>
+> **Privacy-first by design.** No account or cloud sync is required. Decks, review history, settings, and game records live in browser storage. Export a backup before clearing site data or switching browsers.
+
+Memora combines **FSRS-6 spaced repetition**, organized decks and folders, a 60-second recall game, and learning statistics derived from real reviews. Navigate through **Home · Game · Profile · Settings**.
+
+### Quick start
+
+```bash
+npm ci
+npm run web
+```
+
+Requires **Node.js 22.13+**. See [Run locally](#run-locally) for production builds, tests, and deployment commands.
 
 ---
-
-**Memora** is a browser-first flashcard app for deliberate study. It combines a local library, FSRS-6 scheduling, a calm four-tab workspace, and an analytics layer that reports only what the review log can prove.
-
-There is no account, no cloud sync, and no telemetry. Your decks, review history, settings, and game records stay in `AsyncStorage` on the device.
-
-> **Live:** [Open Memora](https://site-4cf1794985694a0fbdbfb3b24dec3e09.freebuff.page) · **Current release: `3.0.0` — “Nocturne Focus.”**<br />
-> Web only, by design. See [CHANGELOG.md](CHANGELOG.md) for the measured v3 release notes.
 
 ## Contents
 
 - [Why Memora](#why-memora)
+- [Recent improvements](#recent-improvements)
 - [Product tour](#product-tour)
 - [What is inside](#what-is-inside)
 - [Study engine](#study-engine)
@@ -56,7 +56,6 @@ There is no account, no cloud sync, and no telemetry. Your decks, review history
 - [Project structure](#project-structure)
 - [Contributing](#contributing)
 - [License](#license)
-
 ## Why Memora
 
 Most flashcard apps are good at collecting cards. Memora is designed around the harder part: **making a daily review habit feel clear, calm, and honest.**
@@ -67,6 +66,19 @@ Most flashcard apps are good at collecting cards. Memora is designed around the 
 - **Made for real sessions.** The progress denominator stays stable, the last review can be undone, archived decks cannot start a session, and an empty deck never pretends to be “All done.”
 - **A quieter kind of gamification.** The 60-second Game writes real reviews into the same schedule. It does not create a parallel progress system.
 
+## Recent improvements
+
+After the **v3.0.0 Nocturne Focus** release, development on `main` has continued. Highlights from **18–20 November 2026**:
+
+| Area | What changed |
+| --- | --- |
+| **Home** | A selectable Today plan, clearer deck states, a unified create menu, and refined motion. |
+| **Your decks** | Persistent Due / Name / Recent / Manual sorting, pinned items, and touch reordering. |
+| **Folder review** | Review cards from active decks in a folder in one session, while retaining each deck’s scheduler and daily limits. |
+| **Safer library management** | Undo a deck or folder deletion for six seconds; removing a folder unfiles its decks. |
+| **Responsive layouts** | Improved narrow-phone controls, mobile achievements, tablet content alignment, and larger-screen readability. |
+
+These are **post-release changes**, not a newly tagged release or a newly completed full test audit. See [CHANGELOG.md](CHANGELOG.md) and the [contribution guide](CONTRIBUTING.md).
 ## Product tour
 
 <table>
@@ -93,19 +105,19 @@ Most flashcard apps are good at collecting cards. Memora is designed around the 
   </tr>
 </table>
 
-<sub>Screens captured from the app at 390×844. Home and Study use the shipped deck; Profile and Statistics use the deterministic dev fixture; session performance comes from a separate two-card session with real timings.</sub>
+<sub>Illustrative v3 screenshots captured at 390×844. Home and Study use the shipped deck; Profile and Statistics use a deterministic development fixture. Some screenshots may predate recent changes on main.</sub>
 
 ## What is inside
 
 | Area | What it does |
 | --- | --- |
-| **Home** | Builds the day’s study picture: due count, next deck, folder shelf, pinned decks, and archived rows. |
-| **Study** | Runs a scheduled session with a stable denominator, keyboard shortcuts, interval previews, notes, marking, and undo. |
+| **Home** | Organizes today's review plan and your folder/deck shelf, with persistent sorting, pinned items, and clear due states. |
+| **Study** | Runs deck and combined-folder review sessions with a stable denominator, interval previews, keyboard shortcuts, and review undo. |
 | **Game** | A 60-second, four-option quiz with combos, time bonuses, sound, haptics, and real FSRS reviews. |
 | **Profile** | Turns the review log into level, XP, streak, active days, recent activity, and evidence-backed achievements. |
 | **Statistics** | A Profile drill-down with recall, review volume, memory, habits, forecast, insights, and reports. |
-| **Library** | Creates, edits, searches, filters, archives, and files decks without moving their cards or schedules. |
-| **Folders** | Groups decks into a browsable tree. A folder is a label, not a container: deleting one never deletes a deck. |
+| **Library** | Creates, edits, searches, sorts, filters, and archives decks, with a brief Undo window for deletion. |
+| **Folders** | Groups decks in a flat shelf and can launch a combined review session. Deleting a folder unfiles its decks rather than deleting them. |
 | **Settings** | Scheduler parameters, text-to-speech, offline cache, install state, sound, haptics, and local import/export. |
 | **Discover** | A small starter-deck catalogue with previews and sample-card counts that match the import. |
 | **Accessibility** | Keyboard paths, visible focus rings, headings, 44px targets, reduced motion, and 200% text zoom. |
@@ -203,7 +215,7 @@ Memora’s analytics are a **derived view of the review log**, not a second data
 The v3 language is called **Nocturne Focus**: one ink canvas, one accent, separation through fills and depth rather than outlines, and a single source of truth for every visual value.
 
 - `theme/palette.js` owns the raw colors; `theme/tokens.ts` and `theme/v3.ts` expose them to React Native and SVG.
-- `npm run check:design` fails on raw hex or `rgba()` outside `theme/` (83 files checked in the current tree).
+- `npm run check:design` checks for raw hex and `rgba()` outside `theme/`.
 - `Surface`, `AppText`, `ListRow`, `Button`, and the v3 family replace hand-built panels, text, and rows.
 - 44px minimum targets, visible focus rings, reduced-motion fallbacks, and a responsive 320–1440 layout are part of the system, not a polish pass.
 - The full design law lives in [docs/design-language.md](docs/design-language.md) (Persian). If the code and the document disagree, the code changes.
@@ -301,7 +313,7 @@ BASE_URL=http://127.0.0.1:8082 npm run test:e2e
 
 ## Verification
 
-The current tree was verified on **2026-11-08** against the running Chromium preview and the production web export.
+The figures below describe the **2026-11-08 verification snapshot**, not the latest `main` commit. Subsequent changes have not been covered by a new full audit in this README; run the checks locally for current results.
 
 | Gate | Command | Result |
 | --- | --- | --- |
@@ -313,7 +325,7 @@ The current tree was verified on **2026-11-08** against the running Chromium pre
 | Browser suite | `npm run test:e2e` | **123 / 123 passed** |
 | Production export | `npm run build:web` | **dist/ exported** |
 
-The v3 browser audit also measured 84 targets at eight widths from 320 to 1440, with 0 axe violations, 0 controls under 44px, 0 focus-ring misses, and 0 document overflow. Full evidence and scope notes are in [docs/test-report-2026-11-08-ui-v3.md](docs/test-report-2026-11-08-ui-v3.md).
+The **2026-11-08** v3 browser audit measured 84 targets at eight widths from 320 to 1440, with 0 axe violations, 0 controls under 44px, 0 focus-ring misses, and 0 document overflow. Full evidence and scope notes are in [docs/test-report-2026-11-08-ui-v3.md](docs/test-report-2026-11-08-ui-v3.md).
 
 **Coverage note:** Chromium is verified here. Firefox and WebKit binaries were unavailable in the verification workspace, so they are not claimed as passing.
 
@@ -350,34 +362,12 @@ docs/                   Design law, research, verification reports, and plans
 
 ## Contributing
 
-Small, focused contributions are welcome. A good pull request keeps the data contract honest and leaves the repository easier to verify than it found it.
+Help keep Memora reliable, accessible, and easy to maintain. See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete setup, conventions, validation commands, and pull request checklist.
 
-Before opening a PR:
-
-```bash
-npm ci
-npx tsc --noEmit
-npm test
-npm run check:design
-npm run test:surfaces
-npm run test:e2e
-npm run build:web
-```
-
-A few project rules:
-
-- **No raw visual values.** Colors come from `theme/`; spacing and sizes come from tokens. `npm run check:design` is a gate, not a suggestion.
-- **No invented metrics.** If a number is not derived from `ReviewLogEntry`, it does not belong on a learning surface.
-- **Keep the review log authoritative.** XP, streaks, recall, forecasts, and achievements are derived views.
-- **New route, new surface.** Add the route to `tests/ui/surfaces.ts` with its fixture and gates.
-- **Explain visual diffs.** Regenerate a screenshot baseline only when the rendered change is intentional; say why in the PR.
-- **Do not add a dependency for a problem the existing stack can solve.** The project deliberately stays small.
-
-For UI changes, include a before/after screenshot at 390px and 1280px. For data or scheduling changes, include the exact failing case and the test that now covers it.
-
+UI contributions should include before/after screenshots at **390px** and a wider viewport. Scheduling and storage changes should include regression tests.
 ## License
 
-Released under the [MIT License](LICENSE).
+See [LICENSE](LICENSE) for the repository license text. **Attribution note:** its current copyright line names Expo; the maintainer should review this before publishing new licensing statements.
 
 ---
 
