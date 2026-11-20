@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, View } from 'react-native';
+import { Animated, Pressable, View } from 'react-native';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
 import { MaterialIcons } from '../Icon';
@@ -36,6 +36,10 @@ type TodayPaneProps = {
   planOpen: boolean;
   /** The local clock used for the date; Home owns it so midnight is real. */
   now?: number;
+  /** Current study-day streak, printed on the shortcut. */
+  streak: number;
+  /** Opens the streak calendar; Home owns routing and haptics. */
+  onOpenStreak: () => void;
 };
 
 const NUMERIC = { fontVariant: ['tabular-nums'] as const };
@@ -81,6 +85,8 @@ export function TodayPane({
   onOpenPlan,
   planOpen,
   now: nowProp,
+  streak,
+  onOpenStreak,
 }: TodayPaneProps) {
   // The hero adapts to the width Home gives it, not the window: the tablet
   // board places the library rail beside it, so the pane can be narrower than
@@ -101,6 +107,7 @@ export function TodayPane({
   const displayedDue = useAnimatedNumber(due);
   const launched = useLaunchReveal();
   const planPress = usePressFeedback({ scale: 0.99 });
+  const streakPress = usePressFeedback({ scale: 0.96 });
 
   // The hero enters as one composed block, but its parts settle in a short
   // sequence. It waits for the launch layer to leave, so the reveal is visible
@@ -349,7 +356,16 @@ export function TodayPane({
           justifyContent: hasWork ? 'flex-start' : 'center',
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            columnGap: 8,
+            rowGap: 8,
+          }}
+        >
           <AppText
             variant="label"
             weight="semibold"
@@ -357,10 +373,54 @@ export function TodayPane({
             headingLevel={2}
             className="uppercase"
             numberOfLines={2}
-            style={{ flexShrink: 1 }}
+            style={{ flexShrink: 1, minWidth: 0 }}
           >
             Today · {date}
           </AppText>
+
+          <Animated.View style={streakPress.style}>
+            <Pressable
+              testID="home-streak-control"
+              onPress={onOpenStreak}
+              onPressIn={streakPress.onPressIn}
+              onPressOut={streakPress.onPressOut}
+              accessibilityRole="button"
+              accessibilityLabel={`${streak}-day streak. Open streak calendar.`}
+              accessibilityHint="Shows your streak calendar and weekly rest day."
+              style={{
+                minWidth: 44,
+                minHeight: 44,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 5,
+                  minHeight: 30,
+                  justifyContent: 'center',
+                  paddingHorizontal: 10,
+                  borderRadius: 999,
+                  backgroundColor: colors.surfaceInset,
+                }}
+              >
+                <MaterialIcons
+                  name="local-fire-department"
+                  size={16}
+                  color={streak > 0 ? colors.warning : colors.outline}
+                />
+                <AppText
+                  variant="caption"
+                  weight="semibold"
+                  tone={streak > 0 ? 'warning' : 'muted'}
+                >
+                  {streak}d
+                </AppText>
+              </View>
+            </Pressable>
+          </Animated.View>
         </View>
 
         {dueBlock}

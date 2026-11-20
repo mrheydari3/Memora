@@ -27,6 +27,39 @@ async function boot(page: Page): Promise<void> {
 }
 
 test.describe('Home experience', () => {
+  test('keeps the wordmark at 320px and puts the streak shortcut in the hero', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 760 });
+    await boot(page);
+
+    const heading = page.getByRole('heading', { level: 1, name: 'Memora' });
+    await expect(heading).toBeVisible();
+    const width = await heading.evaluate((element) => ({
+      client: element.clientWidth,
+      scroll: element.scrollWidth,
+    }));
+    expect(width.scroll).toBeLessThanOrEqual(width.client + 1);
+
+    const panel = page.getByTestId('today-panel');
+    const streak = panel.getByTestId('home-streak-control');
+    await expect(streak).toBeVisible();
+    await expect(streak).toHaveAccessibleName(/\d+-day streak/);
+    const box = await streak.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+      )
+    ).toBeLessThanOrEqual(1);
+
+    await streak.click();
+    await expect(page).toHaveURL(/\/streak$/);
+  });
+
   test('archived-only library keeps the archive and restore route reachable', async ({ page }) => {
     await boot(page);
 

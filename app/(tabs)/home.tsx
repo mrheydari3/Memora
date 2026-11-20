@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
 import { useDeckStore } from '../../store/useDeckStore';
@@ -31,7 +31,6 @@ import {
   ActionMenu,
 } from '../../components';
 import type { MenuAction } from '../../components';
-import { MaterialIcons } from '../../components/Icon';
 import {
   FolderGlyph,
   HeaderIcon,
@@ -51,10 +50,7 @@ import { v3 } from '../../theme/v3';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useToday } from '../../hooks/useToday';
 import { useFolderTransitions } from '../../hooks/useFolderTransitions';
-import { usePressFeedback } from '../../motion';
 import { HapticsEngine } from '../../services/haptics';
-
-type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
 /** The two bodies the Folders sheet can show. */
 type FolderSheetMode = 'list' | 'edit';
@@ -117,7 +113,6 @@ export default function HomeScreen() {
   }, [loaded, reviewLoaded, streakLoaded]);
 
   const ready = loaded && reviewLoaded && streakLoaded;
-  const streakPress = usePressFeedback({ scale: 0.96 });
   const skipDates = useMemo(() => skipDateKeys(skips), [skips]);
 
   // Folders are a browsing layer: creating one is local, deleting one only
@@ -339,54 +334,6 @@ export default function HomeScreen() {
   const header = (
     <PageHeader
       brand
-      meta={
-        <Animated.View style={streakPress.style}>
-          <Pressable
-            testID="home-streak-control"
-            onPress={() => {
-              HapticsEngine.selection();
-              pushOnce(router, '/streak');
-            }}
-            onPressIn={streakPress.onPressIn}
-            onPressOut={streakPress.onPressOut}
-            accessibilityRole="button"
-            accessibilityLabel={`${streak}-day streak. Open streak calendar.`}
-            accessibilityHint="Shows your streak calendar and weekly rest day."
-            style={{
-              minWidth: 44,
-              minHeight: 44,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 5,
-                minHeight: 30,
-                justifyContent: 'center',
-                paddingHorizontal: 10,
-                borderRadius: 999,
-                backgroundColor: colors.surfaceInset,
-              }}
-            >
-              <MaterialIcons
-                name="local-fire-department"
-                size={16}
-                color={streak > 0 ? colors.warning : colors.outline}
-              />
-              <AppText
-                variant="caption"
-                weight="semibold"
-                tone={streak > 0 ? 'warning' : 'muted'}
-              >
-                {streak}d
-              </AppText>
-            </View>
-          </Pressable>
-        </Animated.View>
-      }
       actions={
         <>
           <HeaderIcon
@@ -628,6 +575,11 @@ export default function HomeScreen() {
                       onOpenPlan={() => setPlanSheet(true)}
                       planOpen={planSheet}
                       now={now}
+                      streak={streak}
+                      onOpenStreak={() => {
+                        HapticsEngine.selection();
+                        pushOnce(router, '/streak');
+                      }}
                     />
                   </View>
                 </View>
