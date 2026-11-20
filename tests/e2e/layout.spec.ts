@@ -39,7 +39,7 @@ async function rowName(row: Locator) {
   return (await row.getByTestId('reorder-name').innerText()).trim();
 }
 
-async function holdAtBottom(page: Page, row: Locator) {
+async function holdAtBottom(page: Page, row: Locator, pointer: 'mouse' | 'touch' = 'mouse') {
   const handle = row.getByTestId('reorder-handle');
   await handle.scrollIntoViewIfNeeded();
   const box = await handle.boundingBox();
@@ -51,12 +51,33 @@ async function holdAtBottom(page: Page, row: Locator) {
   // longer scrolls, so auto-scroll has to advance this list.
   const scroller = page.getByTestId('shelf-panel');
   const before = await scroller.evaluate((node) => node.scrollTop);
-  await page.mouse.move(x, y);
-  await page.mouse.down();
-  await page.mouse.move(x, 840, { steps: 12 });
+
+  const cdp = pointer === 'touch' ? await page.context().newCDPSession(page) : null;
+  if (cdp) {
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x, y }],
+    });
+    for (let step = 1; step <= 12; step += 1) {
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x, y: y + ((840 - y) * step) / 12 }],
+      });
+      await page.waitForTimeout(16);
+    }
+  } else {
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x, 840, { steps: 12 });
+  }
+
   await page.waitForTimeout(1400);
   const after = await scroller.evaluate((node) => node.scrollTop);
-  await page.mouse.up();
+  if (cdp) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  } else {
+    await page.mouse.up();
+  }
   return { before, after };
 }
 
@@ -136,4 +157,34 @@ test('edit layout auto-scrolls while the drag stays at the edge', async ({ page 
   // the row; the row then has to cross more than a plain 240px finger drag.
   expect(scroll.after).toBeGreaterThan(scroll.before + 100);
   expect(movedTo).toBeGreaterThan(6);
+});
+
+test.describe('touch reorder', () => {
+  test.use({ hasTouch: true });
+
+  test('auto-scroll does not reject the shelf scroll responder', async ({ page }) => {
+    const rejectionWarnings: string[] = [];
+    page.on('console', (message) => {
+      if (message.text().includes("ScrollView doesn't take rejection well")) {
+        rejectionWarnings.push(message.text());
+      }
+    });
+
+    await page.addInitScript({ content: fixtureInitScript(LONG_FIXTURE) });
+    await page.goto('/');
+    await settle(page);
+
+    await page.getByRole('button', { name: 'Edit layout' }).click();
+    const decks = page.getByTestId('reorder-group-decks').getByTestId('reorder-row');
+    await expect(decks).toHaveCount(100);
+
+    const first = decks.first();
+    const firstName = await rowName(first);
+    const scroll = await holdAtBottom(page, first, 'touch');
+    await page.waitForTimeout(300);
+
+    await expect(first.getByTestId('reorder-name')).not.toHaveText(firstName);
+    expect(scroll.after).toBeGreaterThan(scroll.before + 100);
+    expect(rejectionWarnings).toEqual([]);
+  });
 });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { PanResponder, useWindowDimensions, View } from 'react-native';
+import { PanResponder, Platform, useWindowDimensions, View } from 'react-native';
 import type { ScrollViewInstance } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
@@ -206,6 +206,13 @@ function ReorderRow({
     >
       <View
         {...panResponder.panHandlers}
+        onTouchStart={
+          // Keep the drag handle's touch from marking the owning list as touched.
+          // Otherwise its ScrollView tries to claim the responder on every
+          // auto-scroll tick, is rejected by the reorder PanResponder, and React
+          // Native Web logs a warning each time.
+          Platform.OS === 'web' ? (event) => event.stopPropagation() : undefined
+        }
         testID="reorder-handle"
         accessible
         accessibilityRole="button"
