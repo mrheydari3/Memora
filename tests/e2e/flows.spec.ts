@@ -717,6 +717,15 @@ test.describe('Phase 5 — behaviour', () => {
     // Tablet widens the summary so its four metrics share one row.
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.waitForTimeout(300);
+    const scopeName = page
+      .getByTestId('page-header-bar')
+      .getByText('Study Flow Deck', { exact: true });
+    await expect(scopeName).toBeVisible();
+    await expect
+      .poll(() =>
+        scopeName.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)
+      )
+      .toBe(true);
     const metricBoxes = await Promise.all(
       ['Total reviewed', 'Recall', 'Session duration', 'XP earned'].map(async (label) => {
         const box = await page.getByText(label, { exact: true }).first().boundingBox();

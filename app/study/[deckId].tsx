@@ -802,7 +802,7 @@ export default function StudyScreen() {
       meta={
         <View
           style={{
-            maxWidth: 100,
+            maxWidth: tablet ? 240 : 100,
             minHeight: 28,
             flexDirection: 'row',
             alignItems: 'center',
