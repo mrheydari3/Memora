@@ -104,7 +104,6 @@ export default function TTSSettingsScreen() {
     <Screen
       scroll
       gutter
-      contentMaxWidth={v3.layout.contentMaxWidth}
       header={
         <PageHeader title="Speech" back onBack={() => goBackOr(router, '/settings')} />
       }

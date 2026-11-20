@@ -9,6 +9,7 @@ import type {
 } from 'react-native';
 import { useIsFocused } from 'expo-router';
 import { heights, motion, spacing } from '../theme/tokens';
+import { v3 } from '../theme/v3';
 import { useReveal } from '../motion';
 import { useLaunchReveal } from '../motion/LaunchReveal';
 
@@ -29,8 +30,8 @@ type ScreenProps = {
   tabClearance?: boolean;
   contentClassName?: string;
   /**
-   * Cap the body's reading column and centre it. A list at 768px would
-   * otherwise stretch a card across the whole tablet.
+   * Cap the scrolling body and centre it. Defaults to the one large-layout
+   * column; only a deliberately narrower surface (the composer) passes a value.
    */
   contentMaxWidth?: number;
   /**
@@ -88,7 +89,7 @@ export function Screen({
   gutter = false,
   tabClearance = false,
   contentClassName = '',
-  contentMaxWidth,
+  contentMaxWidth = v3.layout.contentMaxWidth,
   animate = true,
   animateHeader = false,
   headerOverlap = false,
@@ -194,9 +195,9 @@ export function Screen({
                 paddingTop: headerHeight + spacing.screen,
                 paddingBottom: tabClearance ? spacing.tabClearance : spacing.screenBottom,
                 ...(gutter ? { paddingHorizontal: spacing.screen } : {}),
-                ...(contentMaxWidth
-                  ? { width: '100%', maxWidth: contentMaxWidth, alignSelf: 'center' }
-                  : {}),
+                width: '100%',
+                maxWidth: contentMaxWidth,
+                alignSelf: 'center',
               }}
               showsVerticalScrollIndicator={false}
               decelerationRate="normal"

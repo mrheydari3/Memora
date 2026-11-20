@@ -21,7 +21,7 @@ type PageHeaderProps = {
   meta?: React.ReactNode;
   /** HeaderIcon siblings or another 44px control. */
   actions?: React.ReactNode;
-  /** Defaults to the 960px reading column; the composer passes its 420px column. */
+  /** Defaults to the 760px large-layout column; the composer passes its 420px column. */
   maxWidth?: number;
   testID?: string;
 };
@@ -32,7 +32,7 @@ type PageHeaderProps = {
  * On a tab page it carries the brand (the mark and "Memora" are the h1); on a
  * stack page it carries the 44px back control and the route name as the h1.
  * `FloatingHeader` owns the top-edge crop, rounding and blur; the content still lands
- * on the page's 960px column, so the app bar and the body share one left edge.
+ * on the page's 760px column, so the app bar and the body share one left edge.
  */
 export function PageHeader({
   title,

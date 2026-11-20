@@ -918,7 +918,6 @@ export default function DeckDetailsScreen() {
     <Screen
       scroll
       gutter
-      contentMaxWidth={v3.layout.contentMaxWidth}
       header={
         <PageHeader
           title={deck.name}

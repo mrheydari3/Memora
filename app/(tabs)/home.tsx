@@ -78,8 +78,7 @@ export default function HomeScreen() {
 
   // The tablet composition — today pane with its library rail, then a two-up
   // shelf — serves tablets, laptops and desktops. Mobile keeps the single
-  // phone column.
-  const contentMaxWidth = tablet ? v3.layout.homeTabletMaxWidth : v3.layout.contentMaxWidth;
+  // phone column; both use the one large-layout width.
   const folderSheetBodyMaxHeight = tablet
     ? Math.max(320, Math.min(620, height - 240))
     : heights.sheetTall;
@@ -323,7 +322,6 @@ export default function HomeScreen() {
   const header = (
     <PageHeader
       brand
-      maxWidth={contentMaxWidth}
       meta={
         <View
           style={{
@@ -495,7 +493,7 @@ export default function HomeScreen() {
     paddingBottom: spacing.tabClearance,
     paddingHorizontal: spacing.screen,
     width: '100%' as const,
-    maxWidth: contentMaxWidth,
+    maxWidth: v3.layout.contentMaxWidth,
     alignSelf: 'center' as const,
   };
 
@@ -504,7 +502,6 @@ export default function HomeScreen() {
       scroll={false}
       tabClearance
       animateHeader
-      contentMaxWidth={contentMaxWidth}
       header={header}
       headerOverlap
     >
@@ -633,7 +630,6 @@ export default function HomeScreen() {
               onOpen={(anchor) => setDeckMenu({ deckId: deck.id, anchor })}
             />
           )}
-          contentMaxWidth={contentMaxWidth}
         />
         <Menu
           open={deckMenuDeck != null}

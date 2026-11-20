@@ -454,7 +454,6 @@ export default function GameScreen() {
         scroll
         gutter
         tabClearance
-        contentMaxWidth={v3.layout.contentMaxWidth}
         header={header}
       >
         <Surface tone="scene">
@@ -757,7 +756,6 @@ export default function GameScreen() {
       scroll
       gutter
       tabClearance
-      contentMaxWidth={v3.layout.contentMaxWidth}
       header={header}
     >
       <View style={{ paddingBottom: 24 }}>

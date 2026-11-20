@@ -38,7 +38,6 @@ import {
 import { v3 } from '../../theme/v3';
 import { pushOnce } from '../../services/navigation';
 
-const CONTENT_MAX = v3.layout.contentMaxWidth;
 const RANGE_DAYS = 30;
 
 type IconName = ComponentProps<typeof MaterialIcons>['name'];
@@ -573,10 +572,10 @@ export default function ProfileScreen() {
 
   // A tab root has no back stack and no Settings shortcut: Settings is its own
   // tab, and this screen owns identity and progress only.
-  const header = <PageHeader title="Profile" maxWidth={CONTENT_MAX} />;
+  const header = <PageHeader title="Profile" />;
 
   return (
-    <Screen scroll gutter tabClearance contentMaxWidth={CONTENT_MAX} header={header}>
+    <Screen scroll gutter tabClearance header={header}>
       {!loaded ? (
         <>
           <HeroSkeleton height={310} />

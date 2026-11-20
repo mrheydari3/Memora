@@ -5,7 +5,7 @@ import { v3 } from '../../theme/v3';
 
 type FloatingHeaderProps = {
   children: React.ReactNode;
-  /** The page column the bar's content follows; the default is the 960px reading column. */
+  /** The page column the bar's content follows; the default is the 760px large-layout column. */
   maxWidth?: number;
   /** The glass shell. */
   testID?: string;

@@ -180,7 +180,6 @@ export default function MassImportScreen() {
     <Screen
       scroll
       gutter
-      contentMaxWidth={v3.layout.contentMaxWidth}
       header={
         <PageHeader
           title="Import data"

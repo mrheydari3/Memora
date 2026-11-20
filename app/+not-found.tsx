@@ -13,7 +13,7 @@ import { v3 } from '../theme/v3';
  * instead of a designed page. In production that page must look like the rest
  * of the app and offer one way back, so every unmatched path lands here.
  *
- * v3 keeps it to one scene pane on the normal 960px page column. The pane is
+ * v3 keeps it to one scene pane on the normal 760px page column. The pane is
  * the composer's 420px reading width, not a full-width card, and the 52px
  * action is the only control besides the header's 44px back target.
  */
@@ -23,7 +23,6 @@ export default function NotFoundScreen() {
   return (
     <Screen
       edges={['top', 'bottom']}
-      contentMaxWidth={v3.layout.contentMaxWidth}
       header={
         <PageHeader
           title="Not found"

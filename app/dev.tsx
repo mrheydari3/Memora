@@ -123,7 +123,6 @@ export default function DevDataScreen() {
     <Screen
       scroll
       gutter
-      contentMaxWidth={v3.layout.contentMaxWidth}
       header={
         <PageHeader
           title="Developer data"

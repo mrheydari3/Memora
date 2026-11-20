@@ -1310,7 +1310,7 @@ export default function QuizScreen() {
               padding="none"
               style={
                 tablet
-                  ? [styles.resultPanel, { maxWidth: v3.layout.quizResultTabletWidth }]
+                  ? [styles.resultPanel, { maxWidth: v3.layout.contentMaxWidth }]
                   : styles.resultPanel
               }
             >

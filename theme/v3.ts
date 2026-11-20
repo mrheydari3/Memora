@@ -32,7 +32,7 @@ export const v3 = {
   type: {
     /** The page's one display figure on a phone. */
     hero: { fontSize: size(40), lineHeight: size(44), letterSpacing: -1.4 },
-    /** The same figure on a wide canvas (≥ 900px). */
+    /** The same figure on the large layout. */
     heroWide: { fontSize: size(56), lineHeight: size(58), letterSpacing: -2 },
     /** A deck's due count. */
     stat: { fontSize: size(28), lineHeight: size(30), letterSpacing: -0.6 },
@@ -114,7 +114,7 @@ export const v3 = {
     habit: 38,
     /** The Next 7 days chart on a phone. */
     forecast: 84,
-    /** …and on a wide canvas. */
+    /** …and on the large layout. */
     forecastWide: 96,
   },
 
@@ -145,29 +145,16 @@ export const v3 = {
   },
 
   layout: {
-    /** The reading column on a wide canvas. */
-    contentMaxWidth: 960,
-    /**
-     * The Home page's tablet column. Home is the one workspace that gets the
-     * today grid plus a card board of decks and folders, and laptops must show
-     * that same tablet composition. Capped at a tablet canvas so a laptop does
-     * not stretch it into a wide, split desktop page.
-     */
-    homeTabletMaxWidth: 1024,
+    /** The one large-layout column; mobile keeps its own single-column flow. */
+    contentMaxWidth: 760,
     /** The Home today grid's library rail. */
     homeRail: 360,
     /** The gap between the today pane and its rail. */
     homeGap: 24,
     /** The card composer is one card wide, not one page wide. */
     composerMaxWidth: 420,
-    /** The session summary column: room for four metrics across on tablet. */
-    summaryMaxWidth: 760,
-    /** The quiz result card on tablet; the arena itself stays quizMeasure. */
-    quizResultTabletWidth: 720,
     /** A deck row's studied rail stops here, so its % never sits under the due tile. */
     deckRail: 220,
-    /** The study stage and summary column. */
-    studyMeasure: 760,
     /** The quiz session column. */
     quizMeasure: 440,
     /** One study card; the reference stays narrower than the page column. */

@@ -114,7 +114,6 @@ export default function DiscoverDeckPreviewScreen() {
       scroll
       gutter
       edges={['top', 'bottom']}
-      contentMaxWidth={v3.layout.contentMaxWidth}
       header={
         <PageHeader
           title="Discover"

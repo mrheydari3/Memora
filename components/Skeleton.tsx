@@ -563,7 +563,7 @@ export function StudyCardSkeleton() {
         style={{
           flex: 1,
           width: '100%',
-          maxWidth: v3.layout.studyMeasure,
+          maxWidth: v3.layout.contentMaxWidth,
           alignSelf: 'center',
           paddingHorizontal: 20,
           paddingTop: 12,

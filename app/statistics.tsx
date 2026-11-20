@@ -59,7 +59,6 @@ import type {
 import { schedulerLabel } from '../data/schedulers';
 import { goBackOr, pushOnce } from '../services/navigation';
 
-const CONTENT_MAX = 760;
 
 type IconName = ComponentProps<typeof MaterialIcons>['name'];
 
@@ -1555,7 +1554,6 @@ export default function StatisticsScreen() {
         title="Statistics"
         back
         onBack={() => goBackOr(router, '/profile')}
-        maxWidth={CONTENT_MAX}
         actions={<HeaderIcon icon="share" label="Share statistics" onPress={handleShare} />}
       />
       {shareNotice ? <ShareToast key={shareNotice.id} message={shareNotice.message} /> : null}
@@ -1563,7 +1561,7 @@ export default function StatisticsScreen() {
   );
 
   return (
-    <Screen scroll gutter contentMaxWidth={CONTENT_MAX} header={header}>
+    <Screen scroll gutter header={header}>
       {!loaded ? (
         <StatisticsSkeleton />
       ) : error || !report ? (

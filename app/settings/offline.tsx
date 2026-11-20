@@ -115,7 +115,6 @@ export default function OfflineScreen() {
     <Screen
       scroll
       gutter
-      contentMaxWidth={v3.layout.contentMaxWidth}
       header={
         <PageHeader title="Offline" back onBack={() => goBackOr(router, '/settings')} />
       }

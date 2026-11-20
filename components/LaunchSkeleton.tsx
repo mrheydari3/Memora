@@ -58,7 +58,7 @@ export function launchVariant(pathname: string): LaunchVariant {
  * LaunchSkeleton — the first paint of the app, drawn as the page it will become.
  *
  * It is not a second splash: there is no wordmark moment and no progress rail.
- * The shell (notch-cut 64px glass app bar, 960px content column, floating tab
+ * The shell (notch-cut 64px glass app bar, 760px content column, floating tab
  * dock) is already in place, and the content is the same skeleton grammar every
  * screen uses, so the hand-off to the real page is a dissolve rather than a
  * layout jump.
@@ -114,7 +114,7 @@ function LaunchTopBar({ variant }: { variant: LaunchVariant }) {
               : 84;
 
   return (
-    <FloatingHeader maxWidth={v3.layout.contentMaxWidth} barTestID="launch-header-bar">
+    <FloatingHeader barTestID="launch-header-bar">
       {leading && (
         <View
           style={{

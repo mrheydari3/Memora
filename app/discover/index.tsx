@@ -66,7 +66,6 @@ export default function DiscoverScreen() {
     <Screen
       scroll
       gutter
-      contentMaxWidth={v3.layout.contentMaxWidth}
       header={
         <PageHeader
           title="Discover"

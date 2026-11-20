@@ -33,7 +33,7 @@ const ROUTES = [
   { label: 'discover', path: '/discover' },
 ];
 
-const WIDTHS = QUICK ? [375] : [320, 375, 768, 1024, 1440];
+const WIDTHS = QUICK ? [390] : [390, 1280];
 const THEMES = QUICK ? ['dark'] : ['dark', 'light'];
 
 /** Runs inside the page before any app code. */

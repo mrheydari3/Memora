@@ -271,7 +271,6 @@ export default function AlgorithmSettingsScreen() {
     <Screen
       scroll
       gutter
-      contentMaxWidth={v3.layout.contentMaxWidth}
       header={<PageHeader title="Algorithm" back onBack={() => goBackOr(router, '/settings')} />}
     >
       <View style={{ paddingBottom: 24 }}>

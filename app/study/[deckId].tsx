@@ -112,7 +112,7 @@ export default function StudyScreen() {
   const folderMode = folderId != null;
   const router = useRouter();
   const { tablet } = useResponsive();
-  const completionMaxWidth = tablet ? v3.layout.summaryMaxWidth : v3.layout.composerMaxWidth;
+  const completionMaxWidth = tablet ? undefined : v3.layout.composerMaxWidth;
   const backTarget = (folderMode ? '/' : `/deck/${deckId}`) as Href;
 
   const decks = useDeckStore((s) => s.decks);
@@ -719,7 +719,7 @@ export default function StudyScreen() {
           style={{
             flex: 1,
             width: '100%',
-            maxWidth: v3.layout.studyMeasure,
+            maxWidth: v3.layout.contentMaxWidth,
             alignSelf: 'center',
             justifyContent: 'center',
             paddingHorizontal: 20,
@@ -1067,7 +1067,7 @@ export default function StudyScreen() {
         style={{
           flex: 1,
           width: '100%',
-          maxWidth: v3.layout.studyMeasure,
+          maxWidth: v3.layout.contentMaxWidth,
           alignSelf: 'center',
           paddingHorizontal: 20,
           paddingTop: 12,

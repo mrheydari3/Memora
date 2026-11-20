@@ -91,7 +91,6 @@ export type LibraryBoardProps = {
   onOpenDeck: (id: string) => void;
   /** The ActionMenu node for a deck; Home owns the menu actions. */
   deckOptions: (deck: Deck) => React.ReactNode;
-  contentMaxWidth: number;
   tabClearance?: boolean;
   /** Top padding for a list that scrolls under Home's floating app bar. */
   headerInset?: number;
@@ -157,7 +156,6 @@ export function LibraryBoard({
   onReorderDeck,
   onOpenDeck,
   deckOptions,
-  contentMaxWidth,
   tabClearance = true,
   headerInset = 0,
   sort,
@@ -170,7 +168,7 @@ export function LibraryBoard({
   const columns = tablet ? TABLET_COLUMNS : 1;
   const usableWidth = Math.max(
     0,
-    Math.min(width, contentMaxWidth) - spacing.screen * 2
+    Math.min(width, v3.layout.contentMaxWidth) - spacing.screen * 2
   );
   const cellWidth = columns > 1 ? Math.max(0, (usableWidth - GRID_GAP * (columns - 1)) / columns) : usableWidth;
 
@@ -1029,7 +1027,7 @@ export function LibraryBoard({
           paddingBottom: tabClearance ? spacing.tabClearance : spacing.screenBottom,
           paddingHorizontal: spacing.screen,
           width: '100%',
-          maxWidth: contentMaxWidth,
+          maxWidth: v3.layout.contentMaxWidth,
           alignSelf: 'center',
         }}
         showsVerticalScrollIndicator={false}

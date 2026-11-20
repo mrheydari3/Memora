@@ -160,7 +160,7 @@ type BottomSheetModalProps = {
    */
   compact?: boolean;
   /**
-   * Centre the panel as a tablet dialog with a 960px cap and all four rounded
+   * Centre the panel as a tablet dialog with a 760px cap and all four rounded
    * corners. Phone and tablet keep the bottom-docked sheet unchanged.
    */
   tabletLayout?: boolean;

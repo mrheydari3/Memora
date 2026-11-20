@@ -217,7 +217,7 @@ export default function AlgorithmAdvancedScreen() {
   // deleted while this screen was open. Say so instead of editing another deck.
   if (!deck && !loaded) {
     return (
-      <Screen scroll gutter contentMaxWidth={v3.layout.contentMaxWidth} header={header}>
+      <Screen scroll gutter header={header}>
         <Surface tone="pane" radius="card" padding="md">
           <AppText variant="bodySm" tone="muted">
             Loading deck…
@@ -229,7 +229,7 @@ export default function AlgorithmAdvancedScreen() {
 
   if (!deck) {
     return (
-      <Screen scroll gutter contentMaxWidth={v3.layout.contentMaxWidth} header={header}>
+      <Screen scroll gutter header={header}>
         <Surface tone="scene" padding="md">
           <EmptyState
             icon="layers-clear"
@@ -253,7 +253,6 @@ export default function AlgorithmAdvancedScreen() {
     <Screen
       scroll
       gutter
-      contentMaxWidth={v3.layout.contentMaxWidth}
       header={header}
     >
       <View style={{ paddingBottom: 24 }}>
