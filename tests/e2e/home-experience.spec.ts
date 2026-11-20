@@ -60,6 +60,22 @@ test.describe('Home experience', () => {
     await expect(page).toHaveURL(/\/streak$/);
   });
 
+  test('keeps the streak shortcut in the app bar above the narrow breakpoint', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await boot(page);
+
+    const streak = page.getByTestId('page-header-bar').getByTestId('home-streak-control');
+    await expect(streak).toBeVisible();
+    await expect(streak).toHaveAccessibleName(/\d+-day streak/);
+    const box = await streak.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    await expect(
+      page.getByTestId('today-panel').getByTestId('home-streak-control')
+    ).toHaveCount(0);
+  });
+
   test('archived-only library keeps the archive and restore route reachable', async ({ page }) => {
     await boot(page);
 

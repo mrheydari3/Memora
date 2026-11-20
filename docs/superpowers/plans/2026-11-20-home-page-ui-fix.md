@@ -103,6 +103,6 @@ not a fix. This plan does not include it; say so explicitly if you want it.
 
 **Closed 2026-11-20:** no change required at 390×780. No source, test, snapshot
 or baseline change was made for this verification. The 320px truncation was
-subsequently fixed by moving the streak chip into the Today hero
-(`2026-11-20-home-wordmark-320.md`); Home’s 390 composition changed as a
-result, and its baseline was updated deliberately.
+subsequently fixed **below 375px only** (`2026-11-20-home-wordmark-320.md`), so
+the 390 app bar still carries the streak chip and this verification’s
+composition and baseline are unchanged.

@@ -5,6 +5,7 @@ export type { ActionTone } from './ActionButton';
 export { FloatingHeader } from './FloatingHeader';
 export { PageHeader } from './PageHeader';
 export { SectionHeading } from './SectionHeading';
+export { StreakChip } from './StreakChip';
 export { StreakCalendar } from './StreakCalendar';
 export { MetricGrid } from './MetricGrid';
 export type { Metric } from './MetricGrid';

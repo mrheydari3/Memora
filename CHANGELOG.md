@@ -10,7 +10,7 @@
 
 ### Streak calendar and weekly rest day — 20 November 2026
 
-- **Your Streak:** Home’s flame chip now sits in the Today hero beside the date as a 44px button that opens `/streak`; the app bar keeps the full `Memora` wordmark at 320px. The screen shows the current study-day streak, a Monday-first six-row month grid, studied/today/protected/missed/future states, and month navigation capped at the current month.
+- **Your Streak:** Below 375px Home’s 44px flame chip moves into the Today hero beside the date, so the app bar keeps the full `Memora` wordmark at 320px; wider layouts keep the chip in the app bar. The screen shows the current study-day streak, a Monday-first six-row month grid, studied/today/protected/missed/future states, and month navigation capped at the current month.
 - **One rest day per ISO week:** today (before any review) or a missed yesterday can consume its own ISO week’s single allowance. The record is stored as `memory:streakSkips`; it bridges the run without creating a review, XP, active day or study day. Duplicate, future and malformed records are discarded on read. The weekly action targets only the selected eligible date, while browsing history keeps the current week’s availability visible.
 - **Consistent engine:** Home, Profile, Study, Statistics, achievements and the learning-engine profile all pass the saved skip dates into the shared `computeStreakStats` calculation. Counts now agree across screens while activity charts and review totals stay genuine.
 - **Persistence and safety:** confirmation is explicit, rapid taps are blocked synchronously, failed writes keep the allowance available, and full backups now include `streakSkips`.

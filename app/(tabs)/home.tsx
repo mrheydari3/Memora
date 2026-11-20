@@ -40,6 +40,7 @@ import {
   NewFolderButton,
   PageHeader,
   SectionHeading,
+  StreakChip,
   Surface,
   TodayPane,
   TodayPlanSheet,
@@ -54,6 +55,13 @@ import { HapticsEngine } from '../../services/haptics';
 
 /** The two bodies the Folders sheet can show. */
 type FolderSheetMode = 'list' | 'edit';
+
+/**
+ * Below this width the app bar cannot hold both the streak chip and the full
+ * `Memora` wordmark, so the Today hero carries the shortcut instead. 375 is the
+ * next supported phone width; 390/430/768/1280 keep the app-bar placement.
+ */
+const STREAK_IN_HEADER_MIN_WIDTH = 375;
 
 /**
  * Home — "Today first", with a folder-first library.
@@ -73,7 +81,7 @@ type FolderSheetMode = 'list' | 'edit';
  */
 export default function HomeScreen() {
   const router = useRouter();
-  const { height, tablet } = useResponsive();
+  const { width, height, tablet } = useResponsive();
 
   // The tablet composition — today pane with its library rail, then a two-up
   // shelf — serves tablets, laptops and desktops. Mobile keeps the single
@@ -113,6 +121,7 @@ export default function HomeScreen() {
   }, [loaded, reviewLoaded, streakLoaded]);
 
   const ready = loaded && reviewLoaded && streakLoaded;
+  const streakInHeader = width >= STREAK_IN_HEADER_MIN_WIDTH;
   const skipDates = useMemo(() => skipDateKeys(skips), [skips]);
 
   // Folders are a browsing layer: creating one is local, deleting one only
@@ -331,9 +340,17 @@ export default function HomeScreen() {
     },
   ];
 
+  const openStreak = () => {
+    HapticsEngine.selection();
+    pushOnce(router, '/streak');
+  };
+
   const header = (
     <PageHeader
       brand
+      meta={
+        streakInHeader ? <StreakChip streak={streak} onPress={openStreak} /> : undefined
+      }
       actions={
         <>
           <HeaderIcon
@@ -575,11 +592,8 @@ export default function HomeScreen() {
                       onOpenPlan={() => setPlanSheet(true)}
                       planOpen={planSheet}
                       now={now}
-                      streak={streak}
-                      onOpenStreak={() => {
-                        HapticsEngine.selection();
-                        pushOnce(router, '/streak');
-                      }}
+                      streak={streakInHeader ? undefined : streak}
+                      onOpenStreak={openStreak}
                     />
                   </View>
                 </View>

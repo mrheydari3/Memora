@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, View } from 'react-native';
+import { Animated, View } from 'react-native';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
 import { MaterialIcons } from '../Icon';
 import { ActionButton } from './ActionButton';
+import { StreakChip } from './StreakChip';
 import { Surface } from './Surface';
 import { colors, motion, radii, stateColors } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
@@ -36,10 +37,10 @@ type TodayPaneProps = {
   planOpen: boolean;
   /** The local clock used for the date; Home owns it so midnight is real. */
   now?: number;
-  /** Current study-day streak, printed on the shortcut. */
-  streak: number;
+  /** Current study-day streak; omit when the app bar owns the shortcut. */
+  streak?: number;
   /** Opens the streak calendar; Home owns routing and haptics. */
-  onOpenStreak: () => void;
+  onOpenStreak?: () => void;
 };
 
 const NUMERIC = { fontVariant: ['tabular-nums'] as const };
@@ -107,7 +108,6 @@ export function TodayPane({
   const displayedDue = useAnimatedNumber(due);
   const launched = useLaunchReveal();
   const planPress = usePressFeedback({ scale: 0.99 });
-  const streakPress = usePressFeedback({ scale: 0.96 });
 
   // The hero enters as one composed block, but its parts settle in a short
   // sequence. It waits for the launch layer to leave, so the reveal is visible
@@ -378,49 +378,9 @@ export function TodayPane({
             Today · {date}
           </AppText>
 
-          <Animated.View style={streakPress.style}>
-            <Pressable
-              testID="home-streak-control"
-              onPress={onOpenStreak}
-              onPressIn={streakPress.onPressIn}
-              onPressOut={streakPress.onPressOut}
-              accessibilityRole="button"
-              accessibilityLabel={`${streak}-day streak. Open streak calendar.`}
-              accessibilityHint="Shows your streak calendar and weekly rest day."
-              style={{
-                minWidth: 44,
-                minHeight: 44,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 5,
-                  minHeight: 30,
-                  justifyContent: 'center',
-                  paddingHorizontal: 10,
-                  borderRadius: 999,
-                  backgroundColor: colors.surfaceInset,
-                }}
-              >
-                <MaterialIcons
-                  name="local-fire-department"
-                  size={16}
-                  color={streak > 0 ? colors.warning : colors.outline}
-                />
-                <AppText
-                  variant="caption"
-                  weight="semibold"
-                  tone={streak > 0 ? 'warning' : 'muted'}
-                >
-                  {streak}d
-                </AppText>
-              </View>
-            </Pressable>
-          </Animated.View>
+          {streak !== undefined && onOpenStreak ? (
+            <StreakChip streak={streak} onPress={onOpenStreak} />
+          ) : null}
         </View>
 
         {dueBlock}
