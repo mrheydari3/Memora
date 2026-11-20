@@ -8,6 +8,14 @@
 
 ## Unreleased
 
+### Home, library, and layout refinements — 18–20 November 2026
+
+- **Home workflow:** a selectable Today plan, more focused creation and folder-management actions, clearer state labels, and refined launch/shelf motion.
+- **Deck sorting:** persisted Due, Name, Recent, and Manual options, pinned rows first, and touch reordering without unwanted ScrollView events.
+- **Folder sessions:** review active decks in one queue while honoring each card's deck-specific scheduler and daily limits.
+- **Undoable removal:** six-second deletion Undo for folders and decks; deleting a folder unfiles its decks.
+- **Responsive experience:** better narrow-phone toolbar wrapping, aligned tablet content columns, readable achievements, and complete deck names in wide study summaries.
+
 - **Import data** — Settings now opens a working local importer for CSV, TSV and JSON card lists, a single deck export, or a full Memora backup. Card imports create a new deck; backup replacement is armed and confirmed before it touches the library. The full export now includes folders and game records so a backup is round-trippable.
 - **Boot screen** — the static document paints the Memora wordmark while the bundle loads, then React replaces it with the existing route-shaped skeleton. The web splash config and service-worker precache now include the splash icon.
 - **Official brand mark** — the official koala-and-tree artwork now drives the app icon, splash, PWA icons, favicon, Android foreground/monochrome assets and README/social artwork. The color/transparent set plus blue and black variants live in `public/logo-*`; the installable icon keeps a light badge so the black outline stays legible at 48px.
