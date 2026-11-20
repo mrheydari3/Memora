@@ -143,32 +143,66 @@ test.describe('Home experience', () => {
     await expect(page).toHaveURL(/\/add-deck$/);
   });
 
-  test('the folder icon control is labelled and uses compact tiles', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await boot(page);
+  test('the folder icon control is labelled and uses compact tiles at 320, 390 and 780', async ({
+    page,
+  }) => {
+    for (const { width, height } of [
+      { width: 320, height: 760 },
+      { width: 390, height: 844 },
+      { width: 780, height: 1024 },
+    ]) {
+      await page.setViewportSize({ width, height });
+      await boot(page);
 
-    await page.getByRole('button', { name: 'Create new' }).click();
-    await page.getByRole('button', { name: /^New folder/ }).click();
-    const dialog = page.getByRole('dialog', { name: 'Folders' });
-    await expect(dialog).toBeVisible();
+      await page.getByRole('button', { name: 'Create new' }).click();
+      // The create menu is a sheet of buttons on phones and an anchored menu
+      // of menuitems on the tablet layout; either opens the same folder sheet.
+      await page
+        .getByRole('button', { name: /^New folder/ })
+        .or(page.getByRole('menuitem', { name: /^New folder/ }))
+        .click();
+      const dialog = page.getByRole('dialog', { name: 'Folders' });
+      await expect(dialog).toBeVisible();
 
-    const control = dialog.getByRole('button', { name: /Change icon/ });
-    await expect(control).toBeVisible();
-    await expect(control).toContainText('Change icon');
-    await control.click();
+      const control = dialog.getByRole('button', { name: /Change icon/ });
+      await expect(control).toBeVisible();
+      await expect(control).toContainText('Change icon');
+      const controlBox = await control.boundingBox();
+      expect(controlBox).not.toBeNull();
+      expect(controlBox!.height).toBeGreaterThanOrEqual(44);
+      await control.click();
 
-    const language = dialog.getByRole('radio', { name: 'Icon Language' });
-    await expect(language).toBeVisible();
-    const box = await language.boundingBox();
-    expect(box).not.toBeNull();
-    expect(box!.width).toBeGreaterThanOrEqual(44);
-    expect(box!.height).toBeGreaterThanOrEqual(44);
+      const language = dialog.getByRole('radio', { name: 'Icon Language' });
+      await expect(language).toBeVisible();
+      const box = await language.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.width).toBeGreaterThanOrEqual(44);
+      expect(box!.height).toBeGreaterThanOrEqual(44);
 
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth - document.documentElement.clientWidth
-      )
-    ).toBeLessThanOrEqual(1);
+      // A long name must wrap inside the 44px row, not ellipsize.
+      await dialog.getByRole('radio', { name: 'Icon Record Voice Over' }).click();
+      await dialog.getByRole('button', { name: 'Done choosing icon' }).click();
+      const chosen = dialog.getByRole('button', { name: /Change icon/ });
+      await expect(chosen).toContainText('Record Voice Over');
+      expect((await chosen.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      expect(
+        await chosen.evaluate((element) => {
+          const label = [...element.querySelectorAll('*')].find(
+            (node) => node.textContent?.trim() === 'Record Voice Over'
+          );
+          return label ? label.scrollWidth > label.clientWidth + 1 : true;
+        })
+      ).toBe(false);
+
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+        )
+      ).toBeLessThanOrEqual(1);
+
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden();
+    }
   });
 
   test('the create menu works on a wide canvas', async ({ page }) => {

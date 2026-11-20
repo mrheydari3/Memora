@@ -136,7 +136,7 @@ export function AppearancePicker({
               color={color}
             />
           </View>
-          <AppText variant="bodySm" weight="semibold" style={{ flex: 1 }} numberOfLines={1}>
+          <AppText variant="bodySm" weight="semibold" style={{ flex: 1 }} numberOfLines={2}>
             {iconLabel(icon)}
           </AppText>
           <AppText variant="caption" weight="semibold" tone="accent">
