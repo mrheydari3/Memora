@@ -157,6 +157,19 @@ export type ReviewLogEntry = {
   fsrs?: FSRSLogSnapshot;
 };
 
+// ---- Streak Rest Days -------------------------------------------------------
+
+/**
+ * One protected rest day. The date is a local YYYY-MM-DD key; weekKey is the
+ * ISO Monday–Sunday identifier derived from it. Only these records are stored;
+ * availability and streaks are derived from them.
+ */
+export type StreakSkip = {
+  date: string;
+  weekKey: string;
+  createdAt: number;
+};
+
 // ---- Settings ---------------------------------------------------------------
 
 /** How the Home shelf orders its folders and decks, after pins. */

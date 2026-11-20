@@ -7,8 +7,10 @@ import type {
   Rating,
   ReviewLogEntry,
   Settings,
+  StreakSkip,
 } from './types';
 import { FSRS_DEFAULTS, resolveFsrsParams } from './fsrs-params';
+import { normalizeStreakSkips } from './streak';
 import { textDirection } from './text';
 
 /**
@@ -48,6 +50,8 @@ export type BackupImport = {
   folders: DeckFolder[];
   cardsByDeck: Record<string, Flashcard[]>;
   reviewLog: ReviewLogEntry[];
+  /** Explicit weekly rest-day records. An old backup restores as none. */
+  streakSkips: StreakSkip[];
   gameRecords: Record<string, GameRecord>;
   settings?: Settings;
   warnings: string[];
@@ -454,6 +458,7 @@ function parseBackup(raw: UnknownRecord, cardsByDeckRaw: UnknownRecord): ParseRe
       })
     : [];
   const reviewLog = normalizeReviewLog(raw.reviewLog);
+  const streakSkips = normalizeStreakSkips(raw.streakSkips);
   const gameRecords = normalizeGameRecords(raw.gameRecords);
 
   return {
@@ -464,6 +469,7 @@ function parseBackup(raw: UnknownRecord, cardsByDeckRaw: UnknownRecord): ParseRe
       folders,
       cardsByDeck,
       reviewLog,
+      streakSkips,
       gameRecords,
       ...(isRecord(raw.settings) ? { settings: raw.settings as Settings } : {}),
       warnings,

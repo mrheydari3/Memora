@@ -14,6 +14,7 @@ import { useDeckStore } from '../store/useDeckStore';
 import { useReviewStore } from '../store/useReviewStore';
 import { useGameStore } from '../store/useGameStore';
 import { useSettingsStore } from '../store/useSettingsStore';
+import { useStreakStore } from '../store/useStreakStore';
 import * as repository from '../data/repository';
 import { buildDevLibrary } from '../data/devFixture';
 import { sampleCards, sampleDecks } from '../data/seed';
@@ -52,13 +53,14 @@ export default function DevDataScreen() {
     return { cards, decks: decks.length, reviews: reviewLog.length };
   }, [cardsByDeck, decks, reviewLog]);
 
-  /** Every store reads its own slice, so all four reload after a write. */
+  /** Every store reads its own slice, so all five reload after a write. */
   const reloadStores = async () => {
     await Promise.all([
       useDeckStore.getState().load(),
       useReviewStore.getState().load(),
       useGameStore.getState().load(),
       useSettingsStore.getState().load(),
+      useStreakStore.getState().load(),
     ]);
   };
 
@@ -86,6 +88,7 @@ export default function DevDataScreen() {
       await repository.saveFolders(fixture.folders);
       await repository.saveAllCards(fixture.cardsByDeck);
       await repository.saveReviewLog(fixture.reviewLog);
+      await repository.saveStreakSkips([]);
       await repository.saveGameRecords(fixture.gameRecords);
       await repository.saveSettings(fixture.settings);
       await repository.markInitialized();
@@ -99,6 +102,7 @@ export default function DevDataScreen() {
       await repository.saveFolders([]);
       await repository.saveAllCards(sampleCards);
       await repository.saveReviewLog([]);
+      await repository.saveStreakSkips([]);
       await repository.saveGameRecords({});
       await repository.markInitialized();
     });

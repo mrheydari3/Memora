@@ -6,7 +6,15 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Deck, DeckFolder, Flashcard, GameRecord, ReviewLogEntry, Settings } from './types';
+import type {
+  Deck,
+  DeckFolder,
+  Flashcard,
+  GameRecord,
+  ReviewLogEntry,
+  Settings,
+  StreakSkip,
+} from './types';
 import { STORAGE_KEYS } from './storageKeys';
 
 // ---- Storage Keys -----------------------------------------------------------
@@ -84,6 +92,16 @@ export async function saveReviewLog(log: ReviewLogEntry[]): Promise<void> {
   await setJSON(KEYS.reviewLog, log);
 }
 
+// ---- Streak Rest Days -------------------------------------------------------
+
+export async function loadStreakSkips(): Promise<StreakSkip[]> {
+  return (await getJSON<StreakSkip[]>(KEYS.streakSkips)) ?? [];
+}
+
+export async function saveStreakSkips(skips: StreakSkip[]): Promise<void> {
+  await setJSON(KEYS.streakSkips, skips);
+}
+
 // ---- Settings ---------------------------------------------------------------
 
 export async function loadSettings(): Promise<Settings | null> {
@@ -132,6 +150,7 @@ export async function clearAll(): Promise<void> {
     KEYS.folders,
     KEYS.allCards,
     KEYS.reviewLog,
+    KEYS.streakSkips,
     KEYS.settings,
     KEYS.gameRecords,
     KEYS.initialized,

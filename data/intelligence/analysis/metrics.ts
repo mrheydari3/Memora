@@ -13,7 +13,7 @@ import type { AnalyticsRange, NormalizedReview, PerformanceMetrics, RecallMetric
 import { addDays, startOfDay, WEEKDAY_LABELS } from '../core/dates';
 import { MIN_RECALL_SAMPLE } from '../core/constants';
 import { confidenceFor, median, quantile, rateOf, wilsonInterval } from '../core/stats';
-import { computeStreak } from '../../streak';
+import { computeStreakStats } from '../../streak';
 import { buildSeries } from './series';
 import { emptyRatingCounts, ratingKeyOf } from '../core/normalize';
 
@@ -160,12 +160,18 @@ export function computePerformance(
   range: AnalyticsRange,
   now: number,
   /** All-time reviews, used only for the streak (which outlives the window). */
-  streakSource: readonly NormalizedReview[] = reviews
+  streakSource: readonly NormalizedReview[] = reviews,
+  /** Local YYYY-MM-DD skip dates that bridge gaps without adding study days. */
+  skipDates: readonly string[] = []
 ): PerformanceMetrics {
   const today = startOfDay(now);
   const daySet = new Set(reviews.map((review) => review.dayStart));
   const activeDays = daySet.size;
-  const streakDays = new Set(streakSource.map((review) => review.dayStart));
+  const streak = computeStreakStats(
+    streakSource.map((review) => review.reviewedAt),
+    now,
+    skipDates
+  );
 
   const countFrom = (start: number) =>
     reviews.filter((review) => review.dayStart >= start).length;
@@ -209,10 +215,7 @@ export function computePerformance(
     },
     recall,
     duration,
-    streak: {
-      current: computeStreak(streakSource.map((review) => review.reviewedAt), now),
-      longest: longestStreak([...streakDays]),
-    },
+    streak: { current: streak.current, longest: streak.longest },
     activity,
     weekday,
     hours,

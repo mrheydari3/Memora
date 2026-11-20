@@ -25,14 +25,14 @@ import type {
   Series,
 } from './intelligence/core/types';
 import { normalizeReviewLog } from './intelligence/core/normalize';
-import { computeRecall, longestStreak } from './intelligence/analysis/metrics';
+import { computeRecall } from './intelligence/analysis/metrics';
 import { buildSeries, reviewsInRange } from './intelligence/analysis/series';
 import {
   addDays,
   rangeDays as clampRangeDays,
   startOfDay,
 } from './intelligence/core/dates';
-import { computeStreak } from './streak';
+import { computeStreakStats } from './streak';
 import { computeProgression } from './progression';
 
 export type ProfileSummaryInput = {
@@ -42,6 +42,8 @@ export type ProfileSummaryInput = {
   now?: number;
   /** Inclusive range ending today. Defaults to 30 and is clamped to 1–365. */
   rangeDays?: number;
+  /** Canonical local date keys covered by a weekly rest day. */
+  skipDates?: readonly string[];
 };
 
 export type LearningRange = {
@@ -106,6 +108,7 @@ type ProfileContext = {
   now: number;
   days: number;
   eligible: readonly NormalizedReview[];
+  skipDates: readonly string[];
   dataQuality: LearningSummary['dataQuality'];
 };
 
@@ -119,6 +122,7 @@ function createContext(input: ProfileSummaryInput): ProfileContext {
     now,
     days,
     eligible,
+    skipDates: input.skipDates ?? [],
     dataQuality: {
       rawCount: normalized.rawCount,
       usableCount: normalized.usableCount,
@@ -130,9 +134,14 @@ function createContext(input: ProfileSummaryInput): ProfileContext {
 }
 
 function summarize(context: ProfileContext): LearningSummary {
-  const { now, days, eligible } = context;
+  const { now, days, eligible, skipDates } = context;
   const dayStarts = eligible.map((review) => review.dayStart);
   const activeDays = new Set(dayStarts).size;
+  const streak = computeStreakStats(
+    eligible.map((review) => review.reviewedAt),
+    now,
+    skipDates
+  );
   const progression = computeProgression(eligible.length);
   const end = startOfDay(now);
   const start = addDays(end, -(days - 1));
@@ -143,11 +152,8 @@ function summarize(context: ProfileContext): LearningSummary {
     allTime: {
       reviews: eligible.length,
       activeDays,
-      currentStreak: computeStreak(
-        eligible.map((review) => review.reviewedAt),
-        now
-      ),
-      longestStreak: longestStreak(dayStarts),
+      currentStreak: streak.current,
+      longestStreak: streak.longest,
       xp: progression.xp,
       level: progression.level,
       xpIntoLevel: progression.xpIntoLevel,
@@ -175,10 +181,11 @@ function plural(count: number, singular: string, pluralForm: string): string {
 
 function achievementsFor(context: ProfileContext): AchievementFact[] {
   const reviewCount = context.eligible.length;
-  const currentStreak = computeStreak(
+  const currentStreak = computeStreakStats(
     context.eligible.map((review) => review.reviewedAt),
-    context.now
-  );
+    context.now,
+    context.skipDates
+  ).current;
   // Night Owl counts distinct cards. Repeating one card at night should not
   // earn a badge that promises twenty different cards.
   const nightCards = new Set(

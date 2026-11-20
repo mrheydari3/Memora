@@ -9,6 +9,7 @@ import { useDeckStore } from '../store/useDeckStore';
 import { useGameStore } from '../store/useGameStore';
 import { useReviewStore } from '../store/useReviewStore';
 import { useSettingsStore } from '../store/useSettingsStore';
+import { useStreakStore } from '../store/useStreakStore';
 import { colors } from '../theme/tokens';
 
 /**
@@ -84,6 +85,7 @@ export async function replaceLibraryFromBackup(backup: BackupImport): Promise<vo
   await repository.saveFolders(backup.folders);
   await repository.saveAllCards(backup.cardsByDeck);
   await repository.saveReviewLog(backup.reviewLog);
+  await repository.saveStreakSkips(backup.streakSkips ?? []);
   await repository.saveGameRecords(backup.gameRecords);
   if (backup.settings) await repository.saveSettings(backup.settings);
   await repository.markInitialized();
@@ -93,5 +95,6 @@ export async function replaceLibraryFromBackup(backup: BackupImport): Promise<vo
     useReviewStore.getState().load(),
     useGameStore.getState().load(),
     useSettingsStore.getState().load(),
+    useStreakStore.getState().load(),
   ]);
 }

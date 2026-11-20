@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Animated, Pressable, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
+import { useStreakStore } from '../../store/useStreakStore';
 import { buildLibraryIndex } from '../../data/library';
-import { computeStreak } from '../../data/streak';
+import { computeStreak, skipDateKeys } from '../../data/streak';
 import { estimateSessionMinutes } from '../../data/session';
 import { FOLDER_DEFAULT_ICON } from '../../data/appearance';
 import type { Deck } from '../../data/types';
@@ -50,6 +51,8 @@ import { v3 } from '../../theme/v3';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useToday } from '../../hooks/useToday';
 import { useFolderTransitions } from '../../hooks/useFolderTransitions';
+import { usePressFeedback } from '../../motion';
+import { HapticsEngine } from '../../services/haptics';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -102,15 +105,20 @@ export default function HomeScreen() {
   const moveDeckTo = useDeckStore((s) => s.moveDeckTo);
   const reviewLog = useReviewStore((s) => s.reviewLog);
   const reviewLoaded = useReviewStore((s) => s.loaded);
+  const skips = useStreakStore((s) => s.skips);
+  const streakLoaded = useStreakStore((s) => s.loaded);
   const librarySort = useSettingsStore((s) => s.settings.librarySort ?? 'manual');
   const updateSettings = useSettingsStore((s) => s.update);
 
   useEffect(() => {
     if (!loaded) useDeckStore.getState().load();
     if (!reviewLoaded) useReviewStore.getState().load();
-  }, [loaded, reviewLoaded]);
+    if (!streakLoaded) useStreakStore.getState().load();
+  }, [loaded, reviewLoaded, streakLoaded]);
 
-  const ready = loaded && reviewLoaded;
+  const ready = loaded && reviewLoaded && streakLoaded;
+  const streakPress = usePressFeedback({ scale: 0.96 });
+  const skipDates = useMemo(() => skipDateKeys(skips), [skips]);
 
   // Folders are a browsing layer: creating one is local, deleting one only
   // unfiles its decks, so neither can touch a card or a review.
@@ -159,14 +167,23 @@ export default function HomeScreen() {
     () => new Set(deckQueues.map((entry) => entry.deck.id)),
     [deckQueues]
   );
+  // Profile and Statistics keep valid orphan reviews in their totals, so the
+  // shared streak scopes by "not archived" rather than "deck row exists".
+  const archivedDeckIds = useMemo(
+    () => new Set(decks.filter((deck) => deck.archivedAt).map((deck) => deck.id)),
+    [decks]
+  );
 
   const streak = useMemo(
     () =>
       computeStreak(
-        reviewLog.filter((entry) => activeDeckIds.has(entry.deckId)).map((e) => e.reviewedAt),
-        now
+        reviewLog
+          .filter((entry) => !archivedDeckIds.has(entry.deckId))
+          .map((entry) => entry.reviewedAt),
+        now,
+        skipDates
       ),
-    [reviewLog, activeDeckIds, now]
+    [reviewLog, archivedDeckIds, now, skipDates]
   );
 
   const totalDue = library.totals.due;
@@ -323,29 +340,52 @@ export default function HomeScreen() {
     <PageHeader
       brand
       meta={
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 5,
-            minHeight: 30,
-            justifyContent: 'center',
-            paddingHorizontal: 10,
-            borderRadius: 999,
-            backgroundColor: colors.surfaceInset,
-          }}
-          accessible
-          accessibilityLabel={`${streak}-day streak`}
-        >
-          <MaterialIcons
-            name="local-fire-department"
-            size={16}
-            color={streak > 0 ? colors.warning : colors.outline}
-          />
-          <AppText variant="caption" weight="semibold" tone={streak > 0 ? 'warning' : 'muted'}>
-            {streak}d
-          </AppText>
-        </View>
+        <Animated.View style={streakPress.style}>
+          <Pressable
+            testID="home-streak-control"
+            onPress={() => {
+              HapticsEngine.selection();
+              pushOnce(router, '/streak');
+            }}
+            onPressIn={streakPress.onPressIn}
+            onPressOut={streakPress.onPressOut}
+            accessibilityRole="button"
+            accessibilityLabel={`${streak}-day streak. Open streak calendar.`}
+            accessibilityHint="Shows your streak calendar and weekly rest day."
+            style={{
+              minWidth: 44,
+              minHeight: 44,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 5,
+                minHeight: 30,
+                justifyContent: 'center',
+                paddingHorizontal: 10,
+                borderRadius: 999,
+                backgroundColor: colors.surfaceInset,
+              }}
+            >
+              <MaterialIcons
+                name="local-fire-department"
+                size={16}
+                color={streak > 0 ? colors.warning : colors.outline}
+              />
+              <AppText
+                variant="caption"
+                weight="semibold"
+                tone={streak > 0 ? 'warning' : 'muted'}
+              >
+                {streak}d
+              </AppText>
+            </View>
+          </Pressable>
+        </Animated.View>
       }
       actions={
         <>

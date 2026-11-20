@@ -7,6 +7,7 @@ import { HapticsEngine } from '../../services/haptics';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
+import { useStreakStore } from '../../store/useStreakStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { getSchedulerForDeck, schedulerLabel } from '../../data/schedulers';
 import { buildFolderStudyQueue, buildStudyQueue } from '../../data/session';
@@ -273,18 +274,22 @@ export default function StudyScreen() {
     [reviewLog, sessionDeckIds, sessionStartedAt]
   );
 
-  const activeDeckIds = useMemo(
-    () => new Set(decks.filter((item) => !item.archivedAt).map((item) => item.id)),
+  const archivedDeckIds = useMemo(
+    () => new Set(decks.filter((item) => item.archivedAt).map((item) => item.id)),
     [decks]
   );
+  const skips = useStreakStore((state) => state.skips);
+  const skipDates = useMemo(() => skips.map((skip) => skip.date), [skips]);
   const streak = useMemo(
     () =>
       computeStreak(
         reviewLog
-          .filter((entry) => activeDeckIds.has(entry.deckId))
-          .map((entry) => entry.reviewedAt)
+          .filter((entry) => !archivedDeckIds.has(entry.deckId))
+          .map((entry) => entry.reviewedAt),
+        Date.now(),
+        skipDates
       ),
-    [reviewLog, activeDeckIds]
+    [reviewLog, archivedDeckIds, skipDates]
   );
 
   // Build the session queue. The intelligence engine only ranks cards the
@@ -342,6 +347,10 @@ export default function StudyScreen() {
     const log = useReviewStore.getState().reviewLog;
     const now = Date.now();
     const { newCards, dueCards } = buildStudyQueue(deck, cards, log, now);
+    // Read skips at build time instead of closing over the render value: adding
+    // them to this callback's dependencies would restart a live session when a
+    // rest day is recorded elsewhere.
+    const currentSkipDates = useStreakStore.getState().skips.map((skip) => skip.date);
 
     let analysis: LearningEngineResult | null = null;
     try {
@@ -349,6 +358,7 @@ export default function StudyScreen() {
         decks: useDeckStore.getState().decks,
         cardsByDeck: useDeckStore.getState().cardsByDeck,
         reviewLog: log,
+        skipDates: currentSkipDates,
         deckId: deck.id,
         newCards,
         dueCards,

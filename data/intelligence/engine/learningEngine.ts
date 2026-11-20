@@ -39,7 +39,7 @@ export function buildLearningEngine(input: LearningEngineInput): LearningEngineR
   const deck = input.decks.find((entry) => entry.id === input.deckId);
 
   if (!deck) {
-    const profile = buildStudyProfile([], now);
+    const profile = buildStudyProfile([], now, undefined, input.skipDates);
     return {
       generatedAt: now,
       deckId: input.deckId,
@@ -114,7 +114,7 @@ export function buildLearningEngine(input: LearningEngineInput): LearningEngineR
     allReviews,
     now,
   });
-  const profile = buildStudyProfile(allReviews, now);
+  const profile = buildStudyProfile(allReviews, now, undefined, input.skipDates);
   const decisionsByCard = priority.decisionsByCard;
   const session = buildSessionPlan({
     newCards: input.newCards,

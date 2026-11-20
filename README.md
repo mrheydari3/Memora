@@ -13,7 +13,7 @@
   &nbsp;·&nbsp; <a href="CONTRIBUTING.md">Contribute</a>
 </p>
 
-> **Privacy-first by design.** No account or cloud sync is required. Decks, review history, settings, and game records live in browser storage. Export a backup before clearing site data or switching browsers.
+> **Privacy-first by design.** No account or cloud sync is required. Decks, review history, rest days, settings, and game records live in browser storage. Export a backup before clearing site data or switching browsers.
 
 Memora combines **FSRS-6 spaced repetition**, organized decks and folders, a 60-second recall game, and learning statistics derived from real reviews. Navigate through **Home · Game · Profile · Settings**.
 
@@ -66,6 +66,7 @@ After the **v3.0.0 Nocturne Focus** release, development on `main` has continued
 | **Folder review** | Review cards from active decks in a folder in one session, while retaining each deck’s scheduler and daily limits. |
 | **Safer library management** | Undo a deck or folder deletion for six seconds; removing a folder unfiles its decks. |
 | **Responsive layouts** | Improved narrow-phone controls, mobile achievements, tablet content alignment, and larger-screen readability. |
+| **Streak calendar** | Home’s flame opens a month calendar with one protected rest day per ISO week, shared consistently with Profile and Statistics. |
 
 These are **post-release changes**, not a newly tagged release or a newly completed full test audit. See [CHANGELOG.md](CHANGELOG.md) and the [contribution guide](CONTRIBUTING.md).
 
@@ -79,6 +80,7 @@ Memora's key screens, explained without screenshots:
 | **Study** | Reveal answers, preview intervals, choose Again / Hard / Good / Easy, and review your session progress. |
 | **Session review** | See session duration, recall, rating distribution, and review pace when recorded timing data is available. |
 | **Profile** | View progress, streaks, level, and achievements derived from real reviews. |
+| **Your Streak** | Browse study days, today, missed days, and protected rest days in a Monday-first calendar, with one rest day per week. |
 | **Statistics** | Explore recall, activity, memory, habits, and reports over selected time ranges. |
 
 ## What is inside
@@ -89,6 +91,7 @@ Memora's key screens, explained without screenshots:
 | **Study** | Runs deck and combined-folder review sessions with a stable denominator, interval previews, keyboard shortcuts, and review undo. |
 | **Game** | A 60-second, four-option quiz with combos, time bonuses, sound, haptics, and real FSRS reviews. |
 | **Profile** | Turns the review log into level, XP, streak, active days, recent activity, and evidence-backed achievements. |
+| **Your Streak** | A calendar view of real study days plus one weekly rest day that bridges continuity without adding activity. |
 | **Statistics** | A Profile drill-down with recall, review volume, memory, habits, forecast, insights, and reports. |
 | **Library** | Creates, edits, searches, sorts, filters, and archives decks, with a brief Undo window for deletion. |
 | **Folders** | Groups decks in a flat shelf and can launch a combined review session. Deleting a folder unfiles its decks rather than deleting them. |
@@ -172,7 +175,7 @@ Memora’s analytics are a **derived view of the review log**, not a second data
 ### Profile
 
 - **10 XP per review**, **1,000 XP per level**; level and progress are presentation, not stored state.
-- Current streak, active days, recent activity, and a 30-day mini-statistics preview.
+- Current streak, active days, recent activity, and a 30-day mini-statistics preview. One protected rest day per ISO week can bridge the streak without counting as a study day.
 - Five achievements, each with its evidence. When the data cannot verify a condition — for example, quiz accuracy for **Speed Demon** — the badge stays locked and the UI explains why.
 - Archived decks are excluded from the learning summary; orphaned reviews remain part of the totals so history is not silently rewritten.
 

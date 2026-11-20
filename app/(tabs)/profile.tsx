@@ -6,6 +6,7 @@ import { useResponsive } from '../../hooks/useResponsive';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
+import { useStreakStore } from '../../store/useStreakStore';
 import {
   buildProfileBundle,
   type AchievementFact,
@@ -555,18 +556,27 @@ export default function ProfileScreen() {
   const deckLoaded = useDeckStore((s) => s.loaded);
   const reviewLog = useReviewStore((s) => s.reviewLog);
   const reviewLoaded = useReviewStore((s) => s.loaded);
-  const loaded = deckLoaded && reviewLoaded;
+  const skips = useStreakStore((s) => s.skips);
+  const skipsLoaded = useStreakStore((s) => s.loaded);
+  const loaded = deckLoaded && reviewLoaded && skipsLoaded;
 
   useEffect(() => {
-    useDeckStore.getState().load();
-    useReviewStore.getState().load();
-  }, []);
+    if (!deckLoaded) useDeckStore.getState().load();
+    if (!reviewLoaded) useReviewStore.getState().load();
+    if (!skipsLoaded) useStreakStore.getState().load();
+  }, [deckLoaded, reviewLoaded, skipsLoaded]);
 
   // One normalization feeds both the summary and the badge facts, so XP, the
   // streak and earned badges cannot disagree with each other.
   const bundle = useMemo(
-    () => buildProfileBundle({ decks, reviewLog, rangeDays: RANGE_DAYS }),
-    [decks, reviewLog]
+    () =>
+      buildProfileBundle({
+        decks,
+        reviewLog,
+        rangeDays: RANGE_DAYS,
+        skipDates: skips.map((skip) => skip.date),
+      }),
+    [decks, reviewLog, skips]
   );
   const earned = bundle.achievements.filter((fact) => fact.earned).length;
 

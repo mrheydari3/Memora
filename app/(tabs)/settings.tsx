@@ -7,7 +7,7 @@ import { HAPTICS_REPAIR_MODE } from '../../services/haptics';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useGameStore } from '../../store/useGameStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
-import { loadReviewLog } from '../../data/repository';
+import { loadReviewLog, loadStreakSkips } from '../../data/repository';
 import { schedulerLabel } from '../../data/schedulers';
 import { exportJson } from '../../services/export';
 import { MaterialIcons } from '../../components/Icon';
@@ -66,7 +66,10 @@ export default function SettingsScreen() {
     try {
       // Read the log on demand: Settings renders no progression state, but the
       // export still contains the complete history.
-      const reviewLog = await loadReviewLog();
+      const [reviewLog, streakSkips] = await Promise.all([
+        loadReviewLog(),
+        loadStreakSkips(),
+      ]);
       await exportJson('Memora export', {
         format: 'memora-backup',
         version: 1,
@@ -76,6 +79,7 @@ export default function SettingsScreen() {
         folders,
         cardsByDeck,
         reviewLog,
+        streakSkips,
         gameRecords,
         settings,
       });
@@ -193,7 +197,7 @@ export default function SettingsScreen() {
               <SettingsLine
                 icon="upload"
                 title="Export all data"
-                subtitle="Decks, cards, folders and review history"
+                subtitle="Decks, cards, folders, reviews and rest days"
                 onPress={handleExportAll}
                 last
               />

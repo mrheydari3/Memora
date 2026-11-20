@@ -564,6 +564,8 @@ export type IntelligenceInput = {
   rangeDays?: number;
   /** Archived decks are excluded by default, like every other Memora screen. */
   includeArchivedDecks?: boolean;
+  /** Local YYYY-MM-DD dates covered by a weekly rest day. */
+  skipDates?: readonly string[];
 };
 
 export type DataCoverage = {

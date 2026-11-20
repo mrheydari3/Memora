@@ -12,6 +12,7 @@ export const STORAGE_KEYS = {
   cards: (deckId: string) => `memory:cards:${deckId}`,
   allCards: 'memory:cards:all', // flat index for quick lookup across decks
   reviewLog: 'memory:reviewLog',
+  streakSkips: 'memory:streakSkips',
   settings: 'memory:settings',
   gameRecords: 'memory:gameRecords',
   initialized: 'memory:initialized',

@@ -33,7 +33,7 @@ export const FIXTURES = ['F0', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6'] as const;
 
 export type FixtureId = (typeof FIXTURES)[number];
 
-export const EXPECTED_SURFACE_COUNT = 84;
+export const EXPECTED_SURFACE_COUNT = 86;
 
 export const ROUTE_PATTERNS = [
   '/',
@@ -48,9 +48,11 @@ export const ROUTE_PATTERNS = [
   '/mass-import',
   '/profile',
   '/statistics',
+  '/streak',
   '/deck/[id]',
   '/deck/[id]/add-card',
   '/study/[deckId]',
+  '/study/folder/[folderId]',
   '/quiz/[deckId]',
   '/discover',
   '/discover/[id]',
@@ -196,6 +198,7 @@ export const SURFACES: readonly Surface[] = [
     trigger: 'keyboard only',
   }),
   s('SD-08', 'Text-to-Speech playback', '/study/[deckId]', ['F2']),
+  s('SD-09', 'Folder study session', '/study/folder/[folderId]', ['F2']),
 
   // ---- Quiz ------------------------------------------------------------------
   s('QZ-01', 'Round start', '/quiz/[deckId]', ['F3']),
@@ -224,6 +227,9 @@ export const SURFACES: readonly Surface[] = [
   s('PR-02', 'Profile populated: Mini Statistics and Statistics CTA', '/profile', ['F3']),
   s('PR-03', 'Badge rail and Mini Statistics at 320', '/profile', ['F3']),
   s('PR-04', 'Mini Statistics: 30-day preview and Statistics CTA', '/profile', ['F3']),
+
+  // ---- Streak ----------------------------------------------------------------
+  s('SK-01', 'Streak calendar and weekly rest day', '/streak', ['F3']),
 
   // ---- Discover --------------------------------------------------------------
   s('DS-01', 'Discover catalogue', '/discover', ['F0']),

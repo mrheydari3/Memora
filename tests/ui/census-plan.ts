@@ -1,5 +1,5 @@
 /**
- * Census plan — turns the 84 manifest rows into concrete browser targets.
+ * Census plan — turns the 86 manifest rows into concrete browser targets.
  *
  * The manifest names route patterns and triggers. The census needs a URL and a
  * fixture for each row, plus the smallest set of actions that opens an overlay.
@@ -63,6 +63,7 @@ export function censusUrl(surface: Surface): string {
     case '/mass-import':
     case '/profile':
     case '/statistics':
+    case '/streak':
     case '/discover':
     case '/dev':
       return surface.route;
@@ -76,6 +77,8 @@ export function censusUrl(surface: Surface): string {
       return `/deck/${deckFor(surface)}/add-card`;
     case '/study/[deckId]':
       return `/study/${deckFor(surface)}`;
+    case '/study/folder/[folderId]':
+      return '/study/folder/fold-de';
     case '/quiz/[deckId]':
       return `/quiz/${deckFor(surface)}`;
     case '/discover/[id]':

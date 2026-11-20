@@ -19,7 +19,7 @@ import type {
 import { addDays, rangeLabel, startOfDay } from './dates';
 import { normalizeReviewLog } from './normalize';
 import { AnalyticsCache, intelligenceCacheKey } from './cache';
-import { computePerformance, longestStreak } from '../analysis/metrics';
+import { computePerformance } from '../analysis/metrics';
 import { reviewsInRange } from '../analysis/series';
 import { analyzeTrends } from '../analysis/trends';
 import { analyzeMemory } from '../analysis/memory';
@@ -28,7 +28,7 @@ import { analyzeDecks } from '../analysis/decks';
 import { analyzeForecast } from '../prediction/forecast';
 import { generateInsights } from '../insights/insights';
 import { buildReports } from '../reports/reports';
-import { computeStreak } from '../../streak';
+import { computeStreakStats } from '../../streak';
 
 const reportCache = new AnalyticsCache<IntelligenceReport>(6);
 
@@ -53,6 +53,7 @@ export function buildIntelligence(input: IntelligenceInput): IntelligenceReport 
     now,
     rangeDays,
     includeArchived,
+    skipDates: input.skipDates,
   });
 
   const cached = reportCache.get(key);
@@ -91,7 +92,13 @@ function computeReport(
 
   const rangeReviews = reviewsInRange(allReviews, range.start, range.end);
 
-  const performance = computePerformance(rangeReviews, range, now, allReviews);
+  const performance = computePerformance(
+    rangeReviews,
+    range,
+    now,
+    allReviews,
+    input.skipDates
+  );
   const trends = analyzeTrends(rangeReviews, range);
   const memory = analyzeMemory(activeDecks, input.cardsByDeck, rangeReviews, now);
   const behavior = analyzeBehavior(rangeReviews, performance, range.start, range.end);
@@ -128,7 +135,11 @@ function computeReport(
     0
   );
   const reviewedCardIds = new Set(allReviews.map((review) => review.cardId));
-  const allDays = new Set(allReviews.map((review) => review.dayStart));
+  const streakStats = computeStreakStats(
+    allReviews.map((review) => review.reviewedAt),
+    now,
+    input.skipDates
+  );
 
   const countSince = (from: number) =>
     allReviews.filter((review) => review.dayStart >= from).length;
@@ -140,8 +151,8 @@ function computeReport(
       (total, review) => total + (review.elapsedMs ?? 0),
       0
     ),
-    streak: computeStreak(allReviews.map((review) => review.reviewedAt), now),
-    longestStreak: longestStreak([...allDays]),
+    streak: streakStats.current,
+    longestStreak: streakStats.longest,
     cards: activeCards,
     reviewedCards: reviewedCardIds.size,
     deckCount: activeDecks.length,

@@ -12,6 +12,7 @@ import { useResponsive } from '../hooks/useResponsive';
 import { MaterialIcons } from '../components/Icon';
 import { useDeckStore } from '../store/useDeckStore';
 import { useReviewStore } from '../store/useReviewStore';
+import { useStreakStore } from '../store/useStreakStore';
 import {
   AppText,
   DonutChart,
@@ -1445,17 +1446,23 @@ export default function StatisticsScreen() {
   const router = useRouter();
   const decks = useDeckStore((state) => state.decks);
   const cardsByDeck = useDeckStore((state) => state.cardsByDeck);
-  const loaded = useDeckStore((state) => state.loaded);
+  const deckLoaded = useDeckStore((state) => state.loaded);
   const reviewLog = useReviewStore((state) => state.reviewLog);
+  const reviewLoaded = useReviewStore((state) => state.loaded);
+  const skips = useStreakStore((state) => state.skips);
+  const skipsLoaded = useStreakStore((state) => state.loaded);
+  const loaded = deckLoaded && reviewLoaded && skipsLoaded;
+  const skipDates = useMemo(() => skips.map((skip) => skip.date), [skips]);
 
   const [rangeDays, setRangeDays] = useState<number>(30);
   const [now, setNow] = useState(() => Date.now());
   const [shareNotice, setShareNotice] = useState<ShareNotice | null>(null);
 
   useEffect(() => {
-    if (!loaded) useDeckStore.getState().load();
-    if (!reviewLog.length) useReviewStore.getState().load();
-  }, [loaded, reviewLog.length]);
+    if (!deckLoaded) useDeckStore.getState().load();
+    if (!reviewLoaded) useReviewStore.getState().load();
+    if (!skipsLoaded) useStreakStore.getState().load();
+  }, [deckLoaded, reviewLoaded, skipsLoaded]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60_000);
@@ -1477,6 +1484,7 @@ export default function StatisticsScreen() {
           reviewLog,
           now,
           rangeDays,
+          skipDates,
         }),
         error: null as string | null,
       };
@@ -1487,7 +1495,7 @@ export default function StatisticsScreen() {
           'The analysis could not be computed from the stored review log. Your reviews are unchanged.',
       };
     }
-  }, [decks, cardsByDeck, reviewLog, now, rangeDays]);
+  }, [decks, cardsByDeck, reviewLog, now, rangeDays, skipDates]);
 
   const reviewedDecks = report?.decks.decks.filter((deck) => deck.reviews > 0).slice(0, 6) ?? [];
 

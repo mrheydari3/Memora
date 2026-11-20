@@ -8,6 +8,13 @@
 
 ## Unreleased
 
+### Streak calendar and weekly rest day — 20 November 2026
+
+- **Your Streak:** Home’s flame chip is now a 44px button that opens `/streak`. The screen shows the current study-day streak, a Monday-first six-row month grid, studied/today/protected/missed/future states, and month navigation capped at the current month.
+- **One rest day per ISO week:** today (before any review) or a missed yesterday can consume its own ISO week’s single allowance. The record is stored as `memory:streakSkips`; it bridges the run without creating a review, XP, active day or study day. Duplicate, future and malformed records are discarded on read. The weekly action targets only the selected eligible date, while browsing history keeps the current week’s availability visible.
+- **Consistent engine:** Home, Profile, Study, Statistics, achievements and the learning-engine profile all pass the saved skip dates into the shared `computeStreakStats` calculation. Counts now agree across screens while activity charts and review totals stay genuine.
+- **Persistence and safety:** confirmation is explicit, rapid taps are blocked synchronously, failed writes keep the allowance available, and full backups now include `streakSkips`.
+
 ### Home, library, and layout refinements — 18–20 November 2026
 
 - **Home workflow:** a selectable Today plan, more focused creation and folder-management actions, clearer state labels, and refined launch/shelf motion.

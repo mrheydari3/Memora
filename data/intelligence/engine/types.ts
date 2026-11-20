@@ -245,6 +245,8 @@ export type LearningEngineInput = {
   dueCards: Flashcard[];
   /** Fixed clock for deterministic runs. Defaults to Date.now(). */
   now?: number;
+  /** Local rest-day dates, used for the consistency streak only. */
+  skipDates?: readonly string[];
 };
 
 export type LearningPolicy = {

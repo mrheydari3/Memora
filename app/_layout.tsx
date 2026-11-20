@@ -10,6 +10,7 @@ import { useDeckStore } from '../store/useDeckStore';
 import { useReviewStore } from '../store/useReviewStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useGameStore } from '../store/useGameStore';
+import { useStreakStore } from '../store/useStreakStore';
 import { initInstallPromptListener } from '../services/install';
 import { ensureWebFonts } from '../services/webFonts';
 import { noteActivePath } from '../services/navigation';
@@ -63,10 +64,12 @@ export default function RootLayout() {
   const reviewLoaded = useReviewStore((s) => s.loaded);
   const settingsLoaded = useSettingsStore((s) => s.loaded);
   const gameLoaded = useGameStore((s) => s.loaded);
+  const streakLoaded = useStreakStore((s) => s.loaded);
   const deckError = useDeckStore((s) => s.loadError);
   const reviewError = useReviewStore((s) => s.loadError);
   const settingsError = useSettingsStore((s) => s.loadError);
   const gameError = useGameStore((s) => s.loadError);
+  const streakError = useStreakStore((s) => s.loadError);
 
   // Initialize stores and PWA install listener on boot
   useEffect(() => {
@@ -77,6 +80,7 @@ export default function RootLayout() {
     useReviewStore.getState().load();
     useSettingsStore.getState().load();
     useGameStore.getState().load();
+    useStreakStore.getState().load();
 
     if (Platform.OS === 'web') {
       initInstallPromptListener();
@@ -84,7 +88,7 @@ export default function RootLayout() {
   }, []);
 
   const fontsReady = fontsLoaded || !!fontError;
-  const storesReady = deckLoaded && reviewLoaded && settingsLoaded && gameLoaded;
+  const storesReady = deckLoaded && reviewLoaded && settingsLoaded && gameLoaded && streakLoaded;
   // The app may only mount once every store has hydrated. A timeout must never
   // hand over an empty store: the first write would replace real data.
   const shellReady = storesReady;
@@ -101,6 +105,8 @@ export default function RootLayout() {
   // after the hand-off.
   const [contentReady, setContentReady] = useState(Platform.OS !== 'web');
 
+  // A skip-store read failure disables rest days on the streak screen, but it
+  // must not hide a library whose reviews are perfectly readable.
   const loadFailed = Boolean(deckError || reviewError || settingsError || gameError);
   useEffect(() => {
     if (loadFailed) setSplashDone(true);
@@ -117,6 +123,7 @@ export default function RootLayout() {
     if (reviewError) void useReviewStore.getState().load();
     if (settingsError) void useSettingsStore.getState().load();
     if (gameError) void useGameStore.getState().load();
+    if (streakError) void useStreakStore.getState().load();
   };
 
   return (

@@ -55,10 +55,11 @@ export type CacheKeyInput = {
   now: number;
   rangeDays: number;
   includeArchived: boolean;
+  skipDates?: readonly string[];
 };
 
 export function intelligenceCacheKey(input: CacheKeyInput): string {
-  const { decks, cardsByDeck, reviewLog, now, rangeDays, includeArchived } = input;
+  const { decks, cardsByDeck, reviewLog, now, rangeDays, includeArchived, skipDates = [] } = input;
   const lastReview = reviewLog.length > 0 ? reviewLog[reviewLog.length - 1].reviewedAt : 0;
   const deckSignature = decks
     .map(
@@ -81,5 +82,6 @@ export function intelligenceCacheKey(input: CacheKeyInput): string {
     lastReview,
     deckSignature,
     cardSignature,
+    [...new Set(skipDates)].sort().join(','),
   ].join('~');
 }

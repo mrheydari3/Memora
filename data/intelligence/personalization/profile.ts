@@ -16,9 +16,8 @@ import type {
 } from '../engine/types';
 import { addDays, startOfDay } from '../core/dates';
 import { analyzeIntraSession, buildSessions } from '../analysis/behavior';
-import { longestStreak } from '../analysis/metrics';
 import { confidenceFor, median, quantile, wilsonInterval } from '../core/stats';
-import { computeStreak } from '../../streak';
+import { computeStreakStats } from '../../streak';
 import { MAX_REVIEW_DURATION_MS } from '../core/constants';
 import type { IntraSessionResult } from '../core/types';
 
@@ -92,7 +91,8 @@ function preferredWindow(reviews: NormalizedReview[]): StudyWindow | null {
 export function buildStudyProfile(
   reviews: NormalizedReview[],
   now: number,
-  windowDays = PROFILE_WINDOW_DAYS
+  windowDays = PROFILE_WINDOW_DAYS,
+  skipDates: readonly string[] = []
 ): StudyProfile {
   const today = startOfDay(now);
   const start = addDays(today, -(windowDays - 1));
@@ -123,8 +123,11 @@ export function buildStudyProfile(
   const usualLoad = loadDays.length >= MIN_LOAD_DAYS ? median(loadDays) : null;
 
   const activeDays = new Set(windowReviews.map((review) => review.dayStart)).size;
-  const streak = computeStreak(windowReviews.map((review) => review.reviewedAt), now);
-  const longest = longestStreak([...new Set(windowReviews.map((review) => review.dayStart))]);
+  const streak = computeStreakStats(
+    windowReviews.map((review) => review.reviewedAt),
+    now,
+    skipDates
+  );
 
   const preferred = preferredWindow(windowReviews);
 
@@ -192,8 +195,8 @@ export function buildStudyProfile(
     preferredWindow: preferred,
     consistency: {
       activeDayRatio: activeDays / windowDays,
-      currentStreak: streak,
-      longestStreak: longest,
+      currentStreak: streak.current,
+      longestStreak: streak.longest,
     },
     intraSession,
     adaptations,
