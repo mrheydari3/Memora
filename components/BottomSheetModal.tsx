@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import type { LayoutChangeEvent, ScrollViewProps, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TABLET_MIN_WIDTH } from '../hooks/useResponsive';
 import { AppText } from './AppText';
 import { IconButton } from './IconButton';
 import { glass, glassFillStrong, iconSize, motion, radii, sheet, veil } from '../theme/tokens';
@@ -33,8 +34,8 @@ type SheetPanelProps = {
   onBodyLayout?: (event: LayoutChangeEvent) => void;
   /** Scrolls the body instead of letting a long sheet grow past the viewport. */
   scroll?: boolean;
-  /** A centred desktop dialog with the page gutter and all four corners. */
-  desktop?: boolean;
+  /** A centred tablet dialog with the page gutter and all four corners. */
+  tablet?: boolean;
 };
 
 /** True while the sheet body owns scrolling. Lists read it through `SheetScrollView`. */
@@ -75,14 +76,14 @@ export function SheetPanel({
   style,
   onLayout,
   scroll = false,
-  desktop = false,
+  tablet = false,
 }: SheetPanelProps) {
   const hasHeader = Boolean(title || subtitle || onClose);
 
   return (
     <View
       className={`rounded-t-2xl px-5 pb-8 ${
-        hasHeader ? (desktop ? 'pt-7' : 'pt-6') : 'pt-3'
+        hasHeader ? (tablet ? 'pt-7' : 'pt-6') : 'pt-3'
       } ${className}`}
       style={[glassFillStrong, { backgroundColor: glass.sheet }, style as ViewStyle]}
       onLayout={onLayout}
@@ -159,10 +160,10 @@ type BottomSheetModalProps = {
    */
   compact?: boolean;
   /**
-   * Centre the panel as a desktop dialog with a 960px cap and all four rounded
+   * Centre the panel as a tablet dialog with a 960px cap and all four rounded
    * corners. Phone and tablet keep the bottom-docked sheet unchanged.
    */
-  desktopLayout?: boolean;
+  tabletLayout?: boolean;
   children: React.ReactNode;
 };
 
@@ -217,13 +218,13 @@ export function BottomSheetModal({
   focusKey,
   onEscape,
   compact = false,
-  desktopLayout = false,
+  tabletLayout = false,
   children,
 }: BottomSheetModalProps) {
   const { mounted, value } = usePresence(visible, { duration: motion.base });
   const { height: measuredHeight, width: measuredWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const isDesktop = desktopLayout && measuredWidth >= 1024;
+  const isTablet = tabletLayout && measuredWidth >= TABLET_MIN_WIDTH;
 
   // One soft tick when a sheet surfaces and one when it is dismissed. The
   // engine's dedupe key means a menu that wraps this sheet never buzzes twice.
@@ -244,7 +245,7 @@ export function BottomSheetModal({
     Number.isFinite(measuredHeight) && measuredHeight > 0 ? measuredHeight : 0;
   const maxHeight =
     windowHeight > 0
-      ? isDesktop
+      ? isTablet
         ? Math.max(0, windowHeight - 64)
         : Math.round(windowHeight * (compact ? 0.82 : sheet.maxHeightRatio))
       : undefined;
@@ -372,13 +373,13 @@ export function BottomSheetModal({
     <Animated.View
       style={[
         styles.panel,
-        isDesktop ? styles.desktopPanel : null,
+        isTablet ? styles.tabletPanel : null,
         {
           maxHeight,
           // A short sheet still reads as a surface rather than a strip,
           // unless it is a compact menu: those size to their own content.
           minHeight:
-            !compact && !isDesktop && windowHeight > 0
+            !compact && !isTablet && windowHeight > 0
               ? Math.round(windowHeight * sheet.minHeightRatio)
               : undefined,
           opacity: panelOpacity,
@@ -391,7 +392,7 @@ export function BottomSheetModal({
           title={title}
           subtitle={subtitle}
           onClose={onClose}
-          desktop={isDesktop}
+          tablet={isTablet}
           style={{
             paddingBottom: Math.max(
               compact ? 20 : 32,
@@ -435,8 +436,8 @@ export function BottomSheetModal({
             assistive tech: the header's close button is the accessible one. */}
         <Pressable className="flex-1" onPress={onClose} accessible={false} />
 
-        {isDesktop ? (
-          <View style={styles.desktopStage} pointerEvents="box-none">
+        {isTablet ? (
+          <View style={styles.tabletStage} pointerEvents="box-none">
             {renderPanel()}
           </View>
         ) : (
@@ -467,7 +468,7 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     backgroundColor: glass.sheet,
   },
-  desktopStage: {
+  tabletStage: {
     position: 'absolute',
     top: 0,
     right: 0,
@@ -477,8 +478,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 32,
   },
-  desktopPanel: {
-    // Match the Game/Settings desktop column, including its 20px page gutter.
+  tabletPanel: {
+    // Match the Game/Settings tablet column, including its 20px page gutter.
     maxWidth: v3.layout.contentMaxWidth,
     // A dialog is a complete surface: unlike the docked sheet, it rounds both
     // ends so it reads as centred on the canvas rather than sliding under it.

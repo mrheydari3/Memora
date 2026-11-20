@@ -1,7 +1,8 @@
-import { useWindowDimensions, View } from 'react-native';
+import { View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
+import { useResponsive } from '../../hooks/useResponsive';
 import { colors, iconSize, radii } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
@@ -40,13 +41,9 @@ export function ShelfHeader({
   onToggleLayout,
   editingLayout,
 }: ShelfHeaderProps) {
-  const { width, height } = useWindowDimensions();
-  // Phones lose the eyebrow row and its captions. Tablets and desktops keep the
-  // full masthead; 640 is where the title and its labelled action still fit.
-  const compact = width < 640;
-  // The caption gives up its 2px only on the short viewport that has to clear
-  // the dock; a tall phone keeps the normal rhythm.
-  const short = compact && height < 760;
+  const { mobile: compact } = useResponsive();
+  // Phones lose the eyebrow row and its captions; the tablet masthead keeps the
+  // full title and labelled action.
   const actionIcon = compact ? iconSize.lg : iconSize.sm;
 
   const actionStyle = {
@@ -86,7 +83,7 @@ export function ShelfHeader({
     >
       <MaterialIcons name="drag-indicator" size={actionIcon} color={colors.outline} />
       {/* The glyph alone read as an overflow menu on a wide canvas, so the
-          desktop control names itself. On a phone the accessible name carries
+          tablet control names itself. On mobile the accessible name carries
           the meaning. */}
       {compact ? null : (
         <AppText variant="caption" weight="medium" tone="tertiary">
@@ -117,7 +114,7 @@ export function ShelfHeader({
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 12,
-        marginTop: compact ? (short ? 0 : 2) : 6,
+        marginTop: compact ? 2 : 6,
         paddingBottom: compact ? 0 : 4,
       }}
     >

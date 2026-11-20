@@ -342,7 +342,9 @@ export function SessionSummary({
                 padding="sm"
                 style={{
                   flexGrow: 1,
-                  flexBasis: '46%',
+                  // Four across when the tablet column allows it; the 130px floor
+                  // wraps mobile back to two per row inside its 420px cap.
+                  flexBasis: '23%',
                   minWidth: 130,
                   minHeight: 116,
                   justifyContent: 'space-between',

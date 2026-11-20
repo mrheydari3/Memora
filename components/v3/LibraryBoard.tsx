@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, FlatList, Platform, useWindowDimensions, View } from 'react-native';
+import { Animated, FlatList, Platform, View } from 'react-native';
 import { useIsFocused } from 'expo-router';
 import type { ListRenderItemInfo } from 'react-native';
 import { AppText } from '../AppText';
@@ -19,6 +19,7 @@ import { DeckShelfRow } from './DeckShelfRow';
 import { FolderCard } from './FolderCard';
 import { FolderBodySlice, FolderGroup } from './FolderGroup';
 import { ArchivedRow } from './ArchivedRow';
+import { TABLET_COLUMNS, useResponsive } from '../../hooks/useResponsive';
 import { colors, iconSize, motion, spacing } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { timingTo, useChangeReveal, usePresence } from '../../motion';
@@ -136,8 +137,8 @@ const deckSortKeys = (entry: DeckSummary): ShelfSortKeys => ({
  * The board also owns the reading of the shelf: search folds Persian/Arabic
  * letter variants, the All/Due filter only narrows what is printed, and both
  * run over the pre-built index (no queue is recomputed while typing). Folder
- * and deck rows are chunked by the responsive column count so the desktop board
- * keeps its three-column rhythm while the phone keeps one column.
+ * and deck rows are chunked by the responsive column count so the tablet board
+ * keeps its two-column rhythm while mobile keeps one column.
  */
 export function LibraryBoard({
   library,
@@ -162,17 +163,11 @@ export function LibraryBoard({
   sort,
   onSortChange,
 }: LibraryBoardProps) {
-  const { width, height } = useWindowDimensions();
+  const { width, tablet, mobile } = useResponsive();
   const isFocused = useIsFocused();
-  const desktop = width >= 1024;
-  // Matches ShelfHeader's breakpoint: below 640 the masthead drops its eyebrow
-  // and the shelf drops its first band.
-  const phone = width < 640;
-  // The 320x700 fold needs the compressed spacing to clear the dock. A tall
-  // phone has room for the normal rhythm, so it must not inherit the
-  // short-viewport values.
-  const short = phone && height < 760;
-  const columns = width >= 1200 ? 3 : desktop ? 2 : 1;
+  // Two layouts: the phone groups folders in place; the tablet boards them in
+  // two columns. There is no third, wider column count.
+  const columns = tablet ? TABLET_COLUMNS : 1;
   const usableWidth = Math.max(
     0,
     Math.min(width, contentMaxWidth) - spacing.screen * 2
@@ -285,9 +280,9 @@ export function LibraryBoard({
 
   const trail = openFolder ? [openFolder] : [];
 
-  // The masthead and the desktop FOLDERS band describe the same set: every
+  // The masthead and the tablet FOLDERS band describe the same set: every
   // folder on the flat shelf. One count for both keeps the caption and the band
-  // in step; phones keep the caption and drop the band.
+  // in step; mobile keeps the caption and drops the band.
   const scopeFolderCount = visibleFolders.length;
   const aggregate = openFolder ? library.aggregates.get(openFolder.id) : undefined;
   const shelfDeckCount = openFolder ? aggregate?.decks ?? 0 : library.totals.decks;
@@ -368,9 +363,9 @@ export function LibraryBoard({
 
     if (visibleFolders.length > 0) {
       // A phone's masthead already says "Your decks" and carries the counts; a
-      // second "Folders" label only pushes the first folder down. The desktop
+      // second "Folders" label only pushes the first folder down. The tablet
       // board keeps the band so folders and loose decks read as two regions.
-      if (!phone) {
+      if (!mobile) {
         out.push({
           key: 'folders-band',
           kind: 'band',
@@ -466,7 +461,7 @@ export function LibraryBoard({
     closingFolders,
     visibleFolders,
     visibleDecks,
-    phone,
+    mobile,
     sort,
     shelfDue,
     onReviewFolder,
@@ -808,8 +803,8 @@ export function LibraryBoard({
         return (
           <View
             style={{
-              marginTop: phone ? (short ? 4 : 8) : 12,
-              marginBottom: phone ? (short ? 0 : 12) : v3.spacing.section,
+              marginTop: mobile ? 8 : 12,
+              marginBottom: mobile ? 12 : v3.spacing.section,
             }}
           >
             {hero}
@@ -838,8 +833,8 @@ export function LibraryBoard({
         return (
           <View
             style={{
-              marginTop: phone ? (short ? 6 : 8) : 14,
-              marginBottom: phone ? (short ? 8 : 12) : 2,
+              marginTop: mobile ? 8 : 14,
+              marginBottom: mobile ? 12 : 2,
             }}
           >
             <LibraryToolbar
@@ -861,7 +856,7 @@ export function LibraryBoard({
       case 'folderReview':
         if (!openFolder) return null;
         return (
-          <View style={{ marginTop: phone ? 10 : 14, marginBottom: phone ? 4 : 6 }}>
+          <View style={{ marginTop: mobile ? 10 : 14, marginBottom: mobile ? 4 : 6 }}>
             <ActionButton
               label="Review folder"
               icon="play-arrow"
@@ -872,7 +867,7 @@ export function LibraryBoard({
         );
       case 'band':
         return (
-          <View style={{ marginTop: phone ? 10 : 18, marginBottom: phone ? 6 : 10 }}>
+          <View style={{ marginTop: mobile ? 10 : 18, marginBottom: mobile ? 6 : 10 }}>
             <ShelfBand label={item.label} count={item.count} hint={item.hint} />
           </View>
         );
@@ -1030,7 +1025,7 @@ export function LibraryBoard({
         style={{ flex: 1 }}
         contentContainerStyle={{
           // Home's list scrolls under its floating bar, so it opens below the bar.
-          paddingTop: headerInset + (phone ? (short ? 8 : 12) : spacing.screen),
+          paddingTop: headerInset + (mobile ? 12 : spacing.screen),
           paddingBottom: tabClearance ? spacing.tabClearance : spacing.screenBottom,
           paddingHorizontal: spacing.screen,
           width: '100%',

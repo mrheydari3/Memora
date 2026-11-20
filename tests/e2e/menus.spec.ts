@@ -4,7 +4,7 @@ import { buildFixture, fixtureInitScript } from '../ui/fixtures';
 /**
  * The shared menu contract.
  *
- * At desktop widths a menu is anchored to its trigger, portal-rendered above
+ * On the tablet layout a menu is anchored to its trigger, portal-rendered above
  * the page, keyboard driven and closed by Escape/outside press. Below 640px the
  * same content becomes a compact sheet. These tests exercise those two
  * presentations against real screens rather than mounting the primitives alone.

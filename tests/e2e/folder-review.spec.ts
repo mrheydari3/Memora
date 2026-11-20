@@ -99,7 +99,7 @@ test('completing a folder session closes on the folder and returns home', async 
   await expect(page.getByTestId('today-panel')).toBeVisible();
 });
 
-test('the desktop folder view carries the review entry and tile cue', async ({ page }) => {
+test('the tablet folder view carries the review entry and tile cue', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openHome(page);
 

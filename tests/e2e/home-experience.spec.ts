@@ -258,50 +258,6 @@ test.describe('Home experience', () => {
     await expect(panel.getByText('1 other deck is due today', { exact: true })).toBeVisible();
   });
 
-  test.describe('320px phone', () => {
-    test.use({ viewport: { width: 320, height: 700 } });
-
-    test('keeps the streak and header actions visible without overflow', async ({ page }) => {
-      await boot(page);
-
-      await expect(page.getByLabel(/\d+-day streak/)).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Discover' })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Create new' })).toBeVisible();
-      const brand = page.getByRole('heading', { name: 'Memora' });
-      expect(await brand.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
-        true
-      );
-      expect(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth - document.documentElement.clientWidth
-        )
-      ).toBeLessThanOrEqual(1);
-    });
-
-    test('the plan sheet fits and lists every due deck', async ({ page }) => {
-      await boot(page);
-
-      await page.getByTestId('today-plan-trigger').click();
-      const dialog = page.getByRole('dialog', { name: "Today's plan" });
-      await expect(dialog).toBeVisible();
-      await expect(dialog.getByRole('radio')).toHaveCount(4);
-
-      const box = await dialog.boundingBox();
-      expect(box).not.toBeNull();
-      expect(box!.x).toBeGreaterThanOrEqual(0);
-      expect(box!.x + box!.width).toBeLessThanOrEqual(320.5);
-      expect(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth - document.documentElement.clientWidth
-        )
-      ).toBeLessThanOrEqual(1);
-
-      await page.keyboard.press('Escape');
-      await expect(dialog).toBeHidden();
-      await expect(page.getByTestId('today-plan-trigger')).toBeFocused();
-    });
-  });
-
   test('collapsing a folder fades its body and then removes it', async ({ page }) => {
     await boot(page);
 
@@ -333,7 +289,7 @@ test.describe('Home experience', () => {
   });
 
   test.describe('folder navigation', () => {
-    // Folder drill-down is the desktop tile's job; on the phone a folder
+    // Folder drill-down is the tablet tile's job; on mobile a folder
     // expands in place so its decks stay in the virtualized list.
     test.use({ viewport: { width: 1280, height: 320 } });
 

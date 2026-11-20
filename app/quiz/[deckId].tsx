@@ -6,9 +6,9 @@ import {
   ScrollView,
   StyleSheet,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useResponsive } from '../../hooks/useResponsive';
 import { goBackOr } from '../../services/navigation';
 import Svg, { Circle } from 'react-native-svg';
 import { MaterialIcons } from '../../components/Icon';
@@ -376,7 +376,7 @@ function ArenaAnswer({
 export default function QuizScreen() {
   const { deckId, mode: modeParam } = useLocalSearchParams<{ deckId: string; mode?: string }>();
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { tablet } = useResponsive();
   const mode: QuizMode = modeParam === 'reverse' ? 'reverse' : 'forward';
 
   const deck = useDeckStore((s) => s.decks.find((d) => d.id === deckId));
@@ -860,9 +860,6 @@ export default function QuizScreen() {
   const timerLabel = formatTimer(round.timeLeftMs);
   const combo = Math.min(round.combo, COMBO_CAP);
   const deckIcon = (deck?.icon ?? 'style') as IconName;
-  // Three tiles at 320px leave 88px each: the ring alone keeps the clock legible,
-  // while a label column beside it would only crowd the digits.
-  const roomyHud = width >= 380;
   // The card's trailing bracket ("[Akk]") is the only annotation it carries; it
   // is set on its own line in the accent, and no grammar note is invented.
   const prompt = question ? splitPrompt(question.front) : { main: '', bracket: null };
@@ -992,26 +989,24 @@ export default function QuizScreen() {
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            gap: roomyHud ? 10 : 0,
-            justifyContent: roomyHud ? 'flex-start' : 'center',
+            gap: 10,
+            justifyContent: 'flex-start',
           }}
         >
           <TimerRing
-            size={roomyHud ? 48 : 42}
+            size={48}
             progress={timerProgress}
             low={lowTime}
             label={timerLabel}
           />
-          {roomyHud && (
-            <AppText
-              variant="caption"
-              tone="muted"
-              numberOfLines={1}
-              style={[styles.hudLabel, { flex: 1, minWidth: 0 }]}
-            >
-              TIME
-            </AppText>
-          )}
+          <AppText
+            variant="caption"
+            tone="muted"
+            numberOfLines={1}
+            style={[styles.hudLabel, { flex: 1, minWidth: 0 }]}
+          >
+            TIME
+          </AppText>
         </View>
       </Surface>
 
@@ -1030,7 +1025,7 @@ export default function QuizScreen() {
         <View style={styles.hudValueRow}>
           <Animated.View style={scoreReveal.style}>
             <AppText
-              variant={roomyHud ? 'headline' : 'bodyLg'}
+              variant="headline"
               weight="bold"
               numberOfLines={1}
               style={{ fontVariant: ['tabular-nums'], letterSpacing: -0.6, flexShrink: 1 }}
@@ -1309,7 +1304,16 @@ export default function QuizScreen() {
             contentContainerStyle={styles.resultContent}
             showsVerticalScrollIndicator={false}
           >
-            <Surface tone="scene" radius="pane" padding="none" style={styles.resultPanel}>
+            <Surface
+              tone="scene"
+              radius="pane"
+              padding="none"
+              style={
+                tablet
+                  ? [styles.resultPanel, { maxWidth: v3.layout.quizResultTabletWidth }]
+                  : styles.resultPanel
+              }
+            >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <View style={[styles.deckTile, { backgroundColor: alpha(deck.color, 0.16) }]}>
                   <MaterialIcons name={deckIcon} size={iconSize.md} color={deck.color} />
@@ -1364,7 +1368,6 @@ export default function QuizScreen() {
               )}
 
               <MetricGrid
-                columns={2}
                 style={{ marginTop: 20 }}
                 items={[
                   { label: 'Correct', value: String(round.correct) },
@@ -1469,7 +1472,7 @@ const styles = StyleSheet.create({
     width: '100%',
     minHeight: v3.heights.quizQuestion,
     // A short prompt would otherwise stretch the pane to half the canvas on a
-    // desktop window; the wrapper centres it in the space that is left over.
+    // tablet window; the wrapper centres it in the space that is left over.
     maxHeight: 320,
     alignItems: 'center',
     justifyContent: 'center',

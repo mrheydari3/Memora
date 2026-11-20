@@ -1,4 +1,4 @@
-import { useWindowDimensions, View } from 'react-native';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Surface } from './v3/Surface';
 import { FloatingHeader } from './v3/FloatingHeader';
@@ -93,7 +93,6 @@ export function LaunchSkeleton({ pathname = '/' }: { pathname?: string }) {
  * pixels when the skeleton leaves.
  */
 function LaunchTopBar({ variant }: { variant: LaunchVariant }) {
-  const { width } = useWindowDimensions();
   const home = variant === 'home';
   const tab =
     home || variant === 'library' || variant === 'profile' || variant === 'settings';
@@ -150,11 +149,9 @@ function LaunchTopBar({ variant }: { variant: LaunchVariant }) {
             radius={v3.appBar.actionRadius}
           />
           <Skeleton width={76} height={18} radius={7} />
-          {width >= 360 && (
-            <View style={{ marginLeft: 'auto' }}>
-              <Skeleton width={44} height={30} radius={radii.pill} />
-            </View>
-          )}
+          <View style={{ marginLeft: 'auto' }}>
+            <Skeleton width={44} height={30} radius={radii.pill} />
+          </View>
         </View>
       ) : centered ? (
         <View style={{ flex: 1, minWidth: 0, alignItems: 'center', gap: 4 }}>
@@ -166,7 +163,7 @@ function LaunchTopBar({ variant }: { variant: LaunchVariant }) {
           <Skeleton width={titleWidth} height={18} radius={7} style={{ marginStart: 4 }} />
           {variant === 'study' && (
             <View style={{ marginLeft: 'auto' }}>
-              <Skeleton width={width < 360 ? 72 : 100} height={22} radius={radii.pill} />
+              <Skeleton width={100} height={22} radius={radii.pill} />
             </View>
           )}
         </View>
@@ -205,7 +202,6 @@ function LaunchTopBar({ variant }: { variant: LaunchVariant }) {
 }
 
 function LaunchBody({ variant }: { variant: LaunchVariant }) {
-  const { width } = useWindowDimensions();
   // The 9px chapter label placeholder is a row step shorter than the real
   // caption, so reserve that step to land each chapter pane on its final top.
   const settingsGroupOffset = v3.spacing.page + v3.spacing.row;
@@ -252,7 +248,7 @@ function LaunchBody({ variant }: { variant: LaunchVariant }) {
         </>
       ) : variant === 'settings' ? (
         <>
-          <HeroSkeleton height={width < 360 ? 230 : 210} />
+          <HeroSkeleton height={210} />
           <View style={{ marginTop: settingsGroupOffset }}>
             <SettingsGroupSkeleton rows={2} />
           </View>
@@ -292,15 +288,12 @@ function LaunchBody({ variant }: { variant: LaunchVariant }) {
  * the next-deck rail and the 52px action.
  */
 function HomeLaunchSkeleton() {
-  const { width } = useWindowDimensions();
-  const tight = width < 360;
-
   return (
     <>
       <Surface tone="scene" radius="pane" padding="md" style={{ gap: v3.spacing.panel }}>
         <View
           style={{
-            minHeight: tight ? 32 : 25,
+            minHeight: 25,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -308,8 +301,7 @@ function HomeLaunchSkeleton() {
           }}
         >
           <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-            <Skeleton width={tight ? 96 : 112} height={10} radius={5} />
-            {tight && <Skeleton width={78} height={10} radius={5} />}
+            <Skeleton width={112} height={10} radius={5} />
           </View>
           <Skeleton width={96} height={22} radius={radii.pill} />
         </View>
@@ -324,7 +316,7 @@ function HomeLaunchSkeleton() {
 
         <View
           style={{
-            minHeight: tight ? 77 : 63,
+            minHeight: 63,
             justifyContent: 'space-between',
             gap: 8,
             paddingTop: 4,

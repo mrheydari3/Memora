@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, Animated, Platform, useWindowDimensions } from 'react-native';
+import { View, Animated, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { useResponsive } from '../../hooks/useResponsive';
 import { goBackOr, pushOnce } from '../../services/navigation';
 import { HapticsEngine } from '../../services/haptics';
 import { MaterialIcons } from '../../components/Icon';
@@ -110,8 +111,9 @@ export default function StudyScreen() {
   const folderId = typeof params.folderId === 'string' ? params.folderId : undefined;
   const folderMode = folderId != null;
   const router = useRouter();
+  const { tablet } = useResponsive();
+  const completionMaxWidth = tablet ? v3.layout.summaryMaxWidth : v3.layout.composerMaxWidth;
   const backTarget = (folderMode ? '/' : `/deck/${deckId}`) as Href;
-  const { width } = useWindowDimensions();
 
   const decks = useDeckStore((s) => s.decks);
   const folders = useDeckStore((s) => s.folders);
@@ -789,7 +791,7 @@ export default function StudyScreen() {
   const completionHeader = (
     <PageHeader
       title={emptyDeck ? 'Study' : 'Session Complete'}
-      maxWidth={v3.layout.composerMaxWidth}
+      maxWidth={completionMaxWidth}
       leading={
         <HeaderIcon
           icon="close"
@@ -800,7 +802,7 @@ export default function StudyScreen() {
       meta={
         <View
           style={{
-            maxWidth: width < 360 ? 72 : 100,
+            maxWidth: 100,
             minHeight: 28,
             flexDirection: 'row',
             alignItems: 'center',
@@ -883,7 +885,7 @@ export default function StudyScreen() {
         header={completionHeader}
         scroll
         gutter
-        contentMaxWidth={v3.layout.composerMaxWidth}
+        contentMaxWidth={completionMaxWidth}
       >
         <SessionSummary
           deckName={scopeTitle}

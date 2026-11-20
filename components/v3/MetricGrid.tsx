@@ -1,8 +1,9 @@
-import { useWindowDimensions, View } from 'react-native';
+import { View } from 'react-native';
 import type { ViewStyle } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { Surface } from './Surface';
+import { useResponsive } from '../../hooks/useResponsive';
 import { colors, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
@@ -20,7 +21,7 @@ export type Metric = {
 
 type MetricGridProps = {
   items: Metric[];
-  /** Force two or four across; by default 2 on phones and 4 from 900px. */
+  /** Force two or four across; by default 2 on mobile and 4 on tablet. */
   columns?: 2 | 4;
   className?: string;
   style?: ViewStyle | ViewStyle[];
@@ -29,13 +30,13 @@ type MetricGridProps = {
 /**
  * MetricGrid — observations, not navigation.
  *
- * Two columns on a phone and four across a wide canvas, each tile an inset
+ * Two columns on mobile and four on the tablet layout, each tile an inset
  * control fill. Every tile keeps the figure with its label and note, so a
  * percentage never loses its sample.
  */
 export function MetricGrid({ items, columns, className = '', style }: MetricGridProps) {
-  const { width } = useWindowDimensions();
-  const count = columns ?? (width >= 900 ? 4 : 2);
+  const { tablet } = useResponsive();
+  const count = columns ?? (tablet ? 4 : 2);
 
   return (
     <View

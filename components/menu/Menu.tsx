@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import type { ViewStyle } from 'react-native';
+import { TABLET_MIN_WIDTH } from '../../hooks/useResponsive';
 import { BottomSheetModal } from '../BottomSheetModal';
 import { MenuContext } from './MenuContext';
 import type { MenuContextValue } from './MenuContext';
@@ -37,7 +38,7 @@ export type MenuProps = {
   anchorRef?: React.RefObject<React.ComponentRef<typeof View> | null>;
   /** An explicit anchor, used by context menus at a pointer position. */
   anchorRect?: AnchorRect | null;
-  /** auto = anchored above 640px, sheet below it. */
+  /** auto = anchored on tablet, sheet on mobile. */
   presentation?: 'auto' | MenuPresentation;
   width?: number;
   maxHeight?: number;
@@ -45,7 +46,7 @@ export type MenuProps = {
   testID?: string;
 };
 
-const SHEET_BREAKPOINT = 640;
+const SHEET_BREAKPOINT = TABLET_MIN_WIDTH;
 
 type WebElement = {
   focus: () => void;
@@ -687,11 +688,11 @@ function AnchoredMenu({
 /**
  * Menu — the unified dropdown, popover and picker surface.
  *
- * At 640px and wider it renders an anchored, portalled panel with full ARIA
+ * On the tablet layout it renders an anchored, portalled panel with full ARIA
  * menu semantics, roving arrow-key focus, viewport flipping and nested levels.
- * Below that breakpoint it renders the same content as a compact, focus-trapped
+ * On mobile it renders the same content as a compact, focus-trapped
  * bottom sheet, so a phone gets a thumb-sized list instead of a scaled-down
- * desktop popover. `BottomSheetModal` remains the one sheet implementation, so
+ * tablet popover. `BottomSheetModal` remains the one sheet implementation, so
  * focus return, Escape, scrim dismissal and safe-area padding are shared rather
  * than re-implemented here.
  */

@@ -22,9 +22,10 @@ import { buildFixture, fixtureInitScript } from '../ui/fixtures';
 const FIXED_NOW = new Date('2026-11-07T12:00:00Z');
 
 /**
- * The desktop Home baseline uses the six-deck fixture, so it shows the board's
- * real shapes: folders, an empty deck, an archived deck, RTL and overdue cards.
- * The phone baseline keeps the shipped deck; both Home cases render the folder-first shelf.
+ * The tablet/desktop Home baseline uses the six-deck fixture, so it shows the
+ * board's real shapes: folders, an empty deck, an archived deck, RTL and overdue
+ * cards. The mobile baseline keeps the shipped deck; both Home cases render the
+ * folder-first shelf.
  */
 const HOME_FIXTURE = buildFixture('F3', FIXED_NOW.getTime());
 
@@ -38,7 +39,7 @@ test.beforeEach(async ({ page }) => {
   await page.clock.setSystemTime(FIXED_NOW);
   // A manual /dev session can leave the six-deck fixture in this origin's
   // storage. Every case starts from the shipped seed unless it opts in; the
-  // desktop Home fixture is installed after this reset by `seedHome`.
+  // tablet Home fixture is installed after this reset by `seedHome`.
   await page.addInitScript(() => {
     for (let i = localStorage.length - 1; i >= 0; i -= 1) {
       const key = localStorage.key(i);
@@ -96,20 +97,38 @@ test.describe('visual', () => {
     });
   }
 
-  for (const { width, height } of [
-    { width: 320, height: 700 },
-    { width: 375, height: 812 },
-    { width: 430, height: 932 },
-  ]) {
-    test(`home at ${width}px`, async ({ page }) => {
-      await page.setViewportSize({ width, height });
-      await page.goto('/');
-      await waitForRoute(page, 'home');
-      await expect(page).toHaveScreenshot(`home-${width}.png`, { fullPage: false });
-    });
-  }
+  test('tablet boundary at 768px starts the rail and two-column board', async ({ page }) => {
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await seedHome(page);
+    await page.goto('/');
+    await waitForRoute(page, 'home');
 
-  test('wide layout at 1280px', async ({ page }) => {
+    const hero = await page.getByTestId('today-panel').boundingBox();
+    const rail = await page.getByTestId('home-library-pane').boundingBox();
+    expect(hero).not.toBeNull();
+    expect(rail).not.toBeNull();
+    expect(rail!.x).toBeGreaterThanOrEqual(hero!.x + hero!.width);
+
+    // The board starts its two-column rhythm at the same boundary.
+    const folders = page.getByTestId('folder-card');
+    expect(await folders.count()).toBeGreaterThan(1);
+    const first = await folders.nth(0).boundingBox();
+    const second = await folders.nth(1).boundingBox();
+    expect(first).not.toBeNull();
+    expect(second).not.toBeNull();
+    expect(second!.x).toBeGreaterThan(first!.x);
+    expect(Math.round(second!.y)).toBe(Math.round(first!.y));
+
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+      )
+    ).toBeLessThanOrEqual(1);
+
+    await expect(page).toHaveScreenshot('home-768.png', { fullPage: false });
+  });
+
+  test('tablet layout at 1280px', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await seedHome(page);
     await page.goto('/');
@@ -125,10 +144,7 @@ test.describe('visual', () => {
  * navigation (the sheet is opened from Home, not by loading its route) so the
  * scrim is proven against live content rather than an empty canvas.
  */
-const SURFACES = [
-  { width: 320, height: 700 },
-  { width: 390, height: 844 },
-];
+const SURFACES = [{ width: 390, height: 844 }];
 
 test.describe('changed surfaces', () => {
   for (const { width, height } of SURFACES) {

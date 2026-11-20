@@ -26,7 +26,7 @@ type FolderCardProps = {
 };
 
 /**
- * FolderCard — the desktop library board's folder tile.
+ * FolderCard — the tablet library board's folder tile.
  *
  * The folder is a place, so it keeps its illustrated glyph on Today's raised
  * card face at the same 22px card radius as a deck card: name and its deck

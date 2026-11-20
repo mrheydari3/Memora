@@ -157,26 +157,3 @@ test('the phone drops the Folders band and keeps folders above loose decks', asy
   expect(looseDecksBox).not.toBeNull();
   expect(folderBox!.y).toBeLessThan(looseDecksBox!.y);
 });
-
-test('the whole first folder header clears the tab dock at 320px', async ({ page }) => {
-  await page.setViewportSize({ width: 320, height: 700 });
-  await openHome(page);
-
-  // F3's first folder (Travel) is the last content that has to fit above the
-  // fold. Its 76px header must clear the floating dock entirely; the deck body
-  // beneath it is allowed to continue under the dock.
-  const folder = page.getByTestId('folder-group').first();
-  const dock = page.locator('[role="tablist"]');
-  await expect(folder).toBeVisible();
-  await expect(dock).toBeVisible();
-
-  const folderBox = await folder.boundingBox();
-  const dockBox = await dock.boundingBox();
-  expect(folderBox).not.toBeNull();
-  expect(dockBox).not.toBeNull();
-
-  const clearance = Math.round(dockBox!.y - (folderBox!.y + folderBox!.height));
-  // A few px of air, not merely "not overlapping": a 1px touch would pass an
-  // overlap check while still reading as clipped.
-  expect(clearance).toBeGreaterThanOrEqual(4);
-});

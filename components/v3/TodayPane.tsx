@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, useWindowDimensions, View } from 'react-native';
+import { Animated, View } from 'react-native';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
 import { MaterialIcons } from '../Icon';
@@ -58,10 +58,10 @@ const makeSegments = (newCount: number, learningCount: number, reviewCount: numb
  *   accent fill with a 20px arrow. The rail is scoped under "Start with" so it
  *   cannot be mistaken for the library-wide figure above it.
  *
- * From 1200px the hero splits: the day's figure owns the left, and the deck
- * it will open plus the action own a fixed right column. That keeps the card
- * from reading as a stretched phone banner on a desktop canvas. The next-deck
- * summary is itself the control that opens Today's plan.
+ * The hero is one column on every layout: the day's figure, the deck it will
+ * open and the action stack in reading order. It measures its own pane for the
+ * display-size step because the tablet board shares that row with the library
+ * rail. The next-deck summary is itself the control that opens Today's plan.
  *
  * Order follows the mockup: the rail belongs to the next deck, so it sits above
  * the action rather than under it. The scene pane and the pill are the shared
@@ -82,17 +82,14 @@ export function TodayPane({
   planOpen,
   now: nowProp,
 }: TodayPaneProps) {
-  const { width, height } = useWindowDimensions();
-  const wide = width >= 900;
-  const split = width >= 1200;
-  const compact = width < 360;
-  // Only a short viewport needs the compressed hero: at 320x700 the shelf's
-  // first folder has to clear the floating dock, while a tall phone can keep
-  // the pane's normal air.
-  const tight = width < 640 && height < 760;
+  // The hero adapts to the width Home gives it, not the window: the tablet
+  // board places the library rail beside it, so the pane can be narrower than
+  // the page even on a large canvas.
+  const [paneWidth, setPaneWidth] = useState(0);
+  const wide = paneWidth >= 560;
   const now = nowProp ?? Date.now();
   const date = new Date(now).toLocaleDateString('en-GB', {
-    ...(compact ? {} : { weekday: 'short' as const }),
+    weekday: 'short',
     day: 'numeric',
     month: 'short',
   });
@@ -342,9 +339,10 @@ export function TodayPane({
     >
       <View
         testID="today-panel-body"
+        onLayout={(event) => setPaneWidth(Math.round(event.nativeEvent.layout.width))}
         style={{
-          padding: tight ? 16 : v3.spacing.panel,
-          gap: tight ? 18 : v3.spacing.panel,
+          padding: v3.spacing.panel,
+          gap: v3.spacing.panel,
           flexGrow: 1,
           // The caught-up hero has no action row, so center its short content
           // in the pane instead of leaving the card top-heavy.
@@ -365,21 +363,9 @@ export function TodayPane({
           </AppText>
         </View>
 
-        {split && hasWork ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 28, flex: 1 }}>
-            <View style={{ flex: 1, minWidth: 0 }}>{dueBlock}</View>
-            <View style={{ width: 300, gap: 16 }}>
-              {nextBlock}
-              {action}
-            </View>
-          </View>
-        ) : (
-          <>
-            {dueBlock}
-            {nextBlock}
-            {action}
-          </>
-        )}
+        {dueBlock}
+        {nextBlock}
+        {action}
       </View>
     </Surface>
   );

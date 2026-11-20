@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, useWindowDimensions, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { pushOnce } from '../../services/navigation';
 import { useDeckStore } from '../../store/useDeckStore';
@@ -47,6 +47,7 @@ import {
 import type { FieldInputRef } from '../../components/Field';
 import { colors, heights, radii, spacing } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
+import { useResponsive } from '../../hooks/useResponsive';
 import { useToday } from '../../hooks/useToday';
 import { useFolderTransitions } from '../../hooks/useFolderTransitions';
 
@@ -73,15 +74,13 @@ type FolderSheetMode = 'list' | 'edit';
  */
 export default function HomeScreen() {
   const router = useRouter();
-  const { width, height } = useWindowDimensions();
+  const { height, tablet } = useResponsive();
 
-  // A desktop canvas gets its own composition: the today grid with a library
-  // rail, then a two-up shelf. Below 1024 the page keeps the single phone
-  // column, so every existing mobile behaviour and measurement is untouched.
-  const desktop = width >= 1024;
-  const compactHeader = width < 360;
-  const contentMaxWidth = desktop ? v3.layout.homeDesktopMaxWidth : v3.layout.contentMaxWidth;
-  const folderSheetBodyMaxHeight = desktop
+  // The tablet composition — today pane with its library rail, then a two-up
+  // shelf — serves tablets, laptops and desktops. Mobile keeps the single
+  // phone column.
+  const contentMaxWidth = tablet ? v3.layout.homeTabletMaxWidth : v3.layout.contentMaxWidth;
+  const folderSheetBodyMaxHeight = tablet
     ? Math.max(320, Math.min(620, height - 240))
     : heights.sheetTall;
 
@@ -330,10 +329,10 @@ export default function HomeScreen() {
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            gap: compactHeader ? 3 : 5,
+            gap: 5,
             minHeight: 30,
             justifyContent: 'center',
-            paddingHorizontal: compactHeader ? 3 : 10,
+            paddingHorizontal: 10,
             borderRadius: 999,
             backgroundColor: colors.surfaceInset,
           }}
@@ -342,7 +341,7 @@ export default function HomeScreen() {
         >
           <MaterialIcons
             name="local-fire-department"
-            size={compactHeader ? 13 : 16}
+            size={16}
             color={streak > 0 ? colors.warning : colors.outline}
           />
           <AppText variant="caption" weight="semibold" tone={streak > 0 ? 'warning' : 'muted'}>
@@ -408,7 +407,7 @@ export default function HomeScreen() {
 
   const folderSheetList =
     folders.length > 0 ? (
-      <View className={desktop ? '' : 'mt-6'}>
+      <View className={tablet ? '' : 'mt-6'}>
         <SectionHeading
           label="Your folders"
           rule={false}
@@ -457,7 +456,7 @@ export default function HomeScreen() {
           })}
         </View>
       </View>
-    ) : desktop ? (
+    ) : tablet ? (
       <View>
         <SectionHeading
           label="Your folders"
@@ -521,7 +520,7 @@ export default function HomeScreen() {
       ) : deckQueues.length === 0 && archivedDecks.length === 0 && folders.length === 0 ? (
         <ScrollView contentContainerStyle={scrollContentStyle} showsVerticalScrollIndicator={false}>
           <View
-            style={desktop ? { width: '100%', maxWidth: 620, alignSelf: 'center' } : undefined}
+            style={tablet ? { width: '100%', maxWidth: 620, alignSelf: 'center' } : undefined}
           >
             <Surface tone="pane">
               <EmptyState
@@ -554,7 +553,7 @@ export default function HomeScreen() {
             plannedEntry ? (
               <View
                 style={
-                  desktop
+                  tablet
                     ? {
                         flexDirection: 'row',
                         alignItems: 'stretch',
@@ -565,7 +564,7 @@ export default function HomeScreen() {
               >
                 <View
                   style={
-                    desktop
+                    tablet
                       ? { flex: 1, minWidth: 0, position: 'relative' }
                       : { width: '100%', position: 'relative' }
                   }
@@ -573,7 +572,7 @@ export default function HomeScreen() {
                   <HeroAura id="today-aura" />
                   <View
                     style={
-                      desktop
+                      tablet
                         ? { flex: 1, position: 'relative', zIndex: 1 }
                         : { position: 'relative', zIndex: 1 }
                     }
@@ -596,7 +595,7 @@ export default function HomeScreen() {
                   </View>
                 </View>
 
-                {desktop ? (
+                {tablet ? (
                   <View style={{ width: v3.layout.homeRail, flexShrink: 0 }}>
                     <LibraryPane
                       decks={deckQueues.length}
@@ -654,7 +653,7 @@ export default function HomeScreen() {
             setPlannedDeckId(deckId);
             setPlanSheet(false);
           }}
-          desktop={desktop}
+          tablet={tablet}
         />
         </>
       )}
@@ -678,7 +677,7 @@ export default function HomeScreen() {
             ? () => folderDraftRef.current?.focus()
             : undefined
         }
-        desktopLayout={desktop}
+        tabletLayout={tablet}
         focusKey={`${folderSheetMode}-${editingFolderId ?? 'list'}`}
         title={
           folderSheetMode === 'edit' ? 'Edit folder' : 'Folders'
@@ -698,12 +697,12 @@ export default function HomeScreen() {
           {folderSheetMode === 'list' && (
             <View
               style={
-                desktop
+                tablet
                   ? { flexDirection: 'row', gap: 24, alignItems: 'flex-start' }
                   : undefined
               }
             >
-              <View style={desktop ? { flex: 1.35, minWidth: 0 } : undefined}>
+              <View style={tablet ? { flex: 1.35, minWidth: 0 } : undefined}>
                 <Field
                   label="New folder"
                   value={folderDraft}
@@ -761,7 +760,7 @@ export default function HomeScreen() {
                 </View>
               </View>
 
-              <View style={desktop ? { flex: 1, minWidth: 0 } : undefined}>
+              <View style={tablet ? { flex: 1, minWidth: 0 } : undefined}>
                 {folderSheetList}
               </View>
             </View>
@@ -770,12 +769,12 @@ export default function HomeScreen() {
           {folderSheetMode === 'edit' && editingFolder && (
             <View
               style={
-                desktop
+                tablet
                   ? { flexDirection: 'row', gap: 24, alignItems: 'flex-start' }
                   : undefined
               }
             >
-              <View style={desktop ? { flex: 1.35, minWidth: 0 } : undefined}>
+              <View style={tablet ? { flex: 1.35, minWidth: 0 } : undefined}>
                 <Field
                   label="Name"
                   value={editName}
@@ -803,7 +802,7 @@ export default function HomeScreen() {
                 </View>
               </View>
 
-              <View style={desktop ? { flex: 1, minWidth: 0 } : undefined}>
+              <View style={tablet ? { flex: 1, minWidth: 0 } : undefined}>
                 <View className="mt-5">
                   <ListRow
                     title={editingFolder.pinnedAt ? 'Unpin folder' : 'Pin folder'}

@@ -45,7 +45,7 @@ function Meta({
 }
 
 /**
- * LibraryPane — Home's desktop companion to the today hero.
+ * LibraryPane — Home's tablet companion to the today hero.
  *
  * The hero answers "what do I study now?"; this rail answers "what do I own?"
  * without repeating the hero's due figure. Every value comes from the same

@@ -714,6 +714,19 @@ test.describe('Phase 5 — behaviour', () => {
     ).then((entries) => entries.filter((entry) => entry.deckId === deckId).length);
     expect(completedReviews).toBeGreaterThanOrEqual(2);
 
+    // Tablet widens the summary so its four metrics share one row.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.waitForTimeout(300);
+    const metricBoxes = await Promise.all(
+      ['Total reviewed', 'Recall', 'Session duration', 'XP earned'].map(async (label) => {
+        const box = await page.getByText(label, { exact: true }).first().boundingBox();
+        expect(box).not.toBeNull();
+        return box!;
+      })
+    );
+    expect(new Set(metricBoxes.map((box) => Math.round(box.y))).size).toBe(1);
+    expect(new Set(metricBoxes.map((box) => Math.round(box.x))).size).toBe(4);
+
     await page.reload();
     await settle(page);
     const afterReload = await readStorage<Array<{ deckId: string }>>(
@@ -722,14 +735,6 @@ test.describe('Phase 5 — behaviour', () => {
       []
     ).then((entries) => entries.filter((entry) => entry.deckId === deckId).length);
     expect(afterReload).toBe(completedReviews);
-
-    // The handoff is one phone sheet, even when the browser is wide.
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(300);
-    const summaryWidth = await page
-      .getByTestId('session-summary')
-      .evaluate((element) => element.getBoundingClientRect().width);
-    expect(summaryWidth).toBeLessThanOrEqual(381);
   });
 
   test('study: an empty deck explains that there is nothing to study', async ({ page }) => {

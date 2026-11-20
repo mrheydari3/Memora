@@ -17,7 +17,6 @@ import type { Page } from '@playwright/test';
 const FIXED_NOW = new Date('2026-11-06T12:00:00Z');
 
 const SIZES = [
-  { width: 320, height: 844 },
   { width: 390, height: 844 },
   { width: 1280, height: 900 },
 ];

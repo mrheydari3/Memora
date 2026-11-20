@@ -242,7 +242,6 @@ export function DeckShelfSkeleton({ count = 2 }: { count?: number }) {
  * ledger even when a route passes the compact 150px step.
  */
 export function HeroSkeleton({ height = 196 }: { height?: number }) {
-  const { width } = useWindowDimensions();
   return (
     <Surface
       tone="scene"
@@ -265,9 +264,6 @@ export function HeroSkeleton({ height = 196 }: { height?: number }) {
       <View>
         <Skeleton width={94} height={30} radius={9} />
         <Skeleton height={10} width="76%" radius={5} style={{ marginTop: 9 }} />
-        {width < 360 && (
-          <Skeleton height={10} width="52%" radius={5} style={{ marginTop: 6 }} />
-        )}
       </View>
 
       <View
@@ -402,11 +398,8 @@ export function StatisticsSkeleton() {
  * second skeleton primitive for the chapter heading.
  */
 export function SettingsGroupSkeleton({ rows = 2 }: { rows?: number }) {
-  const { width } = useWindowDimensions();
-  // The real settings line is 64px when its subtitle fits on one line. At
-  // 320px the two-line subtitles make it taller, so the chapter reserves that
-  // height instead of landing 40px above the content it becomes.
-  const rowHeight = width < 360 ? 88 : 79;
+  // The real settings line is 64px when its subtitle fits on one line.
+  const rowHeight = 79;
 
   return (
     <View style={{ gap: 10 }}>
@@ -433,9 +426,6 @@ export function SettingsGroupSkeleton({ rows = 2 }: { rows?: number }) {
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Skeleton height={12} width="58%" radius={6} />
                 <Skeleton height={9} width="36%" radius={5} style={{ marginTop: 8 }} />
-                {rowHeight >= 88 && (
-                  <Skeleton height={9} width="72%" radius={5} style={{ marginTop: 6 }} />
-                )}
               </View>
             </View>
             {index < rows - 1 && (
@@ -459,9 +449,6 @@ export function SettingsGroupSkeleton({ rows = 2 }: { rows?: number }) {
  * two rows of two answer pads. The column is 440px wide, matching the arena.
  */
 export function QuizSkeleton() {
-  const { width } = useWindowDimensions();
-  const compact = width < 360;
-
   return (
     <View
       style={{
@@ -534,23 +521,15 @@ export function QuizSkeleton() {
       <View style={{ gap: 10, marginTop: 14 }}>
         {[0, 1].map((row) => (
           <View key={row} style={{ flexDirection: 'row', gap: 10 }}>
-            <Skeleton
-              height={compact && row === 1 ? 88 : 74}
-              radius={v3.radii.quizTile}
-              style={{ flex: 1 }}
-            />
-            <Skeleton
-              height={compact && row === 1 ? 88 : 74}
-              radius={v3.radii.quizTile}
-              style={{ flex: 1 }}
-            />
+            <Skeleton height={74} radius={v3.radii.quizTile} style={{ flex: 1 }} />
+            <Skeleton height={74} radius={v3.radii.quizTile} style={{ flex: 1 }} />
           </View>
         ))}
       </View>
 
       <View
         style={{
-          minHeight: compact ? 58 : 33,
+          minHeight: 33,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',

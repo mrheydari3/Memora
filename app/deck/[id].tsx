@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useResponsive } from '../../hooks/useResponsive';
 import { goBackOr, pushOnce } from '../../services/navigation';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
@@ -167,8 +168,8 @@ function FilterPill({
 export default function DeckDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  const wide = width >= 900;
+  const { tablet } = useResponsive();
+  const wide = tablet;
 
   const deck = useDeckStore((s) => s.decks.find((d) => d.id === id));
   const loaded = useDeckStore((s) => s.loaded);
@@ -715,7 +716,7 @@ export default function DeckDetailsScreen() {
               ))}
 
               {/* A named way out while a colour is on, next to the shortcut a
-                  desktop user can press without leaving the list. */}
+                  tablet user can press without leaving the list. */}
               {colorFilter !== null && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                   <IconButton

@@ -1,4 +1,4 @@
-import { Pressable, useWindowDimensions, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { alpha, colors, fills, heights, iconSize } from '../../theme/tokens';
@@ -25,7 +25,6 @@ type TrayActionProps = {
   /** Present on a toggle: rendered as `aria-pressed` on the web. */
   pressed?: boolean;
   disabled?: boolean;
-  showIcon: boolean;
 };
 
 function TrayAction({
@@ -35,7 +34,6 @@ function TrayAction({
   active = false,
   pressed,
   disabled = false,
-  showIcon,
 }: TrayActionProps) {
   // `aria-pressed` is the correct state for a toggle button, but Pressable's
   // types do not list it; it is passed straight through to the DOM.
@@ -59,20 +57,18 @@ function TrayAction({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: showIcon ? 6 : 0,
+        gap: 6,
         borderRadius: v3.radii.control,
         backgroundColor: active ? alpha(colors.primary, 0.14) : fills.control,
         paddingHorizontal: 8,
         opacity: disabled ? 0.45 : 1,
       }}
     >
-      {showIcon ? (
-        <MaterialIcons
-          name={icon}
-          size={iconSize.sm}
-          color={active ? colors.primary : colors.outline}
-        />
-      ) : null}
+      <MaterialIcons
+        name={icon}
+        size={iconSize.sm}
+        color={active ? colors.primary : colors.outline}
+      />
       <AppText
         variant="label"
         weight="semibold"
@@ -91,9 +87,8 @@ function TrayAction({
  *
  * Marked is a real bookmark: the filled glyph and the accent wash say the card
  * is flagged, and the flag itself is the card's persisted `marked` field. Edit
- * note and Options open real sheets; none of the three is decoration. Below
- * 380px the labels stand alone, because a glyph beside "Edit note" leaves the
- * pill too narrow for the words it must show.
+ * note and Options open real sheets; none of the three is decoration. Every
+ * label keeps its glyph on the mobile and tablet layouts.
  */
 export function StudyTray({
   marked,
@@ -103,9 +98,6 @@ export function StudyTray({
   optionsRef,
   disabled = false,
 }: StudyTrayProps) {
-  const { width } = useWindowDimensions();
-  const showIcon = width >= 380;
-
   return (
     <View
       style={{
@@ -124,14 +116,12 @@ export function StudyTray({
         pressed={marked}
         onPress={onToggleMark}
         disabled={disabled}
-        showIcon={showIcon}
       />
       <TrayAction
         icon="edit"
         label="Edit note"
         onPress={onEditNote}
         disabled={disabled}
-        showIcon={showIcon}
       />
       <View ref={optionsRef} collapsable={false} style={{ flex: 1 }}>
         <TrayAction
@@ -139,7 +129,6 @@ export function StudyTray({
           label="Options"
           onPress={onOptions}
           disabled={disabled}
-          showIcon={showIcon}
         />
       </View>
     </View>

@@ -4,11 +4,11 @@ import {
   Animated,
   Platform,
   Share,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import type { ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useResponsive } from '../hooks/useResponsive';
 import { MaterialIcons } from '../components/Icon';
 import { useDeckStore } from '../store/useDeckStore';
 import { useReviewStore } from '../store/useReviewStore';
@@ -1440,9 +1440,9 @@ function ReportsCard({ report }: { report: IntelligenceReport }) {
 }
 
 export default function StatisticsScreen() {
-  const { width } = useWindowDimensions();
-  const narrow = width < 380;
-  const wide = width >= 900;
+  const { tablet } = useResponsive();
+  const narrow = !tablet;
+  const wide = tablet;
   const router = useRouter();
   const decks = useDeckStore((state) => state.decks);
   const cardsByDeck = useDeckStore((state) => state.cardsByDeck);

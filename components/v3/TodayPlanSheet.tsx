@@ -129,7 +129,7 @@ type TodayPlanSheetProps = {
   entries: readonly DeckSummary[];
   selectedDeckId: string | null;
   onSelectDeck: (deckId: string) => void;
-  desktop?: boolean;
+  tablet?: boolean;
 };
 
 /**
@@ -146,7 +146,7 @@ export function TodayPlanSheet({
   entries,
   selectedDeckId,
   onSelectDeck,
-  desktop = false,
+  tablet = false,
 }: TodayPlanSheetProps) {
   const totalCards = entries.reduce((sum, entry) => sum + entry.total, 0);
   const dueLabel = `${entries.length} due ${entries.length === 1 ? 'deck' : 'decks'}`;
@@ -161,7 +161,7 @@ export function TodayPlanSheet({
       title="Today's plan"
       subtitle={subtitle}
       compact
-      desktopLayout={desktop}
+      tabletLayout={tablet}
     >
       <SheetScrollView
         style={{ maxHeight: heights.sheetTall }}

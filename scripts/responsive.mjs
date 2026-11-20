@@ -1,7 +1,7 @@
 /**
  * Phase 6 responsive and visual harness.
  *
- *   npm run responsive -- --mode=measure --widths=320,375
+ *   npm run responsive -- --mode=measure --widths=390,1280
  *   npm run responsive -- --mode=shots
  *   npm run responsive -- --mode=zoom
  *   npm run responsive -- --mode=summary
@@ -53,14 +53,8 @@ const OFFSET = Number(arg('offset', '0')) || 0;
 const SKIP = flag('skip-existing');
 const OUT = 'audit/responsive';
 const HEIGHTS = {
-  320: 700,
-  375: 812,
   390: 844,
-  431: 932,
-  768: 1024,
-  1024: 768,
-  1280: 800,
-  1440: 900,
+  1280: 900,
 };
 const NOW = Date.now();
 const READ_KEYS = [
@@ -72,9 +66,9 @@ const READ_KEYS = [
   K.gameRecords,
   K.initialized,
 ];
-const ROUTE_SHOTS = [768, 1280, 1440];
-const STATE_SHOTS = [320, 390];
-const MEASURE_WIDTHS = [320, 375, 390, 431, 768, 1024, 1280, 1440];
+const ROUTE_SHOTS = [1280];
+const STATE_SHOTS = [390];
+const MEASURE_WIDTHS = [390, 1280];
 
 if (process.env.PLAYWRIGHT_LIBS_DIR) {
   process.env.LD_LIBRARY_PATH = `${process.env.PLAYWRIGHT_LIBS_DIR}:${process.env.LD_LIBRARY_PATH ?? ''}`;

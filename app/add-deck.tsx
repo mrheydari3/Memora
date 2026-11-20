@@ -5,10 +5,10 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useResponsive } from '../hooks/useResponsive';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDeckStore } from '../store/useDeckStore';
 import { goBackOr } from '../services/navigation';
@@ -61,8 +61,7 @@ export default function AddDeckScreen() {
   const { folderId: folderParam } = useLocalSearchParams<{ folderId?: string | string[] }>();
   const requestedFolderId = Array.isArray(folderParam) ? folderParam[0] : folderParam;
   const insets = useSafeAreaInsets();
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const desktop = windowWidth >= 1024;
+  const { height: windowHeight, tablet } = useResponsive();
   const decks = useDeckStore((state) => state.decks);
   const folders = useDeckStore((state) => state.folders);
   const targetFolder = requestedFolderId
@@ -171,7 +170,7 @@ export default function AddDeckScreen() {
 
   const maxHeight =
     windowHeight > 0 ? Math.round(windowHeight * sheet.maxHeightRatio) : undefined;
-  const desktopPanelHeight =
+  const tabletPanelHeight =
     windowHeight > 0 ? Math.min(760, Math.max(0, windowHeight - 64)) : undefined;
 
   const detailsPane = (
@@ -262,9 +261,9 @@ export default function AddDeckScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{
         flex: 1,
-        justifyContent: desktop ? 'center' : 'flex-end',
-        alignItems: desktop ? 'center' : undefined,
-        padding: desktop ? 32 : 0,
+        justifyContent: tablet ? 'center' : 'flex-end',
+        alignItems: tablet ? 'center' : undefined,
+        padding: tablet ? 32 : 0,
         backgroundColor: alpha(veil, sheet.scrimDim),
       }}
     >
@@ -285,29 +284,29 @@ export default function AddDeckScreen() {
         accessibilityViewIsModal
         style={{
           width: '100%',
-          // The same column as the desktop Game and Settings pages.
-          maxWidth: desktop ? v3.layout.contentMaxWidth : undefined,
-          height: desktop ? desktopPanelHeight : undefined,
-          maxHeight: desktop ? desktopPanelHeight : maxHeight,
+          // The same column as the tablet Game and Settings pages.
+          maxWidth: tablet ? v3.layout.contentMaxWidth : undefined,
+          height: tablet ? tabletPanelHeight : undefined,
+          maxHeight: tablet ? tabletPanelHeight : maxHeight,
           overflow: 'hidden',
           borderTopLeftRadius: radii.sheet,
           borderTopRightRadius: radii.sheet,
-          borderBottomLeftRadius: desktop ? radii.sheet : 0,
-          borderBottomRightRadius: desktop ? radii.sheet : 0,
+          borderBottomLeftRadius: tablet ? radii.sheet : 0,
+          borderBottomRightRadius: tablet ? radii.sheet : 0,
           borderCurve: 'continuous',
           backgroundColor: glass.sheet,
         }}
       >
         <View
           style={{
-            minHeight: desktop ? 78 : 64,
+            minHeight: tablet ? 78 : 64,
             paddingHorizontal: spacing.screen,
             flexDirection: 'row',
             alignItems: 'center',
-            gap: desktop ? 12 : 0,
+            gap: tablet ? 12 : 0,
           }}
         >
-          {!desktop && (
+          {!tablet && (
             <View
               pointerEvents="none"
               style={{
@@ -328,11 +327,11 @@ export default function AddDeckScreen() {
               />
             </View>
           )}
-          <View style={{ flex: 1, gap: 2, paddingTop: desktop ? 0 : 8 }}>
+          <View style={{ flex: 1, gap: 2, paddingTop: tablet ? 0 : 8 }}>
             <AppText variant="headline" weight="semibold" headingLevel={1} numberOfLines={1}>
               New deck
             </AppText>
-            {desktop && (
+            {tablet && (
               <AppText variant="bodySm" tone="muted">
                 Name it, give it a face, then add cards.
               </AppText>
@@ -348,7 +347,7 @@ export default function AddDeckScreen() {
         </View>
 
         <ScrollView
-          style={desktop ? { flex: 1, minHeight: 0 } : { flexShrink: 1, minHeight: 0 }}
+          style={tablet ? { flex: 1, minHeight: 0 } : { flexShrink: 1, minHeight: 0 }}
           contentContainerStyle={{
             paddingHorizontal: spacing.screen,
             paddingTop: 4,
@@ -357,7 +356,7 @@ export default function AddDeckScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {desktop ? (
+          {tablet ? (
             <View style={{ flexDirection: 'row', gap: 24, alignItems: 'flex-start' }}>
               <View style={{ flex: 1, minWidth: 0, gap: 20 }}>
                 {deckPreview}
@@ -383,27 +382,27 @@ export default function AddDeckScreen() {
         <View
           style={{
             gap: 10,
-            flexDirection: desktop ? 'row' : 'column',
-            justifyContent: desktop ? 'flex-end' : undefined,
-            alignItems: desktop ? 'center' : undefined,
+            flexDirection: tablet ? 'row' : 'column',
+            justifyContent: tablet ? 'flex-end' : undefined,
+            alignItems: tablet ? 'center' : undefined,
             paddingHorizontal: spacing.screen,
             paddingTop: 12,
-            paddingBottom: desktop ? 24 : Math.max(20, insets.bottom + 12),
-            borderTopWidth: desktop ? 1 : 0,
-            borderTopColor: desktop ? alpha(colors.outlineSoft, 0.25) : undefined,
+            paddingBottom: tablet ? 24 : Math.max(20, insets.bottom + 12),
+            borderTopWidth: tablet ? 1 : 0,
+            borderTopColor: tablet ? alpha(colors.outlineSoft, 0.25) : undefined,
             backgroundColor: glass.sheet,
           }}
         >
           {saveError && (
             <AppText
               variant="caption"
-              style={{ color: colors.error, flex: desktop ? 1 : undefined }}
+              style={{ color: colors.error, flex: tablet ? 1 : undefined }}
               accessibilityLiveRegion="polite"
             >
               {saveError}
             </AppText>
           )}
-          {desktop ? (
+          {tablet ? (
             <>
               <View style={{ width: 160 }}>
                 <ActionButton

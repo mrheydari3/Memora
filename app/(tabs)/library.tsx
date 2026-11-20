@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useResponsive } from '../../hooks/useResponsive';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
@@ -363,10 +364,9 @@ function Rule({ icon, tone, title, description }: RuleProps) {
  */
 export default function GameScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  // The mockup's `sm:` breakpoint: the hero gains padding and the records
-  // become three columns from 640px, not only on the 900px wide canvas.
-  const roomy = width >= 640;
+  // The tablet layout gets the roomier hero and a three-column record row.
+  const { tablet } = useResponsive();
+  const roomy = tablet;
 
   const decks = useDeckStore((s) => s.decks);
   const folders = useDeckStore((s) => s.folders);

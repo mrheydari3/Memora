@@ -1,7 +1,8 @@
 import { useEffect, useMemo } from 'react';
 import type { ComponentProps } from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import { View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useResponsive } from '../../hooks/useResponsive';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
@@ -463,15 +464,7 @@ function MiniStatistics({
   );
 }
 
-function AchievementCard({
-  fact,
-  basis,
-  compact,
-}: {
-  fact: AchievementFact;
-  basis: string;
-  compact: boolean;
-}) {
+function AchievementCard({ fact, basis }: { fact: AchievementFact; basis: string }) {
   const visual = ACHIEVEMENTS[fact.id];
   const statusColor = fact.earned ? visual.color : colors.outline;
   const status = fact.earned
@@ -495,7 +488,7 @@ function AchievementCard({
         flexBasis: basis,
         minHeight: 140,
         justifyContent: 'space-between',
-        paddingHorizontal: compact ? v3.spacing.row : 16,
+        paddingHorizontal: 16,
       }}
     >
       <View>
@@ -552,11 +545,9 @@ function AchievementCard({
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  const compact = width < 390;
-  const wide = width >= 900;
-  const achievementColumns = wide ? 4 : compact ? 2 : 3;
-  const achievementBasis = wide ? '23%' : compact ? '47%' : '30.5%';
+  const { tablet } = useResponsive();
+  const wide = tablet;
+  const achievementBasis = tablet ? '23%' : '30.5%';
 
   const decks = useDeckStore((s) => s.decks);
   const deckLoaded = useDeckStore((s) => s.loaded);
@@ -649,7 +640,6 @@ export default function ProfileScreen() {
                     key={fact.id}
                     fact={fact}
                     basis={achievementBasis}
-                    compact={compact}
                   />
                 ))}
               </View>
