@@ -79,7 +79,6 @@ export default function DiscoverDeckPreviewScreen() {
         backgroundColor: colors.background,
         borderTopWidth: 1,
         borderTopColor: colors.hairlineRule,
-        paddingHorizontal: spacing.screen,
         paddingTop: 12,
         paddingBottom: spacing.screen,
       }}
@@ -90,6 +89,7 @@ export default function DiscoverDeckPreviewScreen() {
           maxWidth: v3.layout.contentMaxWidth,
           alignSelf: 'center',
           gap: 8,
+          paddingHorizontal: spacing.screen,
         }}
       >
         {error && (

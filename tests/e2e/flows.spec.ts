@@ -975,6 +975,19 @@ test.describe('Phase 5 — behaviour', () => {
       page.getByTestId('discover-preview-hero').getByText('4 cards', { exact: true })
     ).toBeVisible();
 
+    // The fixed footer action follows the same 720px content edges as the
+    // preview hero in the 760px large-layout column.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.waitForTimeout(300);
+    const [heroBox, addButtonBox] = await Promise.all([
+      page.getByTestId('discover-preview-hero').boundingBox(),
+      page.getByRole('button', { name: 'Add to library' }).boundingBox(),
+    ]);
+    expect(heroBox).not.toBeNull();
+    expect(addButtonBox).not.toBeNull();
+    expect(Math.round(addButtonBox!.x)).toBe(Math.round(heroBox!.x));
+    expect(Math.round(addButtonBox!.width)).toBe(Math.round(heroBox!.width));
+
     await page.getByRole('button', { name: 'Add to library' }).click();
     await expect(page).toHaveURL(/\/deck\/deck-\d+$/);
     await expect(page.getByRole('heading', { name: 'French Basics' })).toBeVisible();
