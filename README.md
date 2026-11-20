@@ -1,7 +1,3 @@
-<div align="center">
-  <img src="docs/assets/banner.png" alt="Memora — Remember more. Study with intention." width="100%" />
-</div>
-
 <h1 align="center">Memora</h1>
 
 <p align="center">
@@ -10,16 +6,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Release-v3.0.0-273449?style=flat-square" alt="Release 3.0.0" />
-  <img src="https://img.shields.io/badge/Expo-58-000020?style=flat-square&logo=expo&logoColor=white" alt="Expo SDK 58" />
-  <img src="https://img.shields.io/badge/React_Native_Web-0.88-20232A?style=flat-square&logo=react&logoColor=61DAFB" alt="React Native Web 0.88" />
-  <img src="https://img.shields.io/badge/TypeScript-6.0-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript 6" />
-  <img src="https://img.shields.io/badge/Scheduler-FSRS--6-375E4D?style=flat-square" alt="FSRS-6" />
-</p>
-
-<p align="center">
   <a href="https://site-4cf1794985694a0fbdbfb3b24dec3e09.freebuff.page"><strong>Open web app</strong></a>
-  &nbsp;·&nbsp; <a href="#product-tour">Screenshots</a>
+  &nbsp;·&nbsp; <a href="#product-tour">Product tour</a>
   &nbsp;·&nbsp; <a href="#run-locally">Quick start</a>
   &nbsp;·&nbsp; <a href="#architecture">Architecture</a>
   &nbsp;·&nbsp; <a href="CONTRIBUTING.md">Contribute</a>
@@ -56,6 +44,7 @@ Requires **Node.js 22.13+**. See [Run locally](#run-locally) for production buil
 - [Project structure](#project-structure)
 - [Contributing](#contributing)
 - [License](#license)
+
 ## Why Memora
 
 Most flashcard apps are good at collecting cards. Memora is designed around the harder part: **making a daily review habit feel clear, calm, and honest.**
@@ -79,33 +68,18 @@ After the **v3.0.0 Nocturne Focus** release, development on `main` has continued
 | **Responsive layouts** | Improved narrow-phone controls, mobile achievements, tablet content alignment, and larger-screen readability. |
 
 These are **post-release changes**, not a newly tagged release or a newly completed full test audit. See [CHANGELOG.md](CHANGELOG.md) and the [contribution guide](CONTRIBUTING.md).
+
 ## Product tour
 
-<table>
-  <tr>
-    <td align="center"><img src="docs/assets/screens/home.png" width="240" alt="Memora Home: today's due cards and the deck shelf" /></td>
-    <td align="center"><img src="docs/assets/screens/study.png" width="240" alt="Memora Study: a German card with its Persian answer revealed" /></td>
-    <td align="center"><img src="docs/assets/screens/performance.png" width="240" alt="Memora Session Complete: performance by rating" /></td>
-  </tr>
-  <tr>
-    <td align="center"><strong>Home</strong><br /><sub>Today, folders, and decks</sub></td>
-    <td align="center"><strong>Study</strong><br /><sub>Answer, intervals, four ratings</sub></td>
-    <td align="center"><strong>Session review</strong><br /><sub>Time, recall, and pace</sub></td>
-  </tr>
-</table>
+Memora's key screens, explained without screenshots:
 
-<table>
-  <tr>
-    <td align="center"><img src="docs/assets/screens/profile.png" width="280" alt="Memora Profile: level, streak, and learning summary" /></td>
-    <td align="center"><img src="docs/assets/screens/statistics.png" width="280" alt="Memora Statistics: recall, activity, and review ranges" /></td>
-  </tr>
-  <tr>
-    <td align="center"><strong>Profile</strong><br /><sub>Progression backed by the review log</sub></td>
-    <td align="center"><strong>Statistics</strong><br /><sub>Recall and memory over 7, 30, or 90 days</sub></td>
-  </tr>
-</table>
-
-<sub>Illustrative v3 screenshots captured at 390×844. Home and Study use the shipped deck; Profile and Statistics use a deterministic development fixture. Some screenshots may predate recent changes on main.</sub>
+| Screen | Experience |
+| --- | --- |
+| **Home** | Today's study plan, due cards, folders, and a searchable deck shelf with sorting and pinned items. |
+| **Study** | Reveal answers, preview intervals, choose Again / Hard / Good / Easy, and review your session progress. |
+| **Session review** | See session duration, recall, rating distribution, and review pace when recorded timing data is available. |
+| **Profile** | View progress, streaks, level, and achievements derived from real reviews. |
+| **Statistics** | Explore recall, activity, memory, habits, and reports over selected time ranges. |
 
 ## What is inside
 
