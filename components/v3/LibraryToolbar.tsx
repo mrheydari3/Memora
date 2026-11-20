@@ -13,6 +13,12 @@ import {
 
 export type LibraryFilter = 'all' | 'due';
 
+/**
+ * The narrowest the search field may get while still showing its placeholder.
+ * Below this the instruments wrap beneath the field instead of squeezing it.
+ */
+const MIN_SEARCH_WIDTH = 160;
+
 type LibraryToolbarProps = {
   query: string;
   onQueryChange: (text: string) => void;
@@ -31,9 +37,10 @@ type LibraryToolbarProps = {
  *
  * Search is an instrument, not a section: it stays inside the library's own
  * rhythm — a 44px field, two filter pills and the sort trigger. They share a
- * row when the canvas can hold them and wrap as one group when it cannot, so
- * the resting library keeps its quiet. The result count appears only when
- * something is actually being filtered. Sort is a menu, not a fourth filter:
+ * row when the canvas can hold them and wrap as one trailing group when it
+ * cannot; the field keeps a readable minimum width instead of shrinking until
+ * its placeholder clips. The result count appears only when something is
+ * actually being filtered. Sort is a menu, not a fourth filter:
  * its value belongs to the chosen order, so the compact icon trigger carries
  * the current order in its accessible name and the menu owns the list.
  */
@@ -62,8 +69,11 @@ export function LibraryToolbar({
 
   return (
     <View style={{ gap: 8 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-        <View style={{ flexGrow: 1, flexBasis: 96, minWidth: 0 }}>
+      <View
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 6, rowGap: 8, flexWrap: 'wrap' }}
+      >
+        {/* flexShrink defaults to 0, so the basis is also the field's floor. */}
+        <View style={{ flexGrow: 1, flexBasis: MIN_SEARCH_WIDTH }}>
           <SearchBar
             value={query}
             onChangeText={onQueryChange}
@@ -71,7 +81,7 @@ export function LibraryToolbar({
             accessibilityLabel="Search your library"
           />
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
           <Chip
             label="All"
             accessibilityLabel="Show all"

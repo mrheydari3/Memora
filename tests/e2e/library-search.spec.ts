@@ -101,6 +101,28 @@ test('the field clear control is hittable at phone width', async ({ page }) => {
   await expect(page.getByTestId('folder-group').filter({ hasText: 'Travel' })).toBeVisible();
 });
 
+test('the toolbar wraps its controls instead of clipping the search field at 320px', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await openHome(page);
+
+  const search = page.getByLabel('Search your library');
+  // Measure the field itself; the input sits inside its own padding and icon.
+  const fieldWidth = await search.evaluate(
+    (element) => element.parentElement?.getBoundingClientRect().width ?? 0
+  );
+  expect(fieldWidth).toBeGreaterThanOrEqual(240);
+
+  // The All/Due/sort group leaves the row rather than squeezing the field: on
+  // a 320px canvas it wraps beneath it, still trailing its own line.
+  const input = await search.boundingBox();
+  const sort = await page.getByRole('button', { name: /^Sort: / }).boundingBox();
+  expect(input).not.toBeNull();
+  expect(sort).not.toBeNull();
+  expect(sort!.y).toBeGreaterThanOrEqual(input!.y + input!.height - 1);
+});
+
 test('Edit layout leaves search and shows the reorder surface', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openHome(page);
