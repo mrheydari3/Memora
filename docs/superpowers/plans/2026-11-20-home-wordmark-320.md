@@ -4,8 +4,9 @@
 awaiting review. The regression test and Home baselines are updated.
 **Opened:** 2026-11-20.
 **Area:** Home app bar (`app/(tabs)/home.tsx`, `components/v3/PageHeader.tsx`).
-**Related:** `2026-11-20-home-page-ui-fix.md` — the 390×780 verification,
-closed as “no change required”. This item is separate from that question.
+**Related:** `2026-11-20-home-page-ui-fix.md` — the mobile 390 / tablet-PC 780
+width check, closed as “no change required”. This item is separate from that
+question.
 
 ---
 
