@@ -103,6 +103,9 @@ export function AppearancePicker({
   if (collapsible && !expanded) {
     return (
       <View>
+        <AppText variant="label" tone="muted" className="mb-2 mt-5 uppercase">
+          Icon
+        </AppText>
         <Pressable
           onPress={() => setExpanded(true)}
           role="button"
@@ -136,8 +139,8 @@ export function AppearancePicker({
           <AppText variant="bodySm" weight="semibold" style={{ flex: 1 }} numberOfLines={1}>
             {iconLabel(icon)}
           </AppText>
-          <AppText variant="caption" tone="tertiary">
-            Change
+          <AppText variant="caption" weight="semibold" tone="accent">
+            Change icon
           </AppText>
           <MaterialIcons name="expand-more" size={iconSize.sm} color={colors.outline} />
         </Pressable>

@@ -143,6 +143,34 @@ test.describe('Home experience', () => {
     await expect(page).toHaveURL(/\/add-deck$/);
   });
 
+  test('the folder icon control is labelled and uses compact tiles', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await boot(page);
+
+    await page.getByRole('button', { name: 'Create new' }).click();
+    await page.getByRole('button', { name: /^New folder/ }).click();
+    const dialog = page.getByRole('dialog', { name: 'Folders' });
+    await expect(dialog).toBeVisible();
+
+    const control = dialog.getByRole('button', { name: /Change icon/ });
+    await expect(control).toBeVisible();
+    await expect(control).toContainText('Change icon');
+    await control.click();
+
+    const language = dialog.getByRole('radio', { name: 'Icon Language' });
+    await expect(language).toBeVisible();
+    const box = await language.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+      )
+    ).toBeLessThanOrEqual(1);
+  });
+
   test('the create menu works on a wide canvas', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await boot(page);
