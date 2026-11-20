@@ -99,14 +99,14 @@ function ReorderRow({
       }
     };
 
-    const finish = () => {
+    const endDrag = (commit: boolean) => {
       stopAutoScroll();
       setDragging(false);
       setOffset(0);
       const to = targetRef.current;
       targetRef.current = index;
       setTarget(index);
-      if (to !== index) onReorder(index, to);
+      if (commit && to !== index) onReorder(index, to);
     };
 
     const tick = () => {
@@ -172,8 +172,10 @@ function ReorderRow({
         gestureDyRef.current = gesture.dy;
         updateDrag(gesture.dy);
       },
-      onPanResponderRelease: finish,
-      onPanResponderTerminate: finish,
+      onPanResponderRelease: () => endDrag(true),
+      // A canceled gesture is an interrupted drag, not a drop: restore the row
+      // without committing whatever position it happened to reach.
+      onPanResponderTerminate: () => endDrag(false),
       onPanResponderTerminationRequest: () => false,
     });
   }, [index, maxIndex, minIndex, onReorder, scrollOffsetRef, scrollRef, scrollTo, viewportHeight]);

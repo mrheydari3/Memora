@@ -162,6 +162,60 @@ test('edit layout auto-scrolls while the drag stays at the edge', async ({ page 
 test.describe('touch reorder', () => {
   test.use({ hasTouch: true });
 
+  async function deckOrder(page: Page) {
+    return page.evaluate((key) => {
+      const raw = localStorage.getItem(key);
+      return raw ? (JSON.parse(raw) as Array<{ name: string }>).map((deck) => deck.name) : [];
+    }, STORAGE_KEYS.decks);
+  }
+
+  async function beginReorderTouch(page: Page) {
+    await page.addInitScript({ content: fixtureInitScript(FIXTURE) });
+    await page.goto('/');
+    await settle(page);
+    await page.getByRole('button', { name: 'Edit layout' }).click();
+    await page.waitForTimeout(300);
+
+    const row = page.getByTestId('reorder-group-decks').getByTestId('reorder-row').first();
+    const handle = row.getByTestId('reorder-handle');
+    await handle.scrollIntoViewIfNeeded();
+    const box = await handle.boundingBox();
+    expect(box).not.toBeNull();
+
+    const before = await deckOrder(page);
+    const x = box!.x + box!.width / 2;
+    const y = box!.y + box!.height / 2;
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+    for (let step = 1; step <= 10; step += 1) {
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x, y: y + ((840 - y) * step) / 10 }],
+      });
+      await page.waitForTimeout(16);
+    }
+    await page.waitForTimeout(700);
+    return { row, cdp, before };
+  }
+
+  async function expectAllReorderRowsIdle(page: Page) {
+    const rows = page.getByTestId('reorder-row');
+    const expected = Array.from({ length: await rows.count() }, () => ({
+      zIndex: '0',
+      transform: 'matrix(1, 0, 0, 1, 0, 0)',
+    }));
+    await expect
+      .poll(() =>
+        rows.evaluateAll((nodes) =>
+          nodes.map((node) => ({
+            zIndex: getComputedStyle(node).zIndex,
+            transform: getComputedStyle(node).transform,
+          }))
+        )
+      )
+      .toEqual(expected);
+  }
+
   test('auto-scroll does not reject the shelf scroll responder', async ({ page }) => {
     const rejectionWarnings: string[] = [];
     page.on('console', (message) => {
@@ -186,5 +240,28 @@ test.describe('touch reorder', () => {
     await expect(first.getByTestId('reorder-name')).not.toHaveText(firstName);
     expect(scroll.after).toBeGreaterThan(scroll.before + 100);
     expect(rejectionWarnings).toEqual([]);
+  });
+
+  test('touch cancel restores the row without committing the move', async ({ page }) => {
+    const { row, cdp, before } = await beginReorderTouch(page);
+
+    await expect.poll(() => row.evaluate((node) => getComputedStyle(node).zIndex)).toBe('2');
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+    await page.waitForTimeout(300);
+
+    await expectAllReorderRowsIdle(page);
+    expect(await deckOrder(page)).toEqual(before);
+  });
+
+  test('releasing outside the handle commits the move and resets the row', async ({ page }) => {
+    const { row, cdp, before } = await beginReorderTouch(page);
+
+    await expect.poll(() => row.evaluate((node) => getComputedStyle(node).zIndex)).toBe('2');
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+
+    await expectAllReorderRowsIdle(page);
+    await expect
+      .poll(async () => (await deckOrder(page)).join('|'))
+      .not.toBe(before.join('|'));
   });
 });

@@ -292,24 +292,34 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
     [lensW, lensX]
   );
 
-  const finishDrag = useCallback(() => {
-    if (!dragging.current) return;
+  const endDrag = useCallback(
+    (commit: boolean) => {
+      if (!dragging.current) return;
 
-    dragging.current = false;
-    dragIndexRef.current = null;
-    setDragIndex(null);
+      dragging.current = false;
+      dragIndexRef.current = null;
+      setDragIndex(null);
 
-    const max = Math.max(0, countRef.current - 1);
-    const nearest = clamp(Math.round(dragProgress.current), 0, max);
+      const current = stateIndexRef.current;
+      const max = Math.max(0, countRef.current - 1);
+      const nearest = clamp(Math.round(dragProgress.current), 0, max);
 
-    // A drag that settles back on the current tab was canceled; only a drag
-    // that actually changes tabs gets the closing tick.
-    if (nearest !== stateIndexRef.current) {
-      HapticsEngine.dragEnd();
-      const route = routesRef.current[nearest];
-      if (route) navigateRef.current(route.key);
-    }
-  }, []);
+      // A canceled gesture belongs to the tab it started from. A release only
+      // changes tabs when the drag actually crossed into another slot.
+      if (commit && nearest !== current) {
+        HapticsEngine.dragEnd();
+        const route = routesRef.current[nearest];
+        if (route) {
+          navigateRef.current(route.key);
+          return;
+        }
+      }
+
+      dragProgress.current = current;
+      placeLens(current);
+    },
+    [placeLens]
+  );
 
   const panResponder = useMemo(
     () =>
@@ -345,11 +355,11 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
             setDragIndex(nearest);
           }
         },
-        onPanResponderRelease: finishDrag,
-        onPanResponderTerminate: finishDrag,
+        onPanResponderRelease: () => endDrag(true),
+        onPanResponderTerminate: () => endDrag(false),
         onPanResponderTerminationRequest: () => false,
       }),
-    [finishDrag, placeLens]
+    [endDrag, placeLens]
   );
 
   // Arrow keys on web move between tabs, matching the ARIA tab pattern. In a
@@ -487,6 +497,7 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
               measured: an unmeasured row would flash the lens in the corner. */}
           {measured && (
             <Animated.View
+              testID="tab-lens"
               pointerEvents="none"
               style={[
                 styles.lens,
