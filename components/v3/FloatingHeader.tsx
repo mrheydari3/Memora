@@ -42,8 +42,9 @@ export function FloatingHeader({
           height: heights.pageHeader,
           borderBottomLeftRadius: v3.appBar.radius,
           borderBottomRightRadius: v3.appBar.radius,
+          // §10: the chrome rim. One edge only, where the page scrolls under it.
           borderBottomWidth: 1,
-          borderColor: rims.soft,
+          borderBottomColor: rims.soft,
           overflow: 'hidden',
         }}
       >

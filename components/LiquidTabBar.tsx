@@ -611,6 +611,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderRadius: tabBar.height / 2,
     borderCurve: 'continuous',
+    // §10: the chrome rim, matching the header's material.
     borderWidth: 1,
     borderColor: rims.soft,
     overflow: 'hidden',
