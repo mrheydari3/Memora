@@ -77,8 +77,6 @@ export function LibraryPane({
   return (
     <Surface
       tone="pane"
-      radius="pane"
-      padding="md"
       testID="home-library-pane"
       style={{ flex: 1 }}
     >

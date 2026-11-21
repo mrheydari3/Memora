@@ -188,7 +188,7 @@ export function StudyWaiting({
           </View>
         </View>
 
-        <Surface testID="study-waiting-hero" tone="scene" padding="md" style={{ alignItems: 'center' }}>
+        <Surface testID="study-waiting-hero" tone="scene" style={{ alignItems: 'center' }}>
           <View
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
@@ -203,7 +203,7 @@ export function StudyWaiting({
               borderColor: alpha(stateColor, 0.3),
             }}
           >
-            <MaterialIcons name="schedule" size={26} color={stateColor} />
+            <MaterialIcons name="schedule" size={iconSize.nav} color={stateColor} />
           </View>
 
           <AppText
@@ -248,7 +248,7 @@ export function StudyWaiting({
               paddingVertical: 8,
             }}
           >
-            <MaterialIcons name="schedule" size={16} color={stateColor} />
+            <MaterialIcons name="schedule" size={iconSize.sm} color={stateColor} />
             <AppText variant="caption" tone="muted" style={{ flexShrink: 1 }}>
               {learningStep ?? 'Learning'} · Target {targetRetention}%
             </AppText>
@@ -304,7 +304,7 @@ export function StudyWaiting({
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 10 }}>
                 <MaterialIcons
                   name={metric.icon}
-                  size={15}
+                  size={iconSize.sm}
                   color={metric.iconColor ?? metric.color}
                 />
                 <AppText
@@ -321,7 +321,7 @@ export function StudyWaiting({
           ))}
         </View>
 
-        <Surface testID="study-waiting-learned" tone="pane" padding="md" style={{ marginTop: 20 }}>
+        <Surface testID="study-waiting-learned" tone="pane" style={{ marginTop: 20 }}>
           <View
             style={{
               flexDirection: 'row',

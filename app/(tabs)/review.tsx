@@ -14,10 +14,11 @@ import {
   ActionButton,
   HeroAura,
   PageHeader,
+  SectionHeading,
   Surface,
 } from '../../components/v3';
 import { prefersReducedMotion, usePressFeedback } from '../../motion';
-import { alpha, colors, iconSize } from '../../theme/tokens';
+import { alpha, colors, iconSize, radii } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import type { Deck, GameRecord } from '../../data/types';
 
@@ -69,16 +70,16 @@ function ModeSwitch({ mode, onChange }: ModeSwitchProps) {
     <View
       role="tablist"
       aria-label="Quiz direction"
-      style={{
-        backgroundColor: colors.surfaceControl,
-        borderRadius: 12,
-        padding: 4,
-        flexDirection: 'row',
-        position: 'relative',
-      }}
+      style={{ position: 'relative' }}
       onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
     >
-      {width > 0 && (
+      <Surface
+        tone="control"
+        radius="control"
+        padding="none"
+        style={{ padding: 4, flexDirection: 'row' }}
+      >
+        {width > 0 && (
         <Animated.View
           pointerEvents="none"
           style={{
@@ -87,7 +88,7 @@ function ModeSwitch({ mode, onChange }: ModeSwitchProps) {
             bottom: 4,
             left: 4,
             width: travel,
-            borderRadius: 8,
+            borderRadius: radii.micro,
             backgroundColor: colors.selectionSurface,
             borderWidth: 1,
             borderColor: alpha(colors.primary, 0.25),
@@ -125,6 +126,7 @@ function ModeSwitch({ mode, onChange }: ModeSwitchProps) {
           </Pressable>
         );
       })}
+      </Surface>
     </View>
   );
 }
@@ -140,9 +142,9 @@ type GameDeckRowProps = {
 };
 
 /**
- * One deck in the picker, exactly as the mockup draws it: a 64px-minimum
- * radius-22 pane with a 40px tile, 15/600 name, 12px context, the best score in
- * tabular figures and a 24px radio that fills accent when chosen.
+ * One deck in the picker: a shared card with a 64px minimum, 36px tile, 15/600
+ * deck name, 12px context, the best score in tabular figures and a 24px radio
+ * that fills accent when chosen.
  *
  * The whole row is the radio. The tile is washed with the accent only while the
  * row is selected, so the list has one highlighted line, not four coloured ones.
@@ -169,25 +171,33 @@ function GameDeckRow({
         accessibilityState={{ checked: selected }}
         aria-checked={selected}
         accessibilityLabel={`${deck.name}, ${meta}${bestScore ? `, best ${formatCount(bestScore)}` : ''}`}
-        style={{
-          minHeight: 64,
-          padding: 16,
-          borderRadius: 22,
-          borderWidth: 1,
-          borderColor: selected ? alpha(colors.primary, 0.2) : alpha(colors.outlineSoft, 0.2),
-          backgroundColor: selected ? colors.selectionSurface : colors.surfacePane,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}
+        style={{ width: '100%' }}
       >
+        <Surface
+          tone="pane"
+          radius="card"
+          padding="sm"
+          style={[
+            {
+              minHeight: 64,
+              borderWidth: 1,
+              borderColor: selected
+                ? alpha(colors.primary, 0.2)
+                : alpha(colors.outlineSoft, 0.2),
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+            },
+            selected ? { backgroundColor: colors.selectionSurface } : {},
+          ]}
+        >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
           <View
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 12,
+              width: 36,
+              height: 36,
+              borderRadius: v3.radii.tile,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: selected ? colors.accentFaint : colors.surfaceControl,
@@ -202,10 +212,10 @@ function GameDeckRow({
           </View>
 
           <View style={{ flex: 1, minWidth: 0 }}>
-            <AppText variant="body" weight="semibold" numberOfLines={1}>
+            <AppText weight="semibold" numberOfLines={2} style={v3.type.deckTitle}>
               {deck.name}
             </AppText>
-            <AppText variant="caption" tone="muted" numberOfLines={1} style={{ marginTop: 2 }}>
+            <AppText variant="caption" tone="muted" numberOfLines={2} style={{ marginTop: 2 }}>
               {meta}
             </AppText>
           </View>
@@ -219,7 +229,7 @@ function GameDeckRow({
             style={{
               width: 24,
               height: 24,
-              borderRadius: 12,
+              borderRadius: radii.pill,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: selected ? colors.primary : colors.surfaceControl,
@@ -227,9 +237,10 @@ function GameDeckRow({
               borderColor: alpha(colors.outlineSoft, 0.4),
             }}
           >
-            {selected && <MaterialIcons name="check" size={16} color={colors.onPrimary} />}
+            {selected && <MaterialIcons name="check" size={iconSize.sm} color={colors.onPrimary} />}
           </View>
         </View>
+        </Surface>
       </Pressable>
     </Animated.View>
   );
@@ -248,17 +259,11 @@ function RecordCard({ rank, deck, record, flex }: RecordCardProps) {
   const first = rank === 1;
 
   return (
-    <View
-      style={{
-        flex: flex ? 1 : undefined,
-        minWidth: 0,
-        backgroundColor: colors.surfacePane,
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: alpha(colors.outlineSoft, 0.2),
-        gap: 12,
-      }}
+    <Surface
+      tone="pane"
+      radius="card"
+      padding="sm"
+      style={{ flex: flex ? 1 : undefined, minWidth: 0, gap: 12 }}
     >
       <View
         style={{
@@ -282,7 +287,7 @@ function RecordCard({ rank, deck, record, flex }: RecordCardProps) {
           style={{
             width: 24,
             height: 24,
-            borderRadius: 12,
+            borderRadius: radii.pill,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: first ? colors.selectionSurface : colors.surfaceControl,
@@ -307,7 +312,7 @@ function RecordCard({ rank, deck, record, flex }: RecordCardProps) {
           pts
         </AppText>
       </View>
-    </View>
+    </Surface>
   );
 }
 
@@ -318,7 +323,7 @@ type RuleProps = {
   description: string;
 };
 
-/** One "How to play" line: a 36px glyph tile and two lines of copy. */
+/** One "How it works" line: a 36px glyph tile and two lines of copy. */
 function Rule({ icon, tone, title, description }: RuleProps) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 14 }}>
@@ -326,7 +331,7 @@ function Rule({ icon, tone, title, description }: RuleProps) {
         style={{
           width: 36,
           height: 36,
-          borderRadius: 12,
+          borderRadius: v3.radii.tile,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: colors.surfaceControl,
@@ -350,7 +355,7 @@ function Rule({ icon, tone, title, description }: RuleProps) {
 }
 
 /**
- * Game — the 60-second quiz lobby, v3 "Nocturne Focus".
+ * Review — the 60-second review lobby, v3 "Nocturne Focus".
  *
  * The mockup's order is kept: the hero states the clock, the selected deck and
  * the direction in one pane; the deck picker is a radio list; records rank the
@@ -426,7 +431,6 @@ export default function GameScreen() {
   }, [playableDecks, quizDeckId]);
 
   const selected = playableDecks.find((entry) => entry.deck.id === quizDeckId) ?? null;
-  const selectedRecord = selected ? records[selected.deck.id] : undefined;
 
   const recordRows = useMemo(
     () =>
@@ -446,7 +450,7 @@ export default function GameScreen() {
     pushOnce(router, mode === 'reverse' ? `/quiz/${quizDeckId}?mode=reverse` : `/quiz/${quizDeckId}`);
   };
 
-  const header = <PageHeader title="Game" />;
+  const header = <PageHeader title="Review" />;
 
   if (playableDecks.length === 0) {
     return (
@@ -458,13 +462,13 @@ export default function GameScreen() {
       >
         <Surface tone="scene">
           <EmptyState
-            icon="sports-esports"
+            icon="quiz"
             title="Not enough cards"
             titleVariant="headline"
             description={
               mode === 'reverse'
-                ? 'Reverse needs four cards with distinct words to choose from. Create a deck on Home and add cards to unlock the arena.'
-                : 'The quiz needs four cards with distinct meanings to choose from. Create a deck on Home and add cards to unlock the arena.'
+                ? 'Reverse needs four cards with distinct words to choose from. Create a deck on Home and add cards to start a review.'
+                : 'The review needs four cards with distinct meanings to choose from. Create a deck on Home and add cards to start a review.'
             }
             action={
               <View style={{ width: 208 }}>
@@ -497,33 +501,20 @@ export default function GameScreen() {
               gap: 6,
               paddingHorizontal: 10,
               paddingVertical: 4,
-              borderRadius: 999,
+              borderRadius: radii.pill,
               backgroundColor: colors.selectionSurface,
               borderWidth: 1,
               borderColor: alpha(colors.primary, 0.2),
             }}
           >
-            <MaterialIcons name="bolt" size={15} color={colors.primary} />
+            <MaterialIcons name="timer" size={iconSize.sm} color={colors.primary} />
             <AppText variant="caption" weight="medium" tone="accent">
-              Quiz · 60 seconds
+              60-second review
             </AppText>
           </View>
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
-          <AppText
-            variant="display"
-            style={[v3.type.hero, NUMERIC]}
-            accessibilityLabel="60 seconds"
-          >
-            60
-          </AppText>
-          <AppText variant="headline" weight="medium" tone="muted">
-            seconds
-          </AppText>
-        </View>
-
-        <AppText weight="bold" style={v3.type.headlineMd}>
+        <AppText weight="bold" style={[v3.type.headlineMd, { marginTop: 4 }]}>
           Beat the clock.
         </AppText>
         <AppText variant="body" tone="muted" style={{ maxWidth: 500 }}>
@@ -532,11 +523,11 @@ export default function GameScreen() {
       </View>
 
       {selected && (
-        <View
+        <Surface
+          tone="inset"
+          radius="card"
+          padding="sm"
           style={{
-            backgroundColor: colors.surfaceInset,
-            borderRadius: 16,
-            padding: 14,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -550,7 +541,7 @@ export default function GameScreen() {
               style={{
                 width: 44,
                 height: 44,
-                borderRadius: 12,
+                borderRadius: v3.radii.tile,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: colors.accentFaint,
@@ -564,32 +555,16 @@ export default function GameScreen() {
               />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <AppText variant="body" weight="semibold" numberOfLines={1}>
+              <AppText variant="body" weight="semibold" numberOfLines={2}>
                 {selected.deck.name}
               </AppText>
-              <AppText variant="caption" tone="muted" numberOfLines={1} style={{ marginTop: 2 }}>
+              <AppText variant="caption" tone="muted" numberOfLines={2} style={{ marginTop: 2 }}>
                 {selected.due} due today · {formatCount(selected.cards)} cards
                 {selected.folder ? ` · ${selected.folder}` : ''}
               </AppText>
             </View>
           </View>
-
-          <View
-            style={{
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-              borderRadius: 999,
-              backgroundColor: colors.surfaceControl,
-              flexShrink: 0,
-            }}
-          >
-            <AppText variant="caption" tone="accent" style={NUMERIC}>
-              {selectedRecord
-                ? `Best ${formatCount(selectedRecord.bestScore)} pts`
-                : 'No best yet'}
-            </AppText>
-          </View>
-        </View>
+        </Surface>
       )}
 
       <View style={{ gap: 8 }}>
@@ -602,7 +577,7 @@ export default function GameScreen() {
       </View>
 
       <ActionButton
-        label="Play 60 seconds"
+        label="Start review"
         icon="arrow-forward"
         onPress={play}
         disabled={!selected}
@@ -619,31 +594,7 @@ export default function GameScreen() {
 
   const deckPicker = (
     <View>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          paddingHorizontal: 4,
-        }}
-      >
-        <AppText variant="headline" weight="semibold" headingLevel={2} style={{ letterSpacing: -0.4 }}>
-          Choose a deck
-        </AppText>
-        <View
-          style={{
-            paddingHorizontal: 10,
-            paddingVertical: 2,
-            borderRadius: 999,
-            backgroundColor: colors.surfaceControl,
-          }}
-        >
-          <AppText variant="caption" tone="muted">
-            {playableDecks.length} playable
-          </AppText>
-        </View>
-      </View>
+      <SectionHeading label="Choose a deck" count={`${playableDecks.length} ready`} />
 
       <View style={{ gap: 10, marginTop: 12 }}>
         {playableDecks.map((entry) => (
@@ -664,22 +615,7 @@ export default function GameScreen() {
 
   const recordsPane = (
     <View>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          paddingHorizontal: 4,
-        }}
-      >
-        <AppText variant="headline" weight="semibold" headingLevel={2} style={{ letterSpacing: -0.4 }}>
-          Your records
-        </AppText>
-        <AppText variant="caption" tone="muted">
-          All-time top
-        </AppText>
-      </View>
+      <SectionHeading label="Your records" hint="All-time top" />
 
       {recordRows.length > 0 ? (
         <View
@@ -700,7 +636,7 @@ export default function GameScreen() {
           ))}
         </View>
       ) : (
-        <AppText variant="bodySm" tone="muted" style={{ marginTop: 12, paddingHorizontal: 4 }}>
+        <AppText variant="bodySm" tone="muted" style={{ marginTop: 12 }}>
           No rounds yet. Your best score will land here.
         </AppText>
       )}
@@ -709,26 +645,9 @@ export default function GameScreen() {
 
   const howToPlay = (
     <View>
-      <AppText
-        variant="headline"
-        weight="semibold"
-        headingLevel={2}
-        style={{ letterSpacing: -0.4, paddingHorizontal: 4 }}
-      >
-        How to play
-      </AppText>
+      <SectionHeading label="How it works" />
 
-      <View
-        style={{
-          marginTop: 12,
-          backgroundColor: colors.surfacePane,
-          borderRadius: 22,
-          padding: 16,
-          gap: 12,
-          borderWidth: 1,
-          borderColor: alpha(colors.outlineSoft, 0.2),
-        }}
-      >
+      <Surface tone="pane" radius="card" padding="sm" style={{ marginTop: 12, gap: 12 }}>
         <Rule
           icon="touch-app"
           tone={colors.primary}
@@ -747,7 +666,7 @@ export default function GameScreen() {
           title="Streak multiplies"
           description="Up to ×5 per answer. Miss once and the multiplier resets to base."
         />
-      </View>
+      </Surface>
     </View>
   );
 
@@ -759,7 +678,7 @@ export default function GameScreen() {
       header={header}
     >
       <View style={{ paddingBottom: 24 }}>
-        <View style={{ gap: 28 }}>
+        <View style={{ gap: v3.spacing.page }}>
           <RevealItem index={0}>{hero}</RevealItem>
           <RevealItem index={1}>{deckPicker}</RevealItem>
           <RevealItem index={2}>{recordsPane}</RevealItem>

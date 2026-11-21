@@ -174,7 +174,7 @@ export default function AddDeckScreen() {
     windowHeight > 0 ? Math.min(760, Math.max(0, windowHeight - 64)) : undefined;
 
   const detailsPane = (
-    <Surface tone="pane" radius="card" padding="md" style={{ gap: 16 }}>
+    <Surface tone="pane" radius="card" style={{ gap: 16 }}>
       <Field
         label="Name"
         value={name}
@@ -223,7 +223,7 @@ export default function AddDeckScreen() {
   );
 
   const deckPreview = (
-    <Surface tone="pane" radius="card" padding="md" style={{ gap: 14 }}>
+    <Surface tone="pane" radius="card" style={{ gap: 14 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View
           style={{
@@ -284,7 +284,7 @@ export default function AddDeckScreen() {
         accessibilityViewIsModal
         style={{
           width: '100%',
-          // The same column as the tablet Game and Settings pages.
+          // The same column as the tablet Review and Settings pages.
           maxWidth: tablet ? v3.layout.contentMaxWidth : undefined,
           height: tablet ? tabletPanelHeight : undefined,
           maxHeight: tablet ? tabletPanelHeight : maxHeight,
@@ -363,7 +363,7 @@ export default function AddDeckScreen() {
                 {detailsPane}
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Surface tone="pane" radius="card" padding="md" style={{ gap: 4 }}>
+                <Surface tone="pane" radius="card" style={{ gap: 4 }}>
                   <AppText variant="label" tone="tertiary" className="uppercase">
                     Appearance
                   </AppText>

@@ -6,7 +6,7 @@ import { MaterialIcons } from '../Icon';
 import { ActionButton } from './ActionButton';
 import { StreakChip } from './StreakChip';
 import { Surface } from './Surface';
-import { colors, motion, radii, stateColors } from '../../theme/tokens';
+import { colors, iconSize, motion, radii, stateColors } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { timingTo, useAnimatedNumber, usePressFeedback, useReveal } from '../../motion';
 import { useLaunchReveal } from '../../motion/LaunchReveal';
@@ -241,7 +241,7 @@ export function TodayPane({
                     Start with
                   </AppText>
                   <View accessible={false} importantForAccessibility="no-hide-descendants">
-                    <MaterialIcons name="expand-more" size={14} color={colors.outline} />
+                    <MaterialIcons name="expand-more" size={iconSize.xs} color={colors.outline} />
                   </View>
                 </View>
                 <AppText

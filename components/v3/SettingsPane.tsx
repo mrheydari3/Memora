@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, useWindowDimensions, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { Surface } from './Surface';
-import { alpha, colors, iconSize } from '../../theme/tokens';
+import { alpha, colors, iconSize, radii } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -49,7 +49,7 @@ export function SettingsHero({
         : colors.onSurfaceVariant;
 
   return (
-    <Surface tone="scene" padding="md" testID={testID} style={{ gap: 16 }}>
+    <Surface tone="scene" testID={testID} style={{ gap: 16 }}>
       <View style={{ gap: 6 }}>
         <View
           style={{
@@ -76,14 +76,9 @@ export function SettingsHero({
               gap: 5,
               paddingHorizontal: 8,
               paddingVertical: 2,
-              borderRadius: 999,
+              borderRadius: radii.pill,
               backgroundColor:
                 statusTone === 'muted' ? colors.surfaceControl : alpha(statusColour, 0.12),
-              borderWidth: 1,
-              borderColor:
-                statusTone === 'muted'
-                  ? alpha(colors.outlineSoft, 0.4)
-                  : alpha(statusColour, 0.25),
             }}
           >
             <View
@@ -108,16 +103,11 @@ export function SettingsHero({
         </AppText>
       </View>
 
-      <View
-        style={{
-          flexDirection: 'row',
-          backgroundColor: colors.surfaceInset,
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: alpha(colors.outlineSoft, 0.2),
-          paddingVertical: 12,
-          paddingHorizontal: 12,
-        }}
+      <Surface
+        tone="inset"
+        radius="control"
+        padding="none"
+        style={{ flexDirection: 'row', paddingVertical: 12, paddingHorizontal: 12 }}
       >
         {ledger.map((cell, index) => (
           <View
@@ -143,7 +133,7 @@ export function SettingsHero({
             </AppText>
           </View>
         ))}
-      </View>
+      </Surface>
     </Surface>
   );
 }
@@ -168,17 +158,9 @@ export function SettingsChapter({
       >
         {label}
       </AppText>
-      <View
-        style={{
-          backgroundColor: colors.surfacePane,
-          borderRadius: 22,
-          borderWidth: 1,
-          borderColor: alpha(colors.outlineSoft, 0.2),
-          overflow: 'hidden',
-        }}
-      >
+      <Surface tone="pane" radius="card" padding="none" style={{ overflow: 'hidden' }}>
         {children}
-      </View>
+      </Surface>
     </View>
   );
 }
@@ -204,8 +186,10 @@ type LineProps = {
 
 /**
  * One settings line, v3: a 40px tile, a 15/600 title, a 13px subtitle and an
- * optional state. Rows that do something are buttons with a 64px minimum
- * target; switch rows stay inert containers so the switch owns the press.
+ * optional state. Titles and subtitles may run to two and three lines; below
+ * 360px the state stacks under the subtitle so a long title keeps its width.
+ * Rows that do something are buttons with a 64px minimum target; switch rows
+ * stay inert containers so the switch owns the press.
  *
  * The divider starts at the title, not the card edge, so a pane reads as one
  * group instead of a stack of separate boxes.
@@ -224,6 +208,10 @@ export function SettingsLine({
   ariaHasPopup,
 }: LineProps) {
   const [hovered, setHovered] = useState(false);
+  const { width } = useWindowDimensions();
+  // A right-aligned value can squeeze a long title below 360px. Stack it
+  // under the subtitle there so the title keeps the width it needs.
+  const stackedValue = width < 360;
 
   const content = (
     <>
@@ -236,7 +224,7 @@ export function SettingsLine({
         style={{
           width: 40,
           height: 40,
-          borderRadius: 12,
+          borderRadius: v3.radii.tile,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: colors.surfaceControl,
@@ -247,17 +235,27 @@ export function SettingsLine({
       </View>
 
       <View style={{ flex: 1, minWidth: 0 }}>
-        <AppText variant="body" weight="semibold" numberOfLines={1}>
+        <AppText variant="body" weight="semibold" numberOfLines={2}>
           {title}
         </AppText>
         {subtitle && (
-          <AppText variant="bodySm" tone="muted" numberOfLines={2} style={{ marginTop: 2 }}>
+          <AppText variant="bodySm" tone="muted" numberOfLines={3} style={{ marginTop: 2 }}>
             {subtitle}
+          </AppText>
+        )}
+        {stackedValue && value && (
+          <AppText
+            variant="caption"
+            tone="tertiary"
+            numberOfLines={2}
+            style={{ marginTop: 4 }}
+          >
+            {value}
           </AppText>
         )}
       </View>
 
-      {value && (
+      {!stackedValue && value && (
         <AppText variant="caption" tone="tertiary" numberOfLines={1}>
           {value}
         </AppText>

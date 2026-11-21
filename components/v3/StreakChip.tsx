@@ -1,7 +1,7 @@
 import { Animated, Pressable, View } from 'react-native';
 import { AppText } from '../AppText';
 import { MaterialIcons } from '../Icon';
-import { colors } from '../../theme/tokens';
+import { colors, iconSize } from '../../theme/tokens';
 import { usePressFeedback } from '../../motion';
 
 type StreakChipProps = {
@@ -52,7 +52,7 @@ export function StreakChip({ streak, onPress }: StreakChipProps) {
         >
           <MaterialIcons
             name="local-fire-department"
-            size={16}
+            size={iconSize.sm}
             color={streak > 0 ? colors.warning : colors.outline}
           />
           <AppText

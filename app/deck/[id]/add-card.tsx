@@ -276,7 +276,7 @@ export default function AddCardScreen() {
         >
           <MaterialIcons
             name="add"
-            size={19}
+            size={iconSize.lg}
             color={canSave ? colors.primary : colors.outline}
           />
           <AppText
@@ -323,7 +323,7 @@ export default function AddCardScreen() {
               flexShrink: 0,
             }}
           >
-            <MaterialIcons name="folder-open" size={19} color={colors.primary} />
+            <MaterialIcons name="folder-open" size={iconSize.lg} color={colors.primary} />
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <AppText variant="caption" tone="muted" numberOfLines={1}>
@@ -475,7 +475,7 @@ export default function AddCardScreen() {
                   borderColor: alpha(colors.outlineSoft, 0.4),
                 }}
               >
-                <MaterialIcons name="swap-vert" size={20} color={colors.primaryContainer} />
+                <MaterialIcons name="swap-vert" size={iconSize.lg} color={colors.primaryContainer} />
               </View>
             </Pressable>
           </View>
@@ -609,7 +609,7 @@ export default function AddCardScreen() {
           >
             <MaterialIcons
               name="block"
-              size={18}
+              size={iconSize.md}
               color={color === '' ? colors.primary : colors.onSurfaceVariant}
             />
             <AppText variant="label" weight="medium" tone={color === '' ? 'accent' : 'muted'}>
@@ -703,7 +703,7 @@ export default function AddCardScreen() {
                 flexShrink: 0,
               }}
             >
-              <MaterialIcons name="auto-stories" size={20} color={colors.primary} />
+              <MaterialIcons name="auto-stories" size={iconSize.lg} color={colors.primary} />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <AppText variant="body" weight="semibold">
@@ -782,7 +782,7 @@ export default function AddCardScreen() {
       >
         <MaterialIcons
           name="info-outline"
-          size={18}
+          size={iconSize.md}
           color={colors.outline}
           style={{ marginTop: 1 }}
         />

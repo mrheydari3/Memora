@@ -202,7 +202,7 @@ export default function MassImportScreen() {
               description="Paste or choose CSV, TSV or JSON. Cards land in a new deck; a full Memora backup can replace this device’s library."
               ledger={[
                 { label: 'Cards', value: count(importedCards) },
-                { label: 'Formats', value: 'CSV · TSV · JSON' },
+                { label: 'Formats', value: '3 formats' },
                 { label: 'Storage', value: 'This device' },
               ]}
             />

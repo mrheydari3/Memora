@@ -273,7 +273,7 @@ function ShareToast({ message }: { message: string }) {
           ],
         }}
       >
-        <MaterialIcons name="check-circle" size={18} color={colors.success} />
+        <MaterialIcons name="check-circle" size={iconSize.md} color={colors.success} />
         <AppText
           variant="caption"
           weight="medium"
@@ -503,7 +503,7 @@ function OverviewHero({
   const heroType = wide ? v3.type.heroWide : v3.type.hero;
 
   return (
-    <Surface tone="scene" radius="pane" padding="md">
+    <Surface tone="scene">
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
         <AppText
           variant="caption"
@@ -591,7 +591,7 @@ function EmptyRangeScene({
   const heroType = wide ? v3.type.heroWide : v3.type.hero;
 
   return (
-    <Surface tone="scene" radius="pane" padding="md" style={{ marginTop: 16 }}>
+    <Surface tone="scene" style={{ marginTop: 16 }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
         <AppText
           variant="caption"
@@ -759,7 +759,7 @@ function RecallCard({ report }: { report: IntelligenceReport }) {
         >
           <MaterialIcons
             name={recall.successRate === null ? 'hourglass-empty' : 'check'}
-            size={18}
+            size={iconSize.md}
             color={recall.successRate === null ? colors.outline : colors.success}
           />
         </View>
@@ -820,7 +820,7 @@ function RecallCard({ report }: { report: IntelligenceReport }) {
       >
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <MaterialIcons name="timer" size={14} color={colors.outline} />
+            <MaterialIcons name="timer" size={iconSize.xs} color={colors.outline} />
             <AppText variant="caption" tone="muted" numberOfLines={1}>
               Median review time
             </AppText>
@@ -835,7 +835,7 @@ function RecallCard({ report }: { report: IntelligenceReport }) {
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <MaterialIcons name="analytics" size={14} color={colors.outline} />
+            <MaterialIcons name="analytics" size={iconSize.xs} color={colors.outline} />
             <AppText variant="caption" tone="muted" numberOfLines={1}>
               Avg per active day
             </AppText>
@@ -1089,7 +1089,7 @@ function StudyHabitsCard({
             backgroundColor: alpha(colors.warning, 0.14),
           }}
         >
-          <MaterialIcons name="local-fire-department" size={18} color={colors.warning} />
+          <MaterialIcons name="local-fire-department" size={iconSize.md} color={colors.warning} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
@@ -1149,7 +1149,7 @@ function StudyHabitsCard({
                 {active || isToday ? (
                   <MaterialIcons
                     name={isToday ? 'star' : 'check'}
-                    size={16}
+                    size={iconSize.sm}
                     color={isToday ? colors.onPrimary : colors.success}
                   />
                 ) : null}
@@ -1347,7 +1347,7 @@ function InsightTile({ item }: { item: StandoutItem }) {
             backgroundColor: alpha(item.color, 0.12),
           }}
         >
-          <MaterialIcons name={item.icon} size={18} color={item.color} />
+          <MaterialIcons name={item.icon} size={iconSize.md} color={item.color} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
@@ -1656,12 +1656,7 @@ export default function StatisticsScreen() {
             <ReportsCard report={report} />
           </StatsSection>
 
-          <Surface
-            tone="inset"
-            radius="card"
-            padding="sm"
-            style={{ marginTop: 12, borderWidth: 1, borderColor: rims.soft }}
-          >
+          <Surface tone="pane" radius="card" padding="sm" style={{ marginTop: 12 }}>
             <AppText variant="label" tone="muted" style={{ textTransform: 'uppercase' }}>
               How to read this
             </AppText>
@@ -1689,12 +1684,7 @@ export default function StatisticsScreen() {
           </Surface>
 
           {report.dataQuality.excludedCount > 0 || report.dataQuality.issues.length > 0 ? (
-            <Surface
-              tone="inset"
-              radius="card"
-              padding="sm"
-              style={{ marginTop: 10, borderWidth: 1, borderColor: rims.soft }}
-            >
+            <Surface tone="pane" radius="card" padding="sm" style={{ marginTop: 10 }}>
               <AppText variant="label" tone="muted" style={{ textTransform: 'uppercase' }}>
                 Data check
               </AppText>

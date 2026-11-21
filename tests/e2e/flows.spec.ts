@@ -448,7 +448,7 @@ test.describe('Phase 5 — behaviour', () => {
     await go(page, `/deck/${DECK_ID}`);
     await openDeckOptions(page);
     await page.getByRole('button', { name: 'Archive Deck' }).click();
-    await expect(page).toHaveURL(/\/library$/);
+    await expect(page).toHaveURL(/\/review$/);
     await go(page, '/home');
     await expect(page.getByTestId('deck-row').filter({ hasText: copyName })).toBeVisible();
     await page.reload();
@@ -838,7 +838,7 @@ test.describe('Phase 5 — behaviour', () => {
     await go(page, `/deck/${DECK_ID}`);
     await openDeckOptions(page);
     await page.getByRole('button', { name: 'Archive Deck' }).click();
-    await expect(page).toHaveURL(/\/library$/);
+    await expect(page).toHaveURL(/\/review$/);
     await settle(page);
 
     await go(page, `/study/${DECK_ID}`);
@@ -957,8 +957,8 @@ test.describe('Phase 5 — behaviour', () => {
     await page.clock.runFor(61_000);
     const result = page.getByRole('dialog', { name: /^Round result:/ });
     await expect(result).toBeVisible();
-    await result.getByRole('button', { name: 'Back to Game' }).click();
-    await expect(page).toHaveURL(/\/library$/);
+    await result.getByRole('button', { name: 'Back to Review' }).click();
+    await expect(page).toHaveURL(/\/review$/);
 
     const records = await readStorage<Record<string, unknown>>(page, STORAGE_KEYS.gameRecords, {});
     expect(Object.keys(records).length).toBeGreaterThan(0);
@@ -1196,7 +1196,7 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(page.getByRole('button', { name: 'Create new' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open profile' })).toHaveCount(0);
 
-    await go(page, '/library');
+    await go(page, '/review');
     await expect(page.getByRole('button', { name: 'Open profile' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Settings', exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Create new', exact: true })).toHaveCount(0);
@@ -1210,7 +1210,7 @@ test.describe('Phase 5 — behaviour', () => {
       await page
         .getByRole('tab')
         .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('aria-label')))
-    ).toEqual(['Home', 'Game', 'Profile', 'Settings']);
+    ).toEqual(['Home', 'Review', 'Profile', 'Settings']);
     await expect(page.getByRole('tab', { name: 'Statistics' })).toHaveCount(0);
 
     await page.getByRole('tab', { name: 'Profile' }).click();
@@ -1221,9 +1221,9 @@ test.describe('Phase 5 — behaviour', () => {
     );
     await expect(page.getByRole('button', { name: 'Go back' })).toHaveCount(0);
 
-    await page.getByRole('tab', { name: 'Game' }).click();
-    await expect(page).toHaveURL(/\/library$/);
-    await expect(page.getByRole('tab', { name: 'Game' })).toHaveAttribute(
+    await page.getByRole('tab', { name: 'Review' }).click();
+    await expect(page).toHaveURL(/\/review$/);
+    await expect(page.getByRole('tab', { name: 'Review' })).toHaveAttribute(
       'aria-selected',
       'true'
     );
@@ -1243,6 +1243,16 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(page).toHaveURL(/\/home$/);
   });
 
+  test('navigation: the old /library link redirects to Review', async ({ page }) => {
+    await go(page, '/library');
+    await expect(page).toHaveURL(/\/review$/);
+    await expect(page.getByRole('tab', { name: 'Review' })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    await expect(page.getByText('60-second review')).toBeVisible();
+  });
+
   test('navigation: Statistics is a Profile drill-down', async ({ page }) => {
     await go(page, '/profile');
     await page.getByTestId('profile-statistics-cta').click();
@@ -1255,7 +1265,7 @@ test.describe('Phase 5 — behaviour', () => {
   test('navigation: tab and Statistics routes survive refresh', async ({ page }) => {
     const tabRoutes: Array<[string, string]> = [
       ['/home', 'Home'],
-      ['/library', 'Game'],
+      ['/review', 'Review'],
       ['/profile', 'Profile'],
       ['/settings', 'Settings'],
     ];
@@ -1328,7 +1338,7 @@ test.describe('Phase 5 — behaviour', () => {
     await expect(page).toHaveURL(new RegExp(`/deck/${DECK_ID}$`));
   });
 
-  test('navigation: empty Game and Profile route Home', async ({ page }) => {
+  test('navigation: empty Review and Profile route Home', async ({ page }) => {
     await go(page, '/home');
     await page.evaluate(
       ({ decks, allCards, reviewLog, initialized }) => {
@@ -1345,7 +1355,7 @@ test.describe('Phase 5 — behaviour', () => {
       }
     );
 
-    await go(page, '/library');
+    await go(page, '/review');
     await expect(page.getByText('Not enough cards')).toBeVisible();
     await page.getByRole('button', { name: 'Go to Home' }).click();
     await expect(page).toHaveURL(/\/home$/);

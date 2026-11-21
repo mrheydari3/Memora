@@ -126,7 +126,7 @@ export default function DiscoverDeckPreviewScreen() {
       {loading ? (
         <PreviewSkeleton />
       ) : !deck ? (
-        <Surface tone="scene" padding="md" style={{ paddingVertical: 28 }}>
+        <Surface tone="scene" style={{ paddingVertical: 28 }}>
           <EmptyState
             icon={error ? 'cloud-off' : 'search-off'}
             title={error ? 'Could not load this deck' : 'Deck not found'}
@@ -189,7 +189,6 @@ function PreviewHero({ deck }: { deck: FeaturedDeck }) {
   return (
     <Surface
       tone="scene"
-      padding="md"
       testID="discover-preview-hero"
       style={{ gap: 16 }}
     >
@@ -309,7 +308,7 @@ function SampleCardRow({
 
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
           <View style={{ marginTop: 2 }}>
-            <MaterialIcons name="arrow-forward" size={14} color={colors.outline} />
+            <MaterialIcons name="arrow-forward" size={iconSize.xs} color={colors.outline} />
           </View>
           <AppText
             variant="bodySm"
@@ -342,7 +341,7 @@ function PreviewSkeleton() {
   return (
     <View style={{ paddingBottom: 24 }}>
       <View style={{ gap: 28 }}>
-        <Surface tone="scene" padding="md" style={{ gap: 16 }}>
+        <Surface tone="scene" style={{ gap: 16 }}>
           <View
             style={{
               flexDirection: 'row',

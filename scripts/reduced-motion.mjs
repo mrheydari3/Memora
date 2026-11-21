@@ -20,7 +20,7 @@ import { writeFileSync } from 'node:fs';
 const BASE = process.env.BASE_URL ?? 'http://localhost:8081';
 const ROUTES = [
   { label: 'home', path: '/' },
-  { label: 'library', path: '/library' },
+  { label: 'review', path: '/review' },
   { label: 'study', path: '/study/deck-german-a2b1' },
   { label: 'quiz', path: '/quiz/deck-german-a2b1' },
 ];
@@ -93,7 +93,7 @@ for (const preference of ['reduce', 'no-preference']) {
     reducedMotion: 'reduce',
   });
   const page = await context.newPage();
-  await page.goto(BASE + '/library', { waitUntil: 'domcontentloaded' });
+  await page.goto(BASE + '/review', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('[role="main"]');
   await page.waitForTimeout(1000);
   report.zoomWithReducedMotion = await page.evaluate(() => {

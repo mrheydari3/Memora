@@ -14,7 +14,7 @@ import { mkdirSync } from 'node:fs';
 const BASE = process.env.BASE_URL ?? 'http://localhost:8082';
 const OUT = 'screenshots/audit';
 const GUTTER = 12;
-const TAB_LABELS = ['Home', 'Game', 'Profile', 'Settings'];
+const TAB_LABELS = ['Home', 'Review', 'Profile', 'Settings'];
 const tabsInOrder = (tabs) =>
   tabs.length === TAB_LABELS.length &&
   tabs.every((tab, index) => tab.name === TAB_LABELS[index]);

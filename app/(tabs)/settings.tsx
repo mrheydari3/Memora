@@ -34,7 +34,7 @@ const formatCount = (value: number) => value.toLocaleString('en-US');
  * a desk drawer rather than a form. Progress and Statistics live on Profile;
  * Settings never duplicates them.
  *
- * The interaction chapter owns the global haptics preference; the game chapter
+ * The interaction chapter owns the global haptics preference; the review chapter
  * keeps its sound switch. The switches keep the accessible names the
  * persistence flow relies on.
  */
@@ -161,7 +161,7 @@ export default function SettingsScreen() {
           </RevealItem>
 
           <RevealItem index={3}>
-            <Chapter label="Game">
+            <Chapter label="Review">
               <SettingsLine
                 icon="volume-up"
                 tone={colors.warning}

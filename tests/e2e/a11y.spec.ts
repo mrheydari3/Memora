@@ -16,7 +16,7 @@ import AxeBuilder from '@axe-core/playwright';
 
 const ROUTES = [
   { label: 'home', path: '/' },
-  { label: 'library', path: '/library' },
+  { label: 'review', path: '/review' },
   { label: 'deck', path: '/deck/deck-german-a2b1' },
   { label: 'study', path: '/study/deck-german-a2b1' },
   { label: 'settings', path: '/settings' },
@@ -64,7 +64,7 @@ test('archived study state has no WCAG 2.2 AA violations', async ({ page }) => {
   await settle(page);
   await page.getByRole('button', { name: 'More options', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Archive Deck' }).click();
-  await expect(page).toHaveURL(/\/library$/);
+  await expect(page).toHaveURL(/\/review$/);
 
   await page.goto('/study/deck-german-a2b1');
   await settle(page);
@@ -140,7 +140,7 @@ test('four-tab navigation and Profile drill-down are named', async ({ page }) =>
 
   const tabs = page.getByRole('tab');
   await expect(tabs).toHaveCount(4);
-  for (const [index, name] of ['Home', 'Game', 'Profile', 'Settings'].entries()) {
+  for (const [index, name] of ['Home', 'Review', 'Profile', 'Settings'].entries()) {
     await expect(tabs.nth(index)).toHaveAccessibleName(name);
   }
   await expect(tabs.nth(2)).toHaveAttribute('aria-selected', 'true');
@@ -189,7 +189,7 @@ test('every interactive control is at least 44x44 CSS px', async ({ page }) => {
 });
 
 test('keyboard focus draws a ring, including the search field', async ({ page }) => {
-  await page.goto('/library');
+  await page.goto('/review');
   await settle(page);
 
   const rings: boolean[] = [];
@@ -209,7 +209,7 @@ test('keyboard focus draws a ring, including the search field', async ({ page })
 });
 
 test('200% text zoom doubles the type scale', async ({ page }) => {
-  await page.goto('/library');
+  await page.goto('/review');
   await settle(page);
 
   const growth = await page.evaluate(() => {

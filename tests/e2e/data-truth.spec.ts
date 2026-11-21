@@ -18,7 +18,7 @@ import type { Deck, DeckFolder, Flashcard, GameRecord, ReviewLogEntry } from '..
  *   - The shelf's meta line covers every active deck and every folder, all
  *     listed flat; inside a folder it covers the decks filed directly there.
  *     Folders are one flat level, so no header aggregates another folder.
- *   - Archived decks are out of Home, the shelf, Game and Statistics.
+ *   - Archived decks are out of Home, the shelf, Review and Statistics.
  *   - XP is 10 per review on an active deck; a level is 1000 XP.
  */
 
@@ -468,7 +468,7 @@ test.describe('Phase 7 — data truth', () => {
     expect(withoutArchived + archivedQueue.total).toBeGreaterThan(withoutArchived);
 
     await expect(page.getByTestId('deck-row').filter({ hasText: 'Archived deck' })).toHaveCount(0);
-    await page.goto('/library');
+    await page.goto('/review');
     await settle(page);
     await expect(page.getByText('Archived deck')).toHaveCount(0);
 

@@ -436,8 +436,8 @@ test.describe('Home experience', () => {
   test('returning to Home after another tab keeps the ready hero mounted', async ({ page }) => {
     await boot(page);
 
-    await page.getByRole('tab', { name: 'Game' }).click();
-    await expect(page).toHaveURL(/\/library/);
+    await page.getByRole('tab', { name: 'Review' }).click();
+    await expect(page).toHaveURL(/\/review/);
 
     await page.getByRole('tab', { name: 'Home' }).click();
     await expect(page).toHaveURL(/\/home/);

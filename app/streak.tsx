@@ -34,7 +34,7 @@ import {
 } from '../data/streak';
 import { goBackOr } from '../services/navigation';
 import { HapticsEngine } from '../services/haptics';
-import { alpha, colors, fills, radii, rims } from '../theme/tokens';
+import { alpha, colors, fills, iconSize, radii, rims } from '../theme/tokens';
 import { v3 } from '../theme/v3';
 import { useToday } from '../hooks/useToday';
 import { useResponsive } from '../hooks/useResponsive';
@@ -281,7 +281,6 @@ export default function StreakScreen() {
           <RevealItem index={0}>
             <Surface
               tone="scene"
-              padding="md"
               testID="streak-summary"
               style={{ alignItems: 'center', overflow: 'hidden' }}
             >
@@ -301,7 +300,7 @@ export default function StreakScreen() {
               >
                 <MaterialIcons
                   name="local-fire-department"
-                  size={27}
+                  size={iconSize.display}
                   color={stats.current > 0 ? colors.warning : colors.outline}
                 />
               </View>
@@ -369,7 +368,7 @@ export default function StreakScreen() {
                   maxWidth: '100%',
                 }}
               >
-                <MaterialIcons name={heroState.icon} size={16} color={heroState.color} />
+                <MaterialIcons name={heroState.icon} size={iconSize.sm} color={heroState.color} />
                 <AppText
                   variant="caption"
                   weight="semibold"
@@ -435,7 +434,7 @@ export default function StreakScreen() {
               marginTop: v3.spacing.page,
             }}
           >
-            <Surface tone="pane" radius="card" padding="md" testID="weekly-rest-day">
+            <Surface tone="pane" radius="card" testID="weekly-rest-day">
               <View
                 style={{
                   flexDirection: 'row',
@@ -533,7 +532,7 @@ export default function StreakScreen() {
                     >
                       <MaterialIcons
                         name="shield"
-                        size={16}
+                        size={iconSize.sm}
                         color={colors.warning}
                       />
                     </View>

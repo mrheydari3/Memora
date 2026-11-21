@@ -35,15 +35,15 @@ test('four-tab bar follows the ARIA tab keyboard pattern', async ({ page }) => {
 
   const tabs = page.getByRole('tab');
   await expect(tabs).toHaveCount(4);
-  for (const [index, name] of ['Home', 'Game', 'Profile', 'Settings'].entries()) {
+  for (const [index, name] of ['Home', 'Review', 'Profile', 'Settings'].entries()) {
     await expect(tabs.nth(index)).toHaveAccessibleName(name);
   }
 
   await tabs.nth(0).focus();
   await page.keyboard.press('ArrowRight');
-  await expect(page).toHaveURL(/\/library$/);
-  await expect(page.getByRole('tab', { name: 'Game' })).toBeFocused();
-  await expect(page.getByRole('tab', { name: 'Game' })).toHaveAttribute(
+  await expect(page).toHaveURL(/\/review$/);
+  await expect(page.getByRole('tab', { name: 'Review' })).toBeFocused();
+  await expect(page.getByRole('tab', { name: 'Review' })).toHaveAttribute(
     'aria-selected',
     'true'
   );

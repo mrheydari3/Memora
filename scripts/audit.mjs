@@ -23,7 +23,7 @@ const QUICK = process.argv.includes('--quick');
 
 const ROUTES = [
   { label: 'home', path: '/' },
-  { label: 'library', path: '/library' },
+  { label: 'review', path: '/review' },
   { label: 'deck', path: '/deck/deck-german-a2b1' },
   { label: 'study', path: '/study/deck-german-a2b1' },
   { label: 'quiz', path: '/quiz/deck-german-a2b1' },
@@ -219,7 +219,7 @@ for (const theme of THEMES) {
 // 200% text zoom: bump the root font-size and see whether the type scales.
 const zoomContext = await browser.newContext({ viewport: { width: 375, height: 844 } });
 const zoomPage = await zoomContext.newPage();
-await zoomPage.goto(BASE + '/library', { waitUntil: 'domcontentloaded' });
+await zoomPage.goto(BASE + '/review', { waitUntil: 'domcontentloaded' });
 await zoomPage.waitForTimeout(1500);
 const textZoom = await zoomPage.evaluate(() => {
   const sample = () =>

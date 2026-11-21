@@ -55,6 +55,7 @@ export function censusUrl(surface: Surface): string {
       return '/';
     case '/home':
     case '/library':
+    case '/review':
     case '/settings':
     case '/settings/algorithm':
     case '/settings/offline':

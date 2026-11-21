@@ -253,7 +253,7 @@ function ReorderRow({
         >
           <MaterialIcons
             name={(item.icon ?? 'style') as IconName}
-            size={16}
+            size={iconSize.sm}
             color={tint}
           />
         </View>

@@ -701,7 +701,7 @@ export function LibraryBoard({
   };
 
   const renderArchive = () => (
-    <Surface tone="pane" radius="pane" padding="none" style={{ overflow: 'hidden', marginTop: 24 }}>
+    <Surface tone="pane" padding="none" style={{ overflow: 'hidden', marginTop: 24 }}>
       <HintPressable
         hint={archiveOpen ? 'Collapse archived decks' : 'Expand archived decks'}
         onPress={() => setArchiveOpen((next) => !next)}

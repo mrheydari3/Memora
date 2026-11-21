@@ -18,7 +18,7 @@ const HEIGHT = (w) => (w >= 768 ? 900 : w === 320 ? 700 : 822);
 
 const ROUTES = [
   { id: 'home', path: '/home' },
-  { id: 'library', path: '/library' },
+  { id: 'review', path: '/review' },
   { id: 'settings', path: '/settings' },
   { id: 'deck', path: '/deck/deck-german-a2b1' },
   { id: 'add-card', path: '/deck/deck-german-a2b1/add-card' },

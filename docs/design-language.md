@@ -1,10 +1,10 @@
 # زبان طراحی Memora
 
-این سند «قانون» است. اگر چیزی با آن جور نیست، کد عوض می‌شود، نه سند.
+این سند «قانون» است. اگر چیزی با آن جور نیست، اول کد را درست کنید و بعد سند را به‌روز کنید؛ سند و کد نباید دو روایت داشته باشند.
 
 > خلاصه: **یک بوم جوهری، یک لهجه، جدایی با پُرشدگی و عمق (نه با کادر)، شیشهٔ مات — و هیچ مقدار بصری‌ای که از `theme/` بیرون بیاید.**
 >
-> **مرز، قاعده نیست؛ استثناست** (بخش ۱۱). هر سطح با `fill`، فاصله و یک لبهٔ روشن از سطح زیرینش جدا می‌شود.
+> **مرز، قاعده نیست؛ استثناست** (بخش ۱۰). هر سطح با `fill`، فاصله و یک لبهٔ روشن از سطح زیرینش جدا می‌شود.
 
 ---
 
@@ -13,11 +13,14 @@
 ```
 theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌شود
    ├── tailwind.config.js   → کلاس‌های Tailwind (bg-surface، text-on-surface…)
-   └── theme/tokens.ts      → اعداد و رنگ‌ها برای JS (SVG، StyleSheet، آیکن)
+   └── theme/tokens.ts      → رنگ‌ها و اعداد پایه برای JS (SVG، StyleSheet، آیکن)
+
+theme/v3.ts             ← نقش‌های v3: type، appBar، radii، heights، layout
 ```
 
 - `tailwind.config.js` کلیدهای `colors` را به کباب‌کیس تبدیل می‌کند: `onSurfaceVariant` → `text-on-surface-variant`.
 - `fills` با پیشوند می‌آیند: `bg-fill-tile`، `bg-fill-control`، `bg-fill-track`…
+- `theme/v3.ts` هندسهٔ نقش‌محور v3 را نگه می‌دارد: `radii.tile` ۱۲، `radii.control` ۱۴، `radii.card` ۲۲، `radii.pane` ۲۴، `radii.quizTile` ۱۶، `appBar.actionTile` ۳۶ و `type.hero`.
 - هیچ فایلی بیرون `theme/` مجاز نیست hex یا `rgba(…)` بنویسد — `npm run check:design` این را می‌گیرد.
 
 ### چرا؟
@@ -34,11 +37,11 @@ theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌
 | پنل صحنه | `Surface tone="scene"` | هیروی امروز، صحنهٔ مطالعه، آرنای کوییز |
 | پنل | `Surface tone="pane"` | ردیف‌ها، کارت‌ها، شیت‌ها |
 | تودرتو | `Surface tone="inset"` | محتوای داخل یک پنل (پیش‌نمایش، بدنهٔ تاشدنی) |
-| کاشی آیکن | `Surface tone="control"` / `bg-fill-tile` | مربع ۳۸/۴۴ پیکسلی آیکن |
+| کاشی آیکن | `v3.radii.tile` ۱۲ + `iconSize.lg` ۲۰ / `xl` ۲۲ | ۳۶px در ردیف‌های دِک Home/Review و اکشن‌های اپ‌بار؛ ۴۴px برای دِک انتخاب‌شدهٔ Review؛ پرکننده از wash رنگ دِک، `fills.tile`/`accentSoft`، یا `surfaceControl`/`accentFaint` |
 | کنترل | `bg-fill-control` | ورودی، دکمهٔ آیکن، ریل سگمنت |
 | ریل پیشرفت | `bg-fill-track` | نوار پیشرفت، متر |
 
-پنل‌ها **بدون کادر** و **بدون سایه‌های تزئینی** خوانده می‌شوند: `Surface` + `shadow.pane`. فقط پنل‌های «صحنه» یک `borderWidth` ۱px با `outlineSoft` ۳۰٪ در لبهٔ بالا می‌گیرند؛ کارت‌ها، گروه‌های تنظیمات و پلیت‌ها هیچ لبه‌ای ندارند. عناصر داخل پنل (کاشی آیکن، ردیف، ورودی) یک پله روشن‌تر از پنل‌اند، پس هیچ‌کدام کادر نمی‌خواهند. برای پنل تیره‌تر/تأکیدی: `Surface tone="inset"` (فقط پرکننده، بدون خط تأکید). سرصفحهٔ پوشه در Home همان `Surface tone="pane"` با شعاع کارت ۲۲px و پس‌زمینهٔ raised card face (همان Today) است؛ بدون کادر، شیشه یا سطح دوم. بدنهٔ دک‌های بازشده نیز همان raised card face را دارد و فقط با هندسه و فاصله از سرصفحه جدا می‌شود.
+پنل‌ها **بدون سایه** خوانده می‌شوند: `Surface` (همهٔ توکن‌های `shadow` روی `none` هستند). رینگ ۱px پنل «صحنه» با `outlineSoft` ۳۰٪ در بخش ۱۰ مجاز است؛ کارت‌های دِک/پوشه، گروه‌های تنظیمات و پلیت‌ها هیچ لبه‌ای ندارند. عناصر داخل پنل (کاشی آیکن، ردیف، ورودی) یک پله روشن‌تر از پنل‌اند؛ کاشی آیکن v3 ۳۶px (به‌جز دِک انتخاب‌شدهٔ Review با ۴۴px) با شعاع ۱۲ و آیکن `iconSize.lg`/`xl` است؛ کاشی `SettingsLine` ۴۰px است؛ کاشی‌های «How it works» در Review یک رینگ ۱px هم دارند (بخش ۱۰). برای پنل تیره‌تر/تأکیدی: `Surface tone="inset"` (فقط پرکننده؛ کادر فقط در استثناهای بخش ۱۰). سرصفحهٔ پوشه در Home همان `Surface tone="pane"` با شعاع کارت ۲۲px و پس‌زمینهٔ raised card face (همان Today) است؛ بدون کادر، شیشه یا سطح دوم. بدنهٔ دک‌های بازشده نیز همان raised card face را دارد و فقط با هندسه و فاصله از سرصفحه جدا می‌شود.
 
 سلسله‌ی `fills` همان مقیاس عمق است و عوض شده تا بدون کادر هم تفکیک دیده شود:
 `subtle 0.03 → inset 0.05 → tile 0.06 → control 0.075 → track 0.09`.
@@ -112,10 +115,10 @@ theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌
 <Screen
   scroll        // بدنه را اسکرول‌شونده کن
   gutter        // حاشیهٔ افقی ۲۰px استاندارد
-  tabClearance  // ۱۰۴px فضای انتهای صفحه‌های تب‌دار
+  tabClearance  // ۱۱۲px فضای انتهای صفحه‌های تب‌دار
   header={<PageHeader title="کتابخانه" back />}
 >
-  <SectionHeading title="دسته‌بندی" />
+  <SectionHeading label="دسته‌بندی" />
   <Surface tone="pane">…</Surface>
 </Screen>
 ```
@@ -129,16 +132,23 @@ theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌
 
 ## ۶. شعاع، ارتفاع، آیکن
 
-| نقش | مقدار | استفاده |
+| توکن | مقدار | استفاده |
 | --- | --- | --- |
-| `radii.micro` | ۱۰ | داخل کنترل‌ها، تایل آیکن |
-| `radii.control` | ۱۴ | دکمه، ورودی، سگمنت |
-| `radii.pane` | ۲۴ | کارت، پنل شیشه‌ای |
+| `v3.radii.tile` | ۱۲ | کاشی آیکن (اکشن اپ‌بار هم ۱۲px با `appBar.actionRadius`) |
+| `v3.radii.control` | ۱۴ | دکمه، ورودی، سگمنت، ردیف تخت |
+| `v3.radii.card` | ۲۲ | کارت دِک/پوشه، کارت‌های Review |
+| `v3.radii.pane` | ۲۴ | پنل/هیرو؛ شعاع پیش‌فرض `Surface` |
+| `v3.radii.quizTile` | ۱۶ | کاشی HUD کوییز |
+| `radii.micro` | ۱۰ | قرص انتخاب داخل کنترل (ModeSwitch) |
+| `radii.menu` | ۱۶ | منوی شناور |
 | `radii.sheet` | ۲۸ | شیت پایین |
-| `radii.pill` | ۹۹۹۹ | چیپ، قرص |
+| `radii.pill` | ۹۹۹۹ | چیپ، ریل |
 
-ارتفاع‌ها فقط از `heights`: `button` ۵۲، `field` ۴۴، `row` ۶۰، `pageHeader` ۶۴، `icon` ۳۸، `tile` ۳۸، `tileLg` ۴۴، `hit` ۴۴…
-اندازهٔ آیکن از `iconSize`: `xs` ۱۳ → `display` ۲۸. هیچ `<MaterialIcons size={18}>` دستی نیست.
+`v3.radii.card` ۲۲ مخصوص کارت‌های دِک/پوشه و کارت‌های Review است؛ `v3.radii.pane` ۲۴ شعاع پیش‌فرض `Surface` و هیروهاست. این دو را با هم اشتباه نگیرید.
+
+ارتفاع کنترل‌ها و ردیف‌ها از `heights` می‌آید: `button` ۵۲، `field` ۴۴، `row` ۶۰، `pageHeader` ۶۴، `iconSm` ۳۲، `icon` ۳۸، `tile` ۳۸، `tileLg` ۴۴، `hit` ۴۴…
+کاشی آیکن v3 ۳۶px است: اکشن‌های اپ‌بار همان ۳۶px را روی هدف ۴۴px می‌نشانند (`v3.appBar.actionTile`/`actionHit`)، ردیف‌های دِک Home و Review هم کاشی ۳۶px دارند، و دِک انتخاب‌شده در هیروی Review ۴۴px است. `ListRow` کاشی‌های ۳۸/۴۴ خود را از `heights.tile`/`tileLg` می‌گیرد و `IconButton` قطرهای ۳۲/۳۸/۴۴ را از `heights.iconSm`/`icon`/`iconLg`. `SettingsLine` کاشی ۴۰px با شعاع ۱۲ دارد.
+اندازهٔ آیکن از `iconSize`: `xs` ۱۳ → `display` ۲۸؛ در کاشی ۳۶px آیکن `lg` ۲۰px و در کاشی ۴۴px آیکن `xl` ۲۲px. هیچ `<MaterialIcons size={18}>` دستی نیست.
 
 ---
 
@@ -174,9 +184,9 @@ theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌
 
 ## ۸. کاتالوگ کامپوننت
 
-همه از `@components/index` قابل import هستند.
+کامپوننت‌های پایه از `@components/index` و کامپوننت‌های v3 از `@components/v3` قابل import هستند.
 
-**چیدمان و سطح:** `Screen` (+ `ScreenScroll`, `ScreenBody`) · `Surface` (`scene`/`pane`/`inset`/`control`) · `PageHeader` (+ `HeaderIcon`, `HeaderProfileButton`) · `SectionHeading` · `ShelfHeader` · `ListRow` · `FolderGroup` · `DeckShelfRow` · `ArchivedRow` · `TodayPane` · `BottomSheetModal` + `SheetPanel`
+**چیدمان و سطح:** `Screen` · `Surface` (`scene`/`pane`/`inset`/`control`) · `PageHeader` (+ `HeaderIcon`) · `SectionHeading` · `ShelfHeader` · `ListRow` · `FolderGroup` · `DeckShelfRow` · `ArchivedRow` · `TodayPane` · `BottomSheetModal` + `SheetPanel`
 
 **تنظیمات:** `SettingsHero` · `SettingsChapter` · `SettingsLine` · `SettingsFootnote` · `MetricGrid`
 
@@ -192,43 +202,44 @@ theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌
 4. **`Button` ارتفاع و شعاع و رنگ را خودش می‌داند**؛ `className` فقط برای عرض/آرایش (`flex-1`, `self-stretch`).
 5. **شیت‌ها با `BottomSheetModal` + `SheetPanel`**؛ ارتفاع از `heights.sheet*` — نه `Animated.View` دست‌ساز. منوها از `Menu`/`Select`؛ هیچ منوی دست‌ساز تازه‌ای نسازید.
 6. **حالت خالی با `EmptyState`** (`icon`, `title`, `description`, `action`) داخل یک `Surface tone="pane"` — نه پنل نقطه‌چین اختصاصی.
-7. **لیست‌های مجازی** (لجر کارت‌های دِک) تنها جایی هستند که پنل از ردیف‌ها ساخته می‌شود: فریم هر ردیف فقط از `glassFill`, `colors.hairline`, `rimColor`, `radii.pane` و `spacing` ساخته شود و اولین/آخرین ردیف گوشه‌ها و ریم پنل را بکشند. ردیف باید یک `Pressable` کامل با `accessibilityRole="button"` باشد، نه یک آیکن کوچک.
+7. **لیست‌های مجازی** (لجر کارت‌های دِک) تنها جایی هستند که پنل از ردیف‌ها ساخته می‌شود: فریم هر ردیف فقط از `glassFill`, `colors.hairline`, `rimColor`, `v3.radii.card` و `spacing` ساخته شود و اولین/آخرین ردیف گوشه‌ها و ریم پنل را بکشند. ردیف باید یک `Pressable` کامل با `accessibilityRole="button"` باشد، نه یک آیکن کوچک.
 
 ---
 
 ## ۹. نگهبان‌ها
 
 ```bash
-npm run check:design   # رنگ خام بیرون theme/ → خطا
+npm run check:design   # رنگ، آیکن، inset و صحنهٔ تکراری → خطا
 npx tsc --noEmit       # قرارداد تایپ‌ها
 npm test
 ```
 
-`check:design` فقط رنگ را می‌گیرد. سایر قوانین این سند در بازبینی بررسی می‌شوند؛ اگر می‌خواهید خودکار شوند، یک قاعده به `scripts/check-design-tokens.mjs` اضافه کنید (مثلاً ممنوعیت `TouchableOpacity` یا `Text` خام).
+`check:design` علاوه بر رنگ خام، اندازهٔ عددی آیکن‌ها، `Surface` با `tone="inset"` در سطح بالا، پراپ‌های پیش‌فرض تکراری `Surface` (`radius="pane"` و `padding="md"`) و بیش از یک صحنهٔ غیرشرطی در هر صفحه را می‌گیرد. سایر قوانین این سند در بازبینی بررسی می‌شوند؛ اگر می‌خواهید خودکار شوند، یک قاعده به `scripts/check-design-tokens.mjs` اضافه کنید (مثلاً ممنوعیت `TouchableOpacity` یا `Text` خام).
 
 ### استثنا
 
-فقط جایی که ریاضیات لازم است (مثل ارتفاع خط مخصوص متن فارسی در `Flashcard`) می‌توانید خط را با `// design-ignore` علامت بزنید. رنگ هرگز استثنا ندارد.
+فقط جایی که ریاضیات لازم است (مثل ارتفاع خط مخصوص متن فارسی در `Flashcard`) می‌توانید خط را با `// design-ignore` علامت بزنید. همین نشانه برای قواعد ساختاری (آیکن، inset، پراپ تکراری و صحنه) هم کار می‌کند. رنگ هرگز استثنا ندارد.
 
 ---
 
 ## ۱۰. مرز (border)
 
-مرز فقط جایی می‌آید که **معنا** دارد. فهرست کامل مجازها:
+مرز فقط جایی می‌آید که **معنا** دارد. موارد مجاز:
 
 | مورد | کجا |
 | --- | --- |
 | رینگ فوکوس | `SearchBar` (و هر ورودی‌ای که فوکوس بصری می‌خواهد) |
 | وضعیت انتخاب‌شده | `RadioOptionCard` (نقطهٔ رادیو) |
+| کروم انتخاب Review | ردیف‌های دِک/جهت، دِک انتخاب‌شده، چیپ زمان و کاشی‌های «How it works» (۱px، ۲۰–۲۵٪) |
 | کادر خالی، نقطه‌چین | فریم حالت خالی، دکمهٔ «افزودن مرحله» |
 | `rim` بالای شیشه | یک لبه، فقط در `Surface tone="scene"` (`TodayPane`، صحنهٔ مطالعه، آرنای کوییز) و کاشی‌های پاسخ کوییز |
 | هندل شیت | `SheetPanel` (یک پُرشدگی، نه کادر) |
 
-هر چیز دیگری با **پُرشدگی** جدا می‌شود. یک عنصر هرگز هم‌زمان کادر + rim + سایه ندارد.
+قاعدهٔ پیش‌فرض این است که هر چیز دیگری با **پُرشدگی** جدا شود. یک عنصر هرگز هم‌زمان کادر + rim + سایه ندارد.
 
 **مدل پوشه:** پوشه‌ها یک فهرست تخت‌اند و هیچ پوشه‌ای داخل پوشهٔ دیگر نیست. شمارش هر پوشه فقط دک‌های مستقیم همان پوشه است؛ Location، انتخاب والد و خط راهنمای تودرتویی وجود ندارد. کارت پوشه و کارت دک هر دو `Surface tone="pane"` با شعاع ۲۲px و بدون کادر/سایه‌اند.
 
-عدد فعلی: پروژه از ۱۶۰ ارجاع مرز به کمتر از ۲۰ رسیده و همهٔ موارد باقی‌مانده در جدول بالا هستند. صفحهٔ Import که ده‌ها کادر نقطه‌چین و مُهر تزئینی داشت حالا هیچ مرزی ندارد. هیچ `GlassCard`/`TopAppBar`/`v2`ای در کد نمانده است.
+صفحهٔ Import که ده‌ها کادر نقطه‌چین و مُهر تزئینی داشت حالا هیچ مرزی ندارد. هیچ `GlassCard`/`TopAppBar`/`v2`ای در کد نمانده است.
 
 ## ۱۱. چک‌لیست صفحهٔ جدید
 

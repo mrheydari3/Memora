@@ -56,12 +56,12 @@ test('quiz result traps focus, restores its opener, and cleans up its inert shel
   expect(dialogInsideShell).toBe(false);
 
   const playAgain = page.getByRole('button', { name: 'Play again' });
-  const backToGame = page.getByRole('button', { name: 'Back to Game' });
+  const backToReview = page.getByRole('button', { name: 'Back to Review' });
 
   await page.keyboard.press('Tab');
   await expect(playAgain).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(backToGame).toBeFocused();
+  await expect(backToReview).toBeFocused();
 
   // Forward Tab wraps from the last action back to the first.
   await page.keyboard.press('Tab');
@@ -69,7 +69,7 @@ test('quiz result traps focus, restores its opener, and cleans up its inert shel
 
   // Shift+Tab wraps from the first action back to the last.
   await page.keyboard.press('Shift+Tab');
-  await expect(backToGame).toBeFocused();
+  await expect(backToReview).toBeFocused();
 
   // Return to Play again and close the dialog with the keyboard.
   await page.keyboard.press('Tab');

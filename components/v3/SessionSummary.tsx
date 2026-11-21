@@ -4,7 +4,7 @@ import { AppText } from '../AppText';
 import { GhostButton } from '../GhostButton';
 import { ActionButton } from './ActionButton';
 import { Surface } from './Surface';
-import { alpha, colors, fills, over, radii, rims } from '../../theme/tokens';
+import { alpha, colors, fills, iconSize, over, radii, rims } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -243,7 +243,7 @@ export function SessionSummary({
         </View>
       </View>
 
-      <Surface tone="scene" padding="md" style={{ alignItems: 'center' }}>
+      <Surface tone="scene" style={{ alignItems: 'center' }}>
         <View
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
@@ -264,7 +264,7 @@ export function SessionSummary({
         >
           <MaterialIcons
             name={emptyDeck ? 'note-add' : 'check-circle'}
-            size={26}
+            size={iconSize.nav}
             color={emptyDeck ? colors.primary : colors.success}
           />
         </View>
@@ -316,7 +316,7 @@ export function SessionSummary({
               paddingVertical: 8,
             }}
           >
-            <MaterialIcons name="schedule" size={16} color={colors.primary} />
+            <MaterialIcons name="schedule" size={iconSize.sm} color={colors.primary} />
             <AppText variant="caption" tone="muted" style={{ flexShrink: 1 }}>
               {nextReview}
             </AppText>
@@ -381,7 +381,7 @@ export function SessionSummary({
                 >
                   <MaterialIcons
                     name={metric.icon}
-                    size={15}
+                    size={iconSize.sm}
                     color={metric.iconColor ?? metric.color}
                   />
                   <AppText
@@ -398,7 +398,7 @@ export function SessionSummary({
             ))}
           </View>
 
-          <Surface tone="pane" padding="md" style={{ marginTop: v3.spacing.section }}>
+          <Surface tone="pane" style={{ marginTop: v3.spacing.section }}>
             <View
               style={{
                 flexDirection: 'row',
@@ -502,7 +502,7 @@ export function SessionSummary({
             </AppText>
           </Surface>
 
-          <Surface tone="pane" padding="md" style={{ marginTop: v3.spacing.section }}>
+          <Surface tone="pane" style={{ marginTop: v3.spacing.section }}>
             <View
               style={{
                 flexDirection: 'row',
@@ -631,7 +631,7 @@ export function SessionSummary({
                   gap: 8,
                 }}
               >
-                <MaterialIcons name="undo" size={18} color={colors.outline} />
+                <MaterialIcons name="undo" size={iconSize.md} color={colors.outline} />
                 <AppText variant="body" weight="semibold">
                   Undo last card
                 </AppText>
@@ -650,7 +650,7 @@ export function SessionSummary({
                   gap: 6,
                 }}
               >
-                <MaterialIcons name="add-circle" size={18} color={colors.primary} />
+                <MaterialIcons name="add-circle" size={iconSize.md} color={colors.primary} />
                 <AppText variant="bodySm" weight="semibold" tone="accent">
                   Add cards
                 </AppText>

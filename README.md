@@ -15,7 +15,7 @@
 
 > **Privacy-first by design.** No account or cloud sync is required. Decks, review history, rest days, settings, and game records live in browser storage. Export a backup before clearing site data or switching browsers.
 
-Memora combines **FSRS-6 spaced repetition**, organized decks and folders, a 60-second recall game, and learning statistics derived from real reviews. Navigate through **Home · Game · Profile · Settings**.
+Memora combines **FSRS-6 spaced repetition**, organized decks and folders, a 60-second recall game, and learning statistics derived from real reviews. Navigate through **Home · Review · Profile · Settings**.
 
 ### Quick start
 
@@ -35,7 +35,7 @@ Requires **Node.js 22.13+**. See [Run locally](#run-locally) for production buil
 - [Product tour](#product-tour)
 - [What is inside](#what-is-inside)
 - [Study engine](#study-engine)
-- [Game mode](#game-mode)
+- [Review mode](#review-mode)
 - [Learning intelligence](#learning-intelligence)
 - [Design system](#design-system)
 - [Architecture](#architecture)
@@ -53,7 +53,7 @@ Most flashcard apps are good at collecting cards. Memora is designed around the 
 - **Local-first by default.** A full library can live in one browser without an account, a subscription, or a network round-trip.
 - **One visual system.** Every screen uses the same ink canvas, scene panes, fills, type scale, and 44px controls. There is one place for color and one way to build a surface.
 - **Made for real sessions.** The progress denominator stays stable, the last review can be undone, archived decks cannot start a session, and an empty deck never pretends to be “All done.”
-- **A quieter kind of gamification.** The 60-second Game writes real reviews into the same schedule. It does not create a parallel progress system.
+- **A quieter kind of gamification.** The 60-second Review game writes real reviews into the same schedule. It does not create a parallel progress system.
 
 ## Recent improvements
 
@@ -89,7 +89,7 @@ Memora's key screens, explained without screenshots:
 | --- | --- |
 | **Home** | Organizes today's review plan and your folder/deck shelf, with persistent sorting, pinned items, and clear due states. |
 | **Study** | Runs deck and combined-folder review sessions with a stable denominator, interval previews, keyboard shortcuts, and review undo. |
-| **Game** | A 60-second, four-option quiz with combos, time bonuses, sound, haptics, and real FSRS reviews. |
+| **Review** | A 60-second, four-option quiz with combos, time bonuses, sound, haptics, and real FSRS reviews. |
 | **Profile** | Turns the review log into level, XP, streak, active days, recent activity, and evidence-backed achievements. |
 | **Your Streak** | A calendar view of real study days plus one weekly rest day that bridges continuity without adding activity. |
 | **Statistics** | A Profile drill-down with recall, review volume, memory, habits, forecast, insights, and reports. |
@@ -148,9 +148,9 @@ The Session Complete screen adds a factual performance readout:
 5. The session ends with reviews, recall, duration, XP, rating breakdown, and the performance pane.
 6. **Undo last card** reverses the most recent review and returns to the card.
 
-## Game mode
+## Review mode
 
-The **Game** tab is a fast recall loop, not a separate learning history.
+The **Review** tab is a fast recall loop, not a separate learning history.
 
 - 60-second rounds with four answer options per card.
 - A correct answer adds **3 seconds**; a wrong answer costs **2 seconds** and reveals the correct option.
@@ -192,7 +192,7 @@ Memora’s analytics are a **derived view of the review log**, not a second data
 The v3 language is called **Nocturne Focus**: one ink canvas, one accent, separation through fills and depth rather than outlines, and a single source of truth for every visual value.
 
 - `theme/palette.js` owns the raw colors; `theme/tokens.ts` and `theme/v3.ts` expose them to React Native and SVG.
-- `npm run check:design` checks for raw hex and `rgba()` outside `theme/`.
+- `npm run check:design` guards the v3 surface language: raw hex and `rgba()` outside `theme/`, raw numeric icon sizes, top-level `tone="inset"` panels, redundant `Surface` defaults, and a second unconditional scene per screen.
 - `Surface`, `AppText`, `ListRow`, `Button`, and the v3 family replace hand-built panels, text, and rows.
 - 44px minimum targets, visible focus rings, reduced-motion fallbacks, and a responsive 320–1440 layout are part of the system, not a polish pass.
 - The full design law lives in [docs/design-language.md](docs/design-language.md) (Persian). If the code and the document disagree, the code changes.
@@ -277,7 +277,7 @@ npx tsc --noEmit          # TypeScript
 npm test                  # domain unit tests (node:test)
 npm run test:surfaces     # route/surface parity manifest
 npm run test:fixtures     # deterministic browser fixtures
-npm run check:design      # raw-colour guard
+npm run check:design      # token + v3 surface guard
 npm run test:e2e          # Playwright; starts a dev server unless BASE_URL is set
 npm run build:web         # production web export
 ```
@@ -298,7 +298,7 @@ The figures below describe the **2026-11-08 verification snapshot**, not the lat
 | Domain tests | `npm test` | **190 / 190** |
 | Surface parity | `npm run test:surfaces` | **11 / 11** |
 | Surface manifest | `tests/ui/surfaces.ts` | **84 surfaces** |
-| Design tokens | `npm run check:design` | **clean, 83 files** |
+| Design tokens | `npm run check:design` | **clean, 104 files** |
 | Browser suite | `npm run test:e2e` | **123 / 123 passed** |
 | Production export | `npm run build:web` | **dist/ exported** |
 

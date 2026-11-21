@@ -330,7 +330,7 @@ export default function DeckDetailsScreen() {
   const handleArchive = async () => {
     setOptionsVisible(false);
     await updateDeck(deck.id, { archivedAt: deck.archivedAt ? null : Date.now() });
-    goBackOr(router, '/(tabs)/library');
+    goBackOr(router, '/(tabs)/review');
   };
 
   // The archived page cannot start a session, but it can put the deck back in

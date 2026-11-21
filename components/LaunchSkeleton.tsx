@@ -47,7 +47,7 @@ export function launchVariant(pathname: string): LaunchVariant {
   if (pathname.startsWith('/statistics')) return 'statistics';
   if (pathname.startsWith('/profile')) return 'profile';
   if (pathname === '/settings') return 'settings';
-  if (pathname === '/library') return 'library';
+  if (pathname === '/review') return 'library';
   if (pathname.startsWith('/deck/')) return 'deck';
   if (pathname.startsWith('/study/')) return 'study';
   if (pathname.startsWith('/quiz/')) return 'quiz';
@@ -290,7 +290,7 @@ function LaunchBody({ variant }: { variant: LaunchVariant }) {
 function HomeLaunchSkeleton() {
   return (
     <>
-      <Surface tone="scene" radius="pane" padding="md" style={{ gap: v3.spacing.panel }}>
+      <Surface tone="scene" style={{ gap: v3.spacing.panel }}>
         <View
           style={{
             minHeight: 25,

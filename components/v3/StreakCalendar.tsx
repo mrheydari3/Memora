@@ -152,7 +152,7 @@ function DayCell({
             >
               <MaterialIcons
                 name="shield"
-                size={10}
+                size={iconSize.xs}
                 color={studied ? colors.onSurfaceVariant : colors.warning}
               />
             </View>
@@ -180,7 +180,7 @@ function LegendItem({ children, shield = false }: { children: React.ReactNode; s
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
       {shield ? (
-        <MaterialIcons name="shield" size={12} color={colors.warning} />
+        <MaterialIcons name="shield" size={iconSize.xs} color={colors.warning} />
       ) : (
         <View
           style={{

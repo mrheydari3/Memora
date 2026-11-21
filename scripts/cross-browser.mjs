@@ -25,7 +25,7 @@ const engines = only ? [only] : Object.keys(ENGINES);
 
 const ROUTES = [
   { label: 'home', path: '/' },
-  { label: 'library', path: '/library' },
+  { label: 'review', path: '/review' },
   { label: 'deck', path: '/deck/deck-german-a2b1' },
   { label: 'study', path: '/study/deck-german-a2b1' },
   { label: 'quiz', path: '/quiz/deck-german-a2b1' },
@@ -176,7 +176,7 @@ for (const engineName of engines) {
   const zoomContext = await browser.newContext({ viewport: { width: 375, height: 844 } });
   const zoomPage = await zoomContext.newPage();
   try {
-    await zoomPage.goto(BASE + '/library', { waitUntil: 'domcontentloaded' });
+    await zoomPage.goto(BASE + '/review', { waitUntil: 'domcontentloaded' });
     await zoomPage.waitForSelector('[role="main"]');
     await zoomPage.waitForTimeout(1200);
     engineResult.textZoom = await zoomPage.evaluate(() => {

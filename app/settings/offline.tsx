@@ -61,7 +61,7 @@ export default function OfflineScreen() {
   };
 
   const ledger = [
-    { label: 'Offline cache', value: cached ? 'On' : 'Off' },
+    { label: 'Cache', value: cached ? 'On' : 'Off' },
     {
       label: 'Install',
       value: isInstalled ? 'Installed' : Platform.OS === 'web' ? 'Not installed' : 'On device',

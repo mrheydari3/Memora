@@ -82,7 +82,7 @@ async function openNewDeck(page: Page) {
 
 const ROUTES = [
   { label: 'home', path: '/' },
-  { label: 'library', path: '/library' },
+  { label: 'review', path: '/review' },
   { label: 'deck', path: '/deck/deck-german-a2b1' },
   { label: 'settings', path: '/settings' },
 ];

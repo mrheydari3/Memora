@@ -33,12 +33,13 @@ export const FIXTURES = ['F0', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6'] as const;
 
 export type FixtureId = (typeof FIXTURES)[number];
 
-export const EXPECTED_SURFACE_COUNT = 86;
+export const EXPECTED_SURFACE_COUNT = 87;
 
 export const ROUTE_PATTERNS = [
   '/',
   '/home',
   '/library',
+  '/review',
   '/settings',
   '/settings/algorithm',
   '/settings/algorithm-advanced',
@@ -96,7 +97,7 @@ export const SURFACES: readonly Surface[] = [
     trigger: 'throw on memory:decks, or write invalid JSON into it',
   }),
   s('SH-03', 'Four-tab capsule (active lens and drag)', '/home', ['F2'], CHROME, {
-    trigger: 'every tabbed route at 320: Home, Game, Profile, Settings in order',
+    trigger: 'every tabbed route at 320: Home, Review, Profile, Settings in order',
   }),
   s('SH-04', 'Unknown route', '*', ['F0']),
   s('SH-05', 'Document head and PWA shell', '/', ['F0'], SHELL),
@@ -137,16 +138,17 @@ export const SURFACES: readonly Surface[] = [
   }),
   s('HM-13', 'Long, RTL and 40-character names at 320', '/home', ['F2']),
 
-  // ---- Library (Game) --------------------------------------------------------
-  s('LB-01', 'Game lobby', '/library', ['F3']),
-  s('LB-02', 'No playable deck', '/library', ['F1']),
-  s('LB-03', 'Selected deck with best record', '/library', ['F3']),
-  s('LB-04', 'Deck under four cards', '/library', ['F2']),
+  // ---- Library (Review) ------------------------------------------------------
+  s('LB-00', 'Legacy /library redirect', '/library', ['F3'], NAV),
+  s('LB-01', 'Review lobby', '/review', ['F3']),
+  s('LB-02', 'No playable deck', '/review', ['F1']),
+  s('LB-03', 'Selected deck with best record', '/review', ['F3']),
+  s('LB-04', 'Deck under four cards', '/review', ['F2']),
 
   // ---- Settings --------------------------------------------------------------
   s('ST-01', 'Settings index: configuration only, no progress', '/settings', ['F0']),
   s('ST-02', 'Study chapter: algorithm and TTS rows', '/settings', ['F0']),
-  s('ST-03', 'Game toggles: sound and haptics', '/settings', ['F0']),
+  s('ST-03', 'Review settings: sound and haptics', '/settings', ['F0']),
   s('ST-04', 'Data chapter', '/settings', ['F0']),
   s('ST-05', 'Algorithm settings', '/settings/algorithm', ['F2']),
   s('ST-06', 'Algorithm advanced with and without deckId', '/settings/algorithm-advanced', ['F2']),

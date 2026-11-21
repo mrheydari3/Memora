@@ -77,7 +77,7 @@ export default function DiscoverScreen() {
       {loading ? (
         <DiscoverSkeleton />
       ) : error || decks.length === 0 ? (
-        <Surface tone="scene" padding="md" style={{ paddingVertical: 28 }}>
+        <Surface tone="scene" style={{ paddingVertical: 28 }}>
           <EmptyState
             icon={error ? 'cloud-off' : 'search-off'}
             title={error ? 'Could not load Discover' : 'Nothing to discover'}
@@ -99,7 +99,7 @@ export default function DiscoverScreen() {
         <View style={{ paddingBottom: 24 }}>
           <View style={{ gap: 28 }}>
             <RevealItem index={0}>
-              <Surface tone="scene" padding="md" testID="discover-hero" style={{ gap: 16 }}>
+              <Surface tone="scene" testID="discover-hero" style={{ gap: 16 }}>
                 <View style={{ gap: 6 }}>
                   <View
                     style={{
@@ -252,7 +252,7 @@ function DiscoverSkeleton() {
   return (
     <View style={{ paddingBottom: 24 }}>
       <View style={{ gap: 28 }}>
-        <Surface tone="scene" padding="md" style={{ gap: 16 }}>
+        <Surface tone="scene" style={{ gap: 16 }}>
           <View
             style={{
               flexDirection: 'row',

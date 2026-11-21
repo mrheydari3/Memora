@@ -218,7 +218,7 @@ export default function AlgorithmAdvancedScreen() {
   if (!deck && !loaded) {
     return (
       <Screen scroll gutter header={header}>
-        <Surface tone="pane" radius="card" padding="md">
+        <Surface tone="pane" radius="card">
           <AppText variant="bodySm" tone="muted">
             Loading deck…
           </AppText>
@@ -230,7 +230,7 @@ export default function AlgorithmAdvancedScreen() {
   if (!deck) {
     return (
       <Screen scroll gutter header={header}>
-        <Surface tone="scene" padding="md">
+        <Surface tone="scene">
           <EmptyState
             icon="layers-clear"
             title="No deck chosen"

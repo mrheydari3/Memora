@@ -48,9 +48,9 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
  * at 1.05.
  *
  * The whole pressable is the target and it is as wide as its own label needs
- * (never narrower than a full cell), so a long label — or a reader at 200% text
- * size — widens the tab instead of spilling under its neighbour. The icon is
- * hidden from assistive tech and the accessible label supplies the name.
+ * (never narrower than a 44px target), so a long label — or a reader at 200% text
+ * size — takes slack from its neighbours instead of spilling under them. The
+ * icon is hidden from assistive tech and the accessible label supplies the name.
  */
 function TabItem({
   focused,
@@ -99,11 +99,11 @@ function TabItem({
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
         style={{
-          minWidth: tabBar.cell,
+          minWidth: 44,
           // A minimum, like the tab itself: at 200% text size the glyph and its
-          // caption need more room, and the capsule grows instead of cutting
-          // the caption off at the tile's edge. The inset is tight because four
-          // captions at 200% size have to share the dock's 300px ceiling.
+          // caption need more room, and the four tabs share the dock's 300px
+          // ceiling instead of pushing it past the page gutter. The inset is
+          // tight so the captions keep that shared row.
           minHeight: tabBar.pill,
           alignItems: 'center',
           justifyContent: 'center',
@@ -600,9 +600,11 @@ const styles = StyleSheet.create({
     zIndex: 50,
   },
   bar: {
-    // Intrinsic width: the dock hugs its cells and never stretches with the
-    // viewport, so the selection lens always sits exactly on a tab.
+    // Four-cell width: the dock is sized by its tabs, not by the viewport, so
+    // it keeps the page gutter at 200% text and the selection lens always sits
+    // exactly on a tab.
     alignSelf: 'center',
+    width: tabBar.cell * 4 + tabBar.padding * 2,
     maxWidth: tabBar.maxWidth,
     minHeight: tabBar.height,
     padding: tabBar.padding,
@@ -639,9 +641,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   tab: {
-    // A full cell minimum, and wider when the label needs it (200% text size,
-    // or a longer translation), so a caption never spills under its neighbour.
-    minWidth: tabBar.cell,
+    // A 44px target minimum; the fixed four-cell dock gives the tabs their
+    // normal 72px cell and lets a longer label take slack at 200% text size.
+    minWidth: 44,
     flexGrow: 1,
     flexShrink: 1,
     height: '100%',

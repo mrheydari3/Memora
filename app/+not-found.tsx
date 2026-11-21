@@ -42,8 +42,6 @@ export default function NotFoundScreen() {
       >
         <Surface
           tone="scene"
-          radius="pane"
-          padding="md"
           style={{
             width: '100%',
             maxWidth: v3.layout.composerMaxWidth,

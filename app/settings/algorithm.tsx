@@ -226,7 +226,7 @@ export default function AlgorithmSettingsScreen() {
     preset === 'fsrs'
       ? [
           { label: 'Retention', value: `${retention}%` },
-          { label: 'Max interval', value: formatMaxInterval(view.maximumInterval) },
+          { label: 'Max gap', value: formatMaxInterval(view.maximumInterval) },
           { label: 'Daily', value: `${view.newPerDay} new · ${view.maxPerDay} total` },
         ]
       : preset === 'general'
@@ -359,7 +359,7 @@ export default function AlgorithmSettingsScreen() {
                 <SettingsLine
                   icon="insights"
                   title="Adaptive review order"
-                  subtitle="Put cards with lower estimated recall first; due dates stay unchanged"
+                  subtitle="Lower estimated recall first; due dates stay."
                   trailing={
                     <ToggleSwitch
                       value={view.adaptive}
@@ -371,7 +371,7 @@ export default function AlgorithmSettingsScreen() {
                 <SettingsLine
                   icon="tune"
                   title="Learning steps"
-                  subtitle="Then FSRS takes over long-term scheduling"
+                  subtitle="Then FSRS schedules long-term."
                   value={learningSteps.length > 0 ? learningSteps.join(' → ') : 'Auto'}
                   onPress={advancedSettings}
                   last

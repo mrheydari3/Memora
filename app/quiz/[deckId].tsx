@@ -247,7 +247,6 @@ function ArenaAnswer({
         >
         <Surface
           tone="pane"
-          radius="pane"
           padding="none"
           style={{
             flex: 1,
@@ -587,7 +586,7 @@ export default function QuizScreen() {
 
   // The result is a dialog over a finished round. The shell behind it is inert,
   // so this effect owns the whole keyboard story: focus moves inside, Tab cycles
-  // between the result actions, Escape takes the same exit as "Back to Game",
+  // between the result actions, Escape takes the same exit as "Back to Review",
   // and focus returns to the control that was active before the round ended.
   const resultRef = useRef<React.ComponentRef<typeof Animated.View> | null>(null);
   useEffect(() => {
@@ -601,7 +600,7 @@ export default function QuizScreen() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        router.replace('/(tabs)/library');
+        router.replace('/(tabs)/review');
         return;
       }
       if (event.key !== 'Tab') return;
@@ -871,7 +870,7 @@ export default function QuizScreen() {
       <HeaderIcon
         icon="arrow-back"
         label="Close quiz"
-        onPress={() => goBackOr(router, '/(tabs)/library')}
+        onPress={() => goBackOr(router, '/(tabs)/review')}
       />
       <View style={{ flex: 1, minWidth: 0, alignItems: 'center' }}>
         <AppText
@@ -929,12 +928,12 @@ export default function QuizScreen() {
             icon="search-off"
             title="Deck not found"
             titleVariant="headline"
-            description="It may have been deleted. Go back to Game to pick another deck."
+            description="It may have been deleted. Go back to Review to pick another deck."
             action={
               <ActionButton
-                label="Back to Game"
+                label="Back to Review"
                 fullWidth={false}
-                onPress={() => router.replace('/(tabs)/library')}
+                onPress={() => router.replace('/(tabs)/review')}
               />
             }
           />
@@ -1127,7 +1126,7 @@ export default function QuizScreen() {
           </View>
 
           <View style={{ flex: 1, minHeight: 0, justifyContent: 'center', marginTop: 18 }}>
-            <Surface tone="pane" radius="pane" padding="none" style={styles.stage}>
+            <Surface tone="pane" padding="none" style={styles.stage}>
               <View style={styles.scenePill}>
                 <MaterialIcons name="translate" size={iconSize.sm} color={colors.outline} />
                 <AppText
@@ -1246,7 +1245,7 @@ export default function QuizScreen() {
           aria-label="Quiz paused"
           style={styles.scrim}
         >
-          <Surface tone="scene" radius="pane" padding="none" style={styles.pausePanel}>
+          <Surface tone="scene" padding="none" style={styles.pausePanel}>
             <View style={styles.pauseIcon}>
               <MaterialIcons name="pause" size={iconSize.lg} color={colors.primary} />
             </View>
@@ -1274,9 +1273,9 @@ export default function QuizScreen() {
             </View>
             <View style={{ width: '100%', marginTop: 8 }}>
               <ActionButton
-                label="Back to Game"
+                label="Back to Review"
                 tone="quiet"
-                onPress={() => router.replace('/(tabs)/library')}
+                onPress={() => router.replace('/(tabs)/review')}
               />
             </View>
             {Platform.OS === 'web' && (
@@ -1306,7 +1305,6 @@ export default function QuizScreen() {
           >
             <Surface
               tone="scene"
-              radius="pane"
               padding="none"
               style={
                 tablet
@@ -1383,9 +1381,9 @@ export default function QuizScreen() {
               <View style={{ marginTop: 20, gap: 8 }}>
                 <ActionButton label="Play again" icon="replay" onPress={beginRound} />
                 <ActionButton
-                  label="Back to Game"
+                  label="Back to Review"
                   tone="quiet"
-                  onPress={() => router.replace('/(tabs)/library')}
+                  onPress={() => router.replace('/(tabs)/review')}
                 />
               </View>
             </Surface>

@@ -245,8 +245,6 @@ export function HeroSkeleton({ height = 196 }: { height?: number }) {
   return (
     <Surface
       tone="scene"
-      radius="pane"
-      padding="md"
       style={{ minHeight: height, gap: 16 }}
     >
       <View
@@ -295,7 +293,7 @@ export function HeroSkeleton({ height = 196 }: { height?: number }) {
 export function StatisticsSkeleton() {
   return (
     <View style={{ gap: v3.spacing.page }}>
-      <Surface tone="scene" radius="pane" padding="md" style={{ gap: 16 }}>
+      <Surface tone="scene" style={{ gap: 16 }}>
         <View
           style={{
             flexDirection: 'row',
@@ -352,7 +350,7 @@ export function StatisticsSkeleton() {
 
       <View style={{ gap: 10 }}>
         <Skeleton width={128} height={11} radius={5} />
-        <Surface tone="pane" radius="card" padding="md" style={{ gap: 16 }}>
+        <Surface tone="pane" radius="card" style={{ gap: 16 }}>
           <View
             style={{
               flexDirection: 'row',
@@ -378,7 +376,7 @@ export function StatisticsSkeleton() {
 
       <View style={{ gap: 10 }}>
         <Skeleton width={94} height={11} radius={5} />
-        <Surface tone="pane" radius="card" padding="md" style={{ gap: 14 }}>
+        <Surface tone="pane" radius="card" style={{ gap: 14 }}>
           <Skeleton width="62%" height={10} radius={5} />
           <Skeleton width="80%" height={8} radius={4} />
           <Skeleton width="52%" height={8} radius={4} />
