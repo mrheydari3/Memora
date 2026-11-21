@@ -25,7 +25,8 @@ type FieldProps = {
 
 /**
  * Field — the standard form input: optional uppercase label, a control fill at
- * 44px (or a 64px writing area when multiline and tall). No outline at rest.
+ * 44px (or a 64px writing area when multiline and tall), with one quiet resting
+ * edge.
  */
 export function Field({
   label,
@@ -53,6 +54,10 @@ export function Field({
         style={{
           backgroundColor: fills.control,
           borderRadius: radii.control,
+          // §10: one resting edge from the existing outline token (≥3:1 on
+          // the pane); the field's internal fill stays a quiet step.
+          borderWidth: 1,
+          borderColor: colors.outline,
           minHeight: minHeight ?? (tall ? 64 : heights.field),
           paddingVertical: multiline ? 12 : undefined,
           textAlignVertical: multiline ? 'top' : 'center',

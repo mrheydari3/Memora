@@ -17,8 +17,8 @@ const KNOB = 20;
 const TRAVEL = heights.toggleWidth - KNOB - 4;
 
 /**
- * ToggleSwitch — 46×26 pill. Off is a control fill with a grey knob; on is the
- * accent track with an ink knob. No outline either way.
+ * ToggleSwitch — 46×26 pill. Off is a control fill with a quiet edge and a grey
+ * knob; on is the accent track with an ink knob.
  *
  * Accessibility: `role="switch"` requires `aria-checked`. react-native-web
  * renders `accessibilityState.checked` for some roles but not for a switch
@@ -69,6 +69,10 @@ export function ToggleSwitch({
           height: heights.toggle,
           borderRadius: heights.toggle / 2,
           backgroundColor: fills.control,
+          // §10: the off track gets a resting edge in the existing outline
+          // token; the on track is already separated by its accent fill.
+          borderWidth: value ? 0 : 1,
+          borderColor: colors.outline,
           justifyContent: 'center',
           overflow: 'hidden',
         }}
