@@ -35,15 +35,8 @@ import {
   Surface,
 } from '../../components/v3';
 import { SessionSummary } from '../../components/v3/SessionSummary';
-import {
-  colors,
-  fills,
-  heights,
-  iconSize,
-  motion,
-  radii,
-  rims,
-} from '../../theme/tokens';
+import { StudyWaiting } from '../../components/v3/StudyWaiting';
+import { colors, fills, heights, iconSize, motion, radii, rims } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { EASE, REVEAL_OPACITY_FLOOR, timingTo } from '../../motion';
 import { speakCard, speak, stopSpeaking } from '../../services/tts';
@@ -170,10 +163,9 @@ export default function StudyScreen() {
     index: number;
   } | null>(null);
 
-  // Session chrome motion: the progress bar eases between fractions and the
-  // question-side controls settle in as each card arrives. The card itself
-  // leaves in the rating's direction before the schedule advances.
-  const progressValue = useRef(new Animated.Value(0)).current;
+  // Session chrome motion: the question-side controls settle in as each card
+  // arrives, and the card leaves in the rating's direction before the schedule
+  // advances.
   const footerReveal = useRef(new Animated.Value(0)).current;
   const cardExit = useRef(new Animated.Value(0)).current;
   const exitShift = useRef(16);
@@ -273,6 +265,41 @@ export default function StudyScreen() {
       ),
     [reviewLog, sessionDeckIds, sessionStartedAt]
   );
+  const sessionStats = useMemo(() => {
+    const counts: [number, number, number, number] = [0, 0, 0, 0];
+    const ratingDurations: [number, number, number, number] = [0, 0, 0, 0];
+    let durationMs = 0;
+    for (const entry of sessionReviews) {
+      switch (entry.rating) {
+        case 1:
+          counts[0] += 1;
+          break;
+        case 2:
+          counts[1] += 1;
+          break;
+        case 3:
+          counts[2] += 1;
+          break;
+        case 4:
+          counts[3] += 1;
+          break;
+      }
+      const elapsed = Math.max(0, entry.elapsedMs);
+      durationMs += elapsed;
+      ratingDurations[entry.rating - 1] += elapsed;
+    }
+    return {
+      counts,
+      ratingDurations,
+      durationMs,
+      reviewed: sessionReviews.length,
+      recalled: counts[2] + counts[3],
+    };
+  }, [sessionReviews]);
+  const sessionRecallPct =
+    sessionStats.reviewed > 0
+      ? Math.round((sessionStats.recalled / sessionStats.reviewed) * 100)
+      : 0;
 
   const archivedDeckIds = useMemo(
     () => new Set(decks.filter((item) => item.archivedAt).map((item) => item.id)),
@@ -476,20 +503,6 @@ export default function StudyScreen() {
 
   // Leaving the session must not leave a card talking in the background.
   useEffect(() => () => void stopSpeaking(), []);
-
-  // Denominator is fixed at the session's opening size, and work that re-enters
-  // the queue parks the bar at 100% instead of stretching it.
-  const progressTarget =
-    sessionTotal > 0 ? Math.min(1, (index + (showAnswer ? 0.5 : 0)) / sessionTotal) : 0;
-
-  useEffect(() => {
-    // Width is a layout property, so it cannot run on the native driver.
-    timingTo(progressValue, progressTarget, {
-      duration: motion.flip,
-      easing: EASE.standard,
-      nativeDriver: false,
-    });
-  }, [progressTarget, progressValue]);
 
   useEffect(() => {
     footerReveal.setValue(0);
@@ -849,31 +862,7 @@ export default function StudyScreen() {
       return <Screen header={completionHeader}>{null}</Screen>;
     }
 
-    const counts: [number, number, number, number] = [0, 0, 0, 0];
-    const ratingDurations: [number, number, number, number] = [0, 0, 0, 0];
-    let durationMs = 0;
-    for (const entry of sessionReviews) {
-      switch (entry.rating) {
-        case 1:
-          counts[0] += 1;
-          break;
-        case 2:
-          counts[1] += 1;
-          break;
-        case 3:
-          counts[2] += 1;
-          break;
-        case 4:
-          counts[3] += 1;
-          break;
-      }
-      const elapsed = Math.max(0, entry.elapsedMs);
-      durationMs += elapsed;
-      ratingDurations[entry.rating - 1] += elapsed;
-    }
-
-    const reviewed = sessionReviews.length;
-    const recalled = counts[2] + counts[3];
+    const { counts, ratingDurations, durationMs, reviewed } = sessionStats;
     const now = Date.now();
     const upcoming = scopeCards
       .map((card) => new Date(card.fsrs.due).getTime())
@@ -905,7 +894,7 @@ export default function StudyScreen() {
           backLabel={folderMode ? 'Back to folder' : 'Back to deck'}
           emptyDeck={emptyDeck}
           reviewed={reviewed}
-          recallPct={reviewed > 0 ? Math.round((recalled / reviewed) * 100) : 0}
+          recallPct={sessionRecallPct}
           xpEarned={reviewed * XP_PER_REVIEW}
           streak={streak}
           durationMs={durationMs}
@@ -927,33 +916,28 @@ export default function StudyScreen() {
   const cardStage = (
     <View style={{ flex: 1, minWidth: 0 }}>
       {waiting && (
-        <View
-          style={{
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingHorizontal: 24,
+        <StudyWaiting
+          card={currentCard}
+          note={storedCard?.note}
+          learningStep={learningStep}
+          waitLabel={formatWait(waitingMs)}
+          targetRetention={targetRetention}
+          frontLanguage={frontLanguage}
+          deckName={scopeTitle}
+          deckColor={scopeColor}
+          addedLabel={addedLabel}
+          reviewed={sessionStats.reviewed}
+          recallPct={sessionRecallPct}
+          durationMs={sessionStats.durationMs}
+          xpEarned={sessionStats.reviewed * XP_PER_REVIEW}
+          streak={streak}
+          maxWidth={completionMaxWidth}
+          onStudyNow={() => {
+            setStudyNowId(currentCard.id);
+            setClock(Date.now());
           }}
-        >
-          <MaterialIcons name="schedule" size={iconSize.xl} color={colors.primary} />
-          <AppText variant="headline" headingLevel={2} align="center" className="mt-3">
-            Next review {formatWait(waitingMs)}
-          </AppText>
-          <AppText variant="bodySm" tone="muted" align="center" className="mt-2">
-            This card is in its learning steps. Wait for the interval, or study it now.
-          </AppText>
-          <View style={{ marginTop: 20, width: '100%', maxWidth: 260 }}>
-            <ActionButton
-              label="Study now"
-              onPress={() => {
-                setStudyNowId(currentCard.id);
-                setClock(Date.now());
-              }}
-            />
-          </View>
-        </View>
+        />
       )}
-
       {!waiting && (
       <Animated.View
         style={{
@@ -1061,18 +1045,6 @@ export default function StudyScreen() {
   return (
     <>
       <Screen header={header}>
-      <View style={{ height: 4, backgroundColor: fills.track }}>
-        <Animated.View
-          style={{
-            height: '100%',
-            minWidth: 6,
-            borderRadius: 2,
-            backgroundColor: colors.primary,
-            width: progressValue.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
-          }}
-        />
-      </View>
-
       <View
         style={{
           flex: 1,
