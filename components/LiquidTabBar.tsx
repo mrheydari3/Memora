@@ -13,7 +13,12 @@ import { BlurView } from 'expo-blur';
 import { AppText } from './AppText';
 import { colors, glass, iconSize, motion, rims, shadow, tabBar } from '../theme/tokens';
 import { v3 } from '../theme/v3';
-import { prefersReducedMotion, springLiquidTo } from '../motion';
+import {
+  prefersReducedMotion,
+  springLiquidLayoutTo,
+  springLiquidTo,
+  timingTo,
+} from '../motion';
 import { useRtl } from '../services/direction';
 import { HapticsEngine } from '../services/haptics';
 
@@ -157,6 +162,8 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
   const lensX = useRef(new Animated.Value(0)).current;
   const lensW = useRef(new Animated.Value(0)).current;
   const [lensReady, setLensReady] = useState(false);
+  /** True while a gesture owns the lens; layout parking must not fight it. */
+  const dragging = useRef(false);
 
   /** The row that holds the tabs; every tab box is measured against it. */
   const rowRef = useRef<unknown>(null);
@@ -230,7 +237,7 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
   // Park the lens on the selected tab, and settle it there whenever that tab
   // moves (a resize, or a label that re-measures wider).
   useEffect(() => {
-    if (!measured) return;
+    if (!measured || dragging.current) return;
     const slot = slots[state.index];
     if (!slot) return;
 
@@ -245,11 +252,7 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
     }
 
     springLiquidTo(lensX, targetX);
-    Animated.spring(lensW, {
-      toValue: targetWidth,
-      ...motion.liquidSpring,
-      useNativeDriver: false,
-    }).start();
+    springLiquidLayoutTo(lensW, targetWidth);
   }, [measured, slots, state.index, lensReady, lensX, lensW]);
 
   // Host handles stay `unknown`: RN 0.88 no longer exports its host element
@@ -259,7 +262,6 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
   const keyboardFocusIndex = useRef<number | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
 
-  const dragging = useRef(false);
   const dragIndexRef = useRef<number | null>(null);
   const dragStart = useRef(state.index);
   const dragProgress = useRef(state.index);
@@ -478,15 +480,10 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
     if (Platform.OS === 'web') return;
 
     const animate = (toValue: number) => {
-      if (prefersReducedMotion()) {
-        hide.setValue(toValue);
-        return;
-      }
-      Animated.timing(hide, {
-        toValue,
+      void timingTo(hide, toValue, {
         duration: toValue === 1 ? motion.fast : motion.base,
-        useNativeDriver: true,
-      }).start();
+        nativeDriver: true,
+      });
     };
 
     const show = Keyboard.addListener('keyboardDidShow', () => animate(1));

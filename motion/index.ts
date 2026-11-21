@@ -166,6 +166,23 @@ export function springLiquidTo(
   }).start();
 }
 
+/** The lens's width uses the HTML spring and cannot run on the native driver. */
+export function springLiquidLayoutTo(
+  value: Animated.Value,
+  toValue: number,
+  options: { reduced?: boolean } = {}
+): void {
+  if (options.reduced ?? prefersReducedMotion()) {
+    value.setValue(toValue);
+    return;
+  }
+  Animated.spring(value, {
+    toValue,
+    ...motion.liquidSpring,
+    useNativeDriver: false,
+  }).start();
+}
+
 /**
  * Spring one value to `toValue` and resolve when it settles. Card paging uses
  * this so the swap waits for the physical motion instead of a clock, and
