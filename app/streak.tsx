@@ -11,7 +11,15 @@ import {
   Screen,
   SettingsGroupSkeleton,
 } from '../components';
-import { PageHeader, StreakCalendar, Surface } from '../components/v3';
+import {
+  ActionButton,
+  MetricGrid,
+  PageHeader,
+  SectionHeading,
+  StreakCalendar,
+  Surface,
+  type Metric,
+} from '../components/v3';
 import { useDeckStore } from '../store/useDeckStore';
 import { useReviewStore } from '../store/useReviewStore';
 import { useStreakStore } from '../store/useStreakStore';
@@ -26,15 +34,18 @@ import {
 } from '../data/streak';
 import { goBackOr } from '../services/navigation';
 import { HapticsEngine } from '../services/haptics';
-import { alpha, colors, fills, iconSize, radii } from '../theme/tokens';
+import { alpha, colors, fills, radii, rims } from '../theme/tokens';
 import { v3 } from '../theme/v3';
 import { useToday } from '../hooks/useToday';
+import { useResponsive } from '../hooks/useResponsive';
 
 const LONG_DATE = new Intl.DateTimeFormat('en-US', {
   weekday: 'long',
   month: 'long',
   day: 'numeric',
 });
+
+const MONTH = new Intl.DateTimeFormat('en-US', { month: 'long' });
 
 const plural = (count: number, one: string, many: string) =>
   `${count.toLocaleString('en-US')} ${count === 1 ? one : many}`;
@@ -59,6 +70,8 @@ const ERROR_COPY: Record<string, string> = {
  */
 export default function StreakScreen() {
   const router = useRouter();
+  const { tablet, width } = useResponsive();
+  const calendarEdge = width < 360;
   const now = useToday();
   const currentMonthStart = startOfLocalMonth(now);
 
@@ -106,9 +119,18 @@ export default function StreakScreen() {
     () => new Set(reviewTimes.map((time) => localDateKey(time))),
     [reviewTimes]
   );
+  const currentMonthPrefix = useMemo(
+    () => localDateKey(currentMonthStart).slice(0, 7),
+    [currentMonthStart]
+  );
+  const monthStudyDays = useMemo(
+    () => [...studyDates].filter((key) => key.startsWith(currentMonthPrefix)).length,
+    [studyDates, currentMonthPrefix]
+  );
   const savedSkipDates = useMemo(() => new Set(skipDates), [skipDates]);
 
   const todayKey = localDateKey(now);
+  const todayStudied = studyDates.has(todayKey);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const selectedDateKey = selectedDate ?? allowance.candidates[0]?.date ?? todayKey;
   const selectedCandidate =
@@ -189,153 +211,248 @@ export default function StreakScreen() {
     ? LONG_DATE.format(new Date(selectedCandidate.dayStart))
     : null;
   const hasAnyReview = stats.studyDays > 0;
+  const monthName = MONTH.format(new Date(currentMonthStart));
+  const heroState =
+    stats.current > 0
+      ? todayStudied
+        ? {
+            label: 'Active · studied today',
+            icon: 'check-circle' as const,
+            color: colors.success,
+          }
+        : {
+            label: 'On track · study today',
+            icon: 'schedule' as const,
+            color: colors.primary,
+          }
+      : hasAnyReview
+        ? {
+            label: 'Restart · study today',
+            icon: 'schedule' as const,
+            color: colors.warning,
+          }
+        : { label: 'Start today', icon: 'schedule' as const, color: colors.warning };
+  const heroCopy =
+    stats.current > 0
+      ? 'Keep your momentum going.'
+      : hasAnyReview
+        ? 'One review starts the next run.'
+        : 'Your first review starts the streak.';
+  const dayUnit = (count: number) => (count === 1 ? 'day' : 'days');
+  const metrics: Metric[] = [
+    {
+      label: 'Study days',
+      value: stats.studyDays.toLocaleString('en-US'),
+      unit: dayUnit(stats.studyDays),
+      note: 'days with a review',
+      icon: 'calendar-today',
+      color: colors.onSurface,
+    },
+    {
+      label: 'Best run',
+      value: stats.longest.toLocaleString('en-US'),
+      unit: dayUnit(stats.longest),
+      note: 'longest streak so far',
+      icon: 'emoji-events',
+      color: stats.longest > 0 ? colors.warning : colors.outline,
+    },
+    {
+      label: 'Rest days',
+      value: skips.length.toLocaleString('en-US'),
+      unit: dayUnit(skips.length),
+      note: skips.length > 0 ? 'days protected' : 'no rest days used',
+      icon: 'shield',
+      color: skips.length > 0 ? colors.success : colors.onSurface,
+    },
+    {
+      label: 'This month',
+      value: monthStudyDays.toLocaleString('en-US'),
+      unit: dayUnit(monthStudyDays),
+      note: monthName + ' study days',
+      icon: 'date-range',
+      color: colors.primary,
+    },
+  ];
 
   return (
     <Screen scroll header={header} backgroundInert={confirmOpen} contentMaxWidth={760}>
       <View style={{ paddingBottom: 28 }}>
         <View style={{ paddingHorizontal: 20 }}>
           <RevealItem index={0}>
-            <Surface tone="scene" radius="pane" padding="md" testID="streak-summary">
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                <View
-                  style={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 16,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: alpha(colors.warning, 0.12),
-                  }}
-                >
-                  <MaterialIcons
-                    name="local-fire-department"
-                    size={26}
-                    color={stats.current > 0 ? colors.warning : colors.outline}
-                  />
-                </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'flex-end',
-                      flexWrap: 'wrap',
-                      columnGap: 7,
-                    }}
-                  >
-                    <AppText
-                      variant="display"
-                      weight="bold"
-                      accessibilityLabel={`${plural(stats.current, 'day', 'days')} streak`}
-                      style={[
-                        v3.type.hero,
-                        { fontVariant: ['tabular-nums'], color: colors.onSurface },
-                      ]}
-                    >
-                      {stats.current}
-                    </AppText>
-                    <AppText
-                      variant="bodyLg"
-                      tone="muted"
-                      style={{ paddingBottom: 5 }}
-                    >
-                      {stats.current === 1 ? 'day' : 'days'}
-                    </AppText>
-                  </View>
-                  <AppText variant="bodySm" tone="muted" style={{ marginTop: 2 }}>
-                    {stats.current > 0
-                      ? 'Keep your momentum going.'
-                      : hasAnyReview
-                        ? 'One review starts the next run.'
-                        : 'Your first review starts the streak.'}
-                  </AppText>
-                </View>
+            <Surface
+              tone="scene"
+              padding="md"
+              testID="streak-summary"
+              style={{ alignItems: 'center', overflow: 'hidden' }}
+            >
+              <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: alpha(colors.warning, stats.current > 0 ? 0.14 : 0.08),
+                  borderWidth: 1,
+                  borderColor: alpha(colors.warning, stats.current > 0 ? 0.3 : 0.16),
+                }}
+              >
+                <MaterialIcons
+                  name="local-fire-department"
+                  size={27}
+                  color={stats.current > 0 ? colors.warning : colors.outline}
+                />
               </View>
+
+              <AppText
+                variant="caption"
+                weight="semibold"
+                className="mt-3 uppercase"
+                style={{
+                  color: stats.current > 0 ? colors.warning : colors.outline,
+                  letterSpacing: 0.6,
+                }}
+              >
+                Current streak
+              </AppText>
 
               <View
                 style={{
-                  marginTop: 16,
-                  paddingTop: 12,
-                  borderTopWidth: 1,
-                  borderTopColor: colors.outlineVariant,
                   flexDirection: 'row',
+                  alignItems: 'flex-end',
+                  justifyContent: 'center',
                   flexWrap: 'wrap',
-                  gap: 18,
+                  columnGap: 7,
+                  marginTop: 2,
                 }}
               >
-                <View style={{ gap: 1 }}>
-                  <AppText variant="caption" tone="tertiary">
-                    Study days
-                  </AppText>
-                  <AppText variant="bodySm" weight="semibold">
-                    {stats.studyDays.toLocaleString('en-US')}
-                  </AppText>
-                </View>
-                <View style={{ gap: 1 }}>
-                  <AppText variant="caption" tone="tertiary">
-                    Best run
-                  </AppText>
-                  <AppText variant="bodySm" weight="semibold">
-                    {plural(stats.longest, 'day', 'days')}
-                  </AppText>
-                </View>
-                <View style={{ gap: 1 }}>
-                  <AppText variant="caption" tone="tertiary">
-                    Rest days
-                  </AppText>
-                  <AppText variant="bodySm" weight="semibold">
-                    {skips.length.toLocaleString('en-US')}
-                  </AppText>
-                </View>
+                <AppText
+                  variant="display"
+                  weight="bold"
+                  accessibilityLabel={plural(stats.current, 'day', 'days') + ' streak'}
+                  style={[
+                    tablet ? v3.type.heroWide : v3.type.hero,
+                    { fontVariant: ['tabular-nums'], color: colors.onSurface },
+                  ]}
+                >
+                  {stats.current}
+                </AppText>
+                <AppText variant="bodyLg" tone="muted" style={{ paddingBottom: 5 }}>
+                  {stats.current === 1 ? 'day' : 'days'}
+                </AppText>
+              </View>
+
+              <AppText
+                variant="body"
+                tone="muted"
+                align="center"
+                className="mt-2"
+                style={{ maxWidth: 300 }}
+              >
+                {heroCopy}
+              </AppText>
+
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginTop: 16,
+                  borderRadius: radii.pill,
+                  borderWidth: 1,
+                  borderColor: rims.soft,
+                  backgroundColor: colors.surfaceInset,
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                  maxWidth: '100%',
+                }}
+              >
+                <MaterialIcons name={heroState.icon} size={16} color={heroState.color} />
+                <AppText
+                  variant="caption"
+                  weight="semibold"
+                  style={{ color: heroState.color, flexShrink: 1 }}
+                >
+                  {heroState.label}
+                </AppText>
               </View>
             </Surface>
+
+            <MetricGrid items={metrics} style={{ marginTop: v3.spacing.section }} />
           </RevealItem>
         </View>
 
         <RevealItem index={1}>
           <View
             style={{
-              marginTop: 26,
               width: '100%',
-              maxWidth: 560,
+              maxWidth: 760,
               alignSelf: 'center',
+              paddingHorizontal: calendarEdge ? 0 : 20,
+              marginTop: v3.spacing.page,
             }}
           >
-            <StreakCalendar
-              monthStart={monthStart}
-              today={now}
-              selectedDate={selectedDateKey}
-              studyDates={studyDates}
-              skipDates={savedSkipDates}
-              canGoNext={canGoNext}
-              onPrevMonth={() => setMonthStart((month) => addLocalMonths(month, -1))}
-              onNextMonth={() => {
-                if (canGoNext) setMonthStart((month) => addLocalMonths(month, 1));
+            <View style={{ paddingHorizontal: calendarEdge ? 20 : 0 }}>
+              <SectionHeading label="Study calendar" hint="Tap a day" />
+            </View>
+            <Surface
+              tone="pane"
+              radius="card"
+              padding="none"
+              style={{
+                marginTop: 10,
+                paddingBottom: 8,
+                overflow: 'hidden',
+                borderRadius: calendarEdge ? 0 : v3.radii.card,
               }}
-              onSelectDate={chooseDate}
-            />
+            >
+              <StreakCalendar
+                monthStart={monthStart}
+                today={now}
+                selectedDate={selectedDateKey}
+                studyDates={studyDates}
+                skipDates={savedSkipDates}
+                canGoNext={canGoNext}
+                onPrevMonth={() => setMonthStart((month) => addLocalMonths(month, -1))}
+                onNextMonth={() => {
+                  if (canGoNext) setMonthStart((month) => addLocalMonths(month, 1));
+                }}
+                onSelectDate={chooseDate}
+              />
+            </Surface>
           </View>
         </RevealItem>
 
         <RevealItem index={2}>
-          <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+          <View
+            style={{
+              width: '100%',
+              maxWidth: 760,
+              alignSelf: 'center',
+              paddingHorizontal: 20,
+              marginTop: v3.spacing.page,
+            }}
+          >
             <Surface tone="pane" radius="card" padding="md" testID="weekly-rest-day">
               <View
                 style={{
                   flexDirection: 'row',
                   flexWrap: 'wrap',
-                  alignItems: 'flex-start',
+                  alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: 12,
+                  gap: 10,
                 }}
               >
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <AppText variant="label" weight="semibold">
-                    Weekly Rest Day
-                  </AppText>
-                  <AppText variant="bodySm" tone="muted" style={{ marginTop: 3 }}>
-                    Take one day off each week without losing your streak.
-                  </AppText>
-                </View>
+                <AppText
+                  variant="label"
+                  weight="semibold"
+                  numberOfLines={1}
+                  style={{ flexShrink: 1 }}
+                >
+                  Weekly rest day
+                </AppText>
                 <View
                   testID="weekly-rest-day-count"
                   style={{
@@ -363,6 +480,10 @@ export default function StreakScreen() {
                 </View>
               </View>
 
+              <AppText variant="bodySm" tone="muted" style={{ marginTop: 4 }}>
+                Take one day off each week without losing your streak.
+              </AppText>
+
               <View
                 style={{
                   marginTop: 14,
@@ -388,14 +509,14 @@ export default function StreakScreen() {
                         }.`}
                       </AppText>
                     ) : null}
-                    <Button
+                    <ActionButton
                       label="Use Rest Day"
                       icon="shield"
                       onPress={() => {
                         setSaveError(null);
                         setConfirmOpen(true);
                       }}
-                      loading={saving}
+                      disabled={saving}
                     />
                   </>
                 ) : currentWeekSkip ? (

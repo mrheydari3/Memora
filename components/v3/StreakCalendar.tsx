@@ -9,7 +9,8 @@ import {
   startOfLocalDay,
 } from '../../data/streak';
 import { prefersReducedMotion, usePressFeedback } from '../../motion';
-import { alpha, colors, iconSize, motion } from '../../theme/tokens';
+import { alpha, colors, iconSize, motion, radii } from '../../theme/tokens';
+import { useResponsive } from '../../hooks/useResponsive';
 import { IconButton } from '../IconButton';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
@@ -38,6 +39,8 @@ type DayCellProps = {
   selected: boolean;
   studied: boolean;
   skipped: boolean;
+  tileSize: number;
+  rowHeight: number;
   onSelect: () => void;
 };
 
@@ -60,7 +63,16 @@ function dayLabel(
   return parts.join('. ') + '.';
 }
 
-function DayCell({ cell, today, selected, studied, skipped, onSelect }: DayCellProps) {
+function DayCell({
+  cell,
+  today,
+  selected,
+  studied,
+  skipped,
+  tileSize,
+  rowHeight,
+  onSelect,
+}: DayCellProps) {
   const [focused, setFocused] = useState(false);
   const press = usePressFeedback({ scale: 0.92 });
   const isToday = cell.dayStart === today;
@@ -84,7 +96,7 @@ function DayCell({ cell, today, selected, studied, skipped, onSelect }: DayCellP
           : colors.onSurfaceVariant;
 
   return (
-    <Animated.View style={[{ width: '14.2857%', height: 50 }, press.style]}>
+    <Animated.View style={[{ width: '14.2857%', height: rowHeight }, press.style]}>
       <Pressable
         testID={`streak-day-${cell.dateKey}`}
         onPress={onSelect}
@@ -104,9 +116,9 @@ function DayCell({ cell, today, selected, studied, skipped, onSelect }: DayCellP
       >
         <View
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
+            width: tileSize,
+            height: tileSize,
+            borderRadius: radii.control,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: fill,
@@ -116,7 +128,7 @@ function DayCell({ cell, today, selected, studied, skipped, onSelect }: DayCellP
           }}
         >
           <AppText
-            variant="caption"
+            variant={tileSize >= 48 ? 'bodySm' : 'caption'}
             weight={studied || isToday ? 'semibold' : 'medium'}
             numberOfLines={1}
             style={{ color: ink, fontVariant: ['tabular-nums'] }}
@@ -174,7 +186,7 @@ function LegendItem({ children, shield = false }: { children: React.ReactNode; s
           style={{
             width: 8,
             height: 8,
-            borderRadius: 4,
+            borderRadius: 3,
             backgroundColor: alpha(colors.primary, 0.45),
           }}
         />
@@ -204,6 +216,9 @@ export function StreakCalendar({
   onNextMonth,
   onSelectDate,
 }: StreakCalendarProps) {
+  const { tablet } = useResponsive();
+  const tileSize = tablet ? 48 : 40;
+  const rowHeight = tablet ? 58 : 50;
   const cells = buildMonthGrid(monthStart);
   const reveal = useRef(new Animated.Value(1)).current;
 
@@ -248,7 +263,7 @@ export function StreakCalendar({
         />
         <AppText
           testID="streak-month-label"
-          variant="body"
+          variant={tablet ? 'bodyLg' : 'body'}
           weight="semibold"
           style={{ fontVariant: ['tabular-nums'] }}
         >
@@ -267,7 +282,7 @@ export function StreakCalendar({
       <View style={{ flexDirection: 'row', marginTop: 6, paddingHorizontal: 2 }}>
         {WEEKDAYS.map((label, index) => (
           <View key={`${label}-${index}`} style={{ width: '14.2857%', alignItems: 'center' }}>
-            <AppText variant="caption" tone="tertiary" weight="medium">
+            <AppText variant={tablet ? 'bodySm' : 'caption'} tone="tertiary" weight="medium">
               {label}
             </AppText>
           </View>
@@ -288,7 +303,7 @@ export function StreakCalendar({
               return (
                 <View
                   key={cell.dateKey}
-                  style={{ width: '14.2857%', height: 50 }}
+                  style={{ width: '14.2857%', height: rowHeight }}
                   aria-hidden
                   accessibilityElementsHidden
                   importantForAccessibility="no-hide-descendants"
@@ -303,6 +318,8 @@ export function StreakCalendar({
                 selected={cell.dateKey === selectedDate}
                 studied={studyDates.has(cell.dateKey)}
                 skipped={skipDates.has(cell.dateKey)}
+                tileSize={tileSize}
+                rowHeight={rowHeight}
                 onSelect={() => onSelectDate(cell.dateKey)}
               />
             );
@@ -327,7 +344,7 @@ export function StreakCalendar({
             style={{
               width: 8,
               height: 8,
-              borderRadius: 4,
+              borderRadius: 3,
               borderWidth: 1,
               borderColor: colors.primary,
             }}
