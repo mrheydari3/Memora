@@ -169,22 +169,24 @@ test.describe('Home experience', () => {
       await expect(control).toContainText('Change icon');
       const controlBox = await control.boundingBox();
       expect(controlBox).not.toBeNull();
-      expect(controlBox!.height).toBeGreaterThanOrEqual(44);
+      // A fractional layout position can make Chromium report an exact 44px
+      // box as 43.9999…; the target is measured in whole CSS pixels.
+      expect(Math.round(controlBox!.height)).toBeGreaterThanOrEqual(44);
       await control.click();
 
       const language = dialog.getByRole('radio', { name: 'Icon Language' });
       await expect(language).toBeVisible();
       const box = await language.boundingBox();
       expect(box).not.toBeNull();
-      expect(box!.width).toBeGreaterThanOrEqual(44);
-      expect(box!.height).toBeGreaterThanOrEqual(44);
+      expect(Math.round(box!.width)).toBeGreaterThanOrEqual(44);
+      expect(Math.round(box!.height)).toBeGreaterThanOrEqual(44);
 
       // A long name must wrap inside the 44px row, not ellipsize.
       await dialog.getByRole('radio', { name: 'Icon Record Voice Over' }).click();
       await dialog.getByRole('button', { name: 'Done choosing icon' }).click();
       const chosen = dialog.getByRole('button', { name: /Change icon/ });
       await expect(chosen).toContainText('Record Voice Over');
-      expect((await chosen.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      expect(Math.round((await chosen.boundingBox())!.height)).toBeGreaterThanOrEqual(44);
       expect(
         await chosen.evaluate((element) => {
           const label = [...element.querySelectorAll('*')].find(
