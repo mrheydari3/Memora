@@ -8,6 +8,15 @@
 
 ## Unreleased
 
+### Design drift repair — 21 November 2026
+
+- **Guard first:** `npm run check:design` now rejects borders/rims outside the §10 exceptions, raw `Animated.timing`/`spring` outside `motion/`, app `<Pressable>` rows without an accessible name and a 44px target, and new `20px` horizontal gutters that duplicate `spacing.screen`. The repaired tree is clean across 107 files.
+- **Surfaces, not strokes:** the stray hero, ledger, card-row, statistics and sheet borders are gone. The few remaining edges are §10 state/focus/rim exceptions and are annotated. Scenes and forms separate with the five-role surface ladder. `SearchBar` is fill-only with no resting outline; `Field`, the off `ToggleSwitch` and `SegmentedControl` carry one edge in the existing outline token. The floating header keeps its single bottom chrome rim and the tab dock its matching 1px rim, so both stay legible over scrolled content.
+- **One primitive per job:** Review's custom mode switch is the sliding `SegmentedControl`; local animations use `timingTo`; deck rows use `Chip`, `Button`, `IconButton`, `ListRow` and `ActionButton`.
+- **Tokens and contrast:** `surfacePane`/`surfaceCardFace` aliases are deleted, `appBarGlass`/`paneAccent` are gone, fills match the documented opacity scale, and `radii.bar`/`v3.type.answer` replace the stray bar radii and 26px type. `outline` is 5.24:1 or better on every surface; the search box is fill-only, while the other form controls keep one existing-token edge.
+- **Live layout:** Deck titles wrap instead of truncating at 320/390, Statistics labels wrap at 320, and Home keeps its Today header and streak chip at 320. The seven audited routes pass at 320/390/768/1280 with no horizontal overflow.
+- **Structure:** Statistics' section/pill/card primitives, Deck's status/filter chips and Quiz's timer ring now live in `components/v3/`; their behaviour is unchanged.
+
 ### Streak calendar and weekly rest day — 20 November 2026
 
 - **Your Streak:** Below 375px Home’s 44px flame chip moves into the Today hero beside the date, so the app bar keeps the full `Memora` wordmark at 320px; wider layouts keep the chip in the app bar. The screen shows the current study-day streak, a Monday-first six-row month grid, studied/today/protected/missed/future states, and month navigation capped at the current month.
