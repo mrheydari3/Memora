@@ -4,6 +4,7 @@ import { AppText } from '../AppText';
 import { Chip } from '../Chip';
 import { SearchBar } from '../SearchBar';
 import { Menu } from '../menu/Menu';
+import { useResponsive } from '../../hooks/useResponsive';
 import type { MenuAction } from '../menu/types';
 import type { LibrarySort } from '../../data/types';
 import {
@@ -36,13 +37,13 @@ type LibraryToolbarProps = {
  * LibraryToolbar — one compact search line and the shelf's instruments.
  *
  * Search is an instrument, not a section: it stays inside the library's own
- * rhythm — a 44px field, two filter pills and the sort trigger. They share a
- * row when the canvas can hold them and wrap as one trailing group when it
- * cannot; the field keeps a readable minimum width instead of shrinking until
- * its placeholder clips. The result count appears only when something is
- * actually being filtered. Sort is a menu, not a fourth filter:
- * its value belongs to the chosen order, so the compact icon trigger carries
- * the current order in its accessible name and the menu owns the list.
+ * rhythm — a 44px field, two filter pills and the sort trigger. On phones the
+ * field owns a full row and the instruments sit beneath it, so the placeholder
+ * never fights the chips for width; from the tablet breakpoint up they share
+ * one row. The result count appears only when something is actually being
+ * filtered. Sort is a menu, not a fourth filter: its value belongs to the
+ * chosen order, so the compact icon trigger carries the current order in its
+ * accessible name and the menu owns the list.
  */
 export function LibraryToolbar({
   query,
@@ -54,6 +55,7 @@ export function LibraryToolbar({
   active,
   resultLabel,
 }: LibraryToolbarProps) {
+  const { tablet } = useResponsive();
   const sortAnchorRef = useRef<React.ComponentRef<typeof View>>(null);
   const [sortOpen, setSortOpen] = useState(false);
   const sortOptions: MenuAction[] = LIBRARY_SORT_OPTIONS.map((option) => ({
@@ -69,11 +71,10 @@ export function LibraryToolbar({
 
   return (
     <View style={{ gap: 8 }}>
-      <View
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 6, rowGap: 8, flexWrap: 'wrap' }}
-      >
-        {/* flexShrink defaults to 0, so the basis is also the field's floor. */}
-        <View style={{ flexGrow: 1, flexBasis: MIN_SEARCH_WIDTH }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        {/* A phone gives the field the whole line; a tablet lets it grow from
+            its readable floor while the instruments stay on the same line. */}
+        <View style={{ flexGrow: 1, flexBasis: tablet ? MIN_SEARCH_WIDTH : '100%' }}>
           <SearchBar
             value={query}
             onChangeText={onQueryChange}
@@ -81,7 +82,7 @@ export function LibraryToolbar({
             accessibilityLabel="Search your library"
           />
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <Chip
             label="All"
             accessibilityLabel="Show all"
