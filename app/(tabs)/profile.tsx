@@ -138,7 +138,7 @@ function IdentityCard({
         </View>
       </View>
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 18 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 16 }}>
         <View
           style={{
             width: heights.avatar,
@@ -146,7 +146,7 @@ function IdentityCard({
             borderRadius: heights.avatar / 2,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: colors.surfaceTile,
+            backgroundColor: colors.surfaceControl,
           }}
         >
           <MaterialIcons name="psychology" size={iconSize.display} color={colors.primary} />
@@ -163,7 +163,7 @@ function IdentityCard({
 
       <View
         style={{
-          marginTop: 18,
+          marginTop: 16,
           padding: 16,
           borderRadius: radii.control,
           backgroundColor: colors.surfaceInset,

@@ -3,7 +3,8 @@ import { AppText } from '../AppText';
 import { MaterialIcons } from '../Icon';
 import { textDirection } from '../../data/text';
 import type { Flashcard } from '../../data/types';
-import { alpha, colors, iconSize, over, radii, rims, stateColors } from '../../theme/tokens';
+import { alpha, colors, glass, iconSize, over, radii, stateColors } from '../../theme/tokens';
+import { v3 } from '../../theme/v3';
 import { ActionButton } from './ActionButton';
 import { Surface } from './Surface';
 
@@ -170,8 +171,6 @@ export function StudyWaiting({
               paddingHorizontal: 10,
               paddingVertical: 5,
               backgroundColor: over(colors.background, stateColor, 0.16),
-              borderWidth: 1,
-              borderColor: alpha(stateColor, 0.3),
             }}
           >
             <View
@@ -198,9 +197,7 @@ export function StudyWaiting({
               borderRadius: 24,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: over(colors.surfacePane, stateColor, 0.16),
-              borderWidth: 1,
-              borderColor: alpha(stateColor, 0.3),
+              backgroundColor: over(glass.fill, stateColor, 0.16),
             }}
           >
             <MaterialIcons name="schedule" size={iconSize.nav} color={stateColor} />
@@ -241,8 +238,6 @@ export function StudyWaiting({
               gap: 8,
               marginTop: 16,
               borderRadius: radii.pill,
-              borderWidth: 1,
-              borderColor: rims.soft,
               backgroundColor: colors.surfaceInset,
               paddingHorizontal: 14,
               paddingVertical: 8,
@@ -285,7 +280,7 @@ export function StudyWaiting({
                   <AppText
                     weight="bold"
                     style={{
-                      fontSize: 26,
+                      ...v3.type.answer,
                       lineHeight: 30,
                       letterSpacing: -0.6,
                       fontVariant: ['tabular-nums'],
@@ -370,7 +365,7 @@ export function StudyWaiting({
             </AppText>
           </View>
 
-          <View style={{ borderTopWidth: 1, borderTopColor: rims.soft, marginVertical: 14 }} />
+          <View style={{ marginVertical: 14 }} />
 
           <View>
             <AppText

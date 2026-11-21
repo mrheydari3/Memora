@@ -5,7 +5,7 @@ import { AppText } from './AppText';
 import { Surface } from './v3/Surface';
 import { alpha, colors, iconSize, motion } from '../theme/tokens';
 import { v3 } from '../theme/v3';
-import { USE_NATIVE_DRIVER, prefersReducedMotion, usePressFeedback } from '../motion';
+import { springToAsync, usePressFeedback } from '../motion';
 
 export type QuizAnswerState = 'idle' | 'correct' | 'wrong' | 'dimmed';
 
@@ -50,14 +50,10 @@ export function QuizAnswer({
 
   useEffect(() => {
     if (state !== 'correct' && state !== 'wrong') return;
-    if (prefersReducedMotion()) return;
     // One small settle when an option resolves: enough to confirm the press,
-    // never enough to bounce the grid.
+    // never enough to bounce the grid. The helper owns reduce-motion.
     pop.setValue(0);
-    Animated.sequence([
-      Animated.spring(pop, { toValue: 1, speed: 40, bounciness: 0, useNativeDriver: USE_NATIVE_DRIVER }),
-      Animated.spring(pop, { toValue: 0, speed: 20, bounciness: 0, useNativeDriver: USE_NATIVE_DRIVER }),
-    ]).start();
+    void springToAsync(pop, 1).then(() => springToAsync(pop, 0));
   }, [state, pop]);
 
   return (

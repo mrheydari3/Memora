@@ -84,8 +84,6 @@ const styles = StyleSheet.create({
     paddingRight: 6,
     paddingVertical: 6,
     borderRadius: radii.control,
-    borderWidth: 1,
-    borderColor: rims.soft,
     overflow: 'hidden',
   },
   message: {

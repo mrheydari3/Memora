@@ -105,7 +105,7 @@ export function ActionMenu({
             borderRadius: 8,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: hovered && !disabled ? alpha(colors.surfaceTile, 0.9) : 'transparent',
+            backgroundColor: hovered && !disabled ? alpha(colors.surfaceControl, 0.9) : 'transparent',
           }}
         >
           <MaterialIcons

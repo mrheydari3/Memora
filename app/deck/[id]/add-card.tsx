@@ -11,6 +11,8 @@ import {
   BottomSheetModal,
   Button,
   CARD_COLOR_CHOICES,
+  IconButton,
+  ListRow,
   PrimaryButton,
   Screen,
 } from '../../../components';
@@ -24,6 +26,7 @@ import {
   iconSize,
   layout,
   over,
+  spacing,
   typography,
 } from '../../../theme/tokens';
 import { v3 } from '../../../theme/v3';
@@ -219,74 +222,27 @@ export default function AddCardScreen() {
         style={{
           width: '100%',
           maxWidth: v3.layout.composerMaxWidth,
-          paddingHorizontal: 20,
+          paddingHorizontal: spacing.screen,
           paddingTop: 10,
           paddingBottom: 24,
           gap: 10,
         }}
       >
-      <Pressable
+      <Button
+        label={isEditing ? 'Save changes' : 'Save card'}
+        icon="check"
         onPress={() => saveCard(false)}
         disabled={!canSave}
-        accessibilityRole="button"
-        accessibilityLabel={isEditing ? 'Save changes' : 'Save card'}
-        accessibilityState={{ disabled: !canSave }}
-        aria-disabled={!canSave}
-        style={{
-          minHeight: heights.button,
-          borderRadius: 14,
-          backgroundColor: canSave ? colors.primaryContainer : fills.control,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-        }}
-      >
-        <MaterialIcons
-          name="check"
-          size={iconSize.lg}
-          color={canSave ? colors.onPrimaryContainer : colors.outline}
-        />
-        <AppText
-          variant="body"
-          weight="semibold"
-          style={{ color: canSave ? colors.onPrimaryContainer : colors.outline }}
-        >
-          {isEditing ? 'Save changes' : 'Save card'}
-        </AppText>
-      </Pressable>
+      />
 
       {!isEditing && (
-        <Pressable
+        <Button
+          label="Save and add another"
+          icon="add"
+          variant="secondary"
           onPress={() => saveCard(true)}
           disabled={!canSave}
-          accessibilityRole="button"
-          accessibilityLabel="Save and add another"
-          accessibilityState={{ disabled: !canSave }}
-          aria-disabled={!canSave}
-          style={{
-            minHeight: 48,
-            borderRadius: 14,
-            backgroundColor: fills.control,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-          }}
-        >
-          <MaterialIcons
-            name="add"
-            size={iconSize.lg}
-            color={canSave ? colors.primary : colors.outline}
-          />
-          <AppText
-            variant="body"
-            weight="semibold"
-            style={{ color: canSave ? colors.onSurface : colors.outline }}
-          >
-            Save and add another
-          </AppText>
-        </Pressable>
+        />
       )}
       </View>
     </View>
@@ -319,7 +275,7 @@ export default function AddCardScreen() {
               borderRadius: 10,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: colors.surfacePane,
+              backgroundColor: glass.fill,
               flexShrink: 0,
             }}
           >
@@ -364,13 +320,11 @@ export default function AddCardScreen() {
       {/* The card, composed the way it will be studied. */}
       <View
         style={{
-          backgroundColor: colors.surfaceCardFace,
+          backgroundColor: glass.cardFace,
           // The tint is mixed into the pane rather than laid over it: React
           // Native styles cannot stack two background colours.
           ...(color ? { backgroundColor: over(glass.fill, color, 0.1) } : {}),
           borderRadius: v3.radii.pane,
-          borderWidth: 1,
-          borderColor: alpha(colors.outlineSoft, 0.4),
           padding: 24,
           minHeight: layout.cardMinHeight,
         }}
@@ -383,8 +337,8 @@ export default function AddCardScreen() {
             left: 0,
             right: 0,
             bottom: 0,
-            borderWidth: 2,
-            borderColor: accent,
+            borderWidth: 2, // design-ignore — §10 focus ring
+            borderColor: accent, // design-ignore — §10 focus ring
             borderRadius: v3.radii.pane,
             opacity: writing ? 1 : 0,
           }}
@@ -452,32 +406,13 @@ export default function AddCardScreen() {
             }}
           />
           <View style={{ alignSelf: 'center' }}>
-            <Pressable
-              onPress={swapSides}
-              accessibilityRole="button"
+            <IconButton
+              icon="swap-vert"
+              size="lg"
+              tone="accent"
               accessibilityLabel="Swap front and back"
-              style={{
-                width: 44,
-                height: 44,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <View
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 19,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: colors.surfaceControl,
-                  borderWidth: 1,
-                  borderColor: alpha(colors.outlineSoft, 0.4),
-                }}
-              >
-                <MaterialIcons name="swap-vert" size={iconSize.lg} color={colors.primaryContainer} />
-              </View>
-            </Pressable>
+              onPress={swapSides}
+            />
           </View>
         </View>
 
@@ -602,9 +537,6 @@ export default function AddCardScreen() {
               justifyContent: 'center',
               gap: 6,
               backgroundColor: color === '' ? colors.selectionSurface : colors.surfaceControl,
-              borderWidth: 1,
-              borderColor:
-                color === '' ? alpha(colors.primary, 0.35) : alpha(colors.outlineSoft, 0.3),
             }}
           >
             <MaterialIcons
@@ -642,8 +574,8 @@ export default function AddCardScreen() {
                     width: 34,
                     height: 34,
                     borderRadius: 17,
-                    borderWidth: 2,
-                    borderColor: active ? colors.primary : 'transparent',
+                    borderWidth: 2, // design-ignore — §10 selection state
+                    borderColor: active ? colors.primary : 'transparent', // design-ignore — §10 selection state
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
@@ -667,62 +599,33 @@ export default function AddCardScreen() {
           cost a second tap to reach. */}
       <View
         style={{
-          backgroundColor: colors.surfacePane,
+          backgroundColor: glass.fill,
           borderRadius: v3.radii.card,
           overflow: 'hidden',
         }}
       >
-        <Pressable
+        <ListRow
+          icon="auto-stories"
+          iconTone="accent"
+          gutter={spacing.screen}
+          title="Example & synonyms"
+          subtitle={
+            detailsCount > 0 ? `${detailsCount} added` : 'Optional context for this card'
+          }
+          showChevron={false}
+          trailing={
+            <MaterialIcons
+              name={detailsOpen ? 'expand-less' : 'expand-more'}
+              size={iconSize.xl}
+              color={colors.onSurfaceVariant}
+            />
+          }
           onPress={() => setDetailsOpen((open) => !open)}
-          accessibilityRole="button"
-          accessibilityState={{ expanded: detailsOpen }}
-          aria-expanded={detailsOpen}
-          style={{
-            minHeight: 56,
-            paddingHorizontal: 20,
-            paddingVertical: 12,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-          }}
-        >
-          <View
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}
-          >
-            <View
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: 12,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: colors.surfaceTile,
-                borderWidth: 1,
-                borderColor: alpha(colors.outlineSoft, 0.4),
-                flexShrink: 0,
-              }}
-            >
-              <MaterialIcons name="auto-stories" size={iconSize.lg} color={colors.primary} />
-            </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <AppText variant="body" weight="semibold">
-                Example & synonyms
-              </AppText>
-              <AppText variant="caption" tone="muted" numberOfLines={1} style={{ marginTop: 2 }}>
-                {detailsCount > 0 ? `${detailsCount} added` : 'Optional context for this card'}
-              </AppText>
-            </View>
-          </View>
-          <MaterialIcons
-            name={detailsOpen ? 'expand-less' : 'expand-more'}
-            size={iconSize.xl}
-            color={colors.onSurfaceVariant}
-          />
-        </Pressable>
+          ariaExpanded={detailsOpen}
+        />
 
         {detailsOpen && (
-          <View style={{ paddingHorizontal: 20, paddingBottom: 20, paddingTop: 4, gap: 12 }}>
+          <View style={{ paddingHorizontal: spacing.screen, paddingBottom: 20, paddingTop: 4, gap: 12 }}>
             <View style={{ gap: 6 }}>
               <AppText
                 variant="label"

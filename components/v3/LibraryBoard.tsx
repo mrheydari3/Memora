@@ -865,7 +865,7 @@ export function LibraryBoard({
         );
       case 'band':
         return (
-          <View style={{ marginTop: mobile ? 10 : 18, marginBottom: mobile ? 6 : 10 }}>
+          <View style={{ marginTop: mobile ? 10 : 16, marginBottom: mobile ? 6 : 10 }}>
             <ShelfBand label={item.label} count={item.count} hint={item.hint} />
           </View>
         );
@@ -915,8 +915,6 @@ export function LibraryBoard({
                   gap: 8,
                   paddingHorizontal: 4,
                   marginBottom: 2,
-                  borderBottomWidth: 1,
-                  borderBottomColor: colors.hairlineRule,
                 }}
               >
                 <MaterialIcons name="play-circle" size={iconSize.md} color={colors.primary} />

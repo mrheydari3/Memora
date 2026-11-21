@@ -3,7 +3,7 @@ import { Animated, Platform, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { colors, iconSize, motion } from '../../theme/tokens';
+import { colors, glass, iconSize, motion } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { prefersReducedMotion, timingTo } from '../../motion';
 import { FolderGlyph } from './FolderGlyph';
@@ -154,7 +154,7 @@ export function FolderGroup({
         width: '100%',
         overflow: 'hidden',
         position: 'relative',
-        backgroundColor: colors.surfaceCardFace,
+        backgroundColor: glass.cardFace,
         ...(joined
           ? { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }
           : null),
@@ -163,15 +163,7 @@ export function FolderGroup({
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         {expandable ? (
           <HintPressable
-            hint={
-              expanded
-                ? reviewable
-                  ? 'Collapse folder, due cards waiting'
-                  : 'Collapse folder'
-                : reviewable
-                  ? 'Expand folder to review due cards'
-                  : 'Expand folder'
-            }
+            hint={expanded ? 'Collapse folder' : 'Expand folder'}
             testID="folder-group"
             onPress={onToggle}
             accessibilityRole="button"
@@ -318,7 +310,7 @@ export function FolderBodySlice({
         radius="card"
         padding="none"
         style={{
-          backgroundColor: colors.surfaceCardFace,
+          backgroundColor: glass.cardFace,
           paddingHorizontal: 10,
           paddingTop: first ? 8 : 3,
           paddingBottom: last ? 10 : 3,

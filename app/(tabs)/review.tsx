@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Animated, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useResponsive } from '../../hooks/useResponsive';
 import { MaterialIcons } from '../../components/Icon';
@@ -9,7 +9,7 @@ import { useGameStore } from '../../store/useGameStore';
 import { pushOnce } from '../../services/navigation';
 import { buildStudyQueue } from '../../data/session';
 import { isDeckPlayable, type QuizMode } from '../../data/quiz';
-import { AppText, EmptyState, RevealItem, Screen } from '../../components';
+import { AppText, EmptyState, RevealItem, Screen, SegmentedControl } from '../../components';
 import {
   ActionButton,
   HeroAura,
@@ -17,7 +17,7 @@ import {
   SectionHeading,
   Surface,
 } from '../../components/v3';
-import { prefersReducedMotion, usePressFeedback } from '../../motion';
+import { usePressFeedback } from '../../motion';
 import { alpha, colors, iconSize, radii } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import type { Deck, GameRecord } from '../../data/types';
@@ -37,97 +37,30 @@ type ModeSwitchProps = {
 };
 
 /**
- * The mockup's direction control: a surface-control well with a
- * selection-surface pill that slides 250ms under two 15/600 labels. The pill is
- * drawn from the measured width, so the two halves stay equal at any gutter.
+ * The direction control is the shared rail in its sliding-pill mode, so the
+ * 250ms travel, reduced-motion path and tab semantics live in one primitive.
  */
 function ModeSwitch({ mode, onChange }: ModeSwitchProps) {
-  const [width, setWidth] = useState(0);
-  const slide = useRef(new Animated.Value(mode === 'reverse' ? 1 : 0)).current;
-
-  useEffect(() => {
-    // The pill still moves to the new half; it just arrives immediately when
-    // the OS asks for less motion.
-    if (prefersReducedMotion()) {
-      slide.setValue(mode === 'reverse' ? 1 : 0);
-      return;
-    }
-    const animation = Animated.timing(slide, {
-      toValue: mode === 'reverse' ? 1 : 0,
-      duration: 250,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    });
-    animation.start();
-    return () => animation.stop();
-  }, [mode, slide]);
-
-  // The pill is calc(50% - 4px): the well's inner width halved.
-  const travel = Math.max(0, (width - 8) / 2);
-  const translateX = slide.interpolate({ inputRange: [0, 1], outputRange: [0, travel] });
-
   return (
-    <View
-      role="tablist"
-      aria-label="Quiz direction"
-      style={{ position: 'relative' }}
-      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
-    >
-      <Surface
-        tone="control"
-        radius="control"
-        padding="none"
-        style={{ padding: 4, flexDirection: 'row' }}
-      >
-        {width > 0 && (
-        <Animated.View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: 4,
-            bottom: 4,
-            left: 4,
-            width: travel,
-            borderRadius: radii.micro,
-            backgroundColor: colors.selectionSurface,
-            borderWidth: 1,
-            borderColor: alpha(colors.primary, 0.25),
-            transform: [{ translateX }],
-          }}
-        />
-      )}
-
-      {(
-        [
-          { key: 'forward', label: 'Word → Meaning' },
-          { key: 'reverse', label: 'Meaning → Word' },
-        ] as const
-      ).map((option) => {
-        const active = mode === option.key;
-        return (
-          <Pressable
-            key={option.key}
-            onPress={() => onChange(option.key)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: active }}
-            aria-selected={active}
-            style={{
-              flex: 1,
-              minHeight: 44,
-              paddingVertical: 8,
-              paddingHorizontal: 12,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <AppText variant="body" weight="semibold" tone={active ? 'accent' : 'muted'}>
-              {option.label}
-            </AppText>
-          </Pressable>
-        );
-      })}
-      </Surface>
-    </View>
+    <SegmentedControl
+      sliding
+      appearance="plain"
+      accessibilityLabel="Quiz direction"
+      segments={[
+        {
+          key: 'forward',
+          label: 'Word → Meaning',
+          active: mode === 'forward',
+          onPress: () => onChange('forward'),
+        },
+        {
+          key: 'reverse',
+          label: 'Meaning → Word',
+          active: mode === 'reverse',
+          onPress: () => onChange('reverse'),
+        },
+      ]}
+    />
   );
 }
 
@@ -171,7 +104,7 @@ function GameDeckRow({
         accessibilityState={{ checked: selected }}
         aria-checked={selected}
         accessibilityLabel={`${deck.name}, ${meta}${bestScore ? `, best ${formatCount(bestScore)}` : ''}`}
-        style={{ width: '100%' }}
+        style={{ width: '100%', minHeight: 44 }}
       >
         <Surface
           tone="pane"
@@ -180,10 +113,8 @@ function GameDeckRow({
           style={[
             {
               minHeight: 64,
-              borderWidth: 1,
-              borderColor: selected
-                ? alpha(colors.primary, 0.2)
-                : alpha(colors.outlineSoft, 0.2),
+              borderWidth: selected ? 1 : 0, // design-ignore — §10 Review selection chrome
+              borderColor: alpha(colors.primary, 0.2), // design-ignore — §10 Review selection chrome
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -233,8 +164,8 @@ function GameDeckRow({
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: selected ? colors.primary : colors.surfaceControl,
-              borderWidth: selected ? 0 : 1,
-              borderColor: alpha(colors.outlineSoft, 0.4),
+              borderWidth: selected ? 0 : 1, // design-ignore — §10 selection state
+              borderColor: alpha(colors.outlineSoft, 0.4), // design-ignore — §10 selection state
             }}
           >
             {selected && <MaterialIcons name="check" size={iconSize.sm} color={colors.onPrimary} />}
@@ -335,8 +266,6 @@ function Rule({ icon, tone, title, description }: RuleProps) {
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: colors.surfaceControl,
-          borderWidth: 1,
-          borderColor: alpha(colors.outlineSoft, 0.2),
           flexShrink: 0,
         }}
       >
@@ -503,8 +432,8 @@ export default function GameScreen() {
               paddingVertical: 4,
               borderRadius: radii.pill,
               backgroundColor: colors.selectionSurface,
-              borderWidth: 1,
-              borderColor: alpha(colors.primary, 0.2),
+              borderWidth: 1, // design-ignore — §10 Review selection chrome
+              borderColor: alpha(colors.primary, 0.2), // design-ignore — §10 Review selection chrome
             }}
           >
             <MaterialIcons name="timer" size={iconSize.sm} color={colors.primary} />
@@ -532,8 +461,8 @@ export default function GameScreen() {
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 12,
-            borderWidth: 1,
-            borderColor: alpha(colors.outlineSoft, 0.2),
+            borderWidth: 1, // design-ignore — §10 Review selection chrome
+            borderColor: alpha(colors.outlineSoft, 0.2), // design-ignore — §10 Review selection chrome
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>

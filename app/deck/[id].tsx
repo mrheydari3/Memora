@@ -8,7 +8,7 @@ import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
 import { buildStudyQueue } from '../../data/session';
 import { exportJson } from '../../services/export';
-import { alpha, colors, heights, iconSize, radii, stateColors } from '../../theme/tokens';
+import { alpha, colors, glass, heights, iconSize, radii, spacing, stateColors } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { HintPressable } from '../../components/HintPressable';
 import {
@@ -31,7 +31,14 @@ import {
   Menu,
 } from '../../components';
 import type { MenuAction } from '../../components';
-import { ActionButton, HeaderIcon, PageHeader, Surface } from '../../components/v3';
+import {
+  ActionButton,
+  FilterPill,
+  HeaderIcon,
+  PageHeader,
+  StatusChip,
+  Surface,
+} from '../../components/v3';
 import type { Flashcard } from '../../data/types';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -70,85 +77,6 @@ const NUMERIC = { fontVariant: ['tabular-nums'] as const };
 /** 1811 → "1,811" without depending on Intl being present on the runtime. */
 function formatCount(value: number): string {
   return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
-/** The hero's live status chip: due, caught up, or filed away. */
-function StatusChip({
-  label,
-  tone,
-}: {
-  label: string;
-  tone: 'accent' | 'success' | 'muted';
-}) {
-  const ink = tone === 'accent' ? colors.primary : tone === 'success' ? colors.success : colors.outline;
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: radii.pill,
-        backgroundColor: tone === 'muted' ? colors.surfaceControl : alpha(ink, 0.12),
-        borderWidth: 1,
-        borderColor: tone === 'muted' ? alpha(colors.outlineSoft, 0.4) : alpha(ink, 0.25),
-        flexShrink: 0,
-      }}
-    >
-      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: ink }} />
-      <AppText variant="caption" tone={tone === 'muted' ? 'muted' : tone}>
-        {label}
-      </AppText>
-    </View>
-  );
-}
-
-/** One filter choice: selection is the tint behind the label, never an outline. */
-function FilterPill({
-  label,
-  active,
-  dot,
-  accessibilityLabel,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  dot?: string;
-  accessibilityLabel: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      aria-pressed={active}
-      accessibilityLabel={accessibilityLabel}
-      style={{
-        minHeight: 44,
-        paddingHorizontal: 16,
-        borderRadius: radii.pill,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        backgroundColor: active ? alpha(colors.primary, 0.14) : colors.surfaceControl,
-      }}
-    >
-      {dot && (
-        <View
-          aria-hidden
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: dot }}
-        />
-      )}
-      <AppText variant="caption" weight="semibold" tone={active ? 'accent' : 'muted'}>
-        {label}
-      </AppText>
-    </Pressable>
-  );
 }
 
 /**
@@ -266,9 +194,11 @@ export default function DeckDetailsScreen() {
   // The store hydrates asynchronously: until it has, "Deck not found" would be a
   // lie for a deck that is about to load. Show the page's shape instead.
   if (!deck && !loaded) {
+    // Screen gutter is intentionally omitted: the loading body owns the
+    // standard 20px column (spacing.screen).
     return (
       <Screen header={<PageHeader title="Deck" back onBack={backHome} />}>
-        <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
+        <View style={{ paddingHorizontal: spacing.screen, paddingTop: 12 }}>
           <HeroSkeleton height={150} />
           <View className="mt-6">
             <DeckCardGridSkeleton count={1} />
@@ -545,11 +475,10 @@ export default function DeckDetailsScreen() {
             style={{
               flexDirection: 'row',
               backgroundColor: colors.surfaceInset,
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: alpha(colors.outlineSoft, 0.2),
+              borderRadius: radii.menu,
               paddingVertical: 12,
               paddingHorizontal: 12,
+              gap: 10,
             }}
           >
             {ledger.map((cell, index) => (
@@ -558,9 +487,6 @@ export default function DeckDetailsScreen() {
                 style={{
                   flex: 1,
                   minWidth: 0,
-                  paddingStart: index === 0 ? 0 : 10,
-                  borderStartWidth: index === 0 ? 0 : 1,
-                  borderStartColor: colors.outlineVariant,
                 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -652,10 +578,8 @@ export default function DeckDetailsScreen() {
 
       <View
         style={{
-          backgroundColor: colors.surfacePane,
+          backgroundColor: glass.fill,
           borderRadius: v3.radii.card,
-          borderWidth: 1,
-          borderColor: alpha(colors.outlineSoft, 0.2),
           overflow: 'hidden',
         }}
       >
@@ -901,8 +825,7 @@ export default function DeckDetailsScreen() {
               minHeight: 48,
               justifyContent: 'center',
               paddingHorizontal: 16,
-              borderTopWidth: 1,
-              borderTopColor: colors.outlineVariant,
+              backgroundColor: colors.surfaceInset,
             }}
           >
             <AppText variant="bodySm" weight="semibold" tone="accent">

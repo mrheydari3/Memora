@@ -36,7 +36,7 @@ import {
 } from '../../components/v3';
 import { SessionSummary } from '../../components/v3/SessionSummary';
 import { StudyWaiting } from '../../components/v3/StudyWaiting';
-import { colors, fills, heights, iconSize, motion, radii, rims } from '../../theme/tokens';
+import { colors, fills, glass, heights, iconSize, motion, radii, spacing } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { EASE, REVEAL_OPACITY_FLOOR, timingTo } from '../../motion';
 import { speakCard, speak, stopSpeaking } from '../../services/tts';
@@ -745,7 +745,7 @@ export default function StudyScreen() {
             maxWidth: v3.layout.contentMaxWidth,
             alignSelf: 'center',
             justifyContent: 'center',
-            paddingHorizontal: 20,
+            paddingHorizontal: spacing.screen,
             paddingBottom: 48,
           }}
         >
@@ -831,9 +831,7 @@ export default function StudyScreen() {
             alignItems: 'center',
             gap: 6,
             borderRadius: radii.pill,
-            borderWidth: 1,
-            borderColor: rims.soft,
-            backgroundColor: colors.surfacePane,
+            backgroundColor: glass.fill,
             paddingHorizontal: 10,
             paddingVertical: 6,
           }}
@@ -1042,6 +1040,8 @@ export default function StudyScreen() {
     </View>
   );
 
+  // Screen gutter is intentionally omitted: the study stage and its fixed
+  // tray own the session's measure.
   return (
     <>
       <Screen header={header}>
@@ -1051,7 +1051,7 @@ export default function StudyScreen() {
           width: '100%',
           maxWidth: v3.layout.contentMaxWidth,
           alignSelf: 'center',
-          paddingHorizontal: 20,
+          paddingHorizontal: spacing.screen,
           paddingTop: 12,
           paddingBottom: 16,
         }}

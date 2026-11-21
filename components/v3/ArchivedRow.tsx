@@ -2,7 +2,7 @@ import { View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { alpha, colors, iconSize } from '../../theme/tokens';
+import { alpha, colors, glass, iconSize } from '../../theme/tokens';
 import { RowOptions } from './RowOptions';
 import { Surface } from './Surface';
 import { v3 } from '../../theme/v3';
@@ -41,7 +41,7 @@ export function ArchivedRow({ name, cardCount, onPress, onOptions, optionsMenu }
         // No row-level opacity: dimming the whole pane dropped the 12–13px
         // tertiary text to 3.7–4.1:1. The retired state is carried by the
         // pane wash, the outline glyph and the Archived chip instead.
-        backgroundColor: alpha(colors.surfacePane, 0.6),
+        backgroundColor: alpha(glass.fill, 0.6),
       }}
     >
       <HintPressable

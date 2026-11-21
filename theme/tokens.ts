@@ -6,8 +6,9 @@
  * Prefer Tailwind classes in JSX; use these constants only where Tailwind
  * cannot reach (SVG, Animated, StyleSheet, icon colours, measured geometry).
  *
- * The standard is one ink canvas, one accent, hairline strokes, frosted panes.
- * Nothing in the app should introduce a colour that is not listed here.
+ * The standard is one ink canvas, one accent, fill-separated surfaces and
+ * selective blur. Nothing in the app should introduce a colour that is not
+ * listed here.
  */
 
 import { Platform } from 'react-native';
@@ -22,7 +23,6 @@ type Palette = {
     | 'surfaceContainerLowest'
     | 'surfaceContainerLow'
     | 'surfaceContainer'
-    | 'surfaceContainerHigh'
     | 'surfaceContainerHighest'
     | 'onSurface'
     | 'onSurfaceVariant'
@@ -51,14 +51,10 @@ type Palette = {
     | 'warning'
     | 'info'
     | 'surfaceVariant'
-    | 'surfacePane'
-    | 'surfaceCardFace'
     | 'surfaceControl'
     | 'surfaceInset'
-    | 'surfaceTile'
     | 'selectionSurface'
     | 'hairlineRule'
-    | 'appBarGlass'
     | 'hairlineStrong'
     | 'hairlineGhost'
     | 'accentFaint'
@@ -88,7 +84,7 @@ type Palette = {
     saturate: number;
     saturateStrong: number;
   };
-  radii: Record<'micro' | 'sm' | 'control' | 'menu' | 'pane' | 'sheet' | 'pill', number>;
+  radii: Record<'micro' | 'bar' | 'sm' | 'control' | 'menu' | 'pane' | 'sheet' | 'pill', number>;
   heights: Record<
     | 'appbar'
     | 'pageHeader'
@@ -221,13 +217,10 @@ export const tabBar = palette.tabBar;
 /** Depth by role. */
 export const shadow = palette.shadows;
 
-/** The blue tint of a hero/accent pane. */
-export const paneAccent = glass.accent;
-
 /**
- * The frosted pane fill, shared by every pane, the app bar, the tab bar and the
- * rating tiles so every surface reads the same. The fill is opaque — there is no
- * to the DOM; React Native's style types don't include it, hence the cast.
+ * The opaque pane fill. Blur is applied only by surfaces that explicitly render
+ * a BlurView (the Today scene, floating header/tab bar and undo bar); the ink
+ * itself stays opaque so text never depends on what is behind the surface.
  */
 const isWeb = Platform.OS === 'web';
 
@@ -259,7 +252,7 @@ export const glassFillAppBar: ViewStyle = {
   backgroundColor: glass.appBar,
 };
 
-/** The lit 1px rim used at the top of every pane. */
+/** The one lit 1px rim: scene surfaces and quiz answer tiles only. */
 export const rimColor = rims.soft;
 
 /** Helper: apply alpha to a hex color. */

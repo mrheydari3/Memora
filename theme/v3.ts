@@ -46,6 +46,8 @@ export const v3 = {
     headlineMd: { fontSize: size(24), lineHeight: size(30), letterSpacing: -0.5 },
     /** The composer's prompt: the card's front, written on the card itself. */
     composerFront: { fontSize: size(30), lineHeight: size(36), letterSpacing: -0.7 },
+    /** A long answer or study title: 26/32, one step below the composer. */
+    answer: { fontSize: size(26), lineHeight: size(32), letterSpacing: -0.5 },
     /** The quiz's live score. */
     score: { fontSize: size(44), lineHeight: size(48), letterSpacing: -1.6 },
     /** The quiz's final score. */

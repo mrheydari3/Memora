@@ -474,7 +474,7 @@ export default function HomeScreen() {
           style={{
             gap: 6,
             marginTop: 8,
-            padding: 18,
+            padding: 20,
             borderRadius: radii.pane,
             backgroundColor: colors.surfaceInset,
           }}
@@ -501,6 +501,8 @@ export default function HomeScreen() {
     alignSelf: 'center' as const,
   };
 
+  // Screen's scroll/gutter pair is intentionally unused: Home owns its two
+  // scroll regions and applies the same 20px column in each one.
   return (
     <Screen
       scroll={false}

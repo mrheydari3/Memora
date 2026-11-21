@@ -724,11 +724,8 @@ const styles = StyleSheet.create({
   panel: {
     overflow: 'hidden',
     borderRadius: radii.menu,
-    borderWidth: 1,
-    // The menu is the one surface that floats over the page, so it needs a
-    // visible edge. It uses the same quiet outline the v3 panes already carry
-    // rather than a drop shadow, which the flat design system does not use.
-    borderColor: alpha(colors.outlineSoft, 0.32),
-    backgroundColor: colors.surfaceContainerHigh,
+    // The menu floats on a lighter fill; the flat system separates it without
+    // an outline or a drop shadow.
+    backgroundColor: colors.surfaceControl,
   },
 });

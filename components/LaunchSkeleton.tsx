@@ -379,8 +379,6 @@ function LaunchDock({ bottom }: { bottom: number }) {
           flexDirection: 'row',
           alignItems: 'center',
           borderRadius: tabBar.height / 2,
-          borderWidth: 1,
-          borderColor: rims.soft,
           backgroundColor: glass.appBar,
         }}
       >

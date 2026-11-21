@@ -269,7 +269,7 @@ export default function AddDeckScreen() {
     >
       {/* The canvas behind the sheet closes it. It is not a control: the
           sheet header owns the accessible close. */}
-      <Pressable
+      <Pressable // design-ignore — decorative backdrop; the sheet header owns the accessible close
         style={StyleSheet.absoluteFill}
         onPress={closeSheet}
         accessible={false}
@@ -388,8 +388,6 @@ export default function AddDeckScreen() {
             paddingHorizontal: spacing.screen,
             paddingTop: 12,
             paddingBottom: tablet ? 24 : Math.max(20, insets.bottom + 12),
-            borderTopWidth: tablet ? 1 : 0,
-            borderTopColor: tablet ? alpha(colors.outlineSoft, 0.25) : undefined,
             backgroundColor: glass.sheet,
           }}
         >

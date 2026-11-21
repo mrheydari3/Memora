@@ -93,7 +93,7 @@ export function PageHeader({
             variant="headline"
             weight="semibold"
             headingLevel={1}
-            numberOfLines={1}
+            numberOfLines={2}
             style={{ letterSpacing: -0.4, flexShrink: 1, minWidth: 0, marginStart: 4 }}
           >
             {title}

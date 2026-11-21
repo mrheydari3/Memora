@@ -10,7 +10,6 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useResponsive } from '../../hooks/useResponsive';
 import { goBackOr } from '../../services/navigation';
-import Svg, { Circle } from 'react-native-svg';
 import { MaterialIcons } from '../../components/Icon';
 import { HapticsEngine } from '../../services/haptics';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
@@ -43,6 +42,7 @@ import {
   HeaderIcon,
   MetricGrid,
   Surface,
+  TimerRing,
 } from '../../components/v3';
 import {
   alpha,
@@ -52,6 +52,7 @@ import {
   motion,
   radii,
   rims,
+  spacing,
 } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import {
@@ -93,77 +94,6 @@ function shuffleCards<T>(items: T[]): T[] {
     [out[i], out[j]] = [out[j], out[i]];
   }
   return out;
-}
-
-/**
- * The round's clock as a ring. The arc is the remaining time; the number in
- * the middle is the same clock every other surface shows. The ring turns to
- * the warning tone under 10 seconds and is decorative: the time is text.
- */
-function TimerRing({
-  size,
-  progress,
-  low,
-  label,
-}: {
-  size: number;
-  progress: number;
-  low: boolean;
-  label: string;
-}) {
-  const stroke = Math.max(5, Math.round(size / 20));
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-
-  return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={fills.track}
-          strokeWidth={stroke}
-          fill="none"
-        />
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={low ? colors.warning : colors.primary}
-          strokeWidth={stroke}
-          fill="none"
-          strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={circumference * (1 - Math.max(0, Math.min(1, progress)))}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </Svg>
-      {/*
-        Size and leading are inline on purpose. Setting them as `text-[…]`
-        utilities lost to the variant's own font-size, so the 56px ring drew
-        34px digits inside a 20px line box and cut them in half; matching values
-        in one place keeps the two branches honest.
-      */}
-      <AppText
-        variant="display"
-        style={{
-          fontVariant: ['tabular-nums'],
-          color: low ? colors.warning : undefined,
-          fontSize: size > 100 ? 32 : 17,
-          lineHeight: size > 100 ? 36 : 22,
-          letterSpacing: size > 100 ? -1.1 : -0.3,
-        }}
-      >
-        {label}
-      </AppText>
-      {size > 100 && (
-        <AppText variant="caption" tone="muted">
-          left
-        </AppText>
-      )}
-    </View>
-  );
 }
 
 type ArenaAnswerState = 'idle' | 'correct' | 'wrong' | 'dimmed';
@@ -252,8 +182,8 @@ function ArenaAnswer({
             flex: 1,
             minHeight: v3.heights.quizAnswer,
             overflow: 'hidden',
-            borderWidth: 1,
-            borderColor: rims.soft,
+            borderWidth: 1, // design-ignore — §10 quiz answer tile rim
+            borderColor: rims.soft, // design-ignore — §10 quiz answer tile rim
             opacity: dimmed ? 0.42 : 1,
             ...(tint ? { backgroundColor: tint.fill } : {}),
           }}
@@ -313,8 +243,6 @@ function ArenaAnswer({
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: colors.surfaceControl,
-              borderWidth: 1,
-              borderColor: rims.soft,
             }}
           >
             <AppText variant="caption" weight="semibold" style={{ color: chipColor }}>
@@ -1063,8 +991,6 @@ export default function QuizScreen() {
             style={{
               maxWidth: '100%',
               borderRadius: radii.pill,
-              borderWidth: 1,
-              borderColor: combo > 0 ? alpha(colors.warning, 0.4) : rims.soft,
               backgroundColor: combo > 0 ? alpha(colors.warning, 0.12) : fills.control,
               paddingHorizontal: 8,
               paddingVertical: 3,
@@ -1087,6 +1013,8 @@ export default function QuizScreen() {
 
   const isRtl = question.direction === 'rtl';
 
+  // Screen gutter is intentionally omitted: the quiz column owns its 20px
+  // measure and the fixed header/footer span the full canvas.
   return (
     <>
       <Screen
@@ -1125,7 +1053,7 @@ export default function QuizScreen() {
             </View>
           </View>
 
-          <View style={{ flex: 1, minHeight: 0, justifyContent: 'center', marginTop: 18 }}>
+          <View style={{ flex: 1, minHeight: 0, justifyContent: 'center', marginTop: 16 }}>
             <Surface tone="pane" padding="none" style={styles.stage}>
               <View style={styles.scenePill}>
                 <MaterialIcons name="translate" size={iconSize.sm} color={colors.outline} />
@@ -1141,7 +1069,7 @@ export default function QuizScreen() {
               </View>
 
               <Animated.View
-                style={[{ width: '100%', marginTop: 18 }, questionReveal.style]}
+                style={[{ width: '100%', marginTop: 16 }, questionReveal.style]}
               >
                 <AppText
                   variant={promptVariant}
@@ -1331,7 +1259,7 @@ export default function QuizScreen() {
                 weight="semibold"
                 tone="accent"
                 className="uppercase"
-                style={{ marginTop: 18 }}
+                style={{ marginTop: 16 }}
               >
                 {round.cleared ? 'Deck cleared' : "Time's up"}
               </AppText>
@@ -1412,7 +1340,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: v3.layout.quizMeasure,
     alignSelf: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.screen,
     paddingTop: 16,
     paddingBottom: 12,
   },
@@ -1455,7 +1383,7 @@ const styles = StyleSheet.create({
   rail: {
     flex: 1,
     height: 4,
-    borderRadius: 2,
+    borderRadius: radii.bar,
     backgroundColor: fills.track,
     overflow: 'hidden',
   },
@@ -1474,10 +1402,8 @@ const styles = StyleSheet.create({
     maxHeight: 320,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.screen,
     paddingVertical: 24,
-    borderWidth: 1,
-    borderColor: rims.soft,
     overflow: 'hidden',
   },
   scenePill: {
@@ -1487,8 +1413,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: rims.soft,
     backgroundColor: fills.inset,
     paddingHorizontal: 12,
     paddingVertical: 5,
@@ -1510,8 +1434,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 14,
     paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: fills.track,
   },
   scrim: {
     position: 'absolute',
@@ -1546,8 +1468,6 @@ const styles = StyleSheet.create({
     gap: 5,
     marginTop: 12,
     borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: alpha(colors.primary, 0.4),
     backgroundColor: alpha(colors.primary, 0.12),
     paddingHorizontal: 9,
     paddingVertical: 4,
@@ -1574,7 +1494,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.screen,
     paddingVertical: 24,
   },
   resultPanel: {

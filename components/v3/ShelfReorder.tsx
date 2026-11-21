@@ -196,12 +196,12 @@ function ReorderRow({
         position: 'relative',
         zIndex: dragging ? 2 : 0,
         borderRadius: 14,
-        borderWidth: 1,
-        borderColor:
+        backgroundColor:
           dragging && target !== index
-            ? alpha(colors.primary, 0.5)
-            : alpha(colors.outlineSoft, 0.18),
-        backgroundColor: dragging ? colors.surfaceControl : colors.surfaceInset,
+            ? alpha(colors.primary, 0.12)
+            : dragging
+              ? colors.surfaceControl
+              : colors.surfaceInset,
         opacity: dragging ? 0.97 : 1,
         transform: [{ translateY: offset }],
       }}

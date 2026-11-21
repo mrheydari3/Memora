@@ -2,7 +2,7 @@ import { Animated, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { colors, iconSize } from '../../theme/tokens';
+import { colors, glass, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { usePressFeedback } from '../../motion';
 import { FolderGlyph } from './FolderGlyph';
@@ -72,7 +72,7 @@ export function FolderCard({
           minHeight: v3.heights.folderCard,
           overflow: 'hidden',
           position: 'relative',
-          backgroundColor: colors.surfaceCardFace,
+          backgroundColor: glass.cardFace,
         }}
       >
         <HintPressable

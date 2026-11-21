@@ -34,7 +34,7 @@ import {
 } from '../data/streak';
 import { goBackOr } from '../services/navigation';
 import { HapticsEngine } from '../services/haptics';
-import { alpha, colors, fills, iconSize, radii, rims } from '../theme/tokens';
+import { alpha, colors, fills, iconSize, radii, spacing } from '../theme/tokens';
 import { v3 } from '../theme/v3';
 import { useToday } from '../hooks/useToday';
 import { useResponsive } from '../hooks/useResponsive';
@@ -197,7 +197,7 @@ export default function StreakScreen() {
   if (!ready) {
     return (
       <Screen scroll header={header}>
-        <View style={{ paddingHorizontal: 20, paddingTop: 4 }}>
+        <View style={{ paddingHorizontal: spacing.screen, paddingTop: 4 }}>
           <HeroSkeleton height={190} />
           <View style={{ marginTop: 24 }}>
             <SettingsGroupSkeleton rows={5} />
@@ -274,10 +274,12 @@ export default function StreakScreen() {
     },
   ];
 
+  // Screen gutter is intentionally omitted: the streak sections use a
+  // full-bleed hero and re-apply the 20px column inside it.
   return (
     <Screen scroll header={header} backgroundInert={confirmOpen} contentMaxWidth={760}>
       <View style={{ paddingBottom: 28 }}>
-        <View style={{ paddingHorizontal: 20 }}>
+        <View style={{ paddingHorizontal: spacing.screen }}>
           <RevealItem index={0}>
             <Surface
               tone="scene"
@@ -294,8 +296,6 @@ export default function StreakScreen() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: alpha(colors.warning, stats.current > 0 ? 0.14 : 0.08),
-                  borderWidth: 1,
-                  borderColor: alpha(colors.warning, stats.current > 0 ? 0.3 : 0.16),
                 }}
               >
                 <MaterialIcons
@@ -360,8 +360,6 @@ export default function StreakScreen() {
                   gap: 8,
                   marginTop: 16,
                   borderRadius: radii.pill,
-                  borderWidth: 1,
-                  borderColor: rims.soft,
                   backgroundColor: colors.surfaceInset,
                   paddingHorizontal: 14,
                   paddingVertical: 8,
@@ -430,7 +428,7 @@ export default function StreakScreen() {
               width: '100%',
               maxWidth: 760,
               alignSelf: 'center',
-              paddingHorizontal: 20,
+              paddingHorizontal: spacing.screen,
               marginTop: v3.spacing.page,
             }}
           >

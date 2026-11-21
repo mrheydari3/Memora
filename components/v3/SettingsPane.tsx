@@ -107,7 +107,7 @@ export function SettingsHero({
         tone="inset"
         radius="control"
         padding="none"
-        style={{ flexDirection: 'row', paddingVertical: 12, paddingHorizontal: 12 }}
+        style={{ flexDirection: 'row', paddingVertical: 12, paddingHorizontal: 12, gap: 12 }}
       >
         {ledger.map((cell, index) => (
           <View
@@ -115,9 +115,6 @@ export function SettingsHero({
             style={{
               flex: 1,
               minWidth: 0,
-              paddingStart: index === 0 ? 0 : 12,
-              borderStartWidth: index === 0 ? 0 : 1,
-              borderStartColor: colors.outlineVariant,
             }}
           >
             <AppText variant="caption" tone="tertiary" numberOfLines={1}>
@@ -294,7 +291,7 @@ export function SettingsLine({
           accessibilityState={ariaExpanded === undefined ? undefined : { expanded: ariaExpanded }}
           {...(ariaExpanded === undefined ? {} : { 'aria-expanded': ariaExpanded })}
           {...(ariaHasPopup ? { 'aria-haspopup': ariaHasPopup } : {})}
-          style={[baseStyle, hovered ? { backgroundColor: alpha(colors.surfaceTile, 0.5) } : null]}
+          style={[baseStyle, hovered ? { backgroundColor: alpha(colors.surfaceControl, 0.5) } : null]}
         >
           {content}
         </Pressable>

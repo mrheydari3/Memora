@@ -42,6 +42,101 @@ const PANEL_TAGS = new Set([
 ]);
 const IGNORE = 'design-ignore';
 
+/**
+ * Border exceptions from design-language §10. These files own a documented
+ * semantic edge: the scene rim, an input's focus ring, a selected radio, an
+ * empty-state frame or the sheet surface. Everything else separates with fill.
+ * Review's selection chrome is marked line-by-line with `design-ignore` because
+ * the route also owns ordinary panes that must not gain a border.
+ */
+const BORDER_ALLOWLIST = new Set([
+  'components/BottomSheetModal.tsx',
+  'components/EmptyState.tsx',
+  'components/Field.tsx',
+  'components/LiquidTabBar.tsx',
+  'components/QuizAnswer.tsx',
+  'components/RadioOptionCard.tsx',
+  'components/SegmentedControl.tsx',
+  'components/ToggleSwitch.tsx',
+  'components/v3/FloatingHeader.tsx',
+  'components/v3/Surface.tsx',
+]);
+
+const BORDER_PROPERTY =
+  /^border(?:Top|Bottom|Left|Right|Start|End)?(?:Width|Color|Style)$/;
+const GUTTER_PROPERTY = /^(?:padding|margin)Horizontal$/;
+const HIT_BOX_CLASS = /(?:^|\s)(?:min-)?h-(?:11|12|13|14|15|16|\[44px\])(?:\s|$)/;
+
+function isZeroish(expression) {
+  if (ts.isNumericLiteral(expression)) return Number(expression.text) === 0;
+  if (ts.isStringLiteral(expression)) {
+    return expression.text === '0' || expression.text === 'transparent';
+  }
+  return false;
+}
+
+function propertyName(node, sourceFile) {
+  if (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) {
+    return node.name.text;
+  }
+  return node.name.getText(sourceFile);
+}
+
+function numericProperty(node, sourceFile, names) {
+  if (!ts.isPropertyAssignment(node)) return null;
+  if (!names.includes(propertyName(node, sourceFile))) return null;
+  if (ts.isNumericLiteral(node.initializer)) return Number(node.initializer.text);
+  return null;
+}
+
+/** Sized tokens are already guaranteed to clear the 44px target. */
+function isHitToken(expression) {
+  if (!ts.isPropertyAccessExpression(expression)) return false;
+  const text = expression.getText();
+  return (
+    text === 'heights.hit' ||
+    text === 'heights.tileLg' ||
+    text === 'heights.iconLg' ||
+    text === 'heights.button' ||
+    text === 'heights.buttonSm' ||
+    text === 'v3.heights.answer' ||
+    text === 'v3.heights.quizAnswer'
+  );
+}
+
+/** A raw Pressable needs a role and a declared 44px target. */
+function hasPressableHitBox(node, sourceFile) {
+  const style = attribute(node, 'style', sourceFile);
+  if (style) {
+    let enough = false;
+    const visitStyle = (child) => {
+      const value = numericProperty(child, sourceFile, ['minHeight', 'height']);
+      if (value !== null && value >= 44) enough = true;
+      if (
+        ts.isPropertyAssignment(child) &&
+        ['minHeight', 'height'].includes(propertyName(child, sourceFile)) &&
+        isHitToken(child.initializer)
+      ) {
+        enough = true;
+      }
+      ts.forEachChild(child, visitStyle);
+    };
+    if (style.initializer) visitStyle(style.initializer);
+    if (enough) return true;
+  }
+
+  const hitSlop = attribute(node, 'hitSlop', sourceFile);
+  if (hitSlop?.initializer) {
+    const expression = ts.isJsxExpression(hitSlop.initializer)
+      ? hitSlop.initializer.expression
+      : hitSlop.initializer;
+    if (expression && ts.isNumericLiteral(expression) && Number(expression.text) >= 44) return true;
+  }
+
+  const className = stringValue(node, 'className', sourceFile) ?? '';
+  return HIT_BOX_CLASS.test(className);
+}
+
 const files = [];
 
 function walk(directory) {
@@ -158,8 +253,98 @@ function scenesIn(node, sourceFile) {
 
 function checkSourceFile(rel, sourceFile) {
   const visit = (node) => {
+    if (ts.isPropertyAssignment(node)) {
+      const name = propertyName(node, sourceFile);
+      if (BORDER_PROPERTY.test(name) && !isZeroish(node.initializer)) {
+        if (!BORDER_ALLOWLIST.has(rel)) {
+          report(
+            rel,
+            sourceFile,
+            node,
+            'border',
+            `${name} outside a §10 border exception; separate with fill`
+          );
+        }
+      }
+      if (rel.startsWith('app/') && GUTTER_PROPERTY.test(name) && ts.isNumericLiteral(node.initializer)) {
+        if (Number(node.initializer.text) === 20) {
+          report(
+            rel,
+            sourceFile,
+            node,
+            'gutter-literal',
+            `${name}: 20 duplicates spacing.screen; use the token`
+          );
+        }
+      }
+    }
+
+    if (ts.isJsxAttribute(node)) {
+      const name = node.name.getText(sourceFile);
+      if (BORDER_PROPERTY.test(name)) {
+        const initializer = node.initializer;
+        const expression = initializer && ts.isJsxExpression(initializer) ? initializer.expression : initializer;
+        if (expression && !isZeroish(expression) && !BORDER_ALLOWLIST.has(rel)) {
+          report(rel, sourceFile, node, 'border', `${name} outside a §10 border exception`);
+        }
+      }
+      if (rel.startsWith('app/') && GUTTER_PROPERTY.test(name)) {
+        const initializer = node.initializer;
+        const expression = initializer && ts.isJsxExpression(initializer) ? initializer.expression : initializer;
+        if (expression && ts.isNumericLiteral(expression) && Number(expression.text) === 20) {
+          report(rel, sourceFile, node, 'gutter-literal', `${name}={20} duplicates spacing.screen`);
+        }
+      }
+    }
+
+    if (ts.isPropertyAccessExpression(node)) {
+      const target = node.expression.getText(sourceFile);
+      const name = node.name.text;
+      if (target === 'rims' && !BORDER_ALLOWLIST.has(rel)) {
+        report(rel, sourceFile, node, 'border', `rims.${name} outside a §10 rim exception`);
+      }
+      if (target === 'Animated' && (name === 'timing' || name === 'spring')) {
+        report(
+          rel,
+          sourceFile,
+          node,
+          'raw-animation',
+          `Animated.${name} outside motion/; use timingTo/springTo`
+        );
+      }
+    }
+
+    if (ts.isIdentifier(node) && node.text === 'rimColor') {
+      const parent = node.parent;
+      const imported = ts.isImportSpecifier(parent) || ts.isImportClause(parent);
+      if (!imported && !BORDER_ALLOWLIST.has(rel)) {
+        report(rel, sourceFile, node, 'border', 'rimColor outside a §10 rim exception');
+      }
+    }
+
     if (isJsx(node)) {
       const tag = tagName(node, sourceFile);
+
+      if (tag === 'Pressable' && rel.startsWith('app/')) {
+        const role = attribute(node, 'accessibilityRole', sourceFile);
+        if (!role) {
+          report(
+            rel,
+            sourceFile,
+            node,
+            'raw-pressable',
+            '<Pressable> in app/ needs accessibilityRole'
+          );
+        } else if (!hasPressableHitBox(node, sourceFile)) {
+          report(
+            rel,
+            sourceFile,
+            node,
+            'raw-pressable',
+            '<Pressable> in app/ needs a 44px hit box (minHeight/height/hitSlop)'
+          );
+        }
+      }
 
       if (/Icons$/.test(tag)) {
         const size = numericSize(node, sourceFile);

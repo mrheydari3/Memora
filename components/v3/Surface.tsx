@@ -29,7 +29,7 @@ type SurfaceProps = {
 /**
  * Surface — the one pane primitive in the v3 language.
  *
- * `scene` is the page's raised card face: the opal ink `surfaceCardFace` with
+ * `scene` is the page's raised card face: the opal ink `glass.cardFace` with
  * the single 1px lit rim that v3 allows. `pane` is the smoked glass row/card
  * fill, `inset` is content nested inside a pane, and `control` is a chip, rail
  * or icon tile. Radii are roles, not numbers: 14 for a control, 22 for a card,
@@ -59,7 +59,7 @@ export function Surface({
       }
     : tone === 'scene'
       ? {
-          backgroundColor: colors.surfaceCardFace,
+          backgroundColor: glass.cardFace,
           borderWidth: 1,
           borderColor: alpha(colors.outlineSoft, 0.3),
         }
@@ -92,7 +92,7 @@ export function Surface({
             pointerEvents="none"
             style={[
               StyleSheet.absoluteFill,
-              { backgroundColor: alpha(colors.surfaceCardFace, 0.55) },
+              { backgroundColor: alpha(glass.cardFace, 0.55) },
             ]}
           />
         </>

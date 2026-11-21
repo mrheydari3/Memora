@@ -288,7 +288,7 @@ export default function MassImportScreen() {
                   last
                 />
                 {!isBackup && (
-                  <View style={{ padding: 12, borderTopWidth: 1, borderTopColor: colors.outlineVariant }}>
+                  <View style={{ padding: 12 }}>
                     <Field
                       label="Deck name"
                       value={deckName}

@@ -32,7 +32,7 @@ export function RowOptions({ label, onPress }: RowOptionsProps) {
           borderRadius: 8,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: hovered ? alpha(colors.surfaceTile, 0.9) : 'transparent',
+          backgroundColor: hovered ? alpha(colors.surfaceControl, 0.9) : 'transparent',
         }}
       >
         <MaterialIcons name="more-vert" size={iconSize.lg} color={colors.outline} />

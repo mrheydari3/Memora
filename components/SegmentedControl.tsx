@@ -1,8 +1,9 @@
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, View } from 'react-native';
 import { MaterialIcons } from './Icon';
 import { AppText } from './AppText';
-import { alpha, colors, fills, heights, iconSize } from '../theme/tokens';
-import { usePressFeedback } from '../motion';
+import { alpha, colors, fills, heights, iconSize, motion, radii } from '../theme/tokens';
+import { timingTo, usePressFeedback } from '../motion';
 import { HapticsEngine } from '../services/haptics';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -27,6 +28,10 @@ type SegmentedControlProps = {
   appearance?: 'fill' | 'plain';
   /** Kept for call-site compatibility; the rail has no inner rules. */
   divider?: boolean;
+  /** One sliding selection pill under the segments (two-up Review control). */
+  sliding?: boolean;
+  /** Names the rail when it behaves as a tab list. */
+  accessibilityLabel?: string;
   className?: string;
 };
 
@@ -36,6 +41,7 @@ function SegmentPress({
   accessibilityLabel,
   selected,
   style,
+  tab = false,
   children,
 }: {
   onPress: () => void;
@@ -43,6 +49,8 @@ function SegmentPress({
   accessibilityLabel?: string;
   selected: boolean;
   style?: object;
+  /** Renders the segment as a tab in the sliding rail. */
+  tab?: boolean;
   children: React.ReactNode;
 }) {
   const press = usePressFeedback({ scale: 0.96 });
@@ -60,9 +68,10 @@ function SegmentPress({
         }}
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
-        accessibilityRole="button"
+        accessibilityRole={tab ? 'tab' : 'button'}
         accessibilityState={{ selected }}
-        aria-pressed={selected}
+        aria-selected={tab ? selected : undefined}
+        aria-pressed={tab ? undefined : selected}
         accessibilityLabel={accessibilityLabel}
       >
         {children}
@@ -82,16 +91,63 @@ export function SegmentedControl({
   segments,
   appearance = 'fill',
   divider = false,
+  sliding = false,
+  accessibilityLabel,
   className = '',
 }: SegmentedControlProps) {
+  const [railWidth, setRailWidth] = useState(0);
+  const activeIndex = Math.max(
+    0,
+    segments.findIndex((segment) => segment.active)
+  );
+  const slide = useRef(new Animated.Value(activeIndex)).current;
+  const pillWidth = Math.max(0, (railWidth - 8) / Math.max(segments.length, 1));
+
+  useEffect(() => {
+    if (!sliding) return;
+    void timingTo(slide, activeIndex, { duration: motion.base, nativeDriver: true });
+  }, [activeIndex, slide, sliding]);
+
+  const translateX = slide.interpolate({
+    inputRange: [0, Math.max(1, segments.length - 1)],
+    outputRange: [0, pillWidth * Math.max(0, segments.length - 1)],
+  });
+
   return (
     <View
       className={`flex-row overflow-hidden rounded-md ${className}`}
-      style={{ backgroundColor: fills.control }}
+      role={sliding ? 'tablist' : undefined}
+      aria-label={accessibilityLabel}
+      onLayout={(event) => setRailWidth(event.nativeEvent.layout.width)}
+      style={{
+        backgroundColor: sliding ? colors.surfaceControl : fills.control,
+        // §10: the rail is a form control; one resting edge in the existing
+        // outline token clears 3:1 against the pane without a new colour.
+        borderWidth: 1,
+        borderColor: colors.outline,
+        padding: sliding ? 4 : 0,
+      }}
     >
+      {sliding && railWidth > 0 ? (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 4,
+            bottom: 4,
+            left: 4,
+            width: pillWidth,
+            borderRadius: radii.micro,
+            backgroundColor: colors.selectionSurface,
+            borderWidth: 1, // design-ignore — §10 Review selection chrome
+            borderColor: alpha(colors.primary, 0.25), // design-ignore — §10 Review selection chrome
+            transform: [{ translateX }],
+          }}
+        />
+      ) : null}
       {segments.map((segment) => {
         const active = segment.active ?? false;
-        const filled = appearance === 'fill' && active;
+        const filled = !sliding && appearance === 'fill' && active;
 
         return (
           <View key={segment.key} className="flex-1 flex-row">
@@ -102,10 +158,11 @@ export function SegmentedControl({
               // badge produced "Discover Soon" against "DiscoverSoon", which
               // axe reported as label-content-name-mismatch.
               selected={active}
+              tab={sliding}
               style={
                 filled
                   ? { backgroundColor: colors.primary, paddingVertical: 8 }
-                  : { paddingVertical: appearance === 'fill' ? 8 : 10 }
+                  : { paddingVertical: sliding || appearance === 'fill' ? 8 : 10 }
               }
             >
               {segment.icon && (

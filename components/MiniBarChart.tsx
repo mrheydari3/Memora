@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, View } from 'react-native';
 import { AppText } from './AppText';
 import { colors, motion } from '../theme/tokens';
-import { EASE, USE_NATIVE_DRIVER, prefersReducedMotion } from '../motion';
+import { timingTo } from '../motion';
 
 type BarData = { value: number; label: string; color?: string; highlight?: boolean };
 
@@ -43,18 +43,9 @@ export function MiniBarChart({
   const valueSpace = showValues ? 22 : 0;
 
   useEffect(() => {
-    if (prefersReducedMotion()) {
-      grow.setValue(1);
-      return;
-    }
     // One short pass on mount: the bars rise from the baseline and stop.
     grow.setValue(0);
-    Animated.timing(grow, {
-      toValue: 1,
-      duration: motion.base,
-      easing: EASE.standard,
-      useNativeDriver: USE_NATIVE_DRIVER,
-    }).start();
+    void timingTo(grow, 1, { duration: motion.base });
   }, [grow]);
 
   if (isEmpty && emptyLabel) {

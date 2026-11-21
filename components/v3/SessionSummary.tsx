@@ -4,7 +4,7 @@ import { AppText } from '../AppText';
 import { GhostButton } from '../GhostButton';
 import { ActionButton } from './ActionButton';
 import { Surface } from './Surface';
-import { alpha, colors, fills, iconSize, over, radii, rims } from '../../theme/tokens';
+import { alpha, colors, fills, glass, iconSize, over, radii } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -227,8 +227,6 @@ export function SessionSummary({
             paddingHorizontal: 10,
             paddingVertical: 5,
             backgroundColor: over(colors.background, statusColor, 0.16),
-            borderWidth: 1,
-            borderColor: alpha(statusColor, 0.3),
           }}
         >
           <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: statusColor }} />
@@ -254,12 +252,10 @@ export function SessionSummary({
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: over(
-              colors.surfacePane,
+              glass.fill,
               emptyDeck ? colors.primary : colors.success,
               0.16
             ),
-            borderWidth: 1,
-            borderColor: alpha(emptyDeck ? colors.primary : colors.success, 0.3),
           }}
         >
           <MaterialIcons
@@ -309,8 +305,6 @@ export function SessionSummary({
               gap: 8,
               marginTop: 16,
               borderRadius: radii.pill,
-              borderWidth: 1,
-              borderColor: rims.soft,
               backgroundColor: colors.surfaceInset,
               paddingHorizontal: 14,
               paddingVertical: 8,
@@ -360,7 +354,7 @@ export function SessionSummary({
                     <AppText
                       weight="bold"
                       style={{
-                        fontSize: 26,
+                        ...v3.type.answer,
                         lineHeight: 30,
                         letterSpacing: -0.6,
                         fontVariant: ['tabular-nums'],
@@ -565,8 +559,6 @@ export function SessionSummary({
                     justifyContent: 'space-between',
                     gap: 10,
                     borderRadius: radii.micro,
-                    borderWidth: 1,
-                    borderColor: alpha(row.color, 0.22),
                     backgroundColor: alpha(row.color, 0.08),
                     paddingHorizontal: 12,
                     paddingVertical: 10,
@@ -622,8 +614,6 @@ export function SessionSummary({
                 style={{
                   minHeight: 48,
                   borderRadius: radii.control,
-                  borderWidth: 1,
-                  borderColor: rims.soft,
                   backgroundColor: colors.surfaceControl,
                   flexDirection: 'row',
                   alignItems: 'center',

@@ -8,7 +8,7 @@ import {
   parseLocalDateKey,
   startOfLocalDay,
 } from '../../data/streak';
-import { prefersReducedMotion, usePressFeedback } from '../../motion';
+import { timingTo, usePressFeedback } from '../../motion';
 import { alpha, colors, iconSize, motion, radii } from '../../theme/tokens';
 import { useResponsive } from '../../hooks/useResponsive';
 import { IconButton } from '../IconButton';
@@ -122,8 +122,8 @@ function DayCell({
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: fill,
-            borderWidth: isToday || selected || focused ? 1.5 : 0,
-            borderColor: focused || selected ? colors.primary : border,
+            borderWidth: isToday || selected || focused ? 1.5 : 0, // design-ignore — §10 focus/selected state
+            borderColor: focused || selected ? colors.primary : border, // design-ignore — §10 focus/selected state
             opacity: isFuture ? 0.7 : 1,
           }}
         >
@@ -223,18 +223,8 @@ export function StreakCalendar({
   const reveal = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (prefersReducedMotion()) {
-      reveal.setValue(1);
-      return;
-    }
     reveal.setValue(0);
-    const animation = Animated.timing(reveal, {
-      toValue: 1,
-      duration: motion.fast,
-      useNativeDriver: true,
-    });
-    animation.start();
-    return () => animation.stop();
+    void timingTo(reveal, 1, { duration: motion.fast, nativeDriver: true });
   }, [monthStart, reveal]);
 
   const opacity = reveal;
@@ -332,7 +322,7 @@ export function StreakCalendar({
           flexDirection: 'row',
           flexWrap: 'wrap',
           gap: 14,
-          paddingHorizontal: 18,
+          paddingHorizontal: 16,
           marginTop: 10,
           minHeight: 20,
         }}
@@ -345,8 +335,8 @@ export function StreakCalendar({
               width: 8,
               height: 8,
               borderRadius: 3,
-              borderWidth: 1,
-              borderColor: colors.primary,
+              borderWidth: 1, // design-ignore — §10 today marker
+              borderColor: colors.primary, // design-ignore — §10 today marker
             }}
           />
           <AppText variant="caption" tone="tertiary">
@@ -359,7 +349,7 @@ export function StreakCalendar({
         <AppText
           variant="caption"
           tone="tertiary"
-          style={{ paddingHorizontal: 18, marginTop: 6 }}
+          style={{ paddingHorizontal: 16, marginTop: 6 }}
         >
           {`Selected ${LONG_DATE.format(new Date(parseLocalDateKey(selectedDate) ?? today))} · rest day recorded`}
         </AppText>

@@ -16,7 +16,7 @@ import {
   SkeletonText,
 } from '../../components';
 import { ActionButton, PageHeader, SectionHeading, Surface } from '../../components/v3';
-import { alpha, colors, iconSize, spacing } from '../../theme/tokens';
+import { alpha, colors, iconSize, radii, spacing } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
 const NUMERIC = { fontVariant: ['tabular-nums'] as const };
@@ -77,8 +77,6 @@ export default function DiscoverDeckPreviewScreen() {
     <View
       style={{
         backgroundColor: colors.background,
-        borderTopWidth: 1,
-        borderTopColor: colors.hairlineRule,
         paddingTop: 12,
         paddingBottom: spacing.screen,
       }}
@@ -225,9 +223,7 @@ function PreviewHero({ deck }: { deck: FeaturedDeck }) {
         style={{
           flexDirection: 'row',
           backgroundColor: colors.surfaceInset,
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: alpha(colors.outlineSoft, 0.2),
+          borderRadius: radii.menu,
           paddingVertical: 12,
           paddingHorizontal: 12,
         }}
@@ -255,8 +251,6 @@ function LedgerCell({
         flex: 1,
         minWidth: 0,
         paddingStart: first ? 0 : 12,
-        borderStartWidth: first ? 0 : 1,
-        borderStartColor: colors.outlineVariant,
       }}
     >
       <AppText variant="caption" tone="tertiary" numberOfLines={1}>

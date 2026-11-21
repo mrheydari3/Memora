@@ -6,7 +6,6 @@ import {
   Share,
   View,
 } from 'react-native';
-import type { ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useResponsive } from '../hooks/useResponsive';
 import { MaterialIcons } from '../components/Icon';
@@ -26,14 +25,17 @@ import {
   ActionButton,
   HeaderIcon,
   PageHeader,
-  SectionHeading,
+  StatsCard,
+  StatsSection,
   Surface,
+  TinyPill,
 } from '../components/v3';
-import { prefersReducedMotion } from '../motion';
+import { timingTo } from '../motion';
 import {
   alpha,
   colors,
   fills,
+  glass,
   heights,
   iconSize,
   motion,
@@ -150,67 +152,6 @@ async function copyOrShare(text: string): Promise<'copied' | 'shared'> {
   return 'shared';
 }
 
-type StatsSectionProps = {
-  title: string;
-  count?: string;
-  hint?: string;
-  children: React.ReactNode;
-  style?: ViewStyle | ViewStyle[];
-};
-
-function StatsSection({ title, count, hint, children, style }: StatsSectionProps) {
-  return (
-    <View style={[{ marginTop: v3.spacing.page }, style]}>
-      <SectionHeading label={title} count={count} hint={hint} />
-      <View style={{ marginTop: 10 }}>{children}</View>
-    </View>
-  );
-}
-
-function TinyPill({ label, accent = false }: { label: string; accent?: boolean }) {
-  return (
-    <View
-      style={{
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: radii.pill,
-        backgroundColor: accent ? alpha(colors.primary, 0.13) : colors.surfaceControl,
-        borderWidth: 1,
-        borderColor: accent ? alpha(colors.primary, 0.3) : rims.soft,
-      }}
-    >
-      <AppText
-        variant="caption"
-        weight="medium"
-        tone={accent ? 'accent' : 'muted'}
-        style={{ letterSpacing: 0.2 }}
-      >
-        {label}
-      </AppText>
-    </View>
-  );
-}
-
-type StatsCardProps = {
-  children: React.ReactNode;
-  style?: ViewStyle;
-  tone?: 'pane' | 'inset';
-  padding?: 'none' | 'sm' | 'md';
-};
-
-function StatsCard({ children, style, tone = 'pane', padding = 'md' }: StatsCardProps) {
-  return (
-    <Surface
-      tone={tone}
-      radius="card"
-      padding={padding}
-      style={[{ borderWidth: 1, borderColor: rims.soft }, style ?? {}]}
-    >
-      {children}
-    </Surface>
-  );
-}
-
 type ShareNotice = {
   id: number;
   message: string;
@@ -220,15 +161,10 @@ function ShareToast({ message }: { message: string }) {
   const reveal = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (prefersReducedMotion()) {
-      reveal.setValue(1);
-      return;
-    }
-    Animated.timing(reveal, {
-      toValue: 1,
+    void timingTo(reveal, 1, {
       duration: motion.fast,
-      useNativeDriver: Platform.OS !== 'web',
-    }).start();
+      nativeDriver: Platform.OS !== 'web',
+    });
   }, [reveal]);
 
   return (
@@ -254,9 +190,7 @@ function ShareToast({ message }: { message: string }) {
           paddingHorizontal: 16,
           paddingVertical: 8,
           borderRadius: radii.pill,
-          borderWidth: 1,
-          borderColor: rims.soft,
-          backgroundColor: colors.surfaceCardFace,
+          backgroundColor: glass.cardFace,
           shadowColor: colors.background,
           shadowOpacity: 0.4,
           shadowRadius: 14,
@@ -457,8 +391,7 @@ function HeroLedger({ report }: { report: IntelligenceReport }) {
             flex: 1,
             minWidth: 0,
             paddingHorizontal: 8,
-            borderStartWidth: index === 0 ? 0 : 1,
-            borderStartColor: rims.soft,
+            paddingStart: index === 0 ? 8 : 16,
           }}
         >
           <AppText variant="caption" tone="muted" className="uppercase" numberOfLines={1}>
@@ -670,8 +603,6 @@ function RecallTile({
         paddingHorizontal: 10,
         paddingVertical: 8,
         borderRadius: radii.control,
-        borderWidth: 1,
-        borderColor: rims.soft,
         backgroundColor: fills.inset,
       }}
     >
@@ -748,7 +679,7 @@ function RecallCard({ report }: { report: IntelligenceReport }) {
           style={{
             width: 32,
             height: 32,
-            borderRadius: 16,
+            borderRadius: radii.pill,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: alpha(
@@ -814,14 +745,12 @@ function RecallCard({ report }: { report: IntelligenceReport }) {
           gap: 12,
           marginTop: 16,
           paddingTop: 14,
-          borderTopWidth: 1,
-          borderTopColor: rims.soft,
         }}
       >
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <MaterialIcons name="timer" size={iconSize.xs} color={colors.outline} />
-            <AppText variant="caption" tone="muted" numberOfLines={1}>
+            <AppText variant="caption" tone="muted" numberOfLines={2}>
               Median review time
             </AppText>
           </View>
@@ -836,7 +765,7 @@ function RecallCard({ report }: { report: IntelligenceReport }) {
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <MaterialIcons name="analytics" size={iconSize.xs} color={colors.outline} />
-            <AppText variant="caption" tone="muted" numberOfLines={1}>
+            <AppText variant="caption" tone="muted" numberOfLines={2}>
               Avg per active day
             </AppText>
           </View>
@@ -900,8 +829,7 @@ function MemorySubMetric({
         minWidth: 0,
         alignItems: 'center',
         paddingHorizontal: 4,
-        borderLeftWidth: divider ? 1 : 0,
-        borderLeftColor: rims.soft,
+        paddingStart: divider ? 12 : 4,
       }}
     >
       <AppText variant="caption" tone="tertiary" numberOfLines={1}>
@@ -1018,8 +946,6 @@ function MemoryCard({
           marginTop: 16,
           padding: 12,
           borderRadius: radii.control,
-          borderWidth: 1,
-          borderColor: rims.soft,
           backgroundColor: fills.inset,
         }}
       >
@@ -1083,7 +1009,7 @@ function StudyHabitsCard({
           style={{
             width: 32,
             height: 32,
-            borderRadius: 16,
+            borderRadius: radii.pill,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: alpha(colors.warning, 0.14),
@@ -1142,8 +1068,6 @@ function StudyHabitsCard({
                     : active
                       ? alpha(colors.success, 0.18)
                       : fills.inset,
-                  borderWidth: 1,
-                  borderColor: isToday ? colors.primaryContainer : rims.soft,
                 }}
               >
                 {active || isToday ? (
@@ -1203,7 +1127,6 @@ function DeckCard({ deck }: { deck: DeckIntelligence }) {
       tone="pane"
       radius="card"
       padding="sm"
-      style={{ borderWidth: 1, borderColor: rims.soft }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -1211,7 +1134,7 @@ function DeckCard({ deck }: { deck: DeckIntelligence }) {
             <AppText
               variant="bodySm"
               weight="semibold"
-              numberOfLines={1}
+              numberOfLines={2}
               style={{ flexShrink: 1 }}
             >
               {deck.name}
@@ -1334,14 +1257,13 @@ function InsightTile({ item }: { item: StandoutItem }) {
       tone="pane"
       radius="card"
       padding="sm"
-      style={{ borderWidth: 1, borderColor: rims.soft }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
         <View
           style={{
             width: 32,
             height: 32,
-            borderRadius: 16,
+            borderRadius: radii.pill,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: alpha(item.color, 0.12),
@@ -1360,8 +1282,6 @@ function InsightTile({ item }: { item: StandoutItem }) {
                 paddingVertical: 2,
                 borderRadius: 6,
                 backgroundColor: alpha(item.color, 0.12),
-                borderWidth: 1,
-                borderColor: alpha(item.color, 0.3),
               }}
             >
               <AppText
@@ -1395,8 +1315,6 @@ function ReportsCard({ report }: { report: IntelligenceReport }) {
           style={{
             paddingHorizontal: 16,
             paddingVertical: 14,
-            borderBottomWidth: index === periods.length - 1 ? 0 : 1,
-            borderBottomColor: rims.soft,
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>

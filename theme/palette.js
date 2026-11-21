@@ -6,7 +6,8 @@
  * the two. Nothing outside `theme/` may write a hex or rgba literal; the
  * `check:design` script enforces that.
  *
- * The language: one ink canvas, one accent, hairline strokes, frosted panes.
+ * The language: one ink canvas, one accent, surfaces separated by fill rather
+ * than strokes. Blur is reserved for the scene, header, tab bar and undo bar.
  */
 
 const colors = {
@@ -17,19 +18,19 @@ const colors = {
   surfaceContainerLowest: '#05070B',
   surfaceContainerLow: '#0A0E15',
   surfaceContainer: '#11161F',
-  surfaceContainerHigh: '#18202B',
   surfaceContainerHighest: '#202A38',
   onSurface: '#DCE2EB',
-  onSurfaceVariant: '#A2ACBC',
+  onSurfaceVariant: '#BAC4D2',
   inverseSurface: '#E8EDF4',
   inverseOnSurface: '#141A22',
   /**
    * Tertiary text and quiet glyphs. Raised from #77839A: at 11px a caption sat
    * at ~5.0:1 on the canvas but fell under 4.5:1 once it landed on a frosted
-   * pane, which axe reported as a serious contrast failure. This step is ~6.5:1
-   * on ink and still ~5:1 on the accent pane.
+   * pane, which axe reported as a serious contrast failure. The current step is
+   * 10.70:1 on canvas, 9.38:1 on pane, 8.19:1 on card, 7.26:1 on inset,
+   * 6.28:1 on control and 5.24:1 on the selected surface.
    */
-  outline: '#8B97A9',
+  outline: '#B3BFD0',
   /** Unlit stars and other deliberately quiet glyphs. */
   outlineSoft: '#3A4453',
   outlineVariant: 'rgba(146, 176, 214, 0.16)',
@@ -54,21 +55,13 @@ const colors = {
   /** Informational accent for data and storage states. */
   info: '#6FD6E5',
   surfaceVariant: '#202A38',
-  /** v3 "Nocturne Focus": the mockup's opaque surface-control (#222831). */
-  surfacePane: '#141A24',
-  /** The Game hero's raised card face (#171E29). */
-  surfaceCardFace: '#171E29',
-  surfaceControl: '#222831',
-  /** Inset grouping fills: folder body wells and grouped content (#1D232D). */
-  surfaceInset: '#1D232D',
-  /** Interactive option tiles (#20252F). */
-  surfaceTile: '#20252F',
-  /** The selected pill behind the active tab (#233143). */
-  selectionSurface: '#233143',
+  surfaceControl: '#2E3948',
+  /** Inset grouping fills: folder body wells and grouped content. */
+  surfaceInset: '#252F3D',
+  /** The selected pill behind the active tab. */
+  selectionSurface: '#35455B',
   /** The shelf rule: #92B0D6 at 20%. */
   hairlineRule: 'rgba(146, 176, 214, 0.20)',
-  /** The app bar in v3: pane ink at 85%, so the page still scrolls under it. */
-  appBarGlass: 'rgba(12, 16, 23, 0.85)',
   /**
    * The only line colours left in the system, for the four cases that still
    * draw one: a focus ring, a dashed empty frame, the radio dot and a thin
@@ -93,15 +86,15 @@ const colors = {
  */
 const fills = {
   /** Dashed empty frames, the quietest surface. */
-  subtle: 'rgba(255, 255, 255, 0.022)',
+  subtle: 'rgba(255, 255, 255, 0.03)',
   /** Content nested inside another pane. */
-  inset: 'rgba(255, 255, 255, 0.04)',
+  inset: 'rgba(255, 255, 255, 0.05)',
   /** Icon tiles, chips and press feedback. */
-  tile: 'rgba(255, 255, 255, 0.05)',
+  tile: 'rgba(255, 255, 255, 0.06)',
   /** Inputs, icon buttons, segmented rails. */
-  control: 'rgba(255, 255, 255, 0.06)',
+  control: 'rgba(255, 255, 255, 0.075)',
   /** Progress rails and meters. */
-  track: 'rgba(255, 255, 255, 0.07)',
+  track: 'rgba(255, 255, 255, 0.09)',
 };
 
 /** The single lit 1px rim a pane may carry at its top edge. */
@@ -115,8 +108,9 @@ const rims = {
 const veil = '#000000';
 
 const glass = {
-  // Opaque by design: with the blur gone there is no frosted layer to hide
-  // behind, so a pane must not let the page read through it.
+  // Opaque pane and sheet fills. Blur is used only where a scene, header, tab
+  // bar or undo bar explicitly asks for it; the fills stay opaque so text never
+  // depends on what happens to be behind the surface.
   fill: '#141a24',
   strong: '#0a0e14',
   /**
@@ -126,8 +120,8 @@ const glass = {
   appBar: 'rgba(10, 14, 20, 0.20)',
   /** The blue tint of a hero/accent pane — one value for every selected pane. */
   accent: '#1c3450',
-  /** The flashcard face reads a touch brighter than a normal pane. */
-  cardFace: '#171e29',
+  /** The flashcard face reads a step brighter than a normal pane. */
+  cardFace: '#1D2633',
   /**
    * The sheet face. Nearly opaque on purpose: a sheet carries text over a live
    * page, and 0.82 let a large heading behind it read through the rows.
@@ -160,6 +154,8 @@ const glass = {
 const radii = {
   /** The inner track of a 14px control. */
   micro: 10,
+  /** A 2-4px progress bar / rail. */
+  bar: 3,
   sm: 6,
   control: 14,
   /** A floating menu sits between a control and a pane. */
@@ -257,8 +253,7 @@ const shadows = {
  * and every legend read from this map — a state never changes hue per screen.
  */
 const stateColors = {
-  // Opaque so the New rail segment reads against surfaceControl (#222831):
-  // the old 38% wash composited to about 2.2:1 and looked like empty track.
+  // Opaque so the New rail segment reads against surfaceControl (#2E3948).
   New: '#92B0D6',
   Learning: colors.warning,
   Relearning: colors.warning,

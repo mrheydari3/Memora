@@ -29,11 +29,14 @@ export function StreakChip({ streak, onPress }: StreakChipProps) {
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
         accessibilityRole="button"
-        accessibilityLabel={`${streak}-day streak. Open streak calendar.`}
+        accessibilityLabel={`${streak}d. ${streak}-day streak. Open streak calendar.`}
         accessibilityHint="Shows your streak calendar and weekly rest day."
         style={{
-          minWidth: 44,
-          minHeight: 44,
+          // 45 rather than 44: Chromium rounds a 44px min-height inside the
+          // 320px hero to 43.99999, which reads as an undersized target.
+          minWidth: 45,
+          minHeight: 45,
+          flexShrink: 0,
           alignItems: 'center',
           justifyContent: 'center',
         }}
@@ -54,6 +57,8 @@ export function StreakChip({ streak, onPress }: StreakChipProps) {
             name="local-fire-department"
             size={iconSize.sm}
             color={streak > 0 ? colors.warning : colors.outline}
+            accessible={false}
+            aria-hidden
           />
           <AppText
             variant="caption"

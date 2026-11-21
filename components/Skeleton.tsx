@@ -267,7 +267,7 @@ export function HeroSkeleton({ height = 196 }: { height?: number }) {
       <View
         style={{
           flexDirection: 'row',
-          borderRadius: 16,
+          borderRadius: v3.radii.quizTile,
           backgroundColor: colors.surfaceInset,
           paddingHorizontal: 12,
           paddingVertical: 12,
@@ -319,7 +319,7 @@ export function StatisticsSkeleton() {
         <View
           style={{
             flexDirection: 'row',
-            borderRadius: 16,
+            borderRadius: v3.radii.quizTile,
             backgroundColor: fills.inset,
             paddingVertical: 12,
             paddingHorizontal: 8,
@@ -495,7 +495,7 @@ export function QuizSkeleton() {
 
       {/* The arena centres the stage in the space left above the answers; the
           skeleton needs the same wrapper or it pulls the pads up by ~30px. */}
-      <View style={{ flex: 1, minHeight: 0, justifyContent: 'center', marginTop: 18 }}>
+      <View style={{ flex: 1, minHeight: 0, justifyContent: 'center', marginTop: 16 }}>
         <View
           style={{
             flex: 1,
@@ -511,7 +511,7 @@ export function QuizSkeleton() {
           }}
         >
           <Skeleton width={96} height={10} radius={5} />
-          <Skeleton height={30} width="82%" radius={10} style={{ marginTop: 18 }} />
+          <Skeleton height={30} width="82%" radius={10} style={{ marginTop: 16 }} />
           <Skeleton height={30} width="62%" radius={10} style={{ marginTop: 10 }} />
         </View>
       </View>
@@ -533,8 +533,6 @@ export function QuizSkeleton() {
           justifyContent: 'space-between',
           marginTop: 14,
           paddingTop: 10,
-          borderTopWidth: 1,
-          borderTopColor: fills.track,
         }}
       >
         <Skeleton width={136} height={8} radius={4} />

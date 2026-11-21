@@ -20,6 +20,8 @@ import { v3 } from '../theme/v3';
 export default function NotFoundScreen() {
   const router = useRouter();
 
+  // Screen gutter is intentionally omitted: the centred empty frame owns the
+  // 20px page gutter and the vertical centring.
   return (
     <Screen
       edges={['top', 'bottom']}

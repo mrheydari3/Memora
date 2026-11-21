@@ -29,6 +29,7 @@ import {
   spacing,
   typography,
 } from '../theme/tokens';
+import { v3 } from '../theme/v3';
 
 type FlashcardViewProps = {
   card: FlashcardType;
@@ -71,7 +72,7 @@ function readingAlignment(
 const FRONT_SIZES = {
   hero: { fontSize: 42, lineHeight: 48, letterSpacing: -1.2 },
   display: { fontSize: 34, lineHeight: 40, letterSpacing: -1 },
-  title: { fontSize: 26, lineHeight: 32, letterSpacing: -0.5 },
+  title: v3.type.answer,
 } satisfies Record<'hero' | 'display' | 'title', TextStyle>;
 
 /**

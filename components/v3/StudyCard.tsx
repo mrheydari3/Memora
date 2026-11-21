@@ -60,7 +60,7 @@ export function StudyCard({
     card.fsrs.state === 'New' ? colors.onSurfaceVariant : stateColors[card.fsrs.state];
   const answerStyle =
     card.back.text.length > LONG_ANSWER
-      ? { fontSize: 26, lineHeight: 32, letterSpacing: -0.5 }
+      ? v3.type.answer
       : v3.type.composerFront;
   // A note carries the learner's own language: a Persian note stays RTL even
   // when the card's answer is German.
@@ -84,7 +84,6 @@ export function StudyCard({
                 styles.statePill,
                 {
                   backgroundColor: alpha(stateColor, 0.12),
-                  borderColor: alpha(stateColor, 0.22),
                 },
               ]}
             >
@@ -354,7 +353,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    borderWidth: 1,
     borderRadius: radii.pill,
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -429,7 +427,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   example: {
-    marginTop: 18,
+    marginTop: 16,
   },
   exampleRow: {
     flexDirection: 'row',
