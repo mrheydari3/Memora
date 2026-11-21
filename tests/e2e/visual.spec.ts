@@ -96,6 +96,25 @@ test.describe('visual', () => {
     });
   }
 
+  // The Profile page has to hold its hero, three-up statistics and two-up
+  // achievements at both phone widths, and its four-up tablet wall at the
+  // boundary. Each width gets its own baseline so a layout break is caught
+  // where it happens rather than only at 390.
+  for (const { width, height } of [
+    { width: 390, height: 844 },
+    { width: 320, height: 844 },
+    { width: 768, height: 1024 },
+  ]) {
+    test(`profile at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await seedFixture(page);
+      await page.goto('/profile');
+      await waitForRoute(page, 'profile');
+      await expect(page.getByText('Mini Statistics', { exact: true })).toBeVisible();
+      await expect(page).toHaveScreenshot(`profile-${width}.png`, { fullPage: false });
+    });
+  }
+
   test('profile achievements stay two-up at 390px', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await seedFixture(page);

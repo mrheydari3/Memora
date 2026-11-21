@@ -24,6 +24,7 @@ import {
 } from '../../components';
 import {
   ActionButton,
+  HeroAura,
   PageHeader,
   SectionHeading,
   Surface,
@@ -102,7 +103,7 @@ function IdentityCard({
   ];
 
   return (
-    <Surface tone="scene" radius="pane" padding="md">
+    <Surface tone="scene" frosted style={{ position: 'relative', zIndex: 1 }}>
       <View
         style={{
           flexDirection: 'row',
@@ -114,7 +115,7 @@ function IdentityCard({
         <AppText
           variant="label"
           weight="semibold"
-          tone="tertiary"
+          tone="accent"
           style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}
         >
           Identity
@@ -148,7 +149,7 @@ function IdentityCard({
             backgroundColor: colors.surfaceTile,
           }}
         >
-          <MaterialIcons name="psychology" size={28} color={colors.primary} />
+          <MaterialIcons name="psychology" size={iconSize.display} color={colors.primary} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <AppText variant="headline" weight="semibold" numberOfLines={1}>
@@ -427,7 +428,7 @@ function MiniStatistics({
         : `${formatCount(recall.sampleSize)} of ${MIN_RECALL_SAMPLE} rated reviews`;
 
   return (
-    <Surface tone="pane" radius="card" padding="md">
+    <Surface tone="pane" radius="card">
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <MiniStat
           testID="profile-mini-reviews"
@@ -481,14 +482,13 @@ function AchievementCard({ fact, basis }: { fact: AchievementFact; basis: string
   return (
     <Surface
       testID={`achievement-${fact.id}`}
-      tone="inset"
+      tone="pane"
       radius="card"
       padding="sm"
       style={{
         flexBasis: basis,
         minHeight: 140,
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
       }}
     >
       <View>
@@ -496,7 +496,7 @@ function AchievementCard({ fact, basis }: { fact: AchievementFact; basis: string
           style={{
             width: 36,
             height: 36,
-            borderRadius: radii.control,
+            borderRadius: v3.radii.tile,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: fact.earned
@@ -529,7 +529,7 @@ function AchievementCard({ fact, basis }: { fact: AchievementFact; basis: string
       </View>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 }}>
-        <MaterialIcons name={statusIcon} size={11} color={statusColor} />
+        <MaterialIcons name={statusIcon} size={iconSize.xs} color={statusColor} />
         <AppText
           variant="caption"
           weight="semibold"
@@ -596,13 +596,16 @@ export default function ProfileScreen() {
       ) : (
         <>
           <RevealItem index={0}>
-            <IdentityCard summary={bundle.summary} wide={wide} />
+            <View style={{ position: 'relative' }}>
+              <HeroAura id="profile-aura" />
+              <IdentityCard summary={bundle.summary} wide={wide} />
+            </View>
           </RevealItem>
 
           {bundle.summary.allTime.reviews === 0 ? (
             <RevealItem index={1}>
               <View style={{ marginTop: v3.spacing.page }}>
-                <Surface tone="pane" radius="card" padding="md">
+                <Surface tone="pane" radius="card">
                   <EmptyState
                     icon="auto-awesome"
                     title="Your record starts with one card"
