@@ -123,6 +123,57 @@ test('the toolbar wraps its controls instead of clipping the search field at 320
   expect(sort!.y).toBeGreaterThanOrEqual(input!.y + input!.height - 1);
 });
 
+test('mouse focus drops the search ring and keyboard focus restores it', async ({ page }) => {
+  for (const { width, height } of [
+    { width: 320, height: 700 },
+    { width: 390, height: 844 },
+    { width: 780, height: 1024 },
+  ]) {
+    await page.setViewportSize({ width, height });
+    await openHome(page);
+
+    const search = page.getByLabel('Search your library');
+    await search.click();
+    await expect(search).toBeFocused();
+    // A pointer user already has the caret; the ring reads as a selection box.
+    await expect
+      .poll(() => search.evaluate((element) => getComputedStyle(element).outlineStyle))
+      .toBe('none');
+
+    const box = await search.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.height).toBe(44);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+      )
+    ).toBeLessThanOrEqual(1);
+
+    // Leave and come back with Tab: the ring belongs to the keyboard.
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Shift+Tab');
+    await expect(search).toBeFocused();
+    await expect
+      .poll(() => search.evaluate((element) => getComputedStyle(element).outlineStyle))
+      .toBe('solid');
+  }
+});
+
+test('a click elsewhere leaves the ring for a programmatic focus', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHome(page);
+
+  const search = page.getByLabel('Search your library');
+  // A pointer-down outside the field must not mark the next focus as pointer-
+  // acquired; a later focus without a click keeps the keyboard ring.
+  await page.getByRole('button', { name: 'Show all' }).click();
+  await search.focus();
+  await expect(search).toBeFocused();
+  await expect
+    .poll(() => search.evaluate((element) => getComputedStyle(element).outlineStyle))
+    .toBe('solid');
+});
+
 test('Edit layout leaves search and shows the reorder surface', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openHome(page);
