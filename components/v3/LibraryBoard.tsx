@@ -923,9 +923,6 @@ export function LibraryBoard({
                 <AppText variant="bodySm" weight="semibold" tone="accent">
                   Review folder
                 </AppText>
-                <AppText variant="caption" tone="tertiary" style={{ marginLeft: 'auto' }}>
-                  {item.reviewDue} due
-                </AppText>
               </HintPressable>
             ) : null}
             {renderDeck(item.deckId, false, true)}

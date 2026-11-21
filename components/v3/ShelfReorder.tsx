@@ -261,6 +261,9 @@ function ReorderRow({
 
       <View style={{ flex: 1, minWidth: 0 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+          {item.pinned && (
+            <MaterialIcons name="push-pin" size={iconSize.xs} color={colors.outline} />
+          )}
           <AppText
             testID="reorder-name"
             variant="bodySm"
@@ -270,9 +273,6 @@ function ReorderRow({
           >
             {item.name}
           </AppText>
-          {item.pinned && (
-            <MaterialIcons name="push-pin" size={iconSize.xs} color={colors.outline} />
-          )}
         </View>
         <AppText variant="caption" tone="tertiary" numberOfLines={1} style={{ marginTop: 1 }}>
           {isFolder ? 'Folder' : 'Deck'} · {item.meta}

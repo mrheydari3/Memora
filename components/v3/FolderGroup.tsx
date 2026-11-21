@@ -72,6 +72,9 @@ export function FolderGroup({
 
       <View style={{ flex: 1, minWidth: 0 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          {pinned && (
+            <MaterialIcons name="push-pin" size={iconSize.xs} color={colors.outline} />
+          )}
           <AppText
             variant="bodyLg"
             weight="semibold"
@@ -80,9 +83,6 @@ export function FolderGroup({
           >
             {name}
           </AppText>
-          {pinned && (
-            <MaterialIcons name="push-pin" size={iconSize.xs} color={colors.outline} />
-          )}
         </View>
 
         <View

@@ -101,6 +101,9 @@ export function FolderCard({
 
             <View style={{ flex: 1, minWidth: 0 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                {pinned && (
+                  <MaterialIcons name="push-pin" size={iconSize.xs} color={colors.outline} />
+                )}
                 <AppText
                   weight="semibold"
                   numberOfLines={2}
@@ -108,9 +111,6 @@ export function FolderCard({
                 >
                   {name}
                 </AppText>
-                {pinned && (
-                  <MaterialIcons name="push-pin" size={iconSize.xs} color={colors.outline} />
-                )}
               </View>
 
               <AppText

@@ -285,6 +285,9 @@ export function DeckShelfRow({
 
           <View style={{ flex: 1, minWidth: 0 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              {pinned && (
+                <MaterialIcons name="push-pin" size={iconSize.xs} color={colors.outline} />
+              )}
               <AppText
                 weight="semibold"
                 numberOfLines={2}
@@ -292,14 +295,6 @@ export function DeckShelfRow({
               >
                 {name}
               </AppText>
-              {pinned && (
-                <View
-                  accessibilityElementsHidden
-                  importantForAccessibility="no-hide-descendants"
-                >
-                  <MaterialIcons name="push-pin" size={iconSize.xs} color={colors.outline} />
-                </View>
-              )}
             </View>
 
             {/* One meta line, one status mark. The due pill lives here — never
