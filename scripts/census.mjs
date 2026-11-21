@@ -244,9 +244,14 @@ async function scanNodes() {
       element.focus({ preventScroll: true });
       const focusVisible = element.matches(':focus-visible');
       const focusStyle = getComputedStyle(element);
+      // Deck rows paint their ring on the face so it clears the opaque pane;
+      // the trigger itself deliberately has no outline once :has() is available.
+      const face = element.closest('[data-testid="deck-row-face"]');
+      const faceRing = face ? getComputedStyle(face).boxShadow !== 'none' : false;
       const ring =
         (focusStyle.outlineStyle !== 'none' && parseFloat(focusStyle.outlineWidth) > 0) ||
-        focusStyle.boxShadow !== 'none';
+        focusStyle.boxShadow !== 'none' ||
+        faceRing;
       if (document.activeElement === element && focusVisible && !ring) {
         violations.push('G6-focus-ring');
       }

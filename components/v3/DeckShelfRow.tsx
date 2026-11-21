@@ -380,6 +380,7 @@ export function DeckShelfRow({
     >
       {flat ? (
         <View
+          testID="deck-row-face"
           style={{
             width: '100%',
             minHeight: v3.heights.deckRow,
@@ -393,6 +394,7 @@ export function DeckShelfRow({
         </View>
       ) : (
         <Surface
+          testID="deck-row-face"
           tone="pane"
           radius="card"
           padding="none"

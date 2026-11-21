@@ -74,20 +74,21 @@ body {
 }
 
 /* A browser outline is square and ignores the card's radius. Draw focus as an
-   inset shadow on the rounded surface instead; the deck shell receives the ring
-   when its inner trigger is focused, so the options rail is part of the row's
-   focus shape. */
+   inset shadow on the rounded surface instead; the folder header/card is the
+   focused element. A deck's face receives the ring from its inner trigger, so
+   the options rail is part of the row's focus shape. */
 [data-testid='folder-group']:focus-visible,
 [data-testid='folder-card']:focus-visible {
   outline: none;
   box-shadow: inset 0 0 0 2px theme('colors.primary');
 }
 
-/* Keep the square outline as the fallback; only suppress it where the row
-   shell can actually receive the rounded shadow via :has(). */
+/* Keep the square outline as the fallback; only suppress it where the face can
+   receive the rounded shadow via :has(). The face is the painted surface, not
+   the shell: an inset shadow on the shell sits under the opaque deck pane and
+   is invisible. */
 @supports selector(:has(*)) {
-  [data-testid='deck-row-shell']:has([data-testid='deck-row']:focus-visible),
-  [data-testid='deck-row-shell-flat']:has([data-testid='deck-row']:focus-visible) {
+  [data-testid='deck-row-face']:has([data-testid='deck-row']:focus-visible) {
     outline: none;
     box-shadow: inset 0 0 0 2px theme('colors.primary');
   }
