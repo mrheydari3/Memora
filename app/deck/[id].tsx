@@ -638,7 +638,9 @@ export default function DeckDetailsScreen() {
             />
           </View>
 
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {/* A tighter horizontal gap keeps all four filters on one line at
+              390px; wrapped rows keep the standard 8px vertical spacing. */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 4, rowGap: 8 }}>
             {FILTERS.map((entry) => (
               <FilterPill
                 key={entry.key}
