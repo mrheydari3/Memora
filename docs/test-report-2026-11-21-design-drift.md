@@ -226,6 +226,35 @@ visual baselines (`review-390-chromium-darwin.png`,
 regenerated; both visual suites pass 17/17. The Linux baselines were not
 regenerated in this workspace.
 
+### Follow-up: object shadows (2026-11-23)
+
+The flat pass had resolved every shadow token to `none`, so the objects that
+still named one (`Button`, `CardStack`, `Flashcard`, `LiquidTabBar`) rendered
+flat. The depth scale is real again in `theme/palette.js`, four roles and no new
+colours: `pane` (a deck/folder card resting on the page), `action` (the primary
+button), `floating` (sheets and menus) and `card` (the flashcard and its stack). `Surface` stays shadow-free: the owning component applies its token,
+so `DeckShelfRow` and `FolderCard` add `shadow.pane` themselves, while rows,
+groups and insets still separate by fill alone and a deck row inside an open
+folder stays flat. The shades are black contact shadows, not glows, and no element
+gains a border or rim alongside one.
+
+A review pass cut the roles that were not pulling their weight: `tile` was
+unused, and `liquidTab` (12/30 at 0.44) sat within a pixel of `floating`
+(16/40 at 0.46). The dock then ended up with no shadow at all: §10 already
+gives it a chrome rim, and the law forbids a rim and a shadow on one element,
+so the dock keeps the rim. The `Surface` `elevated` prop was also removed: only
+two cards used it, and the rest of the language already has each object
+component own its depth.
+
+`check:design` is clean (107 files) and `tsc` passes. The contact shades sat
+inside the 2% snapshot tolerance, which would have left the committed baselines
+stale, so all 25 darwin baselines were regenerated (22 changed, 3 byte-identical)
+and both visual suites then passed 17/17 against the refreshed snapshots. The
+Linux baselines were not regenerated in this workspace. Computed styles in
+Chromium: deck card
+`rgba(0, 0, 0, 0.3) 0px 2px 8px, rgba(0, 0, 0, 0.22) 0px 1px 2px`; the tab
+dock stays `none`. Native shadows were not exercised.
+
 ## Limits
 
 - The live pass was Chromium at the four requested widths. Native iOS/Android
