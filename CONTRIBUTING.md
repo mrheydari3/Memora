@@ -62,8 +62,8 @@ If a check cannot run in your environment, describe that limitation rather than 
 - [ ] Describe the problem, the change, and its user impact.
 - [ ] Keep the change focused; separate unrelated refactors.
 - [ ] Add or update regression tests.
-- [ ] Verify a 390px phone and a wider screen.
-- [ ] For UI work, attach before/after screenshots.
+- [ ] Verify a **320px** and a **390px** phone; add a wider screen when a shared primitive changed.
+- [ ] For UI work, attach before/after screenshots at 320 and 390px.
 - [ ] Check keyboard and focus behavior, reduced motion, and readable labels.
 - [ ] Update documentation or the changelog if behavior changes.
 - [ ] Report checks actually run and their results.

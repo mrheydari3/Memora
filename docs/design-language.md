@@ -56,7 +56,7 @@ Five neutral roles, with the luminance ratio of each step to the one before:
 | Inset | `colors.surfaceInset` | `#252F3D` | 1.13× |
 | Control | `colors.surfaceControl` | `#2E3948` | 1.16× |
 
-The selection surface (`colors.selectionSurface`, `#35455B`) has its own semantic role and does not replace one of these five. `SearchBar` has no resting edge and separates from the pane by fill alone; its edge shows only on focus (the focus ring). `Field` has one 1px resting edge from `alpha(colors.outline, 0.5)`; over the pane it composites to about `#646D7A`, roughly 3.3:1 — still above 3:1 but without the near-white glare (the full-strength version was 9.38:1). The field's placeholder moved from `colors.outline` to `colors.tertiaryContainer` (5.37:1 on the field fill) so it no longer shares the edge's weight. `SegmentedControl` and the off `ToggleSwitch` rail are exceptions to this rule: their resting edge is 1px of `alpha(colors.outlineSoft, 0.72)` — the same scene-rim family, one step stronger. It composites to about `#323C4A` on the card `#1D2633` (about 1.4:1) and `#2F3846` on the pane `#141A24` (about 1.5:1), deliberately below 3:1; the bright `outline` read as a white halo on the frosted card and as a white ring on the small ToggleSwitch track. These controls are read by fill (`surfaceControl` / `selectionSurface` / track) and text labels, not by the edge; in ToggleSwitch the near-white knob (9.9:1) and its position carry the state. This is a deliberate trade-off: their edge no longer supplies the 3:1 form-control boundary. `outline` on the five panes and the selection surface is 10.70, 9.38, 8.19, 7.26, 6.28 and 5.24:1 respectively. Accent text (`#7CBBFF`) on the selection surface is 4.83:1, so the active tab label still clears AA.
+The selection surface (`colors.selectionSurface`, `#35455B`) has its own semantic role and does not replace one of these five. `SearchBar` has no resting edge and separates from the pane by fill alone; its edge shows only on focus (the focus ring). `Field` has one 1px resting edge from `alpha(colors.outline, 0.48)`; it composites to **3.0:1 on the card face** and **3.15:1 on the pane** — at the 3:1 form-control floor without the near-white glare (the full-strength version was 9.38:1). The field's placeholder moved from `colors.outline` to `colors.tertiaryContainer` (5.37:1 on the field fill) so it no longer shares the edge's weight. `SegmentedControl` and the off `ToggleSwitch` rail are exceptions to this rule: their resting edge is 1px of `alpha(colors.outlineSoft, 0.72)` — the same scene-rim family, one step stronger. It composites to about `#323C4A` on the card `#1D2633` (about 1.4:1) and `#2F3846` on the pane `#141A24` (about 1.5:1), deliberately below 3:1; the bright `outline` read as a white halo on the frosted card and as a white ring on the small ToggleSwitch track. These controls are read by fill (`surfaceControl` / `selectionSurface` / track) and text labels, not by the edge; in ToggleSwitch the near-white knob (9.9:1) and its position carry the state. This is a deliberate trade-off: their edge no longer supplies the 3:1 form-control boundary. `outline` on the five panes and the selection surface is 10.70, 9.38, 8.19, 7.26, 6.28 and 5.24:1 respectively. Accent text (`#7CBBFF`) on the selection surface is 4.83:1, so the active tab label still clears AA.
 
 ---
 
@@ -142,6 +142,52 @@ These steps are written with `rem` on the web (they stay the same logical pixel 
 - Tabbed screens: `tabClearance`; stack screens (back): only `scroll gutter`.
 - `className`/`contentClassName` only for an exception (e.g. `pt-0`) — not to override the standard padding.
 
+### Phone contract (v3.2)
+
+The phone layout is measured, not a shrunken desktop. **390×844** is the reference and **320×700** is the stress case; every phone fix is checked at **320, 390 and 430** CSS px. Tablet and desktop (768+) are frozen for 3.2 and get a boot/no-overflow smoke only.
+
+| Width | Role |
+| --- | --- |
+| 320 | stress: compact hero, two-line headings, wrapped toolbars |
+| 360 / 375 | narrow phone: captions and meta may move into the body |
+| 390 | reference phone |
+| 430 | wide phone: same layout, more line length |
+
+- `useResponsive()` exposes `phone` (≤430) and `compact` (≤359). `useTextScale()` exposes `largeText` from 1.5× native font scale or a ≥24px web root font.
+- The phone dock is `min(360, viewport−24)`; tablet and desktop keep the original 300px dock so the frozen wide layout does not move.
+- The 320 hero uses `v3.type.heroCompact` (36/40), `v3.spacing.panelCompact` (16) and `v3.spacing.gapCompact` (12) so the All/Due/sort toolbar clears the dock at scroll 0. Wider phones keep the 40/44 hero and 20px panel.
+- At large text, data groups reflow to one column instead of clipping: section headings, settings ledgers, metric grids, memory sub-metrics, rating tiles and achievements. The dock and Study tray drop captions and keep 44px icon-only tabs with accessible names.
+
+**App-bar matrix**
+
+| Context | Leading | Title | Meta | Actions |
+| --- | --- | --- | --- | --- |
+| Home | brand mark; wordmark hidden at large text, hidden `h1` kept | `Memora` | streak chip moves into the Today hero below 375 and at large text | create + history, max two |
+| Tab / stack page | back or close, 44px | route name; two lines normally, four at large, two on a compact phone at large | status chip beside the title; session counter moves into the body at large | max two 44px actions |
+| Study session | close | deck name | counter in the body when large | undo |
+
+**Heading hierarchy**
+
+| Level | Primitive | Use |
+| --- | --- | --- |
+| 1 | `PageHeader` title | exactly one per route; the brand page keeps a hidden `h1` when the wordmark is hidden |
+| 2 | `SectionHeading` | uppercase section label with optional count/action/rule; one grammar on every screen |
+| 3 | pane title (`AppText variant="title"`/`headline`) | the object being read: deck, chapter, sheet |
+| 4 | row label (`bodyLg`/`body`) + `caption` meta | the scannable line inside a pane |
+
+Local phone margins of 8/12/14/20 are not allowed; use `Screen`'s gutter, `v3.spacing` and the compact hero tokens.
+
+**`ListDivider`** is the only rule inside a grouped list. It draws one 20% hairline and takes a semantic inset:
+
+| Inset | Start | Use |
+| --- | --- | --- |
+| `none` | 0 | a section rule that runs the pane's full width |
+| `tile` | 68px | rows with a leading 40px tile; the rule starts at the title |
+| `dot` | 34px | rows with a leading state dot; the rule starts after the dot column |
+| `card` | 16px each side | a card-level ledger that keeps its own gutter |
+
+No screen draws a raw 1px divider.
+
 ---
 
 ## 6. Radius, height, icon
@@ -201,7 +247,7 @@ Rules:
 
 Base components are imported from `@components/index`; v3 components from `@components/v3`.
 
-**Layout and surfaces:** `Screen` · `Surface` (`scene`/`pane`/`inset`/`control`) · `PageHeader` (+ `HeaderIcon`) · `SectionHeading` · `ShelfHeader` · `ListRow` · `FolderGroup` · `DeckShelfRow` · `ArchivedRow` · `TodayPane` · `BottomSheetModal` + `SheetPanel`
+**Layout and surfaces:** `Screen` · `Surface` (`scene`/`pane`/`inset`/`control`) · `PageHeader` (+ `HeaderIcon`) · `SectionHeading` · `ShelfHeader` · `ListRow` · `ListDivider` · `FolderGroup` · `DeckShelfRow` · `ArchivedRow` · `TodayPane` · `BottomSheetModal` + `SheetPanel`
 
 **Settings:** `SettingsHero` · `SettingsChapter` · `SettingsLine` · `SettingsFootnote` · `MetricGrid`
 
@@ -211,7 +257,7 @@ Base components are imported from `@components/index`; v3 components from `@comp
 
 ### Component rules
 
-1. **`ListRow` is the only standard row** — `title`, `subtitle`, `icon`, `value`, `tile` (`sm`/`lg`/`none`), `density` (`compact`/`default`/`tall`), `iconTone`, `trailing`, `showChevron`, `highlighted`, `onPress`. Do not build a new hand-made row (`<Pressable>` + three `<AppText>`). Rows have no dividers; `divider` is kept only for compatibility and draws nothing — rows separate by height and the pane's padding.
+1. **`ListRow` is the only standard row** — `title`, `subtitle`, `icon`, `value`, `tile` (`sm`/`lg`/`none`), `density` (`compact`/`default`/`tall`), `iconTone`, `trailing`, `showChevron`, `highlighted`, `onPress`. Do not build a new hand-made row (`<Pressable>` + three `<AppText>`). Rows have no dividers; `divider` is kept only for compatibility and draws nothing — rows separate by height and the pane's padding. When a scan list genuinely needs a rule, use `ListDivider` with the inset above.
 2. **`Surface` is the only pane** — `tone` (`scene`/`pane`/`inset`/`control`), `radius` (`control`/`card`/`pane`), `padding` (`none`/`sm`/`md`). Do not put a duplicate `p-*` class on `Surface`. `Surface` never draws a shadow; a component that floats an object applies its own token (`shadow.pane` for a deck/folder card, `floating` for chrome, `card` for the flashcard) in its styles, and rows and groups inside a pane stay flat. Each screen has at most one `tone="scene"`.
 3. **`SettingsHero` opens the Settings screen** — one `Surface`, one title, and the ledger of readings with aligned numbers. Then `SettingsChapter` with `SettingsLine`s; the last line of each chapter gets `last`.
 4. **`Button` knows its own height, radius and colour**; `className` only for width/layout (`flex-1`, `self-stretch`).
@@ -250,7 +296,7 @@ A border appears only where it has **meaning**. Allowed cases:
 | Glass `rim` | one edge, only on `Surface tone="scene"` (`TodayPane`, the study scene, the quiz arena) and quiz answer tiles |
 | Chrome ring | one 1px `rims.soft` edge at the bottom of `FloatingHeader` and around `LiquidTabBar`; glass chrome without it gets lost over scrolled content |
 | Sheet handle | `SheetPanel` (a fill, not a border) |
-| Form-control resting edge | `Field`; only 1px of `alpha(colors.outline, 0.5)` (composites to about `#646D7A` on the pane, about 3.3:1 — above 3:1). `SearchBar` is deliberately borderless. |
+| Form-control resting edge | `Field`; only 1px of `alpha(colors.outline, 0.48)` (3.0:1 on the card face, 3.15:1 on the pane — at the 3:1 floor). `SearchBar` is deliberately borderless. |
 | Segment rail edge | `SegmentedControl`; 1px of `alpha(colors.outlineSoft, 0.72)` (about `#323C4A` on the card, about 1.4:1). Deliberately below 3:1: the boundary is read from the rail and selection pill fills, and the edge is only a quiet seam. |
 | Off ToggleSwitch rail edge | `ToggleSwitch` (off state only); 1px of `alpha(colors.outlineSoft, 0.72)` (about `#2F3846` on the pane, about 1.5:1). Deliberately below 3:1; the near-white knob (9.9:1) and its position carry identification and state. |
 
@@ -272,4 +318,4 @@ The Import screen, which had dozens of dashed boxes and decorative stamps, now h
 - [ ] colours only from tokens; `npm run check:design` passes
 - [ ] cards/sheets/icons use `heights`, `radii`, `iconSize`
 - [ ] animation via `motion`; reduced-motion path tested
-- [ ] lays out on the web and at a narrow width too (at least one screenshot)
+- [ ] lays out at 320 and 390px (attach both screenshots), plus a wider screen when a shared primitive changed
