@@ -121,10 +121,11 @@ export function SegmentedControl({
       onLayout={(event) => setRailWidth(event.nativeEvent.layout.width)}
       style={{
         backgroundColor: sliding ? colors.surfaceControl : fills.control,
-        // §10: the rail is a form control; one resting edge in the existing
-        // outline token clears 3:1 against the pane without a new colour.
+        // One quiet rim, the same tone the scene card uses. `outline` is a
+        // near-white token meant for text; even at 50% it read as a white halo
+        // here, so the rail takes the dark rim token instead.
         borderWidth: 1,
-        borderColor: colors.outline,
+        borderColor: alpha(colors.outlineSoft, 0.72),
         padding: sliding ? 4 : 0,
       }}
     >
@@ -139,8 +140,9 @@ export function SegmentedControl({
             width: pillWidth,
             borderRadius: radii.micro,
             backgroundColor: colors.selectionSurface,
-            borderWidth: 1, // design-ignore — §10 Review selection chrome
-            borderColor: alpha(colors.primary, 0.25), // design-ignore — §10 Review selection chrome
+            // Selection is a fill, not a second outline: the rail already
+            // carries §10's one resting edge, and a stroke inside it read as
+            // a double border. The accent label and raised fill mark the tab.
             transform: [{ translateX }],
           }}
         />
