@@ -11,7 +11,7 @@ import {
 import type { LayoutChangeEvent } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { AppText } from './AppText';
-import { colors, glass, iconSize, motion, rims, shadow, tabBar } from '../theme/tokens';
+import { colors, glass, iconSize, motion, rims, tabBar } from '../theme/tokens';
 import { v3 } from '../theme/v3';
 import {
   prefersReducedMotion,
@@ -608,11 +608,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderRadius: tabBar.height / 2,
     borderCurve: 'continuous',
-    // §10: the chrome rim, matching the header's material.
+    // §10: the chrome rim, matching the header's material. The dock keeps the
+    // rim instead of a shadow — the law allows one edge or depth, not both.
     borderWidth: 1,
     borderColor: rims.soft,
     overflow: 'hidden',
-    boxShadow: shadow.liquidTab,
   },
   clip: {
     position: 'absolute',

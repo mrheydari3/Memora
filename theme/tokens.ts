@@ -123,7 +123,7 @@ type Palette = {
     'display' | 'title' | 'headline' | 'bodyLg' | 'body' | 'bodySm' | 'label' | 'caption',
     string
   >;
-  shadows: Record<'pane' | 'action' | 'tile' | 'floating' | 'card' | 'liquidTab', string>;
+  shadows: Record<'pane' | 'action' | 'floating' | 'card', string>;
   stateColors: Record<'New' | 'Learning' | 'Relearning' | 'Review', string>;
   spacing: Record<
     | 'screen'

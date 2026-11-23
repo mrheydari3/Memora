@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TABLET_MIN_WIDTH } from '../hooks/useResponsive';
 import { AppText } from './AppText';
 import { IconButton } from './IconButton';
-import { glass, glassFillStrong, iconSize, motion, radii, sheet, veil } from '../theme/tokens';
+import { glass, glassFillStrong, iconSize, motion, radii, shadow, sheet, veil } from '../theme/tokens';
 import { v3 } from '../theme/v3';
 import { usePresence } from '../motion';
 import { HapticsEngine } from '../services/haptics';
@@ -467,6 +467,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: radii.sheet,
     borderCurve: 'continuous',
     backgroundColor: glass.sheet,
+    boxShadow: shadow.floating,
   },
   tabletStage: {
     position: 'absolute',

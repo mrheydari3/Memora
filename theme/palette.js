@@ -236,16 +236,21 @@ const weights = {
   caption: '500',
 };
 
-/** Depth by role: a pane sits, an action lifts, the flashcard floats. */
+/** Depth by role: a card sits, an action lifts, chrome and the flashcard float. */
 const shadows = {
-  // Flat UI: nothing in the app casts a shadow. Every role stays declared so a
-  // caller keeps its token name, but each one resolves to no shadow at all.
-  pane: 'none',
-  action: 'none',
-  tile: 'none',
-  floating: 'none',
-  card: 'none',
-  liquidTab: 'none',
+  // Separation still starts with fill: a shadow is the quiet contact shade
+  // under an object, never a glow and never an outline. On the ink canvas a
+  // black shade only grounds the lower edge, so each step is judged by how
+  // close the object sits to the surface, not by how dark its halo looks.
+  //
+  // A card resting on the page (deck/folder cards on the shelf).
+  pane: '0 2px 8px rgba(0, 0, 0, 0.30), 0 1px 2px rgba(0, 0, 0, 0.22)',
+  // A primary action: enough lift to read as pressable beside its fill.
+  action: '0 6px 16px rgba(0, 0, 0, 0.34), 0 2px 6px rgba(0, 0, 0, 0.26)',
+  // Chrome that floats over scrolling content: sheets and menus.
+  floating: '0 16px 40px rgba(0, 0, 0, 0.46), 0 4px 12px rgba(0, 0, 0, 0.30)',
+  // The flashcard and its stack: the one object that owns the screen.
+  card: '0 18px 44px rgba(0, 0, 0, 0.50), 0 6px 16px rgba(0, 0, 0, 0.32)',
 };
 
 /**

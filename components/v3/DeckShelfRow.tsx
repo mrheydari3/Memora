@@ -3,7 +3,7 @@ import { Animated, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { alpha, colors, fills, iconSize, radii, stateColors } from '../../theme/tokens';
+import { alpha, colors, fills, iconSize, radii, shadow, stateColors } from '../../theme/tokens';
 import { RowOptions } from './RowOptions';
 import { ShelfStatusPill } from './ShelfStatusPill';
 import { Surface } from './Surface';
@@ -403,6 +403,7 @@ export function DeckShelfRow({
             minHeight: v3.heights.deckRow,
             overflow: 'hidden',
             position: 'relative',
+            boxShadow: shadow.pane,
           }}
         >
           {hoverWash}

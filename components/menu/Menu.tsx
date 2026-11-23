@@ -17,7 +17,7 @@ import type { MenuContextValue } from './MenuContext';
 import { MenuActionList } from './MenuActionList';
 import { MenuItem } from './MenuItem';
 import type { AnchorRect, MenuAction, MenuPresentation, SubmenuLevel, WebFocusable } from './types';
-import { alpha, colors, menu, motion, radii } from '../../theme/tokens';
+import { alpha, colors, menu, motion, radii, shadow } from '../../theme/tokens';
 import { usePresence } from '../../motion';
 import { HapticsEngine } from '../../services/haptics';
 
@@ -724,8 +724,9 @@ const styles = StyleSheet.create({
   panel: {
     overflow: 'hidden',
     borderRadius: radii.menu,
-    // The menu floats on a lighter fill; the flat system separates it without
-    // an outline or a drop shadow.
+    // The menu floats on a lighter fill and the floating shade grounds it over
+    // the page; it never grows an outline.
     backgroundColor: colors.surfaceControl,
+    boxShadow: shadow.floating,
   },
 });
