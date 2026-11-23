@@ -37,8 +37,10 @@ current allowlist, so these are real drift counts, not zero-by-construction:
 Allowlisted §10 edges remain intentional: `SearchBar` focus, `RadioOptionCard`,
 `Surface tone="scene"`, `SheetPanel`, the dashed empty frame, Review selection
 chrome, quiz answer rims, and the floating header and tab-dock chrome rims.
-`SearchBar` is fill-only with no resting edge; `Field`, the off `ToggleSwitch`
-and `SegmentedControl` keep one existing-token edge.
+`SearchBar` is fill-only with no resting edge; `Field` keeps one edge in the
+existing `colors.outline` token at 50%, and `SegmentedControl` plus the off
+`ToggleSwitch` keep a dark `alpha(colors.outlineSoft, 0.72)` rim (follow-up
+below).
 
 ## Surface ladder and contrast
 
@@ -68,9 +70,17 @@ neutral role.
 | Selection | 5.24:1 |
 
 The active tab label uses accent `#7CBBFF` on `selectionSurface` and clears AA at
-4.83:1. `SearchBar` is fill-only and its focus ring is the only edge. `Field`,
-the off `ToggleSwitch` and `SegmentedControl` keep one 1px resting edge in the
-existing `colors.outline` token; the edge is 9.38:1 against the pane. A
+4.83:1. `SearchBar` is fill-only and its focus ring is the only edge. `Field`
+keeps one 1px resting edge in the existing `colors.outline` token, now at 50%:
+the composited edge is `#646D7A`, about 3.3:1 against the pane — still above
+3:1, without the 9.38:1 glare. `SegmentedControl` and the off `ToggleSwitch` moved to
+`alpha(colors.outlineSoft, 0.72)` in a follow-up: full-strength `outline` read as
+a white halo on the frosted scene card and as a white ring on the 46×26 toggle
+track. The composited rim is about `#323C4A` on the card face (`#1D2633`) and
+`#2F3846` on the pane (`#141A24`) — roughly 1.4–1.5:1, deliberately below the 3:1
+rule for form-control edges. The rail and its selected pill are identified by
+their fills (`surfaceControl` / `selectionSurface`) and labels, not by the rim;
+the toggle’s near-white knob (9.9:1) and its position carry the state. A
 follow-up review removed only the search field’s outline because it read as
 decoration rather than hierarchy.
 
@@ -156,8 +166,9 @@ sections. No layout-only pass rewrote unrelated baselines.
 
 After the report pass, the resting outline on `SearchBar` was removed because it
 read as decoration rather than hierarchy; the field now separates by fill and
-keeps its focus ring. `Field`, the off `ToggleSwitch` and `SegmentedControl` keep
-their existing-token edges. `SearchBar` is no longer in the guard allowlist, so a
+keeps its focus ring. `Field` keeps its half-strength existing-token edge;
+`SegmentedControl` and the off `ToggleSwitch` take the dark
+`alpha(colors.outlineSoft, 0.72)` rim described below. `SearchBar` is no longer in the guard allowlist, so a
 new resting border on the search box fails `check:design`. The phone toolbar also
 puts the full-width search above the All/Due/sort chips again. Re-checked after
 these changes: `check:design` clean, `tsc` pass, 265/265 unit tests, 17/17 visual tests and 3/3 focused a11y cases. A final full `test:e2e` run after the settled toolbar and borders passed 191/191 in 11.1 minutes.
@@ -181,6 +192,39 @@ the report's after captures were refreshed for the restored chrome. A final full
 One test-only measurement correction was needed: Chromium can report an exact
 44px box as `43.999969` at a fractional y-position, so the folder-icon target
 assertion now rounds to whole CSS pixels before checking the 44px minimum.
+
+### Follow-up: dark rims for the segmented rail and off toggles (2026-11-23)
+
+The segmented rail's 1px `colors.outline` edge read as a white halo on the
+frosted Review scene, so it now uses `alpha(colors.outlineSoft, 0.72)` — the same
+dark rim family as the scene card, one step stronger. On the card face
+(`#1D2633`) the composited edge is about `#323C4A`, a contrast of roughly 1.4:1,
+which deliberately drops the 3:1 form-control boundary the earlier pass had
+guaranteed. The control stays legible by fill and type: the rail is
+`surfaceControl`, the selected pill is `selectionSurface`, and the active label
+is accent. The change applies to every `SegmentedControl` call site, including
+the Statistics range rail.
+
+The off `ToggleSwitch` had the same problem at a smaller scale: a 1px
+`colors.outline` ring around a 46×26 track was the brightest shape in the row
+(9.38:1 on the pane, while the track fill is only 1.21:1). It now takes the same
+`alpha(colors.outlineSoft, 0.72)` rim; on the pane (`#141A24`) the composited
+edge is `#2F3846`, about 1.5:1. That is the same deliberate trade-off: the
+near-white knob (`#BAC4D2`, 9.9:1) and its position carry identification and
+state, so the ring is no longer doing the 3:1 work. The on state keeps its
+borderless accent track.
+
+`Field` followed: its edge is now `alpha(colors.outline, 0.5)`, which composites
+to `#646D7A` on the pane and holds ~3.3:1 — still above the 3:1 floor, but no
+longer a near-white frame. Its placeholder moved off the `colors.outline` token
+to `colors.tertiaryContainer` (5.37:1 on the field fill), so the border no longer
+shares its weight with the placeholder.
+
+`check:design` is clean, `tsc` passes, and the Review, Settings and Add deck
+visual baselines (`review-390-chromium-darwin.png`,
+`settings-390-chromium-darwin.png`, `add-deck-390-chromium-darwin.png`) were
+regenerated; both visual suites pass 17/17. The Linux baselines were not
+regenerated in this workspace.
 
 ## Limits
 

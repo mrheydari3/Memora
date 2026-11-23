@@ -1,273 +1,275 @@
-# زبان طراحی Memora
+# Memora design language
 
-این سند «قانون» است. اگر چیزی با آن جور نیست، اول کد را درست کنید و بعد سند را به‌روز کنید؛ سند و کد نباید دو روایت داشته باشند.
+This document is the law. If something does not match it, fix the code first and then update the document; the document and the code must not tell two stories.
 
-> خلاصه: **یک بوم جوهری، یک لهجه، جدایی با پُرشدگی و عمق (نه با کادر)، شیشهٔ مات — و هیچ مقدار بصری‌ای که از `theme/` بیرون بیاید.**
+> Summary: **one ink canvas, one accent, separation by fill and depth (not by border), frosted glass — and no visual value that comes from outside `theme/`.**
 >
-> **مرز، قاعده نیست؛ استثناست** (بخش ۱۰). هر سطح با `fill`، فاصله و یک لبهٔ روشن از سطح زیرینش جدا می‌شود.
+> **A border is not the rule; it is the exception** (§10). Every surface separates from the surface beneath it with a `fill`, spacing and one light edge.
 
 ---
 
-## ۱. منبع واحد حقیقت
+## 1. Single source of truth
 
 ```
-theme/palette.js        ← تنها جایی که hex / rgba نوشته می‌شود
-   ├── tailwind.config.js   → کلاس‌های Tailwind (bg-surface، text-on-surface…)
-   └── theme/tokens.ts      → رنگ‌ها و اعداد پایه برای JS (SVG، StyleSheet، آیکن)
+theme/palette.js        ← the only place a hex / rgba is written
+   ├── tailwind.config.js   → Tailwind classes (bg-surface, text-on-surface…)
+   └── theme/tokens.ts      → colours and base numbers for JS (SVG, StyleSheet, icons)
 
-theme/v3.ts             ← نقش‌های v3: type، appBar، radii، heights، layout
+theme/v3.ts             ← v3 roles: type, appBar, radii, heights, layout
 ```
 
-- `tailwind.config.js` کلیدهای `colors` را به کباب‌کیس تبدیل می‌کند: `onSurfaceVariant` → `text-on-surface-variant`.
-- `fills` با پیشوند می‌آیند: `bg-fill-tile`، `bg-fill-control`، `bg-fill-track`…
-- `theme/v3.ts` هندسهٔ نقش‌محور v3 را نگه می‌دارد: `radii.tile` ۱۲، `radii.control` ۱۴، `radii.card` ۲۲، `radii.pane` ۲۴، `radii.quizTile` ۱۶، `appBar.actionTile` ۳۶ و `type.hero`.
-- هیچ فایلی بیرون `theme/` مجاز نیست hex یا `rgba(…)` بنویسد — `npm run check:design` این را می‌گیرد.
+- `tailwind.config.js` converts the `colors` keys to kebab-case: `onSurfaceVariant` → `text-on-surface-variant`.
+- `fills` come with a prefix: `bg-fill-tile`, `bg-fill-control`, `bg-fill-track`…
+- `theme/v3.ts` holds the role-based v3 geometry: `radii.tile` 12, `radii.control` 14, `radii.card` 22, `radii.pane` 24, `radii.quizTile` 16, `appBar.actionTile` 36 and `type.hero`.
+- No file outside `theme/` may write a hex or `rgba(…)` — `npm run check:design` catches it.
 
-### چرا؟
+### Why?
 
-قبلاً هر صفحه سایه/شیشه/فاصلهٔ خودش را داشت؛ همان صفحه بعد از یک هفته دو رفتار متفاوت داشت. حالا یک تغییر در `palette.js` همه‌جا اعمال می‌شود.
+Every screen used to have its own shadow/glass/spacing; the same screen behaved two different ways a week later. Now one change in `palette.js` applies everywhere.
 
 ---
 
-## ۲. سطوح (surface levels)
+## 2. Surface levels
 
-| نقش | کلاس / توکن | کاربرد |
+| Role | Class / token | Use |
 | --- | --- | --- |
-| بوم | `bg-background` | پس‌زمینهٔ همهٔ صفحه‌ها (`Screen` این را می‌دهد) |
-| پنل صحنه | `Surface tone="scene"` | هیروی امروز، صحنهٔ مطالعه، آرنای کوییز |
-| پنل | `Surface tone="pane"` | ردیف‌ها، کارت‌ها، شیت‌ها |
-| تودرتو | `Surface tone="inset"` | محتوای داخل یک پنل (پیش‌نمایش، بدنهٔ تاشدنی) |
-| کاشی آیکن | `v3.radii.tile` ۱۲ + `iconSize.lg` ۲۰ / `xl` ۲۲ | ۳۶px در ردیف‌های دِک Home/Review و اکشن‌های اپ‌بار؛ ۴۴px برای دِک انتخاب‌شدهٔ Review؛ پرکننده از wash رنگ دِک، `fills.tile`/`accentSoft`، یا `surfaceControl`/`accentFaint` |
-| کنترل | `bg-fill-control` | ورودی، دکمهٔ آیکن، ریل سگمنت |
-| ریل پیشرفت | `bg-fill-track` | نوار پیشرفت، متر |
+| Canvas | `bg-background` | background of every screen (`Screen` provides it) |
+| Scene pane | `Surface tone="scene"` | Today hero, study scene, quiz arena |
+| Pane | `Surface tone="pane"` | rows, cards, sheets |
+| Inset | `Surface tone="inset"` | content inside a pane (preview, collapsible body) |
+| Icon tile | `v3.radii.tile` 12 + `iconSize.lg` 20 / `xl` 22 | 36px in Home/Review deck rows and app-bar actions; 44px for the selected Review deck; fill from the deck colour wash, `fills.tile`/`accentSoft`, or `surfaceControl`/`accentFaint` |
+| Control | `bg-fill-control` | input, icon button, segmented rail |
+| Progress rail | `bg-fill-track` | progress bar, meter |
 
-پنل‌ها **بدون سایه** خوانده می‌شوند: `Surface` (همهٔ توکن‌های `shadow` روی `none` هستند). رینگ ۱px پنل «صحنه» با `outlineSoft` ۳۰٪ در بخش ۱۰ مجاز است؛ کارت‌های دِک/پوشه، گروه‌های تنظیمات و پلیت‌ها هیچ لبه‌ای ندارند. عناصر داخل پنل (کاشی آیکن، ردیف، ورودی) یک پله روشن‌تر از پنل‌اند؛ کاشی آیکن v3 ۳۶px (به‌جز دِک انتخاب‌شدهٔ Review با ۴۴px) با شعاع ۱۲ و آیکن `iconSize.lg`/`xl` است؛ کاشی `SettingsLine` ۴۰px است؛ کاشی‌های «How it works» در Review یک رینگ ۱px هم دارند (بخش ۱۰). برای پنل تیره‌تر/تأکیدی: `Surface tone="inset"` (فقط پرکننده؛ کادر فقط در استثناهای بخش ۱۰). سرصفحهٔ پوشه در Home همان `Surface tone="pane"` با شعاع کارت ۲۲px و پس‌زمینهٔ raised card face (همان Today) است؛ بدون کادر، شیشه یا سطح دوم. بدنهٔ دک‌های بازشده نیز همان raised card face را دارد و فقط با هندسه و فاصله از سرصفحه جدا می‌شود.
+Panes read **without shadows**: `Surface` (every `shadow` token resolves to `none`). A 1px ring on the scene pane at 30% `outlineSoft` is allowed in §10; deck/folder cards, settings groups and plates have no edge. Elements inside a pane (icon tile, row, input) are one step lighter than the pane; the v3 icon tile is 36px (except the selected Review deck at 44px) with radius 12 and an `iconSize.lg`/`xl` glyph; the `SettingsLine` tile is 40px; the "How it works" tiles in Review also carry a 1px ring (§10). For a darker/emphasis pane: `Surface tone="inset"` (fill only; a border only in §10's exceptions). The folder header on Home is the same `Surface tone="pane"` with the card radius 22 and the raised card face background (same as Today); no border, glass or second level. The body of an opened deck also uses the raised card face and separates from the header by geometry and spacing alone.
 
-سلسله‌ی `fills` همان مقیاس عمق است و عوض شده تا بدون کادر هم تفکیک دیده شود:
+The `fills` ladder is the depth scale, and it changed so separation reads without a border:
 `subtle 0.03 → inset 0.05 → tile 0.06 → control 0.075 → track 0.09`.
 
-پنج نقش خنثی، با نسبت روشنایی هر پله به پله‌ی قبلی:
+Five neutral roles, with the luminance ratio of each step to the one before:
 
-| نقش | توکن | مقدار | نسبت به نقش قبلی |
+| Role | Token | Value | Ratio to previous role |
 | --- | --- | --- | --- |
-| بوم | `colors.background` | `#07090E` | — |
-| پنل | `glass.fill` | `#141A24` | 1.14× |
-| کارت | `glass.cardFace` | `#1D2633` | 1.14× |
-| تودرتو | `colors.surfaceInset` | `#252F3D` | 1.13× |
-| کنترل | `colors.surfaceControl` | `#2E3948` | 1.16× |
+| Canvas | `colors.background` | `#07090E` | — |
+| Pane | `glass.fill` | `#141A24` | 1.14× |
+| Card | `glass.cardFace` | `#1D2633` | 1.14× |
+| Inset | `colors.surfaceInset` | `#252F3D` | 1.13× |
+| Control | `colors.surfaceControl` | `#2E3948` | 1.16× |
 
-سطح انتخاب (`colors.selectionSurface`، `#35455B`) نقش معنایی جدا دارد و جای یکی از این پنج را نمی‌گیرد. `SearchBar` هیچ لبه‌ی نشسته‌ای ندارد و فقط با پُرشدگی از پنل جدا می‌شود؛ لبه‌اش فقط هنگام فوکوس (حلقهٔ فوکوس) دیده می‌شود. `Field`، ریل خاموش `ToggleSwitch` و `SegmentedControl` یک لبه‌ی نشسته‌ی ۱px از `colors.outline` دارند؛ این رنگ از قبل وجود دارد و نسبت آن با پنل ۹.۳۸:۱ است، بنابراین ۳:۱ بدون رنگ تازه تأمین می‌شود. `outline` روی پنل‌های پنج‌گانه و سطح انتخاب به‌ترتیب ۱۰.۷۰، ۹.۳۸، ۸.۱۹، ۷.۲۶، ۶.۲۸ و ۵.۲۴:۱ است. متن اکسنت (`#7CBBFF`) روی سطح انتخاب ۴.۸۳:۱ است، بنابراین برچسب تب فعال هم AA می‌ماند.
+The selection surface (`colors.selectionSurface`, `#35455B`) has its own semantic role and does not replace one of these five. `SearchBar` has no resting edge and separates from the pane by fill alone; its edge shows only on focus (the focus ring). `Field` has one 1px resting edge from `alpha(colors.outline, 0.5)`; over the pane it composites to about `#646D7A`, roughly 3.3:1 — still above 3:1 but without the near-white glare (the full-strength version was 9.38:1). The field's placeholder moved from `colors.outline` to `colors.tertiaryContainer` (5.37:1 on the field fill) so it no longer shares the edge's weight. `SegmentedControl` and the off `ToggleSwitch` rail are exceptions to this rule: their resting edge is 1px of `alpha(colors.outlineSoft, 0.72)` — the same scene-rim family, one step stronger. It composites to about `#323C4A` on the card `#1D2633` (about 1.4:1) and `#2F3846` on the pane `#141A24` (about 1.5:1), deliberately below 3:1; the bright `outline` read as a white halo on the frosted card and as a white ring on the small ToggleSwitch track. These controls are read by fill (`surfaceControl` / `selectionSurface` / track) and text labels, not by the edge; in ToggleSwitch the near-white knob (9.9:1) and its position carry the state. This is a deliberate trade-off: their edge no longer supplies the 3:1 form-control boundary. `outline` on the five panes and the selection surface is 10.70, 9.38, 8.19, 7.26, 6.28 and 5.24:1 respectively. Accent text (`#7CBBFF`) on the selection surface is 4.83:1, so the active tab label still clears AA.
 
 ---
 
-## ۳. رنگ معنادار
+## 3. Meaningful colour
 
-هر رنگ یک معنا دارد و آن معنا در همهٔ صفحه‌ها ثابت است.
+Every colour has one meaning, and that meaning is fixed on every screen.
 
-| توکن | معنا | کجا |
+| Token | Meaning | Where |
 | --- | --- | --- |
-| `primary` | لهجه، اقدام اصلی | دکمهٔ اصلی، تب فعال، انتخاب |
-| `stateColors.New` | کارت تازه | ریل تسلط، لجر، دونات |
-| `stateColors.Learning` / `Relearning` | در حال یادگیری | همان‌ها |
-| `stateColors.Review` | مرور (تسلط) | همان‌ها |
-| `error` | بازخورد منفی، حذف | «دوباره» در پایان جلسه |
-| `success` | نتیجهٔ مثبت | «آسان»، ذخیرهٔ موفق |
-| `warning` | توجه غیرخطا | وضعیت یادگیری، هشدار |
+| `primary` | accent, primary action | primary button, active tab, selection |
+| `stateColors.New` | new card | mastery rail, ledger, donut |
+| `stateColors.Learning` / `Relearning` | learning | the same places |
+| `stateColors.Review` | review (mastery) | the same places |
+| `error` | negative feedback, delete | "Again" at the end of a session |
+| `success` | positive result | "Easy", a successful save |
+| `warning` | non-error attention | learning state, warning |
 
-نتیجه: در [statistics](app/statistics.tsx) رنگ‌های دونات و لجند از `stateColors` می‌آیند، دقیقاً همان‌هایی که [rail تسلط](app/deck/[id].tsx) استفاده می‌کند. رنگ تزئینی در سیستم وجود ندارد.
+Result: in [statistics](app/statistics.tsx) the donut and legend colours come from `stateColors`, exactly the ones the [mastery rail](app/deck/[id].tsx) uses. There is no decorative colour in the system.
 
-**تنها استثنا: رنگ دِک و رنگ کارت.** رنگ هر دِک دادهٔ کاربر است (نه انتخاب طراحی)، پس `deck.color` به `DeckCard`/`DeckListItem` می‌رسد و همیشه با `alpha(color, …)` کم‌رنگ می‌شود. رنگ کارت (`Flashcard.color`) هم از همان پالت انتخاب می‌شود و با `over(base, color, amount)` در سطح کارت حل می‌شود — چون استایل‌های React Native دو پس‌زمینه را روی هم نمی‌گذارند. در خود کامپوننت‌ها هیچ hex‌ای نوشته نمی‌شود.
+**The only exception: deck colour and card colour.** Each deck's colour is user data (not a design choice), so `deck.color` reaches `DeckCard`/`DeckListItem` and is always dimmed with `alpha(color, …)`. The card colour (`Flashcard.color`) is also chosen from the same palette and dissolved into the card surface with `over(base, color, amount)` — because React Native styles do not stack two backgrounds. No hex is written inside the components themselves.
 
 ---
 
-## ۴. تایپوگرافی
+## 4. Typography
 
-`AppText` تنها راه نوشتن متن است. `Text` خام از `react-native` در صفحه‌ها استفاده نمی‌شود (چون فونت و رنگ پیش‌فرض را دور می‌زند).
+`AppText` is the only way to write text. Raw `Text` from `react-native` is not used on screens (it bypasses the font and the default colour).
 
 ```tsx
-<AppText variant="headline">عنوان بخش</AppText>
-<AppText variant="bodySm" tone="muted">زیرنویس</AppText>
-<AppText variant="label" tone="primary">برچسب</AppText>
+<AppText variant="headline">Section title</AppText>
+<AppText variant="bodySm" tone="muted">Subtitle</AppText>
+<AppText variant="label" tone="primary">Label</AppText>
 ```
 
-| variant | اندازه / ارتفاع خط | وزن | کاربرد |
+| variant | size / line height | weight | use |
 | --- | --- | --- | --- |
-| `display` | ۳۴ / ۴۰ | ۷۰۰ | عدد قهرمان، روی کارت |
-| `title` | ۲۶ / ۳۲ | ۷۰۰ | عنوان صفحه |
-| `headline` | ۲۰ / ۲۷ | ۶۰۰ | عنوان بخش، متن کارت |
-| `bodyLg` | ۱۷ / ۲۵ | ۴۰۰ | متن اصلی برجسته |
-| `body` | ۱۵ / ۲۲ | ۴۰۰ | متن پیش‌فرض |
-| `bodySm` | ۱۳ / ۲۰ | ۴۰۰ | توضیح، متادیتا |
-| `label` | ۱۲ / ۱۶ | ۶۰۰ | برچسب کوچک، شمارنده |
-| `caption` | ۱۲ / ۱۷ | ۵۰۰ | ریزترین لایه |
+| `display` | 34 / 40 | 700 | hero number, on a card |
+| `title` | 26 / 32 | 700 | page title |
+| `headline` | 20 / 27 | 600 | section title, card text |
+| `bodyLg` | 17 / 25 | 400 | primary reading text |
+| `body` | 15 / 22 | 400 | default text |
+| `bodySm` | 13 / 20 | 400 | description, metadata |
+| `label` | 12 / 16 | 600 | small label, counter |
+| `caption` | 12 / 17 | 500 | smallest layer |
 
 `tone`: `default` · `muted` · `tertiary` · `accent` · `onAccent` · `danger` · `success` · `warning`.
 
-پله‌ی `v3.type.answer` ۲۶/۳۲ برای پاسخ بلند/عنوان مطالعه است؛ دیگر صفحه‌ها عدد ۲۶ را inline نمی‌نویسند.
-وزن را با کلاس `font-inter-*` عوض نکنید مگر واقعاً لازم باشد؛ `variant` وزن درست را دارد.
+The `v3.type.answer` step at 26/32 is for a long answer / study title; other screens do not inline the number 26.
+Do not change weight with a `font-inter-*` class unless it is genuinely needed; `variant` carries the right weight.
 
-**پله‌های عدد درشت** بیرون از `variant` هستند و در `theme/v3.ts` تعریف می‌شوند: `v3.type.hero` ۴۰/۴۴ برای عدد قهرمان هر صفحه (و `heroWide` ۵۶/۵۸ از ۹۰۰px به بالا)، `v3.type.score` ۴۴/۴۸ برای امتیاز جاری کوییز و `v3.type.result` ۶۴/۶۸ برای نتیجهٔ پایان دور. هیچ صفحه‌ای عدد نمایشی خودش را inline تعریف نمی‌کند؛ اگر پلهٔ تازه‌ای لازم شد، به همین فهرست اضافه می‌شود.
+**Large numeric steps** live outside `variant` and are defined in `theme/v3.ts`: `v3.type.hero` 40/44 for each screen's hero number (and `heroWide` 56/58 from 900px up), `v3.type.score` 44/48 for the live quiz score, and `v3.type.result` 64/68 for the round result. No screen defines its own display number inline; if a new step is needed, it is added to this list.
 
-این پله‌ها روی وب با `rem` نوشته می‌شوند (روی native همان پیکسل منطقی می‌مانند)، چون `AppText` از مقیاس rem تیلویند می‌آید و بزرگ‌نمایی ۲۰۰٪ متن مرورگر باید هر دو را بزرگ کند.
+These steps are written with `rem` on the web (they stay the same logical pixel natively) because `AppText` comes from Tailwind's rem scale, and 200% browser text zoom must scale both.
 
 ---
 
-## ۵. فاصله و چیدمان
+## 5. Spacing and layout
 
-| توکن | مقدار | کاربرد |
+| Token | Value | Use |
 | --- | --- | --- |
-| `spacing.screen` | ۲۰ | حاشیهٔ افقی صفحه |
-| `spacing.gutter` | ۱۶ | فاصلهٔ داخلی پنل‌ها |
-| `spacing.row` | ۱۶ | فاصلهٔ بین عنوان و مقدار در یک ردیف |
-| `spacing.section` | ۲۸ | فاصلهٔ بین بخش‌ها |
-| `spacing.tabClearance` | ۱۱۲ | فضای انتهای صفحه‌های تب‌دار |
-| `spacing.screenBottom` | ۴۰ | فضای انتهای صفحه‌های بدون تب |
+| `spacing.screen` | 20 | screen horizontal gutter |
+| `spacing.gutter` | 16 | pane inner padding |
+| `spacing.row` | 16 | gap between title and value in a row |
+| `spacing.section` | 28 | gap between sections |
+| `spacing.tabClearance` | 112 | bottom space on tabbed screens |
+| `spacing.screenBottom` | 40 | bottom space on screens without tabs |
 
-**صفحه‌ها حاشیهٔ افقی خودشان را تعیین نمی‌کنند.** `Screen` پس‌زمینهٔ تخت، safe area، نوار بالای ثابت، بدنهٔ اسکرول‌شونده و فضای انتهایی را می‌دهد.
+**Screens do not set their own horizontal padding.** `Screen` provides the flat background, the safe area, the fixed top bar, the scrolling body and the bottom space.
 
 ```tsx
 <Screen
-  scroll        // بدنه را اسکرول‌شونده کن
-  gutter        // حاشیهٔ افقی ۲۰px استاندارد
-  tabClearance  // ۱۱۲px فضای انتهای صفحه‌های تب‌دار
-  header={<PageHeader title="کتابخانه" back />}
+  scroll        // make the body scrollable
+  gutter        // standard 20px horizontal gutter
+  tabClearance  // 112px bottom space on tabbed screens
+  header={<PageHeader title="Library" back />}
 >
-  <SectionHeading label="دسته‌بندی" />
+  <SectionHeading label="Categories" />
   <Surface tone="pane">…</Surface>
 </Screen>
 ```
 
-- `header` / `footer`: نوار بالای ثابت و فوتر ثابت (دکمهٔ اصلی، ردیف امتیاز).
-- `scroll` + `gutter` + `tabClearance`: سه سوئیچ همیشگی؛ `paddingHorizontal` دستی روی صفحه نگذارید.
-- صفحه‌های تب‌دار: `tabClearance`؛ صفحه‌های پشته‌ای (back): فقط `scroll gutter`.
-- `className`/`contentClassName` فقط برای استثنا (مثلاً `pt-0`) — نه برای بازنویسی پدینگ استاندارد.
+- `header` / `footer`: the fixed top bar and the fixed footer (primary button, score row).
+- `scroll` + `gutter` + `tabClearance`: the three usual switches; do not put a manual `paddingHorizontal` on a screen.
+- Tabbed screens: `tabClearance`; stack screens (back): only `scroll gutter`.
+- `className`/`contentClassName` only for an exception (e.g. `pt-0`) — not to override the standard padding.
 
 ---
 
-## ۶. شعاع، ارتفاع، آیکن
+## 6. Radius, height, icon
 
-| توکن | مقدار | استفاده |
+| Token | Value | Use |
 | --- | --- | --- |
-| `v3.radii.tile` | ۱۲ | کاشی آیکن (اکشن اپ‌بار هم ۱۲px با `appBar.actionRadius`) |
-| `v3.radii.control` | ۱۴ | دکمه، ورودی، سگمنت، ردیف تخت |
-| `v3.radii.card` | ۲۲ | کارت دِک/پوشه، کارت‌های Review |
-| `v3.radii.pane` | ۲۴ | پنل/هیرو؛ شعاع پیش‌فرض `Surface` |
-| `v3.radii.quizTile` | ۱۶ | کاشی HUD کوییز |
-| `radii.bar` | ۳ | نوار پیشرفت/ریل ۲–۴px |
-| `radii.micro` | ۱۰ | قرص انتخاب داخل کنترل |
-| `radii.menu` | ۱۶ | منوی شناور |
-| `radii.sheet` | ۲۸ | شیت پایین |
-| `radii.pill` | ۹۹۹۹ | چیپ، ریل |
+| `v3.radii.tile` | 12 | icon tile (app-bar actions are also 12px via `appBar.actionRadius`) |
+| `v3.radii.control` | 14 | button, input, segment, flat row |
+| `v3.radii.card` | 22 | deck/folder card, Review cards |
+| `v3.radii.pane` | 24 | pane/hero; the default `Surface` radius |
+| `v3.radii.quizTile` | 16 | quiz HUD tile |
+| `radii.bar` | 3 | progress bar / 2–4px rail |
+| `radii.micro` | 10 | selection pill inside a control |
+| `radii.menu` | 16 | floating menu |
+| `radii.sheet` | 28 | bottom sheet |
+| `radii.pill` | 9999 | chip, rail |
 
-`v3.radii.card` ۲۲ مخصوص کارت‌های دِک/پوشه و کارت‌های Review است؛ `v3.radii.pane` ۲۴ شعاع پیش‌فرض `Surface` و هیروهاست. این دو را با هم اشتباه نگیرید.
+`v3.radii.card` 22 is for deck/folder cards and Review cards; `v3.radii.pane` 24 is the default radius for `Surface` and heroes. Do not confuse the two.
 
-ارتفاع کنترل‌ها و ردیف‌ها از `heights` می‌آید: `button` ۵۲، `field` ۴۴، `row` ۶۰، `pageHeader` ۶۴، `iconSm` ۳۲، `icon` ۳۸، `tile` ۳۸، `tileLg` ۴۴، `hit` ۴۴…
-کاشی آیکن v3 ۳۶px است: اکشن‌های اپ‌بار همان ۳۶px را روی هدف ۴۴px می‌نشانند (`v3.appBar.actionTile`/`actionHit`)، ردیف‌های دِک Home و Review هم کاشی ۳۶px دارند، و دِک انتخاب‌شده در هیروی Review ۴۴px است. `ListRow` کاشی‌های ۳۸/۴۴ خود را از `heights.tile`/`tileLg` می‌گیرد و `IconButton` قطرهای ۳۲/۳۸/۴۴ را از `heights.iconSm`/`icon`/`iconLg`. `SettingsLine` کاشی ۴۰px با شعاع ۱۲ دارد.
-اندازهٔ آیکن از `iconSize`: `xs` ۱۳ → `display` ۲۸؛ در کاشی ۳۶px آیکن `lg` ۲۰px و در کاشی ۴۴px آیکن `xl` ۲۲px. هیچ `<MaterialIcons size={18}>` دستی نیست.
+Control and row heights come from `heights`: `button` 52, `field` 44, `row` 60, `pageHeader` 64, `iconSm` 32, `icon` 38, `tile` 38, `tileLg` 44, `hit` 44…
+The v3 icon tile is 36px: app-bar actions place that 36px on a 44px hit target (`v3.appBar.actionTile`/`actionHit`), the Home and Review deck rows also have 36px tiles, and the selected deck in the Review hero is 44px. `ListRow` takes its 38/44 tiles from `heights.tile`/`tileLg` and `IconButton` takes its 32/38/44 diameters from `heights.iconSm`/`icon`/`iconLg`. `SettingsLine` has a 40px tile with radius 12.
+Icon size comes from `iconSize`: `xs` 13 → `display` 28; in a 36px tile the `lg` glyph is 20px and in a 44px tile the `xl` glyph is 22px. There is no manual `<MaterialIcons size={18}>`.
 
 ---
 
-## ۷. حرکت
+## 7. Motion
 
-| توکن | مقدار | کاربرد |
+| Token | Value | Use |
 | --- | --- | --- |
-| `motion.fast` | ۱۶۰ms | بازخورد فشردن |
-| `motion.base` | ۲۶۰ms | ظاهر شدن شیت |
-| `motion.slow` | ۴۲۰ms | انتقال بزرگ |
-| `motion.flip` | ۴۸۰ms | چرخش کارت |
-| `motion.spring` | speed 45 · bounciness 0 | کشش/فلیپ |
+| `motion.fast` | 160ms | press feedback |
+| `motion.base` | 260ms | sheet entrance |
+| `motion.slow` | 420ms | large transition |
+| `motion.flip` | 480ms | card flip |
+| `motion.spring` | speed 45 · bounciness 0 | stretch/flip |
 
-هیچ صفحه‌ای `Animated` را مستقیم صدا نمی‌زند. همهٔ حرکت از [`motion/`](motion/index.ts) می‌آید:
+No screen calls `Animated` directly. All motion comes from [`motion/`](motion/index.ts):
 
-| ابزار | کار |
+| Tool | What it does |
 | --- | --- |
-| `useReveal(key, { delay, duration, distance, scale })` | ورود ۰→۱ (fade + rise). با تغییر `key` دوباره اجرا می‌شود — مثلاً تغییر فیلتر/مرتب‌سازی لجر |
-| `usePressFeedback({ scale })` | فنر فشردن؛ مقدار خام را هم می‌دهد تا پردهٔ فشردن را با آن بکشید |
-| `timingTo(value, to, { duration, delay, easing, nativeDriver })` | یک گام زمان‌بندی‌شده؛ Promise برمی‌گرداند تا توالی بنویسید (خروج کارت → کارت بعدی) |
-| `springTo(value, to)` | فنر، برای فشار/کشش |
-| `prefersReducedMotion()` / `useReducedMotion()` | احترام به تنظیم سیستم |
+| `useReveal(key, { delay, duration, distance, scale })` | 0→1 entrance (fade + rise). Re-runs when `key` changes — e.g. a ledger filter/sort change |
+| `usePressFeedback({ scale })` | press spring; also returns the raw value so the press veil can be driven from it |
+| `timingTo(value, to, { duration, delay, easing, nativeDriver })` | one timed step; returns a Promise so sequences can be written (card exit → next card) |
+| `springTo(value, to)` | spring, for press/stretch |
+| `prefersReducedMotion()` / `useReducedMotion()` | respects the system setting |
 
-قاعده‌ها:
+Rules:
 
-- `Animated.timing` و `Animated.spring` در صفحه‌ها ممنوع؛ فقط `timingTo`/`springTo`.
-- هر حرکت باید مسیر reduce-motion داشته باشد؛ helperها خودشان در لحظهٔ شروع چک می‌کنند و مقدار نهایی را فوری می‌گذارند.
-- برای عرض/ارتفاع `nativeDriver: false` بدهید (بقیه پیش‌فرض پلتفرم است).
-- حرکت فقط جایی که معنا دارد: ورود بخش‌های صفحه، تغییر فیلتر/ترتیب، فشار، برگشت کارت، و خروج کارت پس از امتیاز. تزئین اضافه نکنید.
-- خروج کارت پیش از به‌روزرسانی برنامه انجام می‌شود تا کارت بعدی «می‌رسد»، نه اینکه محتوای قبلی به چیدمان جدید بپرد.
-
----
-
-## ۸. کاتالوگ کامپوننت
-
-کامپوننت‌های پایه از `@components/index` و کامپوننت‌های v3 از `@components/v3` قابل import هستند.
-
-**چیدمان و سطح:** `Screen` · `Surface` (`scene`/`pane`/`inset`/`control`) · `PageHeader` (+ `HeaderIcon`) · `SectionHeading` · `ShelfHeader` · `ListRow` · `FolderGroup` · `DeckShelfRow` · `ArchivedRow` · `TodayPane` · `BottomSheetModal` + `SheetPanel`
-
-**تنظیمات:** `SettingsHero` · `SettingsChapter` · `SettingsLine` · `SettingsFootnote` · `MetricGrid`
-
-**کنترل:** `Button` (`primary` / `primaryQuiet` / `secondary` / `outline` / `text`، به‌همراه پرچم `destructive` و اندازه‌های `md`/`lg`) · `PrimaryButton` · `GhostButton` · `IconButton` · `ToggleSwitch` · `SearchBar` · `Chip` (`filter`/`select`) · `SegmentedControl` · `Stepper` · `Field` · `Pill` (`neutral`/`accent`/`warning`) · `Menu` / `Select` / `ActionMenu` / `ContextMenu` · `AppearancePicker`
-
-**محتوا:** `StudyCard` · `FlashcardView` · `CardStack` · `SegmentedProgressBar` · `RatingKeys` · `RadioOptionCard` · `LearningStepRow` · `QuizAnswer` · `DonutChart` · `MiniBarChart` · `ActionButton` · `EmptyState`
-
-### قوانین کامپوننت
-
-1. **`ListRow` تنها ردیف استاندارد است** — `title`, `subtitle`, `icon`, `value`, `tile` (`sm`/`lg`/`none`), `density` (`compact`/`default`/`tall`), `iconTone`, `trailing`, `showChevron`, `highlighted`, `onPress`. ردیف دست‌ساز (`<Pressable>` + سه `<AppText>`) جدید نسازید. ردیف‌ها خط جداکننده ندارند؛ `divider` فقط برای سازگاری نگه داشته شده و چیزی رسم نمی‌کند — ردیف‌ها با ارتفاع و پدینگ پنل از هم جدا می‌شوند.
-2. **`Surface` تنها پنل است** — `tone` (`scene`/`pane`/`inset`/`control`)، `radius` (`control`/`card`/`pane`)، `padding` (`none`/`sm`/`md`). روی `Surface` کلاس `p-*` تکراری نگذارید. هر صفحه حداکثر یک `tone="scene"` دارد.
-3. **`SettingsHero` آغاز صفحهٔ تنظیمات است** — یک `Surface`، یک عنوان، و دفترِ خوانده‌ها (ledger) با اعداد هم‌تراز. سپس `SettingsChapter` با `SettingsLine`ها؛ آخرین خط هر فصل `last` می‌گیرد.
-4. **`Button` ارتفاع و شعاع و رنگ را خودش می‌داند**؛ `className` فقط برای عرض/آرایش (`flex-1`, `self-stretch`).
-5. **شیت‌ها با `BottomSheetModal` + `SheetPanel`**؛ ارتفاع از `heights.sheet*` — نه `Animated.View` دست‌ساز. منوها از `Menu`/`Select`؛ هیچ منوی دست‌ساز تازه‌ای نسازید.
-6. **حالت خالی با `EmptyState`** (`icon`, `title`, `description`, `action`) داخل یک `Surface tone="pane"` — نه پنل نقطه‌چین اختصاصی.
-7. **لیست‌های مجازی** (لجر کارت‌های دِک) تنها جایی هستند که پنل از ردیف‌ها ساخته می‌شود: فریم هر ردیف فقط از `glassFill`, `colors.hairline`, `rimColor`, `v3.radii.card` و `spacing` ساخته شود و اولین/آخرین ردیف گوشه‌ها و ریم پنل را بکشند. ردیف باید یک `Pressable` کامل با `accessibilityRole="button"` باشد، نه یک آیکن کوچک.
+- `Animated.timing` and `Animated.spring` are forbidden on screens; only `timingTo`/`springTo`.
+- Every motion needs a reduce-motion path; the helpers check when it starts and set the final value immediately.
+- For width/height pass `nativeDriver: false`; everything else follows the platform default.
+- Motion only where it means something: section entrance, filter/order change, press, card flip, and card exit after a rating. Do not add decoration.
+- The card exits before the app updates, so the next card "arrives" instead of the previous content jumping to the new layout.
 
 ---
 
-## ۹. نگهبان‌ها
+## 8. Component catalog
+
+Base components are imported from `@components/index`; v3 components from `@components/v3`.
+
+**Layout and surfaces:** `Screen` · `Surface` (`scene`/`pane`/`inset`/`control`) · `PageHeader` (+ `HeaderIcon`) · `SectionHeading` · `ShelfHeader` · `ListRow` · `FolderGroup` · `DeckShelfRow` · `ArchivedRow` · `TodayPane` · `BottomSheetModal` + `SheetPanel`
+
+**Settings:** `SettingsHero` · `SettingsChapter` · `SettingsLine` · `SettingsFootnote` · `MetricGrid`
+
+**Controls:** `Button` (`primary` / `primaryQuiet` / `secondary` / `outline` / `text`, with the `destructive` flag and `md`/`lg` sizes) · `PrimaryButton` · `GhostButton` · `IconButton` · `ToggleSwitch` · `SearchBar` · `Chip` (`filter`/`select`) · `SegmentedControl` · `Stepper` · `Field` · `Pill` (`neutral`/`accent`/`warning`) · `Menu` / `Select` / `ActionMenu` / `ContextMenu` · `AppearancePicker`
+
+**Content:** `StudyCard` · `FlashcardView` · `CardStack` · `SegmentedProgressBar` · `RatingKeys` · `RadioOptionCard` · `LearningStepRow` · `QuizAnswer` · `DonutChart` · `MiniBarChart` · `ActionButton` · `EmptyState`
+
+### Component rules
+
+1. **`ListRow` is the only standard row** — `title`, `subtitle`, `icon`, `value`, `tile` (`sm`/`lg`/`none`), `density` (`compact`/`default`/`tall`), `iconTone`, `trailing`, `showChevron`, `highlighted`, `onPress`. Do not build a new hand-made row (`<Pressable>` + three `<AppText>`). Rows have no dividers; `divider` is kept only for compatibility and draws nothing — rows separate by height and the pane's padding.
+2. **`Surface` is the only pane** — `tone` (`scene`/`pane`/`inset`/`control`), `radius` (`control`/`card`/`pane`), `padding` (`none`/`sm`/`md`). Do not put a duplicate `p-*` class on `Surface`. Each screen has at most one `tone="scene"`.
+3. **`SettingsHero` opens the Settings screen** — one `Surface`, one title, and the ledger of readings with aligned numbers. Then `SettingsChapter` with `SettingsLine`s; the last line of each chapter gets `last`.
+4. **`Button` knows its own height, radius and colour**; `className` only for width/layout (`flex-1`, `self-stretch`).
+5. **Sheets use `BottomSheetModal` + `SheetPanel`**; height from `heights.sheet*` — not a hand-rolled `Animated.View`. Menus come from `Menu`/`Select`; do not build a new hand-made menu.
+6. **Empty states use `EmptyState`** (`icon`, `title`, `description`, `action`) inside a `Surface tone="pane"` — not a bespoke dashed pane.
+7. **Virtualized lists** (a deck's card ledger) are the only place a pane is built from rows: each row's frame must be made only from `glassFill`, `colors.hairline`, `rimColor`, `v3.radii.card` and `spacing`, and the first/last row must draw the pane's corners and rim. The row must be a full `Pressable` with `accessibilityRole="button"`, not a small icon.
+
+---
+
+## 9. Guards
 
 ```bash
-npm run check:design   # رنگ، آیکن، inset و صحنهٔ تکراری → خطا
-npx tsc --noEmit       # قرارداد تایپ‌ها
+npm run check:design   # raw colour, icons, inset and duplicate scene → error
+npx tsc --noEmit       # type contracts
 npm test
 ```
 
-`check:design` علاوه بر رنگ خام، اندازهٔ عددی آیکن‌ها، `Surface` با `tone="inset"` در سطح بالا، پراپ‌های پیش‌فرض تکراری `Surface` (`radius="pane"` و `padding="md"`) و بیش از یک صحنهٔ غیرشرطی در هر صفحه را می‌گیرد. سایر قوانین این سند در بازبینی بررسی می‌شوند؛ اگر می‌خواهید خودکار شوند، یک قاعده به `scripts/check-design-tokens.mjs` اضافه کنید (مثلاً ممنوعیت `TouchableOpacity` یا `Text` خام).
+Besides raw colour, `check:design` catches numeric icon sizes, a top-level `Surface` with `tone="inset"`, duplicate default `Surface` props (`radius="pane"` and `padding="md"`), and more than one unconditional scene per screen. The other rules in this document are checked in review; if you want them automated, add a rule to `scripts/check-design-tokens.mjs` (for example banning `TouchableOpacity` or raw `Text`).
 
-### استثنا
+### Exception
 
-فقط جایی که ریاضیات لازم است (مثل ارتفاع خط مخصوص متن فارسی در `Flashcard`) می‌توانید خط را با `// design-ignore` علامت بزنید. همین نشانه برای قواعد ساختاری (آیکن، inset، پراپ تکراری و صحنه) هم کار می‌کند. رنگ هرگز استثنا ندارد.
+Only where the maths is genuinely needed (e.g. a line height tuned for Persian text in `Flashcard`) may the line be marked with `// design-ignore`. The same marker works for structural rules (icon, inset, duplicate props and scene). Colour is never an exception.
 
 ---
 
-## ۱۰. مرز (border)
+## 10. Border
 
-مرز فقط جایی می‌آید که **معنا** دارد. موارد مجاز:
+A border appears only where it has **meaning**. Allowed cases:
 
-| مورد | کجا |
+| Case | Where |
 | --- | --- |
-| رینگ فوکوس | `SearchBar` (و هر ورودی‌ای که فوکوس بصری می‌خواهد) |
-| وضعیت انتخاب‌شده | `RadioOptionCard` (نقطهٔ رادیو) |
-| کروم انتخاب Review | ردیف‌های دِک/جهت، دِک انتخاب‌شده، چیپ زمان و کاشی‌های «How it works» (۱px، ۲۰–۲۵٪) |
-| کادر خالی، نقطه‌چین | فریم حالت خالی، دکمهٔ «افزودن مرحله» |
-| `rim` بالای شیشه | یک لبه، فقط در `Surface tone="scene"` (`TodayPane`، صحنهٔ مطالعه، آرنای کوییز) و کاشی‌های پاسخ کوییز |
-| رینگ کروم | یک لبهٔ ۱px از `rims.soft` در پایین `FloatingHeader` و دور `LiquidTabBar`؛ کروم شیشه‌ای بدون آن در محتوای اسکرول‌شده گم می‌شود |
-| هندل شیت | `SheetPanel` (یک پُرشدگی، نه کادر) |
-| لبه‌ی نشسته‌ی کنترل فرم | `Field`، `ToggleSwitch` (ریل خاموش) و `SegmentedControl`؛ فقط ۱px از `colors.outline`. `SearchBar` عمداً بدون لبه است. |
+| Focus ring | `SearchBar` (and any input that wants a visible focus) |
+| Selected state | `RadioOptionCard` (the radio dot) |
+| Review selection chrome | deck/direction rows, the selected deck, the time chip and the "How it works" tiles (1px, 20–25%) |
+| Empty dashed frame | empty-state frame, the "Add step" button |
+| Glass `rim` | one edge, only on `Surface tone="scene"` (`TodayPane`, the study scene, the quiz arena) and quiz answer tiles |
+| Chrome ring | one 1px `rims.soft` edge at the bottom of `FloatingHeader` and around `LiquidTabBar`; glass chrome without it gets lost over scrolled content |
+| Sheet handle | `SheetPanel` (a fill, not a border) |
+| Form-control resting edge | `Field`; only 1px of `alpha(colors.outline, 0.5)` (composites to about `#646D7A` on the pane, about 3.3:1 — above 3:1). `SearchBar` is deliberately borderless. |
+| Segment rail edge | `SegmentedControl`; 1px of `alpha(colors.outlineSoft, 0.72)` (about `#323C4A` on the card, about 1.4:1). Deliberately below 3:1: the boundary is read from the rail and selection pill fills, and the edge is only a quiet seam. |
+| Off ToggleSwitch rail edge | `ToggleSwitch` (off state only); 1px of `alpha(colors.outlineSoft, 0.72)` (about `#2F3846` on the pane, about 1.5:1). Deliberately below 3:1; the near-white knob (9.9:1) and its position carry identification and state. |
 
-قاعدهٔ پیش‌فرض این است که هر چیز دیگری با **پُرشدگی** جدا شود. یک عنصر هرگز هم‌زمان کادر + rim + سایه ندارد.
+The default rule is that everything else separates by **fill**. An element never has a border + rim + shadow at the same time.
 
-**مدل پوشه:** پوشه‌ها یک فهرست تخت‌اند و هیچ پوشه‌ای داخل پوشهٔ دیگر نیست. شمارش هر پوشه فقط دک‌های مستقیم همان پوشه است؛ Location، انتخاب والد و خط راهنمای تودرتویی وجود ندارد. کارت پوشه و کارت دک هر دو `Surface tone="pane"` با شعاع ۲۲px و بدون کادر/سایه‌اند.
+**Folder model:** folders are a flat list and no folder sits inside another. Each folder's count is only its direct decks; there is no Location, no parent selection and no nested-indent guide. Folder card and deck card are both `Surface tone="pane"` at radius 22 and without border/shadow.
 
-صفحهٔ Import که ده‌ها کادر نقطه‌چین و مُهر تزئینی داشت حالا هیچ مرزی ندارد. هیچ `GlassCard`/`TopAppBar`/`v2`ای در کد نمانده است.
+The Import screen, which had dozens of dashed boxes and decorative stamps, now has no borders at all. No `GlassCard`/`TopAppBar`/`v2` remains in the code.
 
-## ۱۱. چک‌لیست صفحهٔ جدید
+## 11. New-screen checklist
 
-- [ ] `<Screen scroll gutter>` (و `tabClearance` در تب‌ها) با `header={<PageHeader title="…" />}` — بدون حاشیهٔ دستی
-- [ ] همهٔ متن‌ها `AppText` با `variant` مناسب؛ هیچ `Text` خام
-- [ ] همهٔ پنل‌ها `Surface`؛ هیچ `View` با `borderRadius` و `backgroundColor` دستی و **هیچ `border` تازه‌ای**
-- [ ] عرض ستون محتوا از `v3.layout.contentMaxWidth` — بدون `max-w-[…]` دستی
-- [ ] هدف لمسی هر کنترل ≥ ۴۴px (`heights.hit` / `hitSlop`)
-- [ ] ردیف‌ها `ListRow`؛ دکمه‌ها `Button`/`IconButton`؛ چیپ‌ها `Chip`
-- [ ] فاصله‌ها از `v3.spacing`/`spacing`/کلاس‌های `gap-*` — بدون عدد جادویی
-- [ ] رنگ‌ها فقط از توکن؛ `npm run check:design` پاس
-- [ ] کارت‌ها/شیت‌ها/آیکن‌ها با `heights`, `radii`, `iconSize`
-- [ ] انیمیشن با `motion`؛ مسیر reduced-motion تست شده
-- [ ] در وب و عرض باریک هم چیده می‌شود (حداقل یک بار اسکرین‌شات)
+- [ ] `<Screen scroll gutter>` (and `tabClearance` on tabs) with `header={<PageHeader title="…" />}` — no manual gutter
+- [ ] all text is `AppText` with the right `variant`; no raw `Text`
+- [ ] all panes are `Surface`; no `View` with a manual `borderRadius` and `backgroundColor`, and **no new `border`**
+- [ ] content column width from `v3.layout.contentMaxWidth` — no manual `max-w-[…]`
+- [ ] every control's touch target ≥ 44px (`heights.hit` / `hitSlop`)
+- [ ] rows are `ListRow`; buttons are `Button`/`IconButton`; chips are `Chip`
+- [ ] spacing from `v3.spacing`/`spacing`/`gap-*` classes — no magic numbers
+- [ ] colours only from tokens; `npm run check:design` passes
+- [ ] cards/sheets/icons use `heights`, `radii`, `iconSize`
+- [ ] animation via `motion`; reduced-motion path tested
+- [ ] lays out on the web and at a narrow width too (at least one screenshot)
