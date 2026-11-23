@@ -1,5 +1,6 @@
 import { View } from 'react-native';
 import { AppText } from '../AppText';
+import { useTextScale } from '../../hooks/useTextScale';
 
 type ShelfBandProps = {
   /** The band's name, e.g. "Folders" or "Unfiled decks". */
@@ -21,14 +22,15 @@ type ShelfBandProps = {
  * cards themselves separate the bands with their own fill and air.
  */
 export function ShelfBand({ label, count, hint, children }: ShelfBandProps) {
+  const { largeText } = useTextScale();
   return (
     <View testID="shelf-band" style={{ gap: 10 }}>
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
+          flexDirection: largeText ? 'column' : 'row',
+          alignItems: largeText ? 'flex-start' : 'center',
           justifyContent: 'space-between',
-          gap: 12,
+          gap: largeText ? 2 : 12,
         }}
       >
         <View
@@ -45,8 +47,8 @@ export function ShelfBand({ label, count, hint, children }: ShelfBandProps) {
             weight="semibold"
             tone="muted"
             className="uppercase"
-            numberOfLines={1}
-            style={{ letterSpacing: 0.9 }}
+            numberOfLines={largeText ? 2 : 1}
+            style={{ letterSpacing: 0.9, flexShrink: 1 }}
           >
             {label}
           </AppText>
@@ -63,8 +65,12 @@ export function ShelfBand({ label, count, hint, children }: ShelfBandProps) {
           <AppText
             variant="caption"
             tone="tertiary"
-            numberOfLines={1}
-            style={{ flexShrink: 1, textAlign: 'right' }}
+            numberOfLines={largeText ? 2 : 1}
+            style={{
+              flexShrink: 1,
+              textAlign: largeText ? 'left' : 'right',
+              maxWidth: '100%',
+            }}
           >
             {hint}
           </AppText>

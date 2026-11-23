@@ -844,6 +844,7 @@ export default function HomeScreen() {
                   <ListRow
                     title="Delete folder"
                     subtitle="Its decks become unfiled; nothing is deleted"
+                    subtitleLines={8}
                     icon="delete-outline"
                     tile="sm"
                     density="compact"

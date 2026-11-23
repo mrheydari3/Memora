@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
@@ -28,6 +29,8 @@ type StudyCardProps = {
   note?: string;
   onSpeak?: () => void;
   speakLabel?: string;
+  /** Fill the stage (the default). False lets the page scroll the whole card. */
+  fill?: boolean;
 };
 
 const LONG_ANSWER = 90;
@@ -55,6 +58,7 @@ export function StudyCard({
   note,
   onSpeak,
   speakLabel = 'Read card aloud',
+  fill = true,
 }: StudyCardProps) {
   const stateColor =
     card.fsrs.state === 'New' ? colors.onSurfaceVariant : stateColors[card.fsrs.state];
@@ -72,12 +76,18 @@ export function StudyCard({
   };
 
   return (
-    <View style={[styles.stage, styles.stageFill]}>
+    <View style={{ ...styles.stage, ...(fill ? styles.stageFill : {}) }}>
       <View style={[styles.stack, styles.stackFar]} />
       <View style={[styles.stack, styles.stackNear]} />
 
-      <Surface testID="study-card" tone="scene" radius="card" padding="none" style={styles.card}>
-        <View style={styles.inner}>
+      <Surface
+        testID="study-card"
+        tone="scene"
+        radius="card"
+        padding="none"
+        style={{ ...styles.card, ...(fill ? styles.cardFill : {}) }}
+      >
+        <View style={[styles.inner, !fill && styles.innerAuto]}>
           <View style={styles.topRow}>
             <View
               style={[
@@ -144,12 +154,7 @@ export function StudyCard({
             ) : null}
           </View>
 
-          <ScrollView
-            style={styles.bodyScroll}
-            contentContainerStyle={styles.bodyContent}
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-          >
+          <BodyShell fill={fill}>
             <View style={[styles.body, showAnswer ? styles.bodyAnswer : null]}>
               <AppText
                 variant="label"
@@ -277,7 +282,7 @@ export function StudyCard({
                 </AppText>
               )}
             </View>
-          </ScrollView>
+          </BodyShell>
 
           <View style={styles.footer}>
             <View style={styles.footerMeta}>
@@ -293,6 +298,21 @@ export function StudyCard({
         </View>
       </Surface>
     </View>
+  );
+}
+
+/** The reading body scrolls inside the fixed stage, or grows with the page. */
+function BodyShell({ fill, children }: { fill: boolean; children: ReactNode }) {
+  if (!fill) return <View style={styles.bodyOpen}>{children}</View>;
+  return (
+    <ScrollView
+      style={styles.bodyScroll}
+      contentContainerStyle={styles.bodyContent}
+      showsVerticalScrollIndicator={false}
+      bounces={false}
+    >
+      {children}
+    </ScrollView>
   );
 }
 
@@ -329,17 +349,24 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   card: {
-    flex: 1,
-    // The stage owns the height; on a short screen the card shrinks with it so
-    // the tray and rating keys stay on screen, and its body scrolls instead.
+    // The fixed stage owns the height; the page-scroll layout lets the card
+    // grow to its reading content instead.
     minHeight: 0,
     overflow: 'hidden',
+  },
+  cardFill: {
+    flex: 1,
   },
   inner: {
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 14,
+  },
+  innerAuto: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
   },
   topRow: {
     flexDirection: 'row',
@@ -395,6 +422,10 @@ const styles = StyleSheet.create({
   bodyScroll: {
     flex: 1,
     marginTop: 14,
+  },
+  bodyOpen: {
+    marginTop: 14,
+    paddingBottom: 8,
   },
   bodyContent: {
     flexGrow: 1,

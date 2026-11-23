@@ -10,6 +10,7 @@ import { colors, iconSize, motion, radii, stateColors } from '../../theme/tokens
 import { v3 } from '../../theme/v3';
 import { timingTo, useAnimatedNumber, usePressFeedback, useReveal } from '../../motion';
 import { useLaunchReveal } from '../../motion/LaunchReveal';
+import { useTextScale } from '../../hooks/useTextScale';
 
 type Segment = { label: string; value: number; color: string };
 
@@ -89,6 +90,7 @@ export function TodayPane({
   streak,
   onOpenStreak,
 }: TodayPaneProps) {
+  const { largeText } = useTextScale();
   // The hero adapts to the width Home gives it, not the window: the tablet
   // board places the library rail beside it, so the pane can be narrower than
   // the page even on a large canvas.
@@ -266,7 +268,11 @@ export function TodayPane({
                   {total} in queue
                 </AppText>
               </View>
-              <AppText variant="bodySm" weight="semibold" numberOfLines={2}>
+              <AppText
+                variant="bodySm"
+                weight="semibold"
+                numberOfLines={largeText ? 3 : 2}
+              >
                 {nextDeck}
               </AppText>
             </View>

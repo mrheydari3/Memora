@@ -67,6 +67,10 @@ export function Chip({
         style={{
           backgroundColor: rimmed ? colors.accentActive : fills.tile,
           minHeight: heights.hit,
+          // A short label such as "All" would otherwise collapse into a
+          // circle beside the wider "Due" and the sort trigger. Keep every
+          // labelled chip a readable pill in the same control family.
+          minWidth: label ? 72 : heights.hit,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',

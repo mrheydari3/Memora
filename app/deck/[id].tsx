@@ -537,7 +537,9 @@ export default function DeckDetailsScreen() {
       <ActionButton
         label={
           archived
-            ? 'Archived — restore to study'
+            ? largeText
+              ? 'Restore deck'
+              : 'Archived — restore to study'
             : totalDue > 0
               ? 'Start session'
               : 'Nothing due today'
@@ -557,10 +559,10 @@ export default function DeckDetailsScreen() {
     <View>
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
+          flexDirection: largeText ? 'column' : 'row',
+          alignItems: largeText ? 'flex-start' : 'center',
           justifyContent: 'space-between',
-          gap: 12,
+          gap: largeText ? 4 : 12,
           paddingHorizontal: 4,
           paddingBottom: 10,
         }}
@@ -593,7 +595,12 @@ export default function DeckDetailsScreen() {
           </View>
         </View>
 
-        <AppText variant="caption" tone="tertiary" numberOfLines={1} style={NUMERIC}>
+        <AppText
+          variant="caption"
+          tone="tertiary"
+          numberOfLines={largeText ? 2 : 1}
+          style={[NUMERIC, { flexShrink: 1 }]}
+        >
           {archived ? 'Archived' : totalDue > 0 ? `${formatCount(totalDue)} due` : 'All caught up'}
         </AppText>
       </View>

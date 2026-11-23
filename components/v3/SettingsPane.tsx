@@ -99,7 +99,7 @@ export function SettingsHero({
           </View>
         </View>
 
-        <AppText weight="bold" style={v3.type.headlineMd} numberOfLines={2}>
+        <AppText weight="bold" style={v3.type.headlineMd} numberOfLines={large ? 4 : 2}>
           {title}
         </AppText>
         <AppText variant="bodySm" tone="muted">
@@ -215,6 +215,7 @@ export function SettingsLine({
   ariaHasPopup,
 }: LineProps) {
   const [hovered, setHovered] = useState(false);
+  const { largeText: large } = useTextScale();
   const { width } = useWindowDimensions();
   // A right-aligned value can squeeze a long title below 360px. Stack it
   // under the subtitle there so the title keeps the width it needs.
@@ -242,11 +243,16 @@ export function SettingsLine({
       </View>
 
       <View style={{ flex: 1, minWidth: 0 }}>
-        <AppText variant="body" weight="semibold" numberOfLines={2}>
+        <AppText variant="body" weight="semibold" numberOfLines={large ? 4 : 2}>
           {title}
         </AppText>
         {subtitle && (
-          <AppText variant="bodySm" tone="muted" numberOfLines={3} style={{ marginTop: 2 }}>
+          <AppText
+            variant="bodySm"
+            tone="muted"
+            numberOfLines={large ? 8 : 3}
+            style={{ marginTop: 2 }}
+          >
             {subtitle}
           </AppText>
         )}

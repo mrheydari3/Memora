@@ -7,6 +7,7 @@ import { useMenuContext } from './MenuContext';
 import type { AnchorRect, IconName, WebFocusable } from './types';
 import { colors, fills, heights, iconSize, menu, radii } from '../../theme/tokens';
 import { HapticsEngine } from '../../services/haptics';
+import { useTextScale } from '../../hooks/useTextScale';
 
 /** The host node exposes these on web; text files stay free of DOM types. */
 type MeasurableNode = {
@@ -66,6 +67,7 @@ export function MenuItem({
   testID,
   accessibilityLabel,
 }: MenuItemProps) {
+  const { largeText } = useTextScale();
   const menuContext = useMenuContext();
   const generatedId = useId();
   const itemId = `menu-item-${generatedId.replace(/:/g, '')}`;
@@ -201,12 +203,17 @@ export function MenuItem({
             variant="body"
             weight={selected ? 'semibold' : 'medium'}
             tone={destructive ? 'danger' : selected ? 'accent' : 'default'}
-            numberOfLines={description ? 1 : 2}
+            numberOfLines={description ? (largeText ? 2 : 1) : 2}
           >
             {label}
           </AppText>
           {description && (
-            <AppText variant="bodySm" tone="muted" numberOfLines={2} style={{ marginTop: 2 }}>
+            <AppText
+              variant="bodySm"
+              tone="muted"
+              numberOfLines={largeText ? 4 : 2}
+              style={{ marginTop: 2 }}
+            >
               {description}
             </AppText>
           )}

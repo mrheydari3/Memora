@@ -4,6 +4,7 @@ import { Chip } from '../Chip';
 import { SearchBar } from '../SearchBar';
 import { Select } from '../menu/Select';
 import { useResponsive } from '../../hooks/useResponsive';
+import { useTextScale } from '../../hooks/useTextScale';
 import type { LibrarySort } from '../../data/types';
 import { LIBRARY_SORT_OPTIONS, librarySortLabel } from '../../data/librarySort';
 
@@ -52,7 +53,11 @@ export function LibraryToolbar({
   active,
   resultLabel,
 }: LibraryToolbarProps) {
-  const { tablet } = useResponsive();
+  const { tablet, width } = useResponsive();
+  const { largeText } = useTextScale();
+  // At 320px the two chips and the pill trigger need 312px together, more
+  // than the 280px content column. Stack them before they can clip.
+  const stackControls = largeText || width < 360;
   const shortLabel =
     LIBRARY_SORT_OPTIONS.find((option) => option.value === sort)?.shortLabel ??
     librarySortLabel(sort);
@@ -76,19 +81,29 @@ export function LibraryToolbar({
             accessibilityLabel="Search your library"
           />
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <Chip
-            label="All"
-            accessibilityLabel="Show all"
-            active={filter === 'all'}
-            onPress={() => onFilterChange('all')}
-          />
-          <Chip
-            label="Due"
-            accessibilityLabel="Due only"
-            active={filter === 'due'}
-            onPress={() => onFilterChange('due')}
-          />
+        <View
+          style={{
+            flexDirection: stackControls ? 'column' : 'row',
+            alignItems: stackControls ? 'flex-start' : 'center',
+            gap: 6,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <Chip
+              label="All"
+              accessibilityLabel="Show all"
+              active={filter === 'all'}
+              onPress={() => onFilterChange('all')}
+            />
+            <Chip
+              label="Due"
+              accessibilityLabel="Due only"
+              active={filter === 'due'}
+              onPress={() => onFilterChange('due')}
+            />
+          </View>
+          {/* At 200% the chips and the trigger stack on separate rows; sharing
+              a 320px line pushed the trigger's right edge off screen. */}
           <Select
             label="Sort"
             value={sort}

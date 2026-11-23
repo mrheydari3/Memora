@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Animated, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useResponsive } from '../../hooks/useResponsive';
+import { useTextScale } from '../../hooks/useTextScale';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
@@ -93,6 +94,7 @@ function GameDeckRow({
 }: GameDeckRowProps) {
   const press = usePressFeedback({ scale: 0.985 });
   const { mobile } = useResponsive();
+  const { largeText } = useTextScale();
   const best = bestScore ? `Best ${formatCount(bestScore)}` : null;
   // On a phone the best score belongs to the meta line: the right-hand value
   // column was squeezing a long deck or folder name into two short lines.
@@ -150,10 +152,19 @@ function GameDeckRow({
           </View>
 
           <View style={{ flex: 1, minWidth: 0 }}>
-            <AppText weight="semibold" numberOfLines={2} style={v3.type.deckTitle}>
+            <AppText
+              weight="semibold"
+              numberOfLines={largeText ? 4 : 2}
+              style={v3.type.deckTitle}
+            >
               {deck.name}
             </AppText>
-            <AppText variant="caption" tone="muted" numberOfLines={2} style={{ marginTop: 2 }}>
+            <AppText
+              variant="caption"
+              tone="muted"
+              numberOfLines={largeText ? 4 : 2}
+              style={{ marginTop: 2 }}
+            >
               {meta}
             </AppText>
           </View>
@@ -196,6 +207,7 @@ type RecordCardProps = {
 
 /** One all-time record: name, rounds/combo, rank badge and the score. */
 function RecordCard({ rank, deck, record, flex }: RecordCardProps) {
+  const { largeText } = useTextScale();
   const first = rank === 1;
 
   return (
@@ -214,10 +226,15 @@ function RecordCard({ rank, deck, record, flex }: RecordCardProps) {
         }}
       >
         <View style={{ flex: 1, minWidth: 0 }}>
-          <AppText variant="body" weight="semibold" numberOfLines={1}>
+          <AppText variant="body" weight="semibold" numberOfLines={largeText ? 2 : 1}>
             {deck.name}
           </AppText>
-          <AppText variant="caption" tone="muted" style={{ marginTop: 2 }} numberOfLines={1}>
+          <AppText
+            variant="caption"
+            tone="muted"
+            style={{ marginTop: 2 }}
+            numberOfLines={largeText ? 2 : 1}
+          >
             {record.plays} {record.plays === 1 ? 'round' : 'rounds'} · Best combo ×
             {record.bestCombo}
           </AppText>
@@ -309,6 +326,7 @@ export default function GameScreen() {
   const router = useRouter();
   // The tablet layout gets the roomier hero and a three-column record row.
   const { tablet } = useResponsive();
+  const { largeText } = useTextScale();
   const roomy = tablet;
 
   const decks = useDeckStore((s) => s.decks);
@@ -493,10 +511,19 @@ export default function GameScreen() {
               />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <AppText variant="body" weight="semibold" numberOfLines={2}>
+              <AppText
+                variant="body"
+                weight="semibold"
+                numberOfLines={largeText ? 4 : 2}
+              >
                 {selected.deck.name}
               </AppText>
-              <AppText variant="caption" tone="muted" numberOfLines={2} style={{ marginTop: 2 }}>
+              <AppText
+                variant="caption"
+                tone="muted"
+                numberOfLines={largeText ? 4 : 2}
+                style={{ marginTop: 2 }}
+              >
                 {selected.due} due today · {formatCount(selected.cards)} cards
                 {selected.folder ? ` · ${selected.folder}` : ''}
               </AppText>

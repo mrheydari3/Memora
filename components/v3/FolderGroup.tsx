@@ -3,12 +3,50 @@ import { Animated, Platform, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { HintPressable } from '../HintPressable';
-import { colors, glass, iconSize, motion } from '../../theme/tokens';
+import { colors, glass, iconSize, motion, shadow } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { prefersReducedMotion, timingTo } from '../../motion';
 import { FolderGlyph } from './FolderGlyph';
 import { ShelfStatusPill } from './ShelfStatusPill';
 import { Surface } from './Surface';
+
+/**
+ * Clip a row's shadow to the outside edges of the assembled card.
+ *
+ * The folder header and its decks are separate virtualized list rows, so each
+ * row paints its own pane shadow. Without a clip, the blurred top/bottom of
+ * one row's shadow would cross the seam onto the neighbouring row. Horizontal
+ * padding gives the left/right edges room to breathe; the negative margins
+ * keep that room out of the card's layout. Top and bottom bleed are opened
+ * only at the card's real outer edges.
+ */
+const SHADOW_BLEED = 12;
+
+function ShadowFrame({
+  top = false,
+  bottom = false,
+  children,
+}: {
+  top?: boolean;
+  bottom?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <View
+      style={{
+        overflow: 'hidden',
+        marginHorizontal: -SHADOW_BLEED,
+        paddingHorizontal: SHADOW_BLEED,
+        marginTop: top ? -SHADOW_BLEED : 0,
+        paddingTop: top ? SHADOW_BLEED : 0,
+        marginBottom: bottom ? -SHADOW_BLEED : 0,
+        paddingBottom: bottom ? SHADOW_BLEED : 0,
+      }}
+    >
+      {children}
+    </View>
+  );
+}
 
 type FolderGroupProps = {
   name: string;
@@ -146,40 +184,45 @@ export function FolderGroup({
   };
 
   return (
-    <Surface
-      tone="pane"
-      radius="card"
-      padding="none"
-      style={{
-        width: '100%',
-        overflow: 'hidden',
-        position: 'relative',
-        backgroundColor: glass.cardFace,
-        ...(joined
-          ? { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }
-          : null),
-      }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        {expandable ? (
-          <HintPressable
-            hint={expanded ? 'Collapse folder' : 'Expand folder'}
-            testID="folder-group"
-            onPress={onToggle}
-            accessibilityRole="button"
-            accessibilityState={{ expanded }}
-            {...webExpanded}
-            style={headerStyle}
-          >
-            {header}
-          </HintPressable>
-        ) : (
-          <View testID="folder-group" style={headerStyle}>
-            {header}
-          </View>
-        )}
-      </View>
-    </Surface>
+    <ShadowFrame top bottom={!joined}>
+      <Surface
+        tone="pane"
+        radius="card"
+        padding="none"
+        style={{
+          width: '100%',
+          overflow: 'hidden',
+          position: 'relative',
+          backgroundColor: glass.cardFace,
+          // One card, one shadow: the frame keeps the top/side edge here and
+          // lets every deck row continue the side edge below it.
+          boxShadow: shadow.pane,
+          ...(joined
+            ? { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }
+            : null),
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {expandable ? (
+            <HintPressable
+              hint={expanded ? 'Collapse folder' : 'Expand folder'}
+              testID="folder-group"
+              onPress={onToggle}
+              accessibilityRole="button"
+              accessibilityState={{ expanded }}
+              {...webExpanded}
+              style={headerStyle}
+            >
+              {header}
+            </HintPressable>
+          ) : (
+            <View testID="folder-group" style={headerStyle}>
+              {header}
+            </View>
+          )}
+        </View>
+      </Surface>
+    </ShadowFrame>
   );
 }
 
@@ -305,24 +348,27 @@ export function FolderBodySlice({
           : null),
       }}
     >
-      <Surface
-        tone="inset"
-        radius="card"
-        padding="none"
-        style={{
-          backgroundColor: glass.cardFace,
-          paddingHorizontal: 10,
-          paddingTop: first ? 8 : 3,
-          paddingBottom: last ? 10 : 3,
-          borderTopLeftRadius: 0,
-          borderTopRightRadius: 0,
-          borderBottomLeftRadius: last ? v3.radii.card : 0,
-          borderBottomRightRadius: last ? v3.radii.card : 0,
-          marginBottom: last ? 10 : 0,
-        }}
-      >
-        {children}
-      </Surface>
+      <ShadowFrame bottom={last}>
+        <Surface
+          tone="inset"
+          radius="card"
+          padding="none"
+          style={{
+            backgroundColor: glass.cardFace,
+            boxShadow: shadow.pane,
+            paddingHorizontal: 10,
+            paddingTop: first ? 8 : 3,
+            paddingBottom: last ? 10 : 3,
+            borderTopLeftRadius: 0,
+            borderTopRightRadius: 0,
+            borderBottomLeftRadius: last ? v3.radii.card : 0,
+            borderBottomRightRadius: last ? v3.radii.card : 0,
+            marginBottom: last ? 10 : 0,
+          }}
+        >
+          {children}
+        </Surface>
+      </ShadowFrame>
     </Animated.View>
   );
 }

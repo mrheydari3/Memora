@@ -260,8 +260,8 @@ function IdentityCard({
             <AppText
               variant="caption"
               tone="muted"
-              numberOfLines={2}
-              style={{ flexShrink: 1 }}
+              numberOfLines={large ? 4 : 2}
+              style={{ flexShrink: 1, minWidth: 0 }}
             >
               {`${allTime.xpIntoLevel} of ${XP_PER_LEVEL} XP into this level`}
             </AppText>

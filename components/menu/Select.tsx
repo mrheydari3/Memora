@@ -4,7 +4,7 @@ import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { Menu } from './Menu';
 import type { IconName, MenuAction } from './types';
-import { colors, heights, iconSize, radii } from '../../theme/tokens';
+import { colors, fills, heights, iconSize, radii } from '../../theme/tokens';
 
 export type SelectOption = {
   value: string;
@@ -84,20 +84,29 @@ export function Select({
         aria-expanded={open}
         style={{
           minHeight: heights.hit,
-          paddingHorizontal: 12,
-          borderRadius: radii.control,
+          // The select trigger belongs to the same pill family as the filter
+          // chips: 44px tall, a full radius, the same resting fill and equal
+          // horizontal padding. Only its icon and chevron state its other job.
+          paddingHorizontal: 16,
+          borderRadius: radii.pill,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
           gap: 6,
-          backgroundColor: colors.surfaceControl,
+          backgroundColor: fills.tile,
           opacity: disabled ? 0.45 : 1,
         }}
       >
         {icon && (
           <MaterialIcons name={icon} size={iconSize.sm} color={colors.outline} />
         )}
-        <AppText variant="caption" weight="semibold" numberOfLines={1} style={{ flexShrink: 1 }}>
+        <AppText
+          variant="bodySm"
+          weight="semibold"
+          tone="muted"
+          numberOfLines={1}
+          style={{ flexShrink: 1 }}
+        >
           {text}
         </AppText>
         <MaterialIcons name="expand-more" size={iconSize.sm} color={colors.outline} />

@@ -5,6 +5,7 @@ import { HintPressable } from '../HintPressable';
 import { colors, glass, iconSize, shadow } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import { usePressFeedback } from '../../motion';
+import { useTextScale } from '../../hooks/useTextScale';
 import { FolderGlyph } from './FolderGlyph';
 import { ShelfStatusPill } from './ShelfStatusPill';
 import { Surface } from './Surface';
@@ -46,6 +47,7 @@ export function FolderCard({
   onPress,
 }: FolderCardProps) {
   const press = usePressFeedback({ scale: 0.985 });
+  const { largeText } = useTextScale();
   const tint = color ?? colors.primary;
   const empty = deckCount === 0;
   const reviewable = !empty && due > 0;
@@ -117,14 +119,25 @@ export function FolderCard({
               <AppText
                 variant="bodySm"
                 tone="tertiary"
-                numberOfLines={2}
+                numberOfLines={largeText ? 3 : 2}
                 style={{ marginTop: 3 }}
               >
                 {meta}
               </AppText>
+
+              {/* At 200% the status pill leaves no room for a short folder name
+                  beside the 48px glyph. Put it under the meta line and let the
+                  name keep the full content column. */}
+              {largeText && (
+                <View style={{ marginTop: 8, alignSelf: 'flex-start' }}>
+                  <ShelfStatusPill due={due} empty={empty} reviewable={reviewable} />
+                </View>
+              )}
             </View>
 
-            <ShelfStatusPill due={due} empty={empty} reviewable={reviewable} />
+            {!largeText && (
+              <ShelfStatusPill due={due} empty={empty} reviewable={reviewable} />
+            )}
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>

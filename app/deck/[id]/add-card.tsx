@@ -3,6 +3,7 @@ import { Pressable, View, TextInput } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { MaterialIcons } from '../../../components/Icon';
 import { useDeckStore } from '../../../store/useDeckStore';
+import { useTextScale } from '../../../hooks/useTextScale';
 import { goBackOr } from '../../../services/navigation';
 import { defaultFSRSState } from '../../../data/seed';
 import { textDirection } from '../../../data/text';
@@ -59,6 +60,7 @@ const NUMERIC = { fontVariant: ['tabular-nums'] as const };
 export default function AddCardScreen() {
   const { id, editCardId } = useLocalSearchParams<{ id: string; editCardId?: string }>();
   const router = useRouter();
+  const { largeText } = useTextScale();
   const deck = useDeckStore((s) => s.decks.find((d) => d.id === id));
   const deckCardCount = useDeckStore((s) => (id ? s.cardsByDeck[id]?.length ?? 0 : 0));
   const existingCard = useDeckStore((s) =>
@@ -254,15 +256,15 @@ export default function AddCardScreen() {
       gutter
       contentMaxWidth={v3.layout.composerMaxWidth}
       header={header}
-      footer={footer}
+      footer={largeText ? undefined : footer}
     >
       {/* Which deck the card lands in, and where it will sit in it. */}
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
+          flexDirection: largeText ? 'column' : 'row',
+          alignItems: largeText ? 'stretch' : 'center',
           justifyContent: 'space-between',
-          gap: 10,
+          gap: largeText ? 8 : 10,
           paddingHorizontal: 4,
           marginBottom: 20,
         }}
@@ -285,7 +287,7 @@ export default function AddCardScreen() {
             <AppText variant="caption" tone="muted" numberOfLines={1}>
               Target deck
             </AppText>
-            <AppText variant="body" weight="semibold" numberOfLines={1}>
+            <AppText variant="body" weight="semibold" numberOfLines={largeText ? 2 : 1}>
               {deck?.name ?? 'Deck'}
             </AppText>
           </View>
@@ -301,6 +303,7 @@ export default function AddCardScreen() {
             borderRadius: 999,
             backgroundColor: colors.surfaceInset,
             flexShrink: 0,
+            alignSelf: largeText ? 'flex-start' : 'auto',
           }}
         >
           <View
@@ -382,7 +385,7 @@ export default function AddCardScreen() {
               setFront(next);
               setReceipt(null);
             }}
-            placeholder="Word or question"
+            placeholder={largeText ? 'Word' : 'Word or question'}
             placeholderTextColor={colors.outlineSoft}
             multiline
             maxLength={FRONT_MAX}
@@ -479,7 +482,12 @@ export default function AddCardScreen() {
         <View
           style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: statusColour, flexShrink: 0 }}
         />
-        <AppText variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+        <AppText
+          variant="caption"
+          tone="muted"
+          numberOfLines={largeText ? 2 : 1}
+          style={{ flexShrink: 1, minWidth: 0 }}
+        >
           {statusText}
         </AppText>
       </View>
@@ -488,10 +496,10 @@ export default function AddCardScreen() {
       <View style={{ paddingHorizontal: 4, marginBottom: 24 }}>
         <View
           style={{
-            flexDirection: 'row',
-            alignItems: 'center',
+            flexDirection: largeText ? 'column' : 'row',
+            alignItems: largeText ? 'flex-start' : 'center',
             justifyContent: 'space-between',
-            gap: 10,
+            gap: largeText ? 2 : 10,
             marginBottom: 8,
           }}
         >
@@ -503,7 +511,12 @@ export default function AddCardScreen() {
           >
             Front colour
           </AppText>
-          <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+          <AppText
+            variant="caption"
+            tone="tertiary"
+            numberOfLines={largeText ? 2 : 1}
+            style={{ flexShrink: 1 }}
+          >
             {colorLabel}
           </AppText>
         </View>
@@ -695,6 +708,10 @@ export default function AddCardScreen() {
             : 'A new card joins today’s new-card queue and is due the day you add it.'}
         </AppText>
       </View>
+
+      {/* At 200% the twin save actions are themselves taller than half a phone
+          screen. Let them follow the form instead of permanently covering it. */}
+      {largeText ? footer : null}
 
       <BottomSheetModal
         visible={discardVisible}

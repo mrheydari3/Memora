@@ -24,6 +24,7 @@ import {
 } from '../../components/v3';
 import { alpha, colors, iconSize, radii, spacing } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
+import { useTextScale } from '../../hooks/useTextScale';
 
 const NUMERIC = { fontVariant: ['tabular-nums'] as const };
 
@@ -189,6 +190,7 @@ export default function DiscoverDeckPreviewScreen() {
 
 function PreviewHero({ deck }: { deck: FeaturedDeck }) {
   const cards = deck.sampleCards.length;
+  const { largeText } = useTextScale();
 
   return (
     <Surface
@@ -200,6 +202,7 @@ function PreviewHero({ deck }: { deck: FeaturedDeck }) {
         <View
           style={{
             flexDirection: 'row',
+            flexWrap: largeText ? 'wrap' : 'nowrap',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 10,
@@ -210,7 +213,7 @@ function PreviewHero({ deck }: { deck: FeaturedDeck }) {
             weight="semibold"
             tone="accent"
             className="uppercase"
-            style={{ letterSpacing: 0.6 }}
+            style={{ letterSpacing: 0.6, flexShrink: 1 }}
           >
             Starter deck
           </AppText>
@@ -227,16 +230,17 @@ function PreviewHero({ deck }: { deck: FeaturedDeck }) {
 
       <View
         style={{
-          flexDirection: 'row',
+          flexDirection: largeText ? 'column' : 'row',
+          gap: largeText ? 12 : 0,
           backgroundColor: colors.surfaceInset,
           borderRadius: radii.menu,
           paddingVertical: 12,
           paddingHorizontal: 12,
         }}
       >
-        <LedgerCell label="Level" value="Starter" first />
-        <LedgerCell label="Source" value="Bundled" />
-        <LedgerCell label="Import" value="One tap" />
+        <LedgerCell label="Level" value="Starter" first stacked={largeText} />
+        <LedgerCell label="Source" value="Bundled" stacked={largeText} />
+        <LedgerCell label="Import" value="One tap" stacked={largeText} />
       </View>
     </Surface>
   );
@@ -246,17 +250,20 @@ function LedgerCell({
   label,
   value,
   first = false,
+  stacked = false,
 }: {
   label: string;
   value: string;
   first?: boolean;
+  stacked?: boolean;
 }) {
   return (
     <View
       style={{
-        flex: 1,
+        flex: stacked ? undefined : 1,
+        width: stacked ? '100%' : undefined,
         minWidth: 0,
-        paddingStart: first ? 0 : 12,
+        paddingStart: stacked || first ? 0 : 12,
       }}
     >
       <AppText variant="caption" tone="tertiary" numberOfLines={1}>

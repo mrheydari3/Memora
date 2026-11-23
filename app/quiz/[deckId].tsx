@@ -784,6 +784,7 @@ export default function QuizScreen() {
     if (target.isConnected) target.focus();
   }, [paused]);
 
+  const compactLarge = compact && large;
   const lowTime = round.timeLeftMs <= 10_000;
   const accuracyValue = accuracy(round);
   const timerProgress = round.timeLeftMs / ROUND_MS;
@@ -804,15 +805,17 @@ export default function QuizScreen() {
         onPress={() => goBackOr(router, '/(tabs)/review')}
       />
       <View style={{ flex: 1, minWidth: 0, alignItems: 'center' }}>
-        <AppText
-          variant="label"
-          weight="semibold"
-          tone="muted"
-          numberOfLines={1}
-          style={{ letterSpacing: 1.6 }}
-        >
-          ACTIVE SESSION
-        </AppText>
+        {!compactLarge && (
+          <AppText
+            variant="label"
+            weight="semibold"
+            tone="muted"
+            numberOfLines={1}
+            style={{ letterSpacing: 1.6 }}
+          >
+            ACTIVE SESSION
+          </AppText>
+        )}
         <AppText
           variant="bodySm"
           weight="semibold"
@@ -949,9 +952,11 @@ export default function QuizScreen() {
         style={[styles.hudTile, { borderRadius: v3.radii.quizTile }]}
       >
         <View style={styles.hudTop}>
-          <AppText variant="caption" tone="muted" numberOfLines={1} style={styles.hudLabel}>
-            SCORE
-          </AppText>
+          {!compactLarge && (
+            <AppText variant="caption" tone="muted" numberOfLines={1} style={styles.hudLabel}>
+              SCORE
+            </AppText>
+          )}
           <MaterialIcons name="star" size={iconSize.xs} color={colors.outline} />
         </View>
         <View style={styles.hudValueRow}>
@@ -960,6 +965,7 @@ export default function QuizScreen() {
               variant="headline"
               weight="bold"
               numberOfLines={1}
+              accessibilityLabel={`Score ${round.score}`}
               style={{ fontVariant: ['tabular-nums'], letterSpacing: -0.6, flexShrink: 1 }}
             >
               {round.score.toLocaleString('en-US')}
@@ -1028,6 +1034,7 @@ export default function QuizScreen() {
       <Screen
         edges={['top', 'bottom']}
         header={header}
+        scroll={compactLarge}
         backgroundInert={phase === 'over' || paused}
       >
         {/*
@@ -1040,7 +1047,12 @@ export default function QuizScreen() {
           <AppText variant="bodySm">{announcement}</AppText>
         </View>
 
-        <View style={styles.column}>
+        <View
+          style={[
+            styles.column,
+            compactLarge && { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', paddingBottom: 24 },
+          ]}
+        >
           {hud}
 
           <View style={styles.progressRow}>
@@ -1061,8 +1073,21 @@ export default function QuizScreen() {
             </View>
           </View>
 
-          <View style={{ flex: 1, minHeight: 0, justifyContent: 'center', marginTop: 16 }}>
-            <Surface tone="pane" padding="none" style={styles.stage}>
+          <View
+            style={{
+              flexGrow: compactLarge ? 0 : 1,
+              flexShrink: compactLarge ? 0 : 1,
+              flexBasis: compactLarge ? 'auto' : 0,
+              minHeight: 0,
+              justifyContent: 'center',
+              marginTop: 16,
+            }}
+          >
+            <Surface
+              tone="pane"
+              padding="none"
+              style={compactLarge ? styles.stage : { ...styles.stage, ...styles.stageFill }}
+            >
               <View style={styles.scenePill}>
                 <MaterialIcons name="translate" size={iconSize.sm} color={colors.outline} />
                 <AppText
@@ -1140,7 +1165,15 @@ export default function QuizScreen() {
           </View>
 
           <View style={styles.footer}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                flexShrink: 1,
+                minWidth: 0,
+              }}
+            >
               <MaterialIcons
                 name={lowTime ? 'schedule' : 'add-circle'}
                 size={iconSize.sm}
@@ -1150,8 +1183,8 @@ export default function QuizScreen() {
                 variant="caption"
                 weight="semibold"
                 tone={lowTime ? 'warning' : 'success'}
-                numberOfLines={1}
-                style={{ flexShrink: 1 }}
+                numberOfLines={compactLarge ? 2 : 1}
+                style={{ flexShrink: 1, minWidth: 0 }}
               >
                 {lowTime ? 'Hurry — under 10s' : 'Correct answers buy +3s'}
               </AppText>
@@ -1256,7 +1289,11 @@ export default function QuizScreen() {
                   <AppText variant="caption" tone="muted" className="uppercase">
                     Round complete
                   </AppText>
-                  <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
+                  <AppText
+                    variant="bodySm"
+                    weight="semibold"
+                    numberOfLines={large ? 2 : 1}
+                  >
                     {deck.name}
                   </AppText>
                 </View>
@@ -1271,14 +1308,30 @@ export default function QuizScreen() {
               >
                 {round.cleared ? 'Deck cleared' : "Time's up"}
               </AppText>
-              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 2 }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'baseline',
+                  gap: 8,
+                  marginTop: 2,
+                  // The score and its unit stay on one line at normal text.
+                  // At 200% the unit wraps under the display figure instead of
+                  // hanging past the panel's right edge.
+                  flexWrap: large ? 'wrap' : 'nowrap',
+                }}
+              >
                 <AppText
                   variant="display"
                   style={{
                     fontVariant: ['tabular-nums'],
-                    fontSize: v3.type.result.fontSize,
-                    lineHeight: v3.type.result.lineHeight,
-                    letterSpacing: v3.type.result.letterSpacing,
+                    // At 200% the 64px result step becomes 128px and a
+                    // four-digit score runs off a 320px phone. Keep the score
+                    // display-sized without letting it exceed the panel.
+                    fontSize: large ? v3.type.score.fontSize : v3.type.result.fontSize,
+                    lineHeight: large ? v3.type.score.lineHeight : v3.type.result.lineHeight,
+                    letterSpacing: large
+                      ? v3.type.score.letterSpacing
+                      : v3.type.result.letterSpacing,
                   }}
                 >
                   {round.score.toLocaleString('en-US')}
@@ -1402,16 +1455,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   stage: {
-    flex: 1,
     width: '100%',
     minHeight: v3.heights.quizQuestion,
-    // A short prompt would otherwise stretch the pane to half the canvas on a
-    // tablet window; the wrapper centres it in the space that is left over.
-    maxHeight: 320,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.screen,
     paddingVertical: 24,
+  },
+  stageFill: {
+    flex: 1,
+    // A short prompt would otherwise stretch the pane to half the canvas on a
+    // tablet window; the wrapper centres it in the space that is left over.
+    maxHeight: 320,
     overflow: 'hidden',
   },
   scenePill: {

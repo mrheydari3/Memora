@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
+import { useTextScale } from '../hooks/useTextScale';
 import { MaterialIcons } from './Icon';
 import { AppText } from './AppText';
 import { SearchBar } from './SearchBar';
@@ -54,6 +55,7 @@ export function AppearancePicker({
   onColorChange,
   collapsible = false,
 }: AppearancePickerProps) {
+  const { largeText } = useTextScale();
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState(false);
   const term = query.trim().toLowerCase().replace(/-/g, ' ');
@@ -116,6 +118,7 @@ export function AppearancePicker({
             alignItems: 'center',
             gap: 10,
             paddingHorizontal: 10,
+            paddingVertical: largeText ? 8 : 0,
             borderRadius: radii.control,
             backgroundColor: fills.tile,
           }}
@@ -136,12 +139,21 @@ export function AppearancePicker({
               color={color}
             />
           </View>
-          <AppText variant="bodySm" weight="semibold" style={{ flex: 1 }} numberOfLines={2}>
-            {iconLabel(icon)}
-          </AppText>
-          <AppText variant="caption" weight="semibold" tone="accent">
-            Change icon
-          </AppText>
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <AppText variant="bodySm" weight="semibold" numberOfLines={2}>
+              {iconLabel(icon)}
+            </AppText>
+            {largeText ? (
+              <AppText variant="caption" weight="semibold" tone="accent">
+                Change icon
+              </AppText>
+            ) : null}
+          </View>
+          {!largeText ? (
+            <AppText variant="caption" weight="semibold" tone="accent">
+              Change icon
+            </AppText>
+          ) : null}
           <MaterialIcons name="expand-more" size={iconSize.sm} color={colors.outline} />
         </Pressable>
         {colourBlock}

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import type { ViewStyle } from 'react-native';
 import { TABLET_MIN_WIDTH } from '../../hooks/useResponsive';
-import { BottomSheetModal } from '../BottomSheetModal';
+import { BottomSheetModal, SheetScrollView } from '../BottomSheetModal';
 import { MenuContext } from './MenuContext';
 import type { MenuContextValue } from './MenuContext';
 import { MenuActionList } from './MenuActionList';
@@ -220,7 +220,7 @@ function SheetMenu({
         onEscape={levels.length > 0 ? () => closeSubmenu(true) : undefined}
         compact
       >
-        <ScrollView
+        <SheetScrollView
           className="menu-scroll"
           style={{ maxHeight: sheetMaxHeight }}
           showsVerticalScrollIndicator
@@ -236,7 +236,7 @@ function SheetMenu({
             />
           )}
           {current ? current.content : actions ? <MenuActionList actions={actions} /> : children}
-        </ScrollView>
+        </SheetScrollView>
       </BottomSheetModal>
     </MenuContext.Provider>
   );

@@ -39,6 +39,7 @@ type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
  */
 export default function DiscoverScreen() {
   const router = useRouter();
+  const { largeText } = useTextScale();
   const [decks, setDecks] = useState<FeaturedDeck[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -111,6 +112,7 @@ export default function DiscoverScreen() {
                   <View
                     style={{
                       flexDirection: 'row',
+                      flexWrap: largeText ? 'wrap' : 'nowrap',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       gap: 10,
@@ -121,7 +123,7 @@ export default function DiscoverScreen() {
                       weight="semibold"
                       tone="accent"
                       className="uppercase"
-                      style={{ letterSpacing: 0.6 }}
+                      style={{ letterSpacing: 0.6, flexShrink: 1 }}
                     >
                       Discover
                     </AppText>
@@ -192,7 +194,7 @@ function CatalogueRow({
         style={{
           minHeight: 76,
           flexDirection: 'row',
-          alignItems: 'center',
+          alignItems: largeText ? 'flex-start' : 'center',
           gap: 14,
           paddingHorizontal: 16,
           paddingVertical: 12,
@@ -223,7 +225,7 @@ function CatalogueRow({
           <AppText
             variant="bodySm"
             tone="muted"
-            numberOfLines={largeText ? 4 : 2}
+            numberOfLines={largeText ? undefined : 2}
             style={{ marginTop: 2 }}
           >
             {deck.description}

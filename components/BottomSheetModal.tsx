@@ -17,6 +17,7 @@ import { IconButton } from './IconButton';
 import { glass, glassFillStrong, iconSize, motion, radii, shadow, sheet, veil } from '../theme/tokens';
 import { v3 } from '../theme/v3';
 import { usePresence } from '../motion';
+import { useTextScale } from '../hooks/useTextScale';
 import { HapticsEngine } from '../services/haptics';
 
 type SheetPanelProps = {
@@ -34,6 +35,8 @@ type SheetPanelProps = {
   onBodyLayout?: (event: LayoutChangeEvent) => void;
   /** Scrolls the body instead of letting a long sheet grow past the viewport. */
   scroll?: boolean;
+  /** Remounts the scroll body when the sheet swaps between content states. */
+  scrollKey?: string | number;
   /** A centred tablet dialog with the page gutter and all four corners. */
   tablet?: boolean;
 };
@@ -76,8 +79,10 @@ export function SheetPanel({
   style,
   onLayout,
   scroll = false,
+  scrollKey,
   tablet = false,
 }: SheetPanelProps) {
+  const { largeText } = useTextScale();
   const hasHeader = Boolean(title || subtitle || onClose);
 
   return (
@@ -91,13 +96,18 @@ export function SheetPanel({
       {grabber}
       {hasHeader && (
         <View className="flex-row items-start">
-          <View className="flex-1 pr-2">
+          <View className="flex-1 pr-2" style={largeText ? { paddingRight: 0 } : undefined}>
             {title && (
-              <AppText variant="headline" weight="semibold" numberOfLines={2} headingLevel={1}>
+              <AppText
+                variant="headline"
+                weight="semibold"
+                numberOfLines={largeText ? 3 : 2}
+                headingLevel={1}
+              >
                 {title}
               </AppText>
             )}
-            {subtitle && (
+            {subtitle && !scroll && (
               <AppText variant="bodySm" tone="muted" className="mt-1.5">
                 {subtitle}
               </AppText>
@@ -119,10 +129,17 @@ export function SheetPanel({
           // Only the body scrolls, so the header and the close control stay
           // pinned to the top edge and never slide under the content.
           <ScrollView
+            key={scrollKey}
             style={[styles.body, hasHeader ? styles.bodyOffset : null]}
+            contentContainerStyle={{ paddingBottom: 8 }}
             showsVerticalScrollIndicator
             keyboardShouldPersistTaps="handled"
           >
+            {subtitle ? (
+              <AppText variant="bodySm" tone="muted" className="mb-4">
+                {subtitle}
+              </AppText>
+            ) : null}
             {children}
           </ScrollView>
         ) : (
@@ -222,6 +239,7 @@ export function BottomSheetModal({
   children,
 }: BottomSheetModalProps) {
   const { mounted, value } = usePresence(visible, { duration: motion.base });
+  const { largeText } = useTextScale();
   const { height: measuredHeight, width: measuredWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const isTablet = tabletLayout && measuredWidth >= TABLET_MIN_WIDTH;
@@ -376,6 +394,10 @@ export function BottomSheetModal({
         isTablet ? styles.tabletPanel : null,
         {
           maxHeight,
+          // At 200% the header alone can consume most of a phone sheet. Pin
+          // the panel to its cap and let its body scroll instead of letting
+          // the last controls render below the viewport.
+          height: largeText ? maxHeight : undefined,
           // A short sheet still reads as a surface rather than a strip,
           // unless it is a compact menu: those size to their own content.
           minHeight:
@@ -387,13 +409,21 @@ export function BottomSheetModal({
         },
       ]}
     >
-      <View ref={panelRef} tabIndex={-1}>
+      <View
+        ref={panelRef}
+        tabIndex={-1}
+        style={{ flex: largeText ? 1 : undefined, minHeight: 0 }}
+      >
         <SheetPanel
           title={title}
           subtitle={subtitle}
           onClose={onClose}
           tablet={isTablet}
+          scroll={largeText}
+          scrollKey={focusKey}
           style={{
+            flex: largeText ? 1 : undefined,
+            minHeight: 0,
             paddingBottom: Math.max(
               compact ? 20 : 32,
               insets.bottom + (compact ? 12 : 16)

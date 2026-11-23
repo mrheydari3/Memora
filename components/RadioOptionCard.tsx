@@ -3,6 +3,7 @@ import { MaterialIcons } from './Icon';
 import { AppText } from './AppText';
 import { Pill } from './Pill';
 import { colors, fills, iconSize, radii } from '../theme/tokens';
+import { useTextScale } from '../hooks/useTextScale';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -31,6 +32,8 @@ export function RadioOptionCard({
   onSelect,
   badge,
 }: RadioOptionCardProps) {
+  const { largeText } = useTextScale();
+
   return (
     <Pressable
       onPress={onSelect}
@@ -46,22 +49,49 @@ export function RadioOptionCard({
           backgroundColor: selected ? colors.accentActive : fills.inset,
         }}
       >
-        <View className="flex-row items-center gap-3">
-          <MaterialIcons
-            name={icon}
-            size={iconSize.lg}
-            color={selected ? colors.primary : colors.onSurfaceVariant}
-          />
-          <AppText variant="body" weight="semibold" className="flex-1" numberOfLines={1}>
-            {title}
-          </AppText>
-          {badge && <Pill label={badge} tone="accent" />}
-          <MaterialIcons
-            name={selected ? 'check-circle' : 'radio-button-unchecked'}
-            size={iconSize.md}
-            color={selected ? colors.primary : colors.outlineSoft}
-          />
-        </View>
+        {largeText ? (
+          <>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <MaterialIcons
+                name={icon}
+                size={iconSize.lg}
+                color={selected ? colors.primary : colors.onSurfaceVariant}
+              />
+              {badge && <Pill label={badge} tone="accent" />}
+              <View style={{ flex: 1 }} />
+              <MaterialIcons
+                name={selected ? 'check-circle' : 'radio-button-unchecked'}
+                size={iconSize.md}
+                color={selected ? colors.primary : colors.outlineSoft}
+              />
+            </View>
+            <AppText
+              variant="body"
+              weight="semibold"
+              numberOfLines={3}
+              style={{ marginTop: 10 }}
+            >
+              {title}
+            </AppText>
+          </>
+        ) : (
+          <View className="flex-row items-center gap-3">
+            <MaterialIcons
+              name={icon}
+              size={iconSize.lg}
+              color={selected ? colors.primary : colors.onSurfaceVariant}
+            />
+            <AppText variant="body" weight="semibold" className="flex-1" numberOfLines={1}>
+              {title}
+            </AppText>
+            {badge && <Pill label={badge} tone="accent" />}
+            <MaterialIcons
+              name={selected ? 'check-circle' : 'radio-button-unchecked'}
+              size={iconSize.md}
+              color={selected ? colors.primary : colors.outlineSoft}
+            />
+          </View>
+        )}
         <AppText variant="bodySm" tone="muted" className="mt-1.5">
           {description}
         </AppText>

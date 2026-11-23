@@ -338,11 +338,14 @@ function HeroRangeControl({
   rangeDays: number;
   onChange: (days: number) => void;
 }) {
+  const { largeText } = useTextScale();
   return (
     <SegmentedControl
       segments={RANGE_OPTIONS.map((days) => ({
         key: String(days),
-        label: `${days} days`,
+        // At 200% three spelling-out labels need more rail than a 320px phone
+        // has; the short forms keep every segment whole and legible.
+        label: largeText ? `${days}d` : `${days} days`,
         active: rangeDays === days,
         onPress: () => onChange(days),
       }))}
@@ -443,10 +446,19 @@ function OverviewHero({
       ? 'FSRS-6'
       : 'All decks';
   const heroType = wide ? v3.type.heroWide : v3.type.hero;
+  const { largeText } = useTextScale();
 
   return (
     <Surface tone="scene">
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          flexWrap: largeText ? 'wrap' : 'nowrap',
+          alignItems: 'flex-start',
+          gap: 12,
+          rowGap: 6,
+        }}
+      >
         <AppText
           variant="caption"
           weight="semibold"
@@ -454,7 +466,9 @@ function OverviewHero({
           className="uppercase"
           style={{ flex: 1, letterSpacing: 1.4 }}
         >
-          {`${report.range.label} · intelligence`}
+          {largeText
+            ? `${report.range.label}\nintelligence`
+            : `${report.range.label} · intelligence`}
         </AppText>
         <TinyPill
           label={hasRecall ? schedulerScope : 'Not enough data'}
@@ -531,10 +545,19 @@ function EmptyRangeScene({
   onStart: () => void;
 }) {
   const heroType = wide ? v3.type.heroWide : v3.type.hero;
+  const { largeText } = useTextScale();
 
   return (
     <Surface tone="scene" style={{ marginTop: 16 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          flexWrap: largeText ? 'wrap' : 'nowrap',
+          alignItems: 'flex-start',
+          gap: 12,
+          rowGap: 6,
+        }}
+      >
         <AppText
           variant="caption"
           weight="semibold"
@@ -542,7 +565,7 @@ function EmptyRangeScene({
           className="uppercase"
           style={{ flex: 1, letterSpacing: 1.4 }}
         >
-          {`${report.range.label} · no reviews`}
+          {largeText ? `${report.range.label}\nno reviews` : `${report.range.label} · no reviews`}
         </AppText>
         <TinyPill label="Not enough data" />
       </View>
@@ -1140,6 +1163,7 @@ function StudyHabitsCard({
 }
 
 function DeckCard({ deck }: { deck: DeckIntelligence }) {
+  const { largeText } = useTextScale();
   const rate = deck.recall.successRate;
   const recallColor =
     rate === null
@@ -1168,12 +1192,18 @@ function DeckCard({ deck }: { deck: DeckIntelligence }) {
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View
+            style={{
+              flexDirection: largeText ? 'column' : 'row',
+              alignItems: 'flex-start',
+              gap: 6,
+            }}
+          >
             <AppText
               variant="bodySm"
               weight="semibold"
-              numberOfLines={2}
-              style={{ flexShrink: 1 }}
+              numberOfLines={largeText ? 4 : 2}
+              style={{ flexShrink: 1, minWidth: 0 }}
             >
               {deck.name}
             </AppText>
@@ -1290,6 +1320,8 @@ const INSIGHT_COLOR: Record<InsightTone, string> = {
 };
 
 function InsightTile({ item }: { item: StandoutItem }) {
+  const { largeText } = useTextScale();
+
   return (
     <Surface
       tone="pane"
@@ -1310,8 +1342,18 @@ function InsightTile({ item }: { item: StandoutItem }) {
           <MaterialIcons name={item.icon} size={iconSize.md} color={item.color} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
-            <AppText variant="bodySm" weight="semibold" style={{ flex: 1 }}>
+          <View
+            style={{
+              flexDirection: largeText ? 'column' : 'row',
+              alignItems: 'flex-start',
+              gap: largeText ? 6 : 8,
+            }}
+          >
+            <AppText
+              variant="bodySm"
+              weight="semibold"
+              style={{ flex: largeText ? undefined : 1, minWidth: 0 }}
+            >
               {item.title}
             </AppText>
             <View

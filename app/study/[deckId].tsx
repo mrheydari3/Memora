@@ -916,8 +916,20 @@ export default function StudyScreen() {
     );
   }
 
+  // At 200% text the metadata, prompt and answer no longer fit a fixed card
+  // between the header and rating keys. Let the page own the scroll and the
+  // card grow, so the answer is never hidden behind a nested scroll view.
+  const pageScroll = largeText;
+
   const cardStage = (
-    <View style={{ flex: 1, minWidth: 0 }}>
+    <View
+      style={{
+        flexGrow: pageScroll ? 0 : 1,
+        flexShrink: pageScroll ? 0 : 1,
+        flexBasis: pageScroll ? 'auto' : 0,
+        minWidth: 0,
+      }}
+    >
       {waiting && (
         <StudyWaiting
           card={currentCard}
@@ -959,6 +971,7 @@ export default function StudyScreen() {
         }}
       >
         <StudyCard
+          fill={!pageScroll}
           card={currentCard}
           showAnswer={showAnswer}
           stateLabel={currentCard.fsrs.state}
@@ -1049,15 +1062,17 @@ export default function StudyScreen() {
   // tray own the session's measure.
   return (
     <>
-      <Screen header={header}>
+      <Screen header={header} scroll={pageScroll}>
       <View
         style={{
-          flex: 1,
+          flexGrow: pageScroll ? 0 : 1,
+          flexShrink: pageScroll ? 0 : 1,
+          flexBasis: pageScroll ? 'auto' : 0,
           width: '100%',
           maxWidth: v3.layout.contentMaxWidth,
           alignSelf: 'center',
           paddingHorizontal: spacing.screen,
-          paddingTop: 12,
+          paddingTop: pageScroll ? 0 : 12,
           paddingBottom: 16,
         }}
       >

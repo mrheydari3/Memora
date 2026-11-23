@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTextScale } from '../hooks/useTextScale';
 import { Animated, View, Pressable } from 'react-native';
 import { MaterialIcons } from './Icon';
 import { AnimatedIcon } from './AnimatedIcon';
@@ -31,6 +32,8 @@ type ListRowProps = {
   titleWeight?: 'medium' | 'semibold';
   /** Title truncation lines. Two lines lets long deck names breathe. */
   titleLines?: number;
+  /** Subtitle lines at 200% text; defaults to four. */
+  subtitleLines?: number;
   /**
    * Selected state for a single-choice row (the Game deck picker). Exposed as
    * `aria-pressed`; react-native-web does not build aria-selected from
@@ -134,6 +137,7 @@ export function ListRow({
   iconColor,
   titleWeight = 'medium',
   titleLines = 1,
+  subtitleLines,
   selected,
   gutter = 16,
   value,
@@ -152,6 +156,8 @@ export function ListRow({
 }: ListRowProps) {
   // Every pressable row answers a touch the same way: a spring dip and a faint
   // veil, both on the native driver (the old `active:` class only worked on web).
+  const { largeText } = useTextScale();
+  const titleLineCount = largeText ? Math.max(titleLines, 2) : titleLines;
   const press = usePressFeedback({ scale: 0.985 });
 
   // Interpolated outside JSX on purpose: Reanimated's babel heuristic flags any
@@ -225,7 +231,7 @@ export function ListRow({
             variant="body"
             weight={titleWeight}
             tone={destructive ? 'danger' : 'default'}
-            numberOfLines={titleLines}
+            numberOfLines={titleLineCount}
             className="flex-1"
           >
             {title}
@@ -252,7 +258,12 @@ export function ListRow({
           )}
         </View>
         {subtitle && (
-          <AppText variant="bodySm" tone="muted" className="mt-0.5" numberOfLines={2}>
+          <AppText
+            variant="bodySm"
+            tone="muted"
+            className="mt-0.5"
+            numberOfLines={largeText ? (subtitleLines ?? 4) : 2}
+          >
             {subtitle}
           </AppText>
         )}

@@ -9,6 +9,7 @@ import { ShelfStatusPill } from './ShelfStatusPill';
 import { Surface } from './Surface';
 import { v3 } from '../../theme/v3';
 import { usePressFeedback } from '../../motion';
+import { useTextScale } from '../../hooks/useTextScale';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -81,6 +82,7 @@ export function DeckShelfRow({
   optionsMenu,
   onPress,
 }: DeckShelfRowProps) {
+  const { largeText } = useTextScale();
   const press = usePressFeedback({ scale: 0.985 });
   const [hovered, setHovered] = useState(false);
   const clamped = Math.max(0, Math.min(1, progress));
@@ -290,7 +292,7 @@ export function DeckShelfRow({
               )}
               <AppText
                 weight="semibold"
-                numberOfLines={2}
+                numberOfLines={largeText ? 3 : 2}
                 style={[v3.type.deckTitle, { flexShrink: 1 }]}
               >
                 {name}
