@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Pressable, View } from 'react-native';
-import { colors, fills, heights } from '../theme/tokens';
+import { alpha, colors, fills, heights } from '../theme/tokens';
 import { springTo } from '../motion';
 import { HapticsEngine } from '../services/haptics';
 
@@ -17,7 +17,7 @@ const KNOB = 20;
 const TRAVEL = heights.toggleWidth - KNOB - 4;
 
 /**
- * ToggleSwitch — 46×26 pill. Off is a control fill with a quiet edge and a grey
+ * ToggleSwitch — 46×26 pill. Off is a control fill with a dark rim and a grey
  * knob; on is the accent track with an ink knob.
  *
  * Accessibility: `role="switch"` requires `aria-checked`. react-native-web
@@ -69,10 +69,12 @@ export function ToggleSwitch({
           height: heights.toggle,
           borderRadius: heights.toggle / 2,
           backgroundColor: fills.control,
-          // §10: the off track gets a resting edge in the existing outline
-          // token; the on track is already separated by its accent fill.
+          // §10: the off track takes the same dark rim as the segmented rail.
+          // The bright outline token read as a white ring on a 46×26 track; at
+          // this rim the off track is ~1.5:1 on the pane, and the near-white
+          // knob (9.9:1) plus its position carry identification and state.
           borderWidth: value ? 0 : 1,
-          borderColor: colors.outline,
+          borderColor: alpha(colors.outlineSoft, 0.72),
           justifyContent: 'center',
           overflow: 'hidden',
         }}
