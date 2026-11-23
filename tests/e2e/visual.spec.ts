@@ -96,6 +96,53 @@ test.describe('visual', () => {
     });
   }
 
+  test('expanded multi-deck folder card at 390px', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seedFixture(page);
+    await page.goto('/');
+    await waitForRoute(page, 'home');
+
+    // The shipped seed has no folders, so this fixture-backed case is the
+    // baseline for the joined folder silhouette and its continuous shadow.
+    const folder = page.getByTestId('folder-group').filter({ hasText: 'German' });
+    const lastDeck = page
+      .getByTestId('deck-row')
+      .filter({ hasText: 'Ein außerordentlich' });
+    await expect(folder).toBeVisible();
+    await expect(lastDeck).toBeVisible();
+
+    // Scroll deterministically to place the folder where both its top shadow
+    // and its closing bottom edge sit inside the viewport. The folder body is a
+    // set of virtualized list rows, so its header and last deck are measured as
+    // siblings rather than assumed from fixed row heights.
+    const shelf = page.getByTestId('shelf-panel');
+    const headerBox = await folder.boundingBox();
+    if (!headerBox) throw new Error('folder header has no box');
+    const top = 120;
+    await shelf.evaluate((element, delta) => {
+      element.scrollTop += delta;
+    }, headerBox.y - top);
+    await expect
+      .poll(async () => {
+        const box = await folder.boundingBox();
+        return box ? Math.round(box.y) : null;
+      })
+      .toBe(top);
+
+    // Clip to the assembled card and enough room for its shadow. The fixed tab
+    // dock and the rest of Home stay out of this baseline.
+    const settledBox = await folder.boundingBox();
+    const lastBox = await lastDeck.boundingBox();
+    if (!settledBox || !lastBox) throw new Error('folder card has no box');
+    // A small top margin keeps the header's shadow without pulling in the
+    // previous folder's bottom edge; the closing edge gets more room below.
+    const y = Math.max(0, Math.floor(settledBox.y - 8));
+    const height = Math.ceil(lastBox.y + lastBox.height - settledBox.y + 8 + 20);
+    await expect(page).toHaveScreenshot('home-folder-390.png', {
+      clip: { x: 0, y, width: 390, height },
+    });
+  });
+
   // The Profile page has to hold its hero, three-up statistics and two-up
   // achievements at both phone widths, and its four-up tablet wall at the
   // boundary. Each width gets its own baseline so a layout break is caught
