@@ -3,6 +3,8 @@ import { Pressable, useWindowDimensions, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { Surface } from './Surface';
+import { ListDivider } from './ListDivider';
+import { useTextScale } from '../../hooks/useTextScale';
 import { alpha, colors, iconSize, radii } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
@@ -40,6 +42,7 @@ export function SettingsHero({
   ledger,
   testID,
 }: SettingsHeroProps) {
+  const { largeText: large } = useTextScale();
   const statusTone = status.tone ?? 'success';
   const statusColour =
     statusTone === 'success'
@@ -57,6 +60,7 @@ export function SettingsHero({
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 10,
+            flexWrap: large ? 'wrap' : 'nowrap',
           }}
         >
           <AppText
@@ -107,13 +111,19 @@ export function SettingsHero({
         tone="inset"
         radius="control"
         padding="none"
-        style={{ flexDirection: 'row', paddingVertical: 12, paddingHorizontal: 12, gap: 12 }}
+        style={{
+          flexDirection: large ? 'column' : 'row',
+          paddingVertical: 12,
+          paddingHorizontal: 12,
+          gap: 12,
+        }}
       >
         {ledger.map((cell, index) => (
           <View
             key={cell.label}
             style={{
-              flex: 1,
+              flex: large ? undefined : 1,
+              width: large ? '100%' : undefined,
               minWidth: 0,
             }}
           >
@@ -300,11 +310,7 @@ export function SettingsLine({
       )}
 
       {!last && (
-        <View
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          style={{ height: 1, backgroundColor: colors.outlineVariant, marginStart: 68 }}
-        />
+        <ListDivider inset="tile" />
       )}
     </View>
   );

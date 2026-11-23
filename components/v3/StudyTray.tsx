@@ -1,6 +1,7 @@
 import { Pressable, View } from 'react-native';
 import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
+import { useTextScale } from '../../hooks/useTextScale';
 import { alpha, colors, fills, heights, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
@@ -25,6 +26,8 @@ type TrayActionProps = {
   /** Present on a toggle: rendered as `aria-pressed` on the web. */
   pressed?: boolean;
   disabled?: boolean;
+  /** Large text keeps the 44px glyph control and drops the clipped caption. */
+  iconOnly?: boolean;
 };
 
 function TrayAction({
@@ -34,6 +37,7 @@ function TrayAction({
   active = false,
   pressed,
   disabled = false,
+  iconOnly = false,
 }: TrayActionProps) {
   // `aria-pressed` is the correct state for a toggle button, but Pressable's
   // types do not list it; it is passed straight through to the DOM.
@@ -57,10 +61,10 @@ function TrayAction({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 6,
+        gap: iconOnly ? 0 : 4,
         borderRadius: v3.radii.control,
         backgroundColor: active ? alpha(colors.primary, 0.14) : fills.control,
-        paddingHorizontal: 8,
+        paddingHorizontal: iconOnly ? 0 : 4,
         opacity: disabled ? 0.45 : 1,
       }}
     >
@@ -69,15 +73,17 @@ function TrayAction({
         size={iconSize.sm}
         color={active ? colors.primary : colors.outline}
       />
-      <AppText
-        variant="label"
-        weight="semibold"
-        tone={active ? 'accent' : 'muted'}
-        numberOfLines={1}
-        style={{ flexShrink: 1 }}
-      >
-        {label}
-      </AppText>
+      {!iconOnly && (
+        <AppText
+          variant="label"
+          weight="semibold"
+          tone={active ? 'accent' : 'muted'}
+          numberOfLines={1}
+          style={{ flexShrink: 1 }}
+        >
+          {label}
+        </AppText>
+      )}
     </Pressable>
   );
 }
@@ -98,6 +104,7 @@ export function StudyTray({
   optionsRef,
   disabled = false,
 }: StudyTrayProps) {
+  const { largeText: large } = useTextScale();
   return (
     <View
       style={{
@@ -116,12 +123,14 @@ export function StudyTray({
         pressed={marked}
         onPress={onToggleMark}
         disabled={disabled}
+        iconOnly={large}
       />
       <TrayAction
         icon="edit"
         label="Edit note"
         onPress={onEditNote}
         disabled={disabled}
+        iconOnly={large}
       />
       <View ref={optionsRef} collapsable={false} style={{ flex: 1 }}>
         <TrayAction
@@ -129,6 +138,7 @@ export function StudyTray({
           label="Options"
           onPress={onOptions}
           disabled={disabled}
+          iconOnly={large}
         />
       </View>
     </View>

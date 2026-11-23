@@ -97,7 +97,7 @@ export function ShelfHeader({
     <AppText
       headingLevel={2}
       weight="semibold"
-      numberOfLines={compact ? 1 : 2}
+      numberOfLines={2}
       style={[
         v3.type.shelfTitle,
         compact ? { flex: 1, minWidth: 0 } : { marginTop: 6 },

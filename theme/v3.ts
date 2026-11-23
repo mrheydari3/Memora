@@ -32,6 +32,8 @@ export const v3 = {
   type: {
     /** The page's one display figure on a phone. */
     hero: { fontSize: size(40), lineHeight: size(44), letterSpacing: -1.4 },
+    /** The same figure on a 320px phone, where the extra air pushes the shelf under the dock. */
+    heroCompact: { fontSize: size(36), lineHeight: size(40), letterSpacing: -1.2 },
     /** The same figure on the large layout. */
     heroWide: { fontSize: size(56), lineHeight: size(58), letterSpacing: -2 },
     /** A deck's due count. */
@@ -76,6 +78,10 @@ export const v3 = {
   spacing: {
     /** Inner padding of the today pane. */
     panel: 20,
+    /** The 320px phone hero keeps its content but gives the shelf its first fold back. */
+    panelCompact: 16,
+    /** Between hero blocks on the compact phone hero. */
+    gapCompact: 12,
     /** Between the hero and the shelf, and between shelf groups. */
     section: 20,
     /** Between a group header and the rows it holds. */

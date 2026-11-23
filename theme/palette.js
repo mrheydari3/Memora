@@ -358,9 +358,10 @@ const motion = {
 /**
  * Floating tab capsule geometry.
  *
- * Deliberately narrow and tall: a compact dock (300px ceiling) that is 64px
- * high, so the glyphs sit in a 52px pill instead of being squeezed by a wide,
- * shallow bar.
+ * Deliberately narrow and tall: a compact dock that is 68px high, so the
+ * glyphs sit in a 56px pill instead of being squeezed by a wide, shallow bar.
+ * Phones widen it fluidly up to 360px; tablet and desktop keep the original
+ * 300px dock so the frozen wide layout does not move.
  */
 /**
  * Menu geometry — one set of measurements for every dropdown, popover and
@@ -405,12 +406,12 @@ const tabBar = {
   cell: 72,
   height: 68,
   /**
-   * The dock's ceiling. Four full cells plus the dock's padding is 300, so a
-   * 320px phone still keeps a 9px margin at each edge; the 20px of headroom is
-   * for a label that grows at 200% text size, so a caption takes the slack from
-   * its neighbours instead of truncating.
+   * The phone dock's ceiling. It is fluid up to this width on phones only: at
+   * 390px the captions get 360px instead of a fixed 300px, and at 320px the
+   * dock still keeps a 12px gutter. Tablet and desktop keep the fixed 300px
+   * dock. A 200% text reader gets the icon-only fallback at every phone width.
    */
-  maxWidth: 320,
+  maxWidth: 360,
   padding: 6,
   /** The tappable tile that holds one glyph and its caption; height − 2 padding. */
   pill: 56,

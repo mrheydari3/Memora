@@ -1,7 +1,7 @@
 /**
  * Phase 4 node census.
  *
- *   npm run census:dry        # no browser: prove all 84 rows resolve
+ *   npm run census:dry        # no browser: prove all 88 targets for 87 surfaces resolve
  *   npm run census            # walk every surface in Chromium
  *   npm run census -- --surface=HM-08
  *   npm run census -- --strict
@@ -421,9 +421,20 @@ async function main() {
         const dialog = page.getByRole('dialog').last();
         const scope = (await dialog.count()) > 0 ? dialog : page;
         if (action.kind === 'click') {
-          const control = scope
-            .getByRole('button', { name: action.name, exact: action.exact ?? true })
-            .first();
+          const button = scope.getByRole(
+            'button',
+            { name: action.name, exact: action.exact ?? true }
+          );
+          const control =
+            (await button.count()) > 0
+              ? button.first()
+              : (await scope
+                    .getByRole('menuitem', { name: action.name, exact: action.exact ?? true })
+                    .count()) > 0
+                ? scope
+                    .getByRole('menuitem', { name: action.name, exact: action.exact ?? true })
+                    .first()
+                : scope.getByText(action.name, { exact: action.exact ?? true }).first();
           if ((await control.count()) === 0) {
             throw new Error(`button not found: ${action.name}`);
           }

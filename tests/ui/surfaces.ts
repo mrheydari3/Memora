@@ -8,7 +8,8 @@
  *
  * The plan started at 82 surfaces. Route parity found `app/add-deck.tsx` had no
  * entry, so AD-01 was added (83). Phase 7 split Profile's Mini Statistics and
- * Statistics CTA into its own state, PR-04, for a denominator of 84. Change
+ * Statistics CTA into its own state, PR-04 (84); later surfaces brought the
+ * manifest to 87 and the census to 88 targets (Home's folder state repeats). Change
  * this number only together with the manifest.
  */
 

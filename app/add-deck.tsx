@@ -23,7 +23,17 @@ import {
 } from '../components';
 import { MaterialIcons } from '../components/Icon';
 import { ActionButton, Surface } from '../components/v3';
-import { alpha, colors, glass, iconSize, radii, sheet, spacing, veil } from '../theme/tokens';
+import {
+  alpha,
+  colors,
+  glass,
+  heights,
+  iconSize,
+  radii,
+  sheet,
+  spacing,
+  veil,
+} from '../theme/tokens';
 import { v3 } from '../theme/v3';
 
 /**
@@ -421,12 +431,20 @@ export default function AddDeckScreen() {
                 onPress={createDeck}
                 disabled={!canCreate}
               />
-              <ActionButton
-                label="Cancel"
-                tone="quiet"
-                onPress={closeSheet}
+              {/* The header already owns the X; a second full-width filled
+                  Cancel made the sheet footer read as two competing actions. */}
+              <Pressable
+                onPress={creating ? undefined : closeSheet}
                 disabled={creating}
-              />
+                accessibilityRole="button"
+                accessibilityLabel="Cancel"
+                accessibilityState={{ disabled: creating }}
+                style={{ minHeight: heights.hit, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <AppText variant="bodySm" weight="semibold" tone="muted">
+                  Cancel
+                </AppText>
+              </Pressable>
             </>
           )}
         </View>

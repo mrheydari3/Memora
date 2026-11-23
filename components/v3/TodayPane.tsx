@@ -94,6 +94,9 @@ export function TodayPane({
   // the page even on a large canvas.
   const [paneWidth, setPaneWidth] = useState(0);
   const wide = paneWidth >= 560;
+  // 320px is the stress phone: the panel, its gaps and the display figure each
+  // give back a few pixels so the shelf toolbar stays above the tab dock.
+  const compact = paneWidth > 0 && paneWidth < 300;
   const now = nowProp ?? Date.now();
   const date = new Date(now).toLocaleDateString('en-GB', {
     weekday: 'short',
@@ -184,15 +187,24 @@ export function TodayPane({
 
   const dueBlock = (
     <Animated.View style={dueReveal.style}>
-      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
         <AppText
           variant="display"
-          style={[wide ? v3.type.heroWide : v3.type.hero, NUMERIC]}
+          style={[
+            wide ? v3.type.heroWide : compact ? v3.type.heroCompact : v3.type.hero,
+            NUMERIC,
+          ]}
           accessibilityLabel={`${due} cards due today`}
         >
           {displayedDue}
         </AppText>
-        <AppText variant="headline" weight="semibold" tone="tertiary" numberOfLines={1}>
+        <AppText
+          variant="headline"
+          weight="semibold"
+          tone="tertiary"
+          numberOfLines={2}
+          style={{ flexShrink: 1 }}
+        >
           cards due
         </AppText>
       </View>
@@ -224,6 +236,7 @@ export function TodayPane({
                   flexDirection: 'row',
                   alignItems: 'baseline',
                   justifyContent: 'space-between',
+                  flexWrap: 'wrap',
                   gap: 10,
                 }}
               >
@@ -235,7 +248,7 @@ export function TodayPane({
                     weight="semibold"
                     tone="tertiary"
                     className="uppercase"
-                    numberOfLines={1}
+                    numberOfLines={2}
                     style={{ letterSpacing: 0.8 }}
                   >
                     Start with
@@ -348,8 +361,8 @@ export function TodayPane({
         testID="today-panel-body"
         onLayout={(event) => setPaneWidth(Math.round(event.nativeEvent.layout.width))}
         style={{
-          padding: v3.spacing.panel,
-          gap: v3.spacing.panel,
+          padding: compact ? v3.spacing.panelCompact : v3.spacing.panel,
+          gap: compact ? v3.spacing.gapCompact : v3.spacing.panel,
           flexGrow: 1,
           // The caught-up hero has no action row, so center its short content
           // in the pane instead of leaving the card top-heavy.

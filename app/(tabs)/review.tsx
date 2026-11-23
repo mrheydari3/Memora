@@ -92,7 +92,14 @@ function GameDeckRow({
   onPress,
 }: GameDeckRowProps) {
   const press = usePressFeedback({ scale: 0.985 });
-  const meta = `${due} due · ${formatCount(cards)} cards${folder ? ` · ${folder}` : ''}`;
+  const { mobile } = useResponsive();
+  const best = bestScore ? `Best ${formatCount(bestScore)}` : null;
+  // On a phone the best score belongs to the meta line: the right-hand value
+  // column was squeezing a long deck or folder name into two short lines.
+  const meta = `${due} due · ${formatCount(cards)} cards${folder ? ` · ${folder}` : ''}${
+    mobile && best ? ` · ${best}` : ''
+  }`;
+  const accessibleLabel = `${deck.name}, ${meta}${!mobile && best ? `, ${best}` : ''}`;
 
   return (
     <Animated.View style={press.style}>
@@ -103,7 +110,7 @@ function GameDeckRow({
         accessibilityRole="radio"
         accessibilityState={{ checked: selected }}
         aria-checked={selected}
-        accessibilityLabel={`${deck.name}, ${meta}${bestScore ? `, best ${formatCount(bestScore)}` : ''}`}
+        accessibilityLabel={accessibleLabel}
         style={{ width: '100%', minHeight: 44 }}
       >
         <Surface
@@ -153,9 +160,11 @@ function GameDeckRow({
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <AppText variant="caption" tone="muted" style={NUMERIC}>
-            {bestScore ? `Best ${formatCount(bestScore)}` : 'No best'}
-          </AppText>
+          {!mobile ? (
+            <AppText variant="caption" tone="muted" style={NUMERIC}>
+              {best ?? 'No best'}
+            </AppText>
+          ) : null}
           <View
             style={{
               width: 24,

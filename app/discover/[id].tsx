@@ -15,7 +15,13 @@ import {
   SkeletonRow,
   SkeletonText,
 } from '../../components';
-import { ActionButton, PageHeader, SectionHeading, Surface } from '../../components/v3';
+import {
+  ActionButton,
+  ListDivider,
+  PageHeader,
+  SectionHeading,
+  Surface,
+} from '../../components/v3';
 import { alpha, colors, iconSize, radii, spacing } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
@@ -319,13 +325,7 @@ function SampleCardRow({
       </View>
 
       {!last && (
-        <View
-          style={{
-            height: 1,
-            marginHorizontal: 16,
-            backgroundColor: colors.hairlineRule,
-          }}
-        />
+        <ListDivider inset="card" />
       )}
     </View>
   );
@@ -359,13 +359,7 @@ function PreviewSkeleton() {
               <View key={index}>
                 <SkeletonRow tall />
                 {index < 3 && (
-                  <View
-                    style={{
-                      height: 1,
-                      marginHorizontal: 16,
-                      backgroundColor: colors.hairlineRule,
-                    }}
-                  />
+                  <ListDivider inset="card" />
                 )}
               </View>
             ))}

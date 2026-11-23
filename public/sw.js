@@ -7,7 +7,7 @@
  * would pin users (and the dev preview) to whatever loaded first.
  */
 
-const CACHE_NAME = 'memory-v6';
+const CACHE_NAME = 'memory-v7';
 const RUNTIME_CACHE = 'memory-runtime';
 
 // Assets to pre-cache on install. Icons and the manifest are part of the

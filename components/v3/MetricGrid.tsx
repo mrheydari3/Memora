@@ -4,6 +4,7 @@ import { MaterialIcons } from '../Icon';
 import { AppText } from '../AppText';
 import { Surface } from './Surface';
 import { useResponsive } from '../../hooks/useResponsive';
+import { useTextScale } from '../../hooks/useTextScale';
 import { colors, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
@@ -36,7 +37,8 @@ type MetricGridProps = {
  */
 export function MetricGrid({ items, columns, className = '', style }: MetricGridProps) {
   const { tablet } = useResponsive();
-  const count = columns ?? (tablet ? 4 : 2);
+  const { largeText } = useTextScale();
+  const count = largeText ? 1 : (columns ?? (tablet ? 4 : 2));
 
   return (
     <View
@@ -51,8 +53,8 @@ export function MetricGrid({ items, columns, className = '', style }: MetricGrid
           padding="sm"
           style={{
             flexGrow: 1,
-            flexBasis: count === 2 ? '47%' : 0,
-            minWidth: 130,
+            flexBasis: largeText ? '100%' : count === 2 ? '47%' : 0,
+            minWidth: largeText ? 0 : 130,
             minHeight: 96,
             justifyContent: 'space-between',
           }}

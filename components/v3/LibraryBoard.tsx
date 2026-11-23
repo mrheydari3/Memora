@@ -355,7 +355,10 @@ export function LibraryBoard({
     out.push({ key: 'header', kind: 'header' });
     out.push({ key: 'toolbar', kind: 'toolbar' });
     // The open folder's primary action: one session across its due decks.
-    if (openFolder && shelfDue > 0) {
+    // A one-deck folder does not need a second "Review folder" row: the deck
+    // card already opens the same session. The shortcut earns its line only
+    // when it combines two or more decks.
+    if (openFolder && shelfDue > 0 && shelfDeckCount > 1) {
       out.push({ key: 'folder-review', kind: 'folderReview' });
     }
 
@@ -402,7 +405,8 @@ export function LibraryBoard({
               opening: openingFolders.has(folder.id),
               closing,
               index,
-              reviewDue: index === 0 && folder.due > 0 ? folder.due : undefined,
+              reviewDue:
+                folder.decks > 1 && index === 0 && folder.due > 0 ? folder.due : undefined,
               folderId: folder.id,
               folderName: folder.name,
             });
@@ -462,6 +466,7 @@ export function LibraryBoard({
     mobile,
     sort,
     shelfDue,
+    shelfDeckCount,
     onReviewFolder,
     library.archived.length,
     library.entries.length,

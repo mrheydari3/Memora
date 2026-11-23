@@ -1,6 +1,7 @@
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '../AppText';
 import { usePressFeedback } from '../../motion';
+import { useTextScale } from '../../hooks/useTextScale';
 import { alpha, colors } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 import type { Rating } from '../../data/types';
@@ -23,15 +24,29 @@ const TINT: Record<Rating, string> = {
 type RatingKeyButtonProps = RatingKey & {
   disabled: boolean;
   onRate: (rating: Rating) => void;
+  large: boolean;
 };
 
-function RatingKeyButton({ rating, label, interval, disabled, onRate }: RatingKeyButtonProps) {
+function RatingKeyButton({
+  rating,
+  label,
+  interval,
+  disabled,
+  onRate,
+  large,
+}: RatingKeyButtonProps) {
   const press = usePressFeedback({ scale: 0.95 });
   const tint = TINT[rating];
   const accessibleLabel = interval ? `${interval} ${label} ${rating}` : `${label} ${rating}`;
 
   return (
-    <Animated.View style={[styles.cell, press.style]}>
+    <Animated.View
+      style={[
+        styles.cell,
+        large ? { flexBasis: '47%', minWidth: 120 } : null,
+        press.style,
+      ]}
+    >
       <Pressable
         testID={`rating-${rating}`}
         onPress={() => onRate(rating)}
@@ -43,20 +58,42 @@ function RatingKeyButton({ rating, label, interval, disabled, onRate }: RatingKe
         accessibilityState={{ disabled }}
         style={({ pressed }) => [
           styles.key,
+          large ? { paddingVertical: 6 } : null,
           {
             backgroundColor: alpha(tint, pressed ? 0.2 : 0.1),
             opacity: disabled ? 0.4 : 1,
           },
         ]}
       >
-        <AppText
-          variant="caption"
-          weight="medium"
-          numberOfLines={1}
-          style={{ color: tint, opacity: 0.82 }}
-        >
-          {interval}{' '}
-        </AppText>
+        {large ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <AppText
+              variant="caption"
+              weight="medium"
+              numberOfLines={1}
+              style={{ color: tint, opacity: 0.82 }}
+            >
+              {interval}
+            </AppText>
+            <AppText
+              variant="caption"
+              weight="medium"
+              numberOfLines={1}
+              style={{ color: colors.outline, opacity: 0.8 }}
+            >
+              · {rating}
+            </AppText>
+          </View>
+        ) : (
+          <AppText
+            variant="caption"
+            weight="medium"
+            numberOfLines={1}
+            style={{ color: tint, opacity: 0.82 }}
+          >
+            {interval}{' '}
+          </AppText>
+        )}
         <AppText
           variant="body"
           weight="semibold"
@@ -65,14 +102,16 @@ function RatingKeyButton({ rating, label, interval, disabled, onRate }: RatingKe
         >
           {label}{' '}
         </AppText>
-        <AppText
-          variant="caption"
-          weight="medium"
-          numberOfLines={1}
-          style={{ color: colors.outline, marginTop: 1, opacity: 0.8 }}
-        >
-          {rating}
-        </AppText>
+        {large ? null : (
+          <AppText
+            variant="caption"
+            weight="medium"
+            numberOfLines={1}
+            style={{ color: colors.outline, marginTop: 1, opacity: 0.8 }}
+          >
+            {rating}
+          </AppText>
+        )}
       </Pressable>
     </Animated.View>
   );
@@ -93,6 +132,7 @@ type RatingKeysProps = {
  * pressed fill, so colour is never the only signal.
  */
 export function RatingKeys({ keys, onRate, disabled = false }: RatingKeysProps) {
+  const { largeText } = useTextScale();
   return (
     <View style={styles.row}>
       {keys.map((key) => (
@@ -101,6 +141,7 @@ export function RatingKeys({ keys, onRate, disabled = false }: RatingKeysProps) 
           {...key}
           disabled={disabled}
           onRate={onRate}
+          large={largeText}
         />
       ))}
     </View>

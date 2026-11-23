@@ -21,6 +21,8 @@ import {
 } from '../motion';
 import { useRtl } from '../services/direction';
 import { HapticsEngine } from '../services/haptics';
+import { useTextScale } from '../hooks/useTextScale';
+import { useResponsive } from '../hooks/useResponsive';
 
 type TabBarState = {
   index: number;
@@ -65,6 +67,7 @@ function TabItem({
   buttonRef,
   onPress,
   onMeasure,
+  iconOnly,
 }: {
   focused: boolean;
   /** Accessible name, read by assistive tech. */
@@ -75,6 +78,8 @@ function TabItem({
   buttonRef: (node: unknown) => void;
   onPress: () => void;
   onMeasure: (slot: Slot) => void;
+  /** At large text the caption is dropped; the accessible name still carries it. */
+  iconOnly: boolean;
 }) {
   // React Native Web honours tabIndex; native ignores it. The cast keeps the
   // DOM-only prop out of the native prop contract.
@@ -117,15 +122,17 @@ function TabItem({
         }}
       >
         {icon}
-        <AppText
-          variant="caption"
-          weight={focused ? 'semibold' : 'medium'}
-          tone={focused ? 'accent' : 'muted'}
-          numberOfLines={1}
-          className="mt-px"
-        >
-          {title}
-        </AppText>
+        {!iconOnly ? (
+          <AppText
+            variant="caption"
+            weight={focused ? 'semibold' : 'medium'}
+            tone={focused ? 'accent' : 'muted'}
+            numberOfLines={1}
+            className="mt-px"
+          >
+            {title}
+          </AppText>
+        ) : null}
       </View>
     </Pressable>
   );
@@ -152,6 +159,17 @@ function TabItem({
 export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: LiquidTabBarProps) {
   const count = state.routes.length;
   const rtl = useRtl();
+  const { width: viewportWidth, phone } = useResponsive();
+  const { largeText } = useTextScale();
+  // The dock is sized by the phone, not by a fixed 300px. At 390 it gets the
+  // full 360px ceiling; at 320 it keeps a 12px gutter. Tablet and desktop keep
+  // the original 300px dock so their frozen layout does not move. Four 200%
+  // captions cannot share the 360px ceiling either — Profile and Settings
+  // touch — so every large-text reader gets the icon-only form and name.
+  const dockWidth = phone
+    ? Math.min(tabBar.maxWidth, viewportWidth - 24)
+    : tabBar.cell * 4 + tabBar.padding * 2;
+  const iconOnly = largeText;
 
   /** Each tab's box, measured from the row. Empty until the first layout pass. */
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -513,7 +531,7 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
         ref={(node) => {
           barRef.current = node;
         }}
-        style={styles.bar}
+        style={[styles.bar, { width: dockWidth }]}
         role="tablist"
         accessibilityLabel="Primary tabs"
         {...panResponder.panHandlers}
@@ -574,6 +592,7 @@ export function LiquidTabBar({ state, descriptors, navigateToTab, insets }: Liqu
                   tabRefs.current[index] = node;
                 }}
                 onMeasure={(slot) => reportSlot(index, slot)}
+                iconOnly={iconOnly}
                 onPress={() => {
                   if (dragging.current || index === state.index) return;
                   HapticsEngine.navigation();

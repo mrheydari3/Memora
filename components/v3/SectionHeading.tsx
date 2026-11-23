@@ -1,5 +1,6 @@
 import { View } from 'react-native';
 import { AppText } from '../AppText';
+import { useTextScale } from '../../hooks/useTextScale';
 import { colors, radii } from '../../theme/tokens';
 
 type SectionHeadingProps = {
@@ -30,12 +31,13 @@ export function SectionHeading({
   rule = true,
   className = '',
 }: SectionHeadingProps) {
+  const { largeText } = useTextScale();
   return (
     <View className={className}>
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
+          flexDirection: largeText ? 'column' : 'row',
+          alignItems: largeText ? 'flex-start' : 'center',
           gap: 8,
           paddingBottom: rule ? 10 : 0,
         }}
@@ -55,7 +57,7 @@ export function SectionHeading({
             tone="tertiary"
             headingLevel={2}
             className="uppercase"
-            numberOfLines={1}
+            numberOfLines={largeText ? 2 : 1}
             style={{ letterSpacing: 0.6, flexShrink: 1 }}
           >
             {label}
@@ -82,14 +84,16 @@ export function SectionHeading({
             variant="caption"
             tone="tertiary"
             numberOfLines={1}
-            style={{ marginStart: 'auto', flexShrink: 0 }}
+            style={{ marginStart: largeText ? 0 : 'auto', flexShrink: 0 }}
           >
             {hint}
           </AppText>
         ) : null}
 
         {action ? (
-          <View style={{ marginStart: hint ? 0 : 'auto', flexShrink: 0 }}>{action}</View>
+          <View style={{ marginStart: hint || largeText ? 0 : 'auto', flexShrink: 0 }}>
+            {action}
+          </View>
         ) : null}
       </View>
 

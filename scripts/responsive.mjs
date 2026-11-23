@@ -6,8 +6,9 @@
  *   npm run responsive -- --mode=zoom
  *   npm run responsive -- --mode=summary
  *
- * Every mode reuses the Phase 4 census plan: the same 85 targets, fixtures and
- * trigger actions, so a surface measured here is the surface the census walked.
+ * Every mode reuses the Phase 4 census plan: the same 88 targets for 87
+ * surfaces, fixtures and trigger actions, so a surface measured here is the
+ * surface the census walked.
  *
  * Measurements per target and width:
  *   - document horizontal overflow (must stay <= 1 px)
@@ -53,7 +54,12 @@ const OFFSET = Number(arg('offset', '0')) || 0;
 const SKIP = flag('skip-existing');
 const OUT = 'audit/responsive';
 const HEIGHTS = {
+  320: 700,
+  360: 780,
+  375: 812,
   390: 844,
+  430: 932,
+  768: 1024,
   1280: 900,
 };
 const NOW = Date.now();
@@ -380,7 +386,13 @@ async function boot(page, target) {
     const dialog = page.getByRole('dialog').last();
     const scope = (await dialog.count()) > 0 ? dialog : page;
     if (action.kind === 'click') {
-      const control = scope.getByRole('button', { name: action.name, exact: action.exact ?? true }).first();
+      const button = scope.getByRole('button', { name: action.name, exact: action.exact ?? true });
+      const control =
+        (await button.count()) > 0
+          ? button.first()
+          : (await scope.getByRole('menuitem', { name: action.name, exact: action.exact ?? true }).count()) > 0
+            ? scope.getByRole('menuitem', { name: action.name, exact: action.exact ?? true }).first()
+            : scope.getByText(action.name, { exact: action.exact ?? true }).first();
       if ((await control.count()) === 0) throw new Error(`button not found: ${action.name}`);
       await control.click({ timeout: 5_000 });
     } else if (action.kind === 'fill') {

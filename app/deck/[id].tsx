@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useResponsive } from '../../hooks/useResponsive';
+import { useTextScale } from '../../hooks/useTextScale';
 import { goBackOr, pushOnce } from '../../services/navigation';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
@@ -35,6 +36,7 @@ import {
   ActionButton,
   FilterPill,
   HeaderIcon,
+  ListDivider,
   PageHeader,
   StatusChip,
   Surface,
@@ -97,6 +99,7 @@ export default function DeckDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { tablet } = useResponsive();
+  const { largeText } = useTextScale();
   const wide = tablet;
 
   const deck = useDeckStore((s) => s.decks.find((d) => d.id === id));
@@ -401,12 +404,23 @@ export default function DeckDetailsScreen() {
 
   const hero = (
     <Surface tone="scene" testID="deck-hero" style={{ gap: 16 }}>
+      {!wide && deck.name.length > 30 ? (
+        <AppText
+          testID="deck-full-name"
+          variant="bodySm"
+          weight="semibold"
+          tone="muted"
+        >
+          {deck.name}
+        </AppText>
+      ) : null}
       <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 10,
+          flexWrap: largeText ? 'wrap' : 'nowrap',
         }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 }}>
@@ -452,7 +466,9 @@ export default function DeckDetailsScreen() {
       {!archived && (
         <>
           <View>
-            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
+            <View
+              style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}
+            >
               <AppText
                 variant="display"
                 style={[wide ? v3.type.heroWide : v3.type.hero, NUMERIC]}
@@ -460,7 +476,12 @@ export default function DeckDetailsScreen() {
               >
                 {totalDue}
               </AppText>
-              <AppText variant="headline" weight="semibold" tone="tertiary" numberOfLines={1}>
+              <AppText
+                variant="headline"
+                weight="semibold"
+                tone="tertiary"
+                numberOfLines={largeText ? 2 : 1}
+              >
                 cards due
               </AppText>
             </View>
@@ -473,7 +494,7 @@ export default function DeckDetailsScreen() {
               uses: three cells, one rule between neighbours, tabular figures. */}
           <View
             style={{
-              flexDirection: 'row',
+              flexDirection: largeText ? 'column' : 'row',
               backgroundColor: colors.surfaceInset,
               borderRadius: radii.menu,
               paddingVertical: 12,
@@ -485,7 +506,8 @@ export default function DeckDetailsScreen() {
               <View
                 key={cell.key}
                 style={{
-                  flex: 1,
+                  flex: largeText ? undefined : 1,
+                  width: largeText ? '100%' : undefined,
                   minWidth: 0,
                 }}
               >
@@ -660,11 +682,7 @@ export default function DeckDetailsScreen() {
           )}
         </View>
 
-        <View
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          style={{ height: 1, backgroundColor: colors.outlineVariant }}
-        />
+        <ListDivider inset="none" />
 
         {visibleCards.length === 0 ? (
           <View style={{ paddingHorizontal: 24, paddingVertical: 28 }}>
@@ -801,15 +819,7 @@ export default function DeckDetailsScreen() {
                 </View>
 
                 {index < shown.length - 1 && (
-                  <View
-                    accessibilityElementsHidden
-                    importantForAccessibility="no-hide-descendants"
-                    style={{
-                      height: 1,
-                      backgroundColor: colors.outlineVariant,
-                      marginStart: 34,
-                    }}
-                  />
+                  <ListDivider inset="dot" />
                 )}
                 </View>
               </ContextMenu>

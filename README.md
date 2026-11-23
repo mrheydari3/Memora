@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://site-4cf1794985694a0fbdbfb3b24dec3e09.freebuff.page"><strong>Open web app</strong></a>
+  <a href="https://memora.freebuff.page"><strong>Open web app</strong></a>
   &nbsp;·&nbsp; <a href="#product-tour">Product tour</a>
   &nbsp;·&nbsp; <a href="#run-locally">Quick start</a>
   &nbsp;·&nbsp; <a href="#architecture">Architecture</a>
@@ -57,18 +57,18 @@ Most flashcard apps are good at collecting cards. Memora is designed around the 
 
 ## Recent improvements
 
-After the **v3.0.0 Nocturne Focus** release, development on `main` has continued. Highlights from **18–20 November 2026**:
+**v3.2.0 — Phone-first UI** is the current release. It hardens the 320–430px phone layout while keeping the tablet and desktop design frozen:
 
 | Area | What changed |
 | --- | --- |
-| **Home** | A selectable Today plan, clearer deck states, a unified create menu, and refined motion. |
-| **Your decks** | Persistent Due / Name / Recent / Manual sorting, pinned items, and touch reordering. |
-| **Folder review** | Review cards from active decks in a folder in one session, while retaining each deck’s scheduler and daily limits. |
-| **Safer library management** | Undo a deck or folder deletion for six seconds; removing a folder unfiles its decks. |
-| **Responsive layouts** | Improved narrow-phone controls, mobile achievements, tablet content alignment, and larger-screen readability. |
-| **Streak calendar** | Home’s flame opens a month calendar with one protected rest day per ISO week, shared consistently with Profile and Statistics. |
+| **Phone shell** | A fluid dock (`min(360, viewport−24)`) with icon-only tabs and accessible names at large text; the compact 320 hero clears the dock at scroll 0. |
+| **Home** | The current sort is labelled, a one-deck folder no longer repeats “Review folder”, and the 200% text layout reflows instead of clipping. |
+| **Profile and Statistics** | Equal-height achievements, a full-width fifth badge, full-width recall tiles, and one-column ledgers at large text. |
+| **Lists and forms** | One `ListDivider` grammar, tuned field edges at the 3:1 floor, and one primary plus one text cancel in the Add-deck sheet. |
+| **Study and Quiz** | Two-column rating keys at large text, a body counter, wrapped prompts, and 320px RTL stress states. |
+| **Release identity** | App and package **3.2.0**, PWA cache **`memory-v7`**, and **87** documented surfaces. |
 
-These are **post-release changes**, not a newly tagged release or a newly completed full test audit. See [CHANGELOG.md](CHANGELOG.md) and the [contribution guide](CONTRIBUTING.md).
+The release is a static web export; there is no data migration. See [CHANGELOG.md](CHANGELOG.md) and the [phone release evidence](docs/test-report-2026-11-23-ui-v3.2-phone.md).
 
 ## Product tour
 
@@ -197,7 +197,7 @@ The v3 language is called **Nocturne Focus**: one ink canvas, one accent, separa
 - 44px minimum targets, visible focus rings, reduced-motion fallbacks, and a responsive 320–1440 layout are part of the system, not a polish pass.
 - The full design law lives in [docs/design-language.md](docs/design-language.md) (Persian). If the code and the document disagree, the code changes.
 
-The 84-surface verification manifest is the accessibility and responsive denominator. The v3 audit recorded **0 axe violations across 84 targets**, **0 controls under 44px**, and **0 document overflow at 320px**. Every route must have a fixture and a gate set in `tests/ui/surfaces.ts`.
+The **87-surface** verification manifest is the accessibility and responsive denominator. The 2026-11-23 phone audit measured **88 census targets at 320/390/430: 264 measurements, 0 flagged**, with **0 document overflow**, **0 clipped labels at 100%**, and **0 controls under 44px** in the measured pass. The Playwright axe suite recorded **0 WCAG 2.2 AA violations** on every route it scans. Every route must have a fixture and a gate set in `tests/ui/surfaces.ts`.
 
 ## Architecture
 
@@ -257,7 +257,7 @@ npm run serve:dist
 ### Public build
 
 The public build is the same static export, served by `worker.mjs` at
-[memora](https://site-4cf1794985694a0fbdbfb3b24dec3e09.freebuff.page).
+[memora.freebuff.page](https://memora.freebuff.page).
 
 ```bash
 npm run build:web
@@ -290,19 +290,21 @@ BASE_URL=http://127.0.0.1:8082 npm run test:e2e
 
 ## Verification
 
-The figures below describe the **2026-11-08 verification snapshot**, not the latest `main` commit. Subsequent changes have not been covered by a new full audit in this README; run the checks locally for current results.
+The figures below describe the **2026-11-23 v3.2.0 phone release** run. Re-run the commands locally for a later tree.
 
 | Gate | Command | Result |
 | --- | --- | --- |
 | Types | `npx tsc --noEmit` | **0 errors** |
-| Domain tests | `npm test` | **190 / 190** |
-| Surface parity | `npm run test:surfaces` | **11 / 11** |
-| Surface manifest | `tests/ui/surfaces.ts` | **84 surfaces** |
-| Design tokens | `npm run check:design` | **clean, 104 files** |
-| Browser suite | `npm run test:e2e` | **123 / 123 passed** |
+| Domain tests | `npm test` | **265 / 265** |
+| Surface parity | `npm run test:surfaces` | **11 / 11 (87 surfaces)** |
+| Surface manifest | `tests/ui/surfaces.ts` | **87 surfaces** |
+| Fixtures | `npm run test:fixtures` | **14 / 14** |
+| Design tokens | `npm run check:design` | **clean, 108 files** |
+| Phone census | `npm run responsive -- --mode=summary` | **264 measurements, 0 flagged** |
+| Browser suite | `npm run test:e2e` | **191 / 191** |
 | Production export | `npm run build:web` | **dist/ exported** |
 
-The **2026-11-08** v3 browser audit measured 84 targets at eight widths from 320 to 1440, with 0 axe violations, 0 controls under 44px, 0 focus-ring misses, and 0 document overflow. Full evidence and scope notes are in [docs/test-report-2026-11-08-ui-v3.md](docs/test-report-2026-11-08-ui-v3.md).
+The **2026-11-23** phone audit measured 88 census targets at 320, 390 and 430, with 0 horizontal overflow, 0 controls under 44px, 0 clipped labels at 100%, and 0 flagged dock or sheet occlusions. 200% text was checked on Home, Review, Profile, Settings, Deck, Study-answer, Quiz, Statistics, Streak and Add-deck. Full evidence, before/after links and limitations are in [docs/test-report-2026-11-23-ui-v3.2-phone.md](docs/test-report-2026-11-23-ui-v3.2-phone.md).
 
 **Coverage note:** Chromium is verified here. Firefox and WebKit binaries were unavailable in the verification workspace, so they are not claimed as passing.
 
@@ -333,7 +335,7 @@ docs/                   Design law, research, verification reports, and plans
 ### More documentation
 
 - [Design language](docs/design-language.md) — the v3 rules for surfaces, type, spacing, color, motion, and components.
-- [Verification report](docs/test-report-2026-11-08-ui-v3.md) — measured release evidence and known limitations.
+- [Verification report](docs/test-report-2026-11-23-ui-v3.2-phone.md) — measured phone-release evidence and known limitations.
 - [Intelligence research](docs/intelligence/research.md) — the reasoning behind the analytics layer.
 - [Changelog](CHANGELOG.md) — release-by-release changes, fixes, and measurements.
 
@@ -341,7 +343,7 @@ docs/                   Design law, research, verification reports, and plans
 
 Help keep Memora reliable, accessible, and easy to maintain. See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete setup, conventions, validation commands, and pull request checklist.
 
-UI contributions should include before/after screenshots at **390px** and a wider viewport. Scheduling and storage changes should include regression tests.
+UI contributions should include before/after screenshots at **320px and 390px**, plus a wider viewport when a shared primitive changed. Scheduling and storage changes should include regression tests.
 ## License
 
 See [LICENSE](LICENSE) for the repository license text. **Attribution note:** its current copyright line names Expo; the maintainer should review this before publishing new licensing statements.

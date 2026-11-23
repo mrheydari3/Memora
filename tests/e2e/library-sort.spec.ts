@@ -40,7 +40,7 @@ test.beforeEach(async ({ page }) => {
 const chooseSort = async (page: Page, current: string, option: string) => {
   await page.getByRole('button', { name: `Sort: ${current}` }).click();
   const menu = page.getByRole('dialog', { name: 'Sort shelf' });
-  await menu.getByRole('button', { name: new RegExp(`^${option}`) }).click();
+  await menu.getByRole('button', { name: new RegExp(`^Sort by ${option}`) }).click();
 };
 
 test('the sort control orders both levels, keeps pins first and persists', async ({ page }) => {

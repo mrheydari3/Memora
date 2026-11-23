@@ -5,6 +5,8 @@ import { AppText } from '../AppText';
 import { FloatingHeader } from './FloatingHeader';
 import { HeaderIcon } from './HeaderIcon';
 import { v3 } from '../../theme/v3';
+import { useTextScale } from '../../hooks/useTextScale';
+import { useResponsive } from '../../hooks/useResponsive';
 
 type PageHeaderProps = {
   /** The route's name. Omit on a brand page. */
@@ -47,6 +49,8 @@ export function PageHeader({
 }: PageHeaderProps) {
   const router = useRouter();
   const handleBack = onBack ?? (() => goBackOr(router, '/(tabs)/home'));
+  const { largeText } = useTextScale();
+  const { compact } = useResponsive();
 
   return (
     <FloatingHeader maxWidth={maxWidth} testID={testID} barTestID="page-header-bar">
@@ -78,22 +82,36 @@ export function PageHeader({
               alt=""
               testID="brand-mark"
             />
-            <AppText
-              variant="headline"
-              weight="semibold"
-              headingLevel={1}
-              numberOfLines={1}
-              style={{ letterSpacing: -0.4, flexShrink: 1 }}
-            >
-              Memora
-            </AppText>
+            {largeText ? (
+              // The wordmark cannot share the 320px bar with a 200% streak chip
+              // and two actions. The mark stays as the visual identity; this
+              // hidden h1 keeps the page outline intact for assistive tech.
+              <AppText
+                variant="headline"
+                weight="semibold"
+                headingLevel={1}
+                style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }}
+              >
+                Memora
+              </AppText>
+            ) : (
+              <AppText
+                variant="headline"
+                weight="semibold"
+                headingLevel={1}
+                numberOfLines={1}
+                style={{ letterSpacing: -0.4, flexShrink: 1 }}
+              >
+                Memora
+              </AppText>
+            )}
           </>
         ) : title ? (
           <AppText
             variant="headline"
             weight="semibold"
             headingLevel={1}
-            numberOfLines={2}
+            numberOfLines={largeText ? (compact ? 2 : 4) : 2}
             style={{ letterSpacing: -0.4, flexShrink: 1, minWidth: 0, marginStart: 4 }}
           >
             {title}

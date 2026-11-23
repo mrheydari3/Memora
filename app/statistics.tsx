@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useResponsive } from '../hooks/useResponsive';
+import { useTextScale } from '../hooks/useTextScale';
 import { MaterialIcons } from '../components/Icon';
 import { useDeckStore } from '../store/useDeckStore';
 import { useReviewStore } from '../store/useReviewStore';
@@ -350,6 +351,7 @@ function HeroRangeControl({
 }
 
 function HeroLedger({ report }: { report: IntelligenceReport }) {
+  const { largeText } = useTextScale();
   const due = report.forecast.workload.overdue + report.forecast.workload.dueToday;
   const cells: { label: string; value: string; note: string; ariaLabel: string }[] = [
     {
@@ -377,7 +379,8 @@ function HeroLedger({ report }: { report: IntelligenceReport }) {
   return (
     <View
       style={{
-        flexDirection: 'row',
+        flexDirection: largeText ? 'column' : 'row',
+        gap: largeText ? 12 : 0,
         marginTop: 16,
         paddingVertical: 12,
         borderRadius: radii.control,
@@ -388,13 +391,19 @@ function HeroLedger({ report }: { report: IntelligenceReport }) {
         <View
           key={cell.label}
           style={{
-            flex: 1,
+            flex: largeText ? undefined : 1,
+            width: largeText ? '100%' : undefined,
             minWidth: 0,
             paddingHorizontal: 8,
-            paddingStart: index === 0 ? 8 : 16,
+            paddingStart: largeText ? 8 : index === 0 ? 8 : 16,
           }}
         >
-          <AppText variant="caption" tone="muted" className="uppercase" numberOfLines={1}>
+          <AppText
+            variant="caption"
+            tone="muted"
+            className="uppercase"
+            numberOfLines={largeText ? 2 : 1}
+          >
             {cell.label}
           </AppText>
           <AppText
@@ -591,12 +600,13 @@ function RecallTile({
   count: number;
   share: number | null;
 }) {
+  const { largeText } = useTextScale();
   return (
     <View
       style={{
         flexGrow: 1,
-        flexBasis: '47%',
-        minWidth: 120,
+        flexBasis: largeText ? '100%' : '47%',
+        minWidth: largeText ? 0 : 120,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
@@ -750,7 +760,7 @@ function RecallCard({ report }: { report: IntelligenceReport }) {
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <MaterialIcons name="timer" size={iconSize.xs} color={colors.outline} />
-            <AppText variant="caption" tone="muted" numberOfLines={2}>
+            <AppText variant="caption" tone="muted" numberOfLines={3}>
               Median review time
             </AppText>
           </View>
@@ -765,7 +775,7 @@ function RecallCard({ report }: { report: IntelligenceReport }) {
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <MaterialIcons name="analytics" size={iconSize.xs} color={colors.outline} />
-            <AppText variant="caption" tone="muted" numberOfLines={2}>
+            <AppText variant="caption" tone="muted" numberOfLines={3}>
               Avg per active day
             </AppText>
           </View>
@@ -815,24 +825,29 @@ function MemorySubMetric({
   note,
   color,
   divider = false,
+  stacked = false,
 }: {
   label: string;
   value: string;
   note: string;
   color: string;
   divider?: boolean;
+  /** Large text gives each metric its own full-width row. */
+  stacked?: boolean;
 }) {
   return (
     <View
       style={{
-        flex: 1,
+        flex: stacked ? undefined : 1,
+        width: stacked ? '100%' : undefined,
         minWidth: 0,
-        alignItems: 'center',
-        paddingHorizontal: 4,
-        paddingStart: divider ? 12 : 4,
+        alignItems: stacked ? 'flex-start' : 'center',
+        paddingHorizontal: stacked ? 0 : 4,
+        paddingStart: stacked ? 0 : divider ? 12 : 4,
+        paddingVertical: stacked ? 4 : 0,
       }}
     >
-      <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+      <AppText variant="caption" tone="tertiary" numberOfLines={stacked ? 2 : 1}>
         {label}
       </AppText>
       <AppText
@@ -843,7 +858,12 @@ function MemorySubMetric({
       >
         {value}
       </AppText>
-      <AppText variant="caption" tone="muted" numberOfLines={1} style={{ marginTop: 2 }}>
+      <AppText
+        variant="caption"
+        tone="muted"
+        numberOfLines={stacked ? 2 : 1}
+        style={{ marginTop: 2 }}
+      >
         {note}
       </AppText>
     </View>
@@ -857,6 +877,7 @@ function MemoryCard({
   report: IntelligenceReport;
   narrow: boolean;
 }) {
+  const { largeText } = useTextScale();
   const memory = report.memory;
   const total = memory.coverage.fsrsCards;
   if (total <= 0) return null;
@@ -897,7 +918,7 @@ function MemoryCard({
           size={narrow ? 104 : 112}
           strokeWidth={10}
           centerLabel={formatCount(total)}
-          centerSubtitle="active"
+          centerSubtitle={largeText ? undefined : 'active'}
           segments={[
             {
               value: memory.states.Review,
@@ -942,7 +963,8 @@ function MemoryCard({
 
       <View
         style={{
-          flexDirection: 'row',
+          flexDirection: largeText ? 'column' : 'row',
+          gap: largeText ? 8 : 0,
           marginTop: 16,
           padding: 12,
           borderRadius: radii.control,
@@ -950,12 +972,14 @@ function MemoryCard({
         }}
       >
         <MemorySubMetric
+          stacked={largeText}
           label="Predicted"
           value={pct1(memory.retention.meanRetrievability)}
           note="Now"
           color={colors.success}
         />
         <MemorySubMetric
+          stacked={largeText}
           divider
           label={narrow ? 'At risk' : 'Below target'}
           value={formatCount(memory.retention.atRisk)}
@@ -967,6 +991,7 @@ function MemoryCard({
           color={memory.retention.atRisk > 0 ? colors.warning : colors.onSurface}
         />
         <MemorySubMetric
+          stacked={largeText}
           divider
           label="Stability"
           value={
@@ -995,6 +1020,7 @@ function StudyHabitsCard({
   now: number;
   narrow: boolean;
 }) {
+  const { largeText } = useTextScale();
   const streak = report.overview.streak;
   const bestHour = report.behavior.bestHour?.label ?? '—';
   const today = new Date(now).getDay();
@@ -1004,7 +1030,13 @@ function StudyHabitsCard({
 
   return (
     <StatsCard>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <View
+        style={{
+          flexDirection: largeText ? 'column' : 'row',
+          alignItems: largeText ? 'flex-start' : 'center',
+          gap: 10,
+        }}
+      >
         <View
           style={{
             width: 32,
@@ -1018,7 +1050,7 @@ function StudyHabitsCard({
           <MaterialIcons name="local-fire-department" size={iconSize.md} color={colors.warning} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <AppText variant="bodySm" weight="semibold" numberOfLines={1}>
+          <AppText variant="bodySm" weight="semibold" numberOfLines={largeText ? 2 : 1}>
             {streak > 0
               ? `${streak}-day ${narrow ? 'streak' : 'active streak'}`
               : narrow
@@ -1029,7 +1061,13 @@ function StudyHabitsCard({
             {narrow ? 'Cadence' : 'Current cadence'}
           </AppText>
         </View>
-        <View style={{ alignItems: 'flex-end', maxWidth: narrow ? 92 : 130 }}>
+        <View
+          style={{
+            alignItems: largeText ? 'flex-start' : 'flex-end',
+            maxWidth: largeText ? undefined : narrow ? 92 : 130,
+            marginTop: largeText ? 4 : 0,
+          }}
+        >
           <AppText
             variant="bodySm"
             weight="semibold"
@@ -1038,7 +1076,7 @@ function StudyHabitsCard({
           >
             {bestHour}
           </AppText>
-          <AppText variant="caption" tone="muted" numberOfLines={1}>
+          <AppText variant="caption" tone="muted" numberOfLines={largeText ? 2 : 1}>
             {narrow ? 'Peak hour' : 'Peak study hour'}
           </AppText>
         </View>

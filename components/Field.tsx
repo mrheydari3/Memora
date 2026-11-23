@@ -54,11 +54,10 @@ export function Field({
         style={{
           backgroundColor: fills.control,
           borderRadius: radii.control,
-          // §10: one resting edge at half strength — about 3.3:1 on the pane,
-          // so it still clears 3:1 without the near-white glare of the full
-          // token; the field's internal fill stays a quiet step.
+          // §10: one resting edge at the 3:1 floor. At 48% the composited line
+          // measures 3.0:1 on the card face; 42% fell to 2.6:1 and failed.
           borderWidth: 1,
-          borderColor: alpha(colors.outline, 0.5),
+          borderColor: alpha(colors.outline, 0.48),
           minHeight: minHeight ?? (tall ? 64 : heights.field),
           paddingVertical: multiline ? 12 : undefined,
           textAlignVertical: multiline ? 'top' : 'center',

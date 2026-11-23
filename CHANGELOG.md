@@ -6,7 +6,17 @@
 > Location/parent picker. Older entries that mention folder nesting, subtree
 > counts or child folders are history, not current behaviour.
 
-## Unreleased
+## v3.2.0 — Phone-first UI
+
+### Phone-first UI — 23 November 2026
+
+- **Phone shell:** the floating dock is fluid up to 360px on phones (`min(360, viewport−24)`) instead of a fixed 300px; tablet/desktop keep 300px. At large text its captions drop and all four tabs become icon-only on 44px targets with accessible names. Home hides the wordmark at large text but keeps a hidden `h1`, and the compact 320 hero uses the 36/40 figure, 16px panel and 12px gaps so the All/Due/sort toolbar clears the dock at scroll 0.
+- **Home and lists:** the current sort is visible in the toolbar; a folder with one deck no longer repeats a separate “Review folder” row; achievements share row heights and the fifth badge becomes a full-width spotlight; one `ListDivider` primitive replaces the 34/68/74px dividers and raw hairlines; Add-deck keeps one primary action and a text cancel; the field edge sits at the 3:1 floor (0.48 alpha).
+- **Deck:** a 90-character name that the app bar must ellipsize is repeated in full at the top of the phone hero. It is no longer line-clamped, so the full name also survives 200% text at 320 and 390 with 0 overflow and 0 clipped labels.
+- **200% text:** data groups reflow to one column rather than clipping, including section headings, settings ledgers, metric grids, recall tiles, memory sub-metrics and achievements. Study’s title caps at two lines on a compact phone, its counter moves into the body, and rating keys reflow to 2×2 with interval and key number on one line. Quiz labels, deck-ledger rows, Discover rows and the session tray wrap without loss.
+- **Verification:** `check:design` clean across 108 files; `tsc` 0; `npm test` 265/265; `test:surfaces` 11/11 for **87** surfaces; `test:fixtures` 14/14; the responsive census measured **88 targets at 320/390/430 = 264 measurements, 0 flagged**. The final full Playwright run passed **191/191** (11.0m), including the axe, flow, keyboard, surface and visual suites. Evidence: [docs/test-report-2026-11-23-ui-v3.2-phone.md](docs/test-report-2026-11-23-ui-v3.2-phone.md).
+- **Release identity:** `package.json` and `app.json` are **3.2.0**; the PWA cache is **`memory-v7`**. The release is a static Worker/asset export with no data migration. Tablet/desktop design is unchanged.
+- **Limitations:** Chromium is the verified browser; Firefox/WebKit, real-device safe areas, and physical notches are not verified.
 
 ### Design drift repair — 21 November 2026
 

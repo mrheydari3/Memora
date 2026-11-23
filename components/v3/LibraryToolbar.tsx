@@ -1,16 +1,11 @@
-import { useRef, useState } from 'react';
 import { View } from 'react-native';
 import { AppText } from '../AppText';
 import { Chip } from '../Chip';
 import { SearchBar } from '../SearchBar';
-import { Menu } from '../menu/Menu';
+import { Select } from '../menu/Select';
 import { useResponsive } from '../../hooks/useResponsive';
-import type { MenuAction } from '../menu/types';
 import type { LibrarySort } from '../../data/types';
-import {
-  LIBRARY_SORT_OPTIONS,
-  librarySortLabel,
-} from '../../data/librarySort';
+import { LIBRARY_SORT_OPTIONS, librarySortLabel } from '../../data/librarySort';
 
 export type LibraryFilter = 'all' | 'due';
 
@@ -41,9 +36,11 @@ type LibraryToolbarProps = {
  * field owns a full row and the instruments sit beneath it, so the placeholder
  * never fights the chips for width; from the tablet breakpoint up they share
  * one row. The result count appears only when something is actually being
- * filtered. Sort is a menu, not a fourth filter: its value belongs to the
- * chosen order, so the compact icon trigger carries the current order in its
- * accessible name and the menu owns the list.
+ * filtered.
+ *
+ * Sort is the same labelled `Select` the deck ledger uses: the trigger reads
+ * "Sort: Due", so the current order is visible without opening the menu. The
+ * old icon-only trigger carried that value only in its accessible name.
  */
 export function LibraryToolbar({
   query,
@@ -56,18 +53,15 @@ export function LibraryToolbar({
   resultLabel,
 }: LibraryToolbarProps) {
   const { tablet } = useResponsive();
-  const sortAnchorRef = useRef<React.ComponentRef<typeof View>>(null);
-  const [sortOpen, setSortOpen] = useState(false);
-  const sortOptions: MenuAction[] = LIBRARY_SORT_OPTIONS.map((option) => ({
-    key: option.value,
-    label: option.label,
-    description: option.description,
-    selected: option.value === sort,
-    onPress: () => onSortChange(option.value),
-  }));
   const shortLabel =
     LIBRARY_SORT_OPTIONS.find((option) => option.value === sort)?.shortLabel ??
     librarySortLabel(sort);
+  const sortOptions = LIBRARY_SORT_OPTIONS.map((option) => ({
+    value: option.value,
+    label: option.label,
+    description: option.description,
+    accessibilityLabel: `Sort by ${option.label}`,
+  }));
 
   return (
     <View style={{ gap: 8 }}>
@@ -82,7 +76,7 @@ export function LibraryToolbar({
             accessibilityLabel="Search your library"
           />
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           <Chip
             label="All"
             accessibilityLabel="Show all"
@@ -95,16 +89,18 @@ export function LibraryToolbar({
             active={filter === 'due'}
             onPress={() => onFilterChange('due')}
           />
-          <View ref={sortAnchorRef}>
-            <Chip
-              menu
-              icon="sort"
-              label=""
-              accessibilityLabel={`Sort: ${shortLabel}`}
-              active={false}
-              onPress={() => setSortOpen(true)}
-            />
-          </View>
+          <Select
+            label="Sort"
+            value={sort}
+            valueLabel={shortLabel}
+            options={sortOptions}
+            onChange={(value) => onSortChange(value as LibrarySort)}
+            icon="sort"
+            sheetTitle="Sort shelf"
+            sheetSubtitle="Pinned folders and decks stay first."
+            width={280}
+            testID="library-sort"
+          />
         </View>
       </View>
 
@@ -113,17 +109,6 @@ export function LibraryToolbar({
           {resultLabel ?? 'No matches'}
         </AppText>
       ) : null}
-
-      <Menu
-        open={sortOpen}
-        onClose={() => setSortOpen(false)}
-        anchorRef={sortAnchorRef}
-        label="Sort shelf"
-        title="Sort shelf"
-        subtitle="Pinned folders and decks stay first."
-        actions={sortOptions}
-        width={280}
-      />
     </View>
   );
 }

@@ -178,7 +178,8 @@ export function SegmentedControl({
                 variant="bodySm"
                 weight={appearance === 'fill' ? 'semibold' : 'medium'}
                 tone={filled ? 'onAccent' : active && appearance === 'plain' ? 'accent' : 'muted'}
-                numberOfLines={1}
+                numberOfLines={2}
+                style={{ flexShrink: 1, textAlign: 'center' }}
               >
                 {segment.label}
               </AppText>

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { View, Animated, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useResponsive } from '../../hooks/useResponsive';
+import { useTextScale } from '../../hooks/useTextScale';
 import { goBackOr, pushOnce } from '../../services/navigation';
 import { HapticsEngine } from '../../services/haptics';
 import { MaterialIcons } from '../../components/Icon';
@@ -97,6 +98,7 @@ function formatNextDue(ms: number): string {
 }
 
 export default function StudyScreen() {
+  const { largeText } = useTextScale();
   // A folder session reuses this screen: `/study/folder/:folderId` resolves to
   // it with `folderId` instead of `deckId`. Every card still knows its own
   // deck, so scheduling, daily caps and reviews stay deck-accurate.
@@ -774,6 +776,7 @@ export default function StudyScreen() {
     );
   }
 
+  const sessionProgress = `${Math.min(index + 1, sessionTotal)} / ${sessionTotal}`;
   const header = (
     <PageHeader
       title={scopeTitle}
@@ -785,18 +788,20 @@ export default function StudyScreen() {
         />
       }
       meta={
-        <View
-          style={{
-            borderRadius: radii.pill,
-            backgroundColor: fills.inset,
-            paddingHorizontal: 9,
-            paddingVertical: 4,
-          }}
-        >
-          <AppText variant="label" weight="semibold" tone="muted">
-            {Math.min(index + 1, sessionTotal)} / {sessionTotal}
-          </AppText>
-        </View>
+        largeText ? undefined : (
+          <View
+            style={{
+              borderRadius: radii.pill,
+              backgroundColor: fills.inset,
+              paddingHorizontal: 9,
+              paddingVertical: 4,
+            }}
+          >
+            <AppText variant="label" weight="semibold" tone="muted">
+              {sessionProgress}
+            </AppText>
+          </View>
+        )
       }
       actions={
         <HeaderIcon
@@ -1056,6 +1061,22 @@ export default function StudyScreen() {
           paddingBottom: 16,
         }}
       >
+        {largeText ? (
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 }}>
+            <View
+              style={{
+                borderRadius: radii.pill,
+                backgroundColor: fills.inset,
+                paddingHorizontal: 9,
+                paddingVertical: 4,
+              }}
+            >
+              <AppText variant="label" weight="semibold" tone="muted">
+                {sessionProgress}
+              </AppText>
+            </View>
+          </View>
+        ) : null}
         {cardStage}
       </View>
     </Screen>

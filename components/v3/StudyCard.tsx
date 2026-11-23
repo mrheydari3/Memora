@@ -441,6 +441,7 @@ const styles = StyleSheet.create({
   footer: {
     minHeight: 28,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,

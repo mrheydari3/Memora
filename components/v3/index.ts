@@ -2,6 +2,8 @@ export { Surface } from './Surface';
 export type { SurfaceTone, SurfaceRadius, SurfacePadding } from './Surface';
 export { ActionButton } from './ActionButton';
 export type { ActionTone } from './ActionButton';
+export { ListDivider } from './ListDivider';
+export type { ListDividerInset } from './ListDivider';
 export { FloatingHeader } from './FloatingHeader';
 export { PageHeader } from './PageHeader';
 export { SectionHeading } from './SectionHeading';

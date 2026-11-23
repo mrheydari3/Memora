@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { glass, heights, rims, spacing } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
+import { useTextScale } from '../../hooks/useTextScale';
 
 type FloatingHeaderProps = {
   children: React.ReactNode;
@@ -32,6 +33,7 @@ export function FloatingHeader({
   barTestID,
 }: FloatingHeaderProps) {
   const column = maxWidth ?? v3.layout.contentMaxWidth;
+  const { largeText } = useTextScale();
 
   return (
     <View testID={testID} pointerEvents="box-none">
@@ -39,7 +41,11 @@ export function FloatingHeader({
         testID={barTestID}
         style={{
           width: '100%',
-          height: heights.pageHeader,
+          // A 200% title needs two lines and more room; the shell asks the bar
+          // for its measured height, so growing here is safe. The default page
+          // keeps the same 64px bar.
+          minHeight: heights.pageHeader,
+          paddingVertical: largeText ? 6 : 0,
           borderBottomLeftRadius: v3.appBar.radius,
           borderBottomRightRadius: v3.appBar.radius,
           // §10: the chrome rim. One edge only, where the page scrolls under it.
@@ -62,6 +68,7 @@ export function FloatingHeader({
         <View
           style={{
             flex: 1,
+            minHeight: heights.pageHeader,
             width: '100%',
             maxWidth: column,
             alignSelf: 'center',

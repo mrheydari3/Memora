@@ -14,9 +14,16 @@ import {
   SkeletonRow,
   SkeletonText,
 } from '../../components';
-import { ActionButton, PageHeader, SectionHeading, Surface } from '../../components/v3';
+import {
+  ActionButton,
+  ListDivider,
+  PageHeader,
+  SectionHeading,
+  Surface,
+} from '../../components/v3';
 import { HintPressable } from '../../components/HintPressable';
 import { usePressFeedback } from '../../motion';
+import { useTextScale } from '../../hooks/useTextScale';
 import { alpha, colors, iconSize } from '../../theme/tokens';
 import { v3 } from '../../theme/v3';
 
@@ -168,6 +175,7 @@ function CatalogueRow({
   last: boolean;
   onPress: () => void;
 }) {
+  const { largeText } = useTextScale();
   const press = usePressFeedback({ scale: 0.985 });
   const cards = deck.sampleCards.length;
   const cardLabel = cards === 1 ? 'card' : 'cards';
@@ -209,10 +217,15 @@ function CatalogueRow({
         </View>
 
         <View style={{ flex: 1, minWidth: 0 }}>
-          <AppText weight="semibold" numberOfLines={1} style={v3.type.deckName}>
+          <AppText weight="semibold" numberOfLines={largeText ? 2 : 1} style={v3.type.deckName}>
             {deck.name}
           </AppText>
-          <AppText variant="bodySm" tone="muted" numberOfLines={2} style={{ marginTop: 2 }}>
+          <AppText
+            variant="bodySm"
+            tone="muted"
+            numberOfLines={largeText ? 4 : 2}
+            style={{ marginTop: 2 }}
+          >
             {deck.description}
           </AppText>
           <View
@@ -236,13 +249,7 @@ function CatalogueRow({
       </HintPressable>
 
       {!last && (
-        <View
-          style={{
-            height: 1,
-            marginStart: 74,
-            backgroundColor: colors.hairlineRule,
-          }}
-        />
+        <ListDivider inset="tile" />
       )}
     </Animated.View>
   );
@@ -275,13 +282,7 @@ function DiscoverSkeleton() {
               <View key={index}>
                 <SkeletonRow tall />
                 {index < 3 && (
-                  <View
-                    style={{
-                      height: 1,
-                      marginStart: 74,
-                      backgroundColor: colors.hairlineRule,
-                    }}
-                  />
+                  <ListDivider inset="tile" />
                 )}
               </View>
             ))}

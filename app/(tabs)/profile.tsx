@@ -3,6 +3,7 @@ import type { ComponentProps } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useResponsive } from '../../hooks/useResponsive';
+import { useTextScale } from '../../hooks/useTextScale';
 import { MaterialIcons } from '../../components/Icon';
 import { useDeckStore } from '../../store/useDeckStore';
 import { useReviewStore } from '../../store/useReviewStore';
@@ -96,6 +97,7 @@ function IdentityCard({
   wide: boolean;
 }) {
   const { allTime } = summary;
+  const { largeText: large } = useTextScale();
   const stats = [
     { label: 'Reviews', value: formatCount(allTime.reviews) },
     { label: 'Total XP', value: formatCount(allTime.xp) },
@@ -110,6 +112,7 @@ function IdentityCard({
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 12,
+          flexWrap: large ? 'wrap' : 'nowrap',
         }}
       >
         <AppText
@@ -155,7 +158,12 @@ function IdentityCard({
           <AppText variant="headline" weight="semibold" numberOfLines={1}>
             Learner
           </AppText>
-          <AppText variant="bodySm" tone="muted" numberOfLines={1} style={{ marginTop: 1 }}>
+          <AppText
+            variant="bodySm"
+            tone="muted"
+            numberOfLines={large ? 2 : 1}
+            style={{ marginTop: 1 }}
+          >
             Active local study desk
           </AppText>
         </View>
@@ -171,8 +179,8 @@ function IdentityCard({
       >
         <View
           style={{
-            flexDirection: 'row',
-            alignItems: 'flex-end',
+            flexDirection: large ? 'column' : 'row',
+            alignItems: large ? 'flex-start' : 'flex-end',
             justifyContent: 'space-between',
             gap: 10,
           }}
@@ -269,12 +277,12 @@ function IdentityCard({
         </View>
       </View>
 
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
+      <View style={{ flexDirection: large ? 'column' : 'row', gap: 8, marginTop: 14 }}>
         {stats.map((stat) => (
           <View
             key={stat.label}
             style={{
-              flex: 1,
+              flex: large ? undefined : 1,
               minWidth: 0,
               paddingHorizontal: 10,
               paddingVertical: 10,
@@ -330,7 +338,7 @@ function MiniStat({
         backgroundColor: fills.inset,
       }}
     >
-      <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+      <AppText variant="caption" tone="tertiary" numberOfLines={2}>
         {label}
       </AppText>
       <AppText
@@ -416,6 +424,8 @@ function MiniStatistics({
   summary: LearningSummary;
   onOpen: () => void;
 }) {
+  const { compact } = useResponsive();
+  const { largeText: large } = useTextScale();
   const { range } = summary;
   const recall = range.recall;
   const recallValue =
@@ -429,12 +439,12 @@ function MiniStatistics({
 
   return (
     <Surface tone="pane" radius="card">
-      <View style={{ flexDirection: 'row', gap: 8 }}>
+      <View style={{ flexDirection: large ? 'column' : 'row', gap: 8 }}>
         <MiniStat
           testID="profile-mini-reviews"
           label="Reviews"
           value={formatCount(range.reviews)}
-          note="recorded in this window"
+          note={compact ? 'this window' : 'recorded in this window'}
         />
         <MiniStat
           testID="profile-mini-recall"
@@ -465,8 +475,22 @@ function MiniStatistics({
   );
 }
 
-function AchievementCard({ fact, basis }: { fact: AchievementFact; basis: string }) {
+function AchievementCard({
+  fact,
+  basis,
+  spotlight = false,
+}: {
+  fact: AchievementFact;
+  basis: string;
+  /** The odd fifth badge spans the row instead of leaving a half-empty line. */
+  spotlight?: boolean;
+}) {
   const visual = ACHIEVEMENTS[fact.id];
+  const { largeText: large } = useTextScale();
+  // The odd fifth badge gets a horizontal spotlight only in the two-column
+  // grid. At large text every badge is already full-width, so the spotlight
+  // would just make the last card shorter than its neighbours.
+  const spotlightLayout = spotlight && !large;
   const statusColor = fact.earned ? visual.color : colors.outline;
   const status = fact.earned
     ? 'Earned'
@@ -479,6 +503,55 @@ function AchievementCard({ fact, basis }: { fact: AchievementFact; basis: string
       ? 'lock'
       : 'info-outline';
 
+  const badge = (
+    <View
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: v3.radii.tile,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: fact.earned ? alpha(visual.color, 0.14) : colors.surfaceControl,
+      }}
+    >
+      <MaterialIcons
+        name={visual.icon}
+        size={iconSize.lg}
+        color={fact.earned ? visual.color : colors.outline}
+      />
+    </View>
+  );
+
+  const copy = (
+    <>
+      <AppText
+        variant="bodySm"
+        weight="semibold"
+        numberOfLines={2}
+        style={{ marginTop: spotlightLayout ? 0 : 10 }}
+      >
+        {visual.label}
+      </AppText>
+      <AppText
+        variant="caption"
+        tone="muted"
+        numberOfLines={large ? 4 : 3}
+        style={{ marginTop: 2 }}
+      >
+        {fact.evidence}
+      </AppText>
+    </>
+  );
+
+  const statusRow = (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 }}>
+      <MaterialIcons name={statusIcon} size={iconSize.xs} color={statusColor} />
+      <AppText variant="caption" weight="semibold" numberOfLines={2} style={{ color: statusColor }}>
+        {status}
+      </AppText>
+    </View>
+  );
+
   return (
     <Surface
       testID={`achievement-${fact.id}`}
@@ -486,59 +559,29 @@ function AchievementCard({ fact, basis }: { fact: AchievementFact; basis: string
       radius="card"
       padding="sm"
       style={{
-        flexBasis: basis,
-        minHeight: 140,
-        justifyContent: 'space-between',
+        flexBasis: spotlightLayout || large ? '100%' : basis,
+        minHeight: spotlightLayout ? 96 : 168,
+        justifyContent: spotlightLayout ? 'center' : 'space-between',
+        flexDirection: 'column',
       }}
     >
-      <View>
-        <View
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: v3.radii.tile,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: fact.earned
-              ? alpha(visual.color, 0.14)
-              : colors.surfaceControl,
-          }}
-        >
-          <MaterialIcons
-            name={visual.icon}
-            size={iconSize.lg}
-            color={fact.earned ? visual.color : colors.outline}
-          />
+      {spotlightLayout ? (
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+          {badge}
+          <View style={{ flex: 1, minWidth: 0 }}>
+            {copy}
+            {statusRow}
+          </View>
         </View>
-        <AppText
-          variant="bodySm"
-          weight="semibold"
-          numberOfLines={2}
-          style={{ marginTop: 10 }}
-        >
-          {visual.label}
-        </AppText>
-        <AppText
-          variant="caption"
-          tone="muted"
-          numberOfLines={3}
-          style={{ marginTop: 2 }}
-        >
-          {fact.evidence}
-        </AppText>
-      </View>
-
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 }}>
-        <MaterialIcons name={statusIcon} size={iconSize.xs} color={statusColor} />
-        <AppText
-          variant="caption"
-          weight="semibold"
-          numberOfLines={2}
-          style={{ color: statusColor }}
-        >
-          {status}
-        </AppText>
-      </View>
+      ) : (
+        <>
+          <View>
+            {badge}
+            {copy}
+          </View>
+          {statusRow}
+        </>
+      )}
     </Surface>
   );
 }
@@ -579,6 +622,10 @@ export default function ProfileScreen() {
     [decks, reviewLog, skips]
   );
   const earned = bundle.achievements.filter((fact) => fact.earned).length;
+  const spotlightId =
+    bundle.achievements.length % 2 === 1
+      ? bundle.achievements[bundle.achievements.length - 1]?.id
+      : undefined;
 
   // A tab root has no back stack and no Settings shortcut: Settings is its own
   // tab, and this screen owns identity and progress only.
@@ -655,6 +702,7 @@ export default function ProfileScreen() {
                     key={fact.id}
                     fact={fact}
                     basis={achievementBasis}
+                    spotlight={fact.id === spotlightId}
                   />
                 ))}
               </View>

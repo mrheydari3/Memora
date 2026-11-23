@@ -1,7 +1,7 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import { colors } from '../theme/tokens';
 
-const PRODUCTION_URL = 'https://site-4cf1794985694a0fbdbfb3b24dec3e09.freebuff.page';
+const PRODUCTION_URL = 'https://memora.freebuff.page';
 const SOCIAL_IMAGE =
   'https://raw.githubusercontent.com/mrheydari3/Memora/main/docs/assets/social-preview.png';
 

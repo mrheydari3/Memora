@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useResponsive } from '../../hooks/useResponsive';
+import { useTextScale } from '../../hooks/useTextScale';
 import { goBackOr } from '../../services/navigation';
 import { MaterialIcons } from '../../components/Icon';
 import { HapticsEngine } from '../../services/haptics';
@@ -303,7 +304,9 @@ function ArenaAnswer({
 export default function QuizScreen() {
   const { deckId, mode: modeParam } = useLocalSearchParams<{ deckId: string; mode?: string }>();
   const router = useRouter();
-  const { tablet } = useResponsive();
+  const { tablet, compact } = useResponsive();
+  const { largeText: large } = useTextScale();
+  const showTimeLabel = tablet || (!compact && !large);
   const mode: QuizMode = modeParam === 'reverse' ? 'reverse' : 'forward';
 
   const deck = useDeckStore((s) => s.decks.find((d) => d.id === deckId));
@@ -814,7 +817,7 @@ export default function QuizScreen() {
           variant="bodySm"
           weight="semibold"
           headingLevel={1}
-          numberOfLines={1}
+          numberOfLines={large ? 2 : 1}
           style={{ marginTop: 1 }}
         >
           {deck?.name ?? 'Quiz'}
@@ -917,7 +920,7 @@ export default function QuizScreen() {
             flexDirection: 'row',
             alignItems: 'center',
             gap: 10,
-            justifyContent: 'flex-start',
+            justifyContent: showTimeLabel ? 'flex-start' : 'center',
           }}
         >
           <TimerRing
@@ -926,14 +929,16 @@ export default function QuizScreen() {
             low={lowTime}
             label={timerLabel}
           />
-          <AppText
-            variant="caption"
-            tone="muted"
-            numberOfLines={1}
-            style={[styles.hudLabel, { flex: 1, minWidth: 0 }]}
-          >
-            TIME
-          </AppText>
+          {showTimeLabel && (
+            <AppText
+              variant="caption"
+              tone="muted"
+              numberOfLines={1}
+              style={[styles.hudLabel, { flex: 1, minWidth: 0 }]}
+            >
+              TIME
+            </AppText>
+          )}
         </View>
       </Surface>
 
@@ -981,9 +986,11 @@ export default function QuizScreen() {
         style={[styles.hudTile, { borderRadius: v3.radii.quizTile }]}
       >
         <View style={styles.hudTop}>
-          <AppText variant="caption" tone="muted" numberOfLines={1} style={styles.hudLabel}>
-            COMBO
-          </AppText>
+          {!large && (
+            <AppText variant="caption" tone="muted" numberOfLines={1} style={styles.hudLabel}>
+              COMBO
+            </AppText>
+          )}
           <MaterialIcons name="local-fire-department" size={iconSize.xs} color={colors.outline} />
         </View>
         <Animated.View style={[{ alignSelf: 'flex-start' }, styles.hudValueRow, comboReveal.style]}>
@@ -1001,9 +1008,10 @@ export default function QuizScreen() {
               weight="semibold"
               tone={combo > 0 ? 'warning' : 'muted'}
               numberOfLines={1}
+              accessibilityLabel={`Combo ${combo}`}
               style={{ fontVariant: ['tabular-nums'] }}
             >
-              Streak ×{combo}
+              {large ? `×${combo}` : `Streak ×${combo}`}
             </AppText>
           </View>
         </Animated.View>
@@ -1061,7 +1069,7 @@ export default function QuizScreen() {
                   variant="caption"
                   weight="medium"
                   tone="muted"
-                  numberOfLines={1}
+                  numberOfLines={2}
                   style={{ flexShrink: 1 }}
                 >
                   {mode === 'reverse' ? 'Pick the matching word' : 'Pick the correct translation'}

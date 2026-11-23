@@ -9,7 +9,8 @@ import { STORAGE_KEYS } from '../../data/storageKeys';
  * The F3 folder German holds two due decks: Schritt Plus Neu (26 in its own
  * session) and the long-name deck (4). A folder session must show 30, split
  * every rating back to the card's own deck, and leave the deck route's 26
- * untouched. Travel proves the single-deck folder still offers the same entry.
+ * untouched. Travel proves a single-deck folder no longer duplicates its deck
+ * action, while the folder session route still completes and returns home.
  */
 const FIXED_NOW = new Date('2026-11-07T12:00:00Z');
 const HOME_FIXTURE = buildFixture('F3', FIXED_NOW.getTime());
@@ -76,7 +77,11 @@ test('completing a folder session closes on the folder and returns home', async 
   await page.setViewportSize({ width: 390, height: 844 });
   await openHome(page);
 
-  await page.getByRole('button', { name: /^Review folder Travel,/ }).click();
+  // A one-deck folder does not repeat the deck's own action.
+  await expect(page.getByRole('button', { name: /^Review folder Travel,/ })).toHaveCount(0);
+  await page.goto('/study/folder/fold-travel');
+  await page.waitForSelector('[role="main"]');
+  await page.getByRole('progressbar', { name: 'Loading Memora' }).waitFor({ state: 'detached' });
   await expect(page).toHaveURL(/\/study\/folder\/fold-travel$/);
   await expect(page.getByText('1 / 6')).toBeVisible();
 
