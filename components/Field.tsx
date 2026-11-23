@@ -1,7 +1,7 @@
 import type { ComponentRef, Ref } from 'react';
 import { TextInput, View } from 'react-native';
 import { AppText } from './AppText';
-import { colors, fills, heights, radii } from '../theme/tokens';
+import { alpha, colors, fills, heights, radii } from '../theme/tokens';
 
 export type FieldInputRef = ComponentRef<typeof TextInput>;
 
@@ -54,10 +54,11 @@ export function Field({
         style={{
           backgroundColor: fills.control,
           borderRadius: radii.control,
-          // §10: one resting edge from the existing outline token (≥3:1 on
-          // the pane); the field's internal fill stays a quiet step.
+          // §10: one resting edge at half strength — about 3.3:1 on the pane,
+          // so it still clears 3:1 without the near-white glare of the full
+          // token; the field's internal fill stays a quiet step.
           borderWidth: 1,
-          borderColor: colors.outline,
+          borderColor: alpha(colors.outline, 0.5),
           minHeight: minHeight ?? (tall ? 64 : heights.field),
           paddingVertical: multiline ? 12 : undefined,
           textAlignVertical: multiline ? 'top' : 'center',
@@ -65,7 +66,8 @@ export function Field({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.outline}
+        // One step below the typed text, so a placeholder never reads as a value.
+        placeholderTextColor={colors.tertiaryContainer}
         multiline={multiline}
         maxLength={maxLength}
         autoFocus={autoFocus}
